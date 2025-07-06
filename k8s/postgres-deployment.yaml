@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: trading-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: hostpath
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-dev
+  namespace: trading-system
+  labels:
+    app: postgres-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-dev
+  template:
+    metadata:
+      labels:
+        app: postgres-dev
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "trading_bot"
+        - name: POSTGRES_USER
+          value: "trading_user"
+        - name: POSTGRES_PASSWORD
+          value: "trading_pass"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: init-scripts
+        configMap:
+          name: postgres-init-scripts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-dev
+  namespace: trading-system
+  labels:
+    app: postgres-dev
+spec:
+  selector:
+    app: postgres-dev
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: trading-system
+data:
+  01-init.sql: |
+    -- Create tables for market data (matching SQLAlchemy models)
+    CREATE TABLE IF NOT EXISTS historical_prices (
+        symbol VARCHAR(10) NOT NULL,
+        date DATE NOT NULL,
+        open_price DECIMAL(10,4) NOT NULL,
+        high_price DECIMAL(10,4) NOT NULL,
+        low_price DECIMAL(10,4) NOT NULL,
+        close_price DECIMAL(10,4) NOT NULL,
+        volume INTEGER NOT NULL,
+        provider VARCHAR(50) NOT NULL,
+        interval VARCHAR(10) NOT NULL DEFAULT '1d',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (symbol, date)
+    );
+    
+    CREATE TABLE IF NOT EXISTS market_data_cache (
+        symbol VARCHAR(10) NOT NULL,
+        provider VARCHAR(50) NOT NULL,
+        interval VARCHAR(10) NOT NULL DEFAULT '1d',
+        earliest_date DATE,
+        latest_date DATE,
+        total_records INTEGER DEFAULT 0,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (symbol, provider, interval)
+    );
+    
+    -- Create indexes for better performance
+    CREATE INDEX IF NOT EXISTS idx_symbol_date ON historical_prices(symbol, date);
+    CREATE INDEX IF NOT EXISTS idx_provider_symbol ON historical_prices(provider, symbol);
+    CREATE INDEX IF NOT EXISTS idx_date_range ON historical_prices(date);
+    CREATE INDEX IF NOT EXISTS idx_cache_symbol ON market_data_cache(symbol);
+    CREATE INDEX IF NOT EXISTS idx_cache_provider ON market_data_cache(provider);

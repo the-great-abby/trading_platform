@@ -1,0 +1,96 @@
+version: '3.8'
+
+# Docker Compose override for local registry
+# This file should be used with: docker-compose -f docker-compose.yml -f docker-compose.registry.yml up
+
+services:
+  # API Gateway
+  api-gateway:
+    image: host.docker.internal:5000/trading-bot-gateway:latest
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+
+  # Command API
+  command-api:
+    image: host.docker.internal:5000/trading-bot-command-api:latest
+    build:
+      context: ./services/command-api
+      dockerfile: Dockerfile
+
+  # Query API
+  query-api:
+    image: host.docker.internal:5000/trading-bot-query-api:latest
+    build:
+      context: ./services/query-api
+      dockerfile: Dockerfile
+
+  # Trading Service
+  trading-service:
+    image: host.docker.internal:5000/trading-bot-trading-service:latest
+    build:
+      context: ./services/trading-service
+      dockerfile: Dockerfile
+
+  # Market Data Service
+  market-data-service:
+    image: host.docker.internal:5000/trading-bot-market-data-service:latest
+    build:
+      context: ./services/market-data-service
+      dockerfile: Dockerfile
+
+  # Portfolio Service
+  portfolio-service:
+    image: host.docker.internal:5000/trading-bot-portfolio-service:latest
+    build:
+      context: ./services/portfolio-service
+      dockerfile: Dockerfile
+
+  # Risk Management Service
+  risk-service:
+    image: host.docker.internal:5000/trading-bot-risk-service:latest
+    build:
+      context: ./services/risk-service
+      dockerfile: Dockerfile
+
+  # Strategy Service
+  strategy-service:
+    image: host.docker.internal:5000/trading-bot-strategy-service:latest
+    build:
+      context: ./services/strategy-service
+      dockerfile: Dockerfile
+
+  # Order Management Service
+  order-service:
+    image: host.docker.internal:5000/trading-bot-order-service:latest
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+
+  # Analytics Service
+  analytics-service:
+    image: host.docker.internal:5000/trading-bot-analytics-service:latest
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+
+  # User Management Service
+  user-service:
+    image: host.docker.internal:5000/trading-bot-user-service:latest
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+
+  # Public API Service
+  public-api:
+    image: host.docker.internal:5000/trading-bot-public-api:latest
+    build:
+      context: ./services/public-api
+      dockerfile: Dockerfile
+
+  # Health Dashboard
+  health-dashboard:
+    image: host.docker.internal:5000/trading-bot-health-dashboard:latest
+    build:
+      context: ./services/health-dashboard
+      dockerfile: Dockerfile 

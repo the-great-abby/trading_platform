@@ -1,0 +1,573 @@
+version: '3.8'
+
+services:
+  # Main API Gateway - Only service exposed externally
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: api-gateway
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"  # Only the main API gateway is exposed
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - TRADING_SERVICE_URL=http://trading-service:8001
+      - MARKET_DATA_SERVICE_URL=http://market-data-service:8002
+      - RISK_SERVICE_URL=http://risk-service:8003
+      - PORTFOLIO_SERVICE_URL=http://portfolio-service:8004
+      - STRATEGY_SERVICE_URL=http://strategy-service:8005
+      - ORDER_SERVICE_URL=http://order-service:8006
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8007
+      - USER_SERVICE_URL=http://user-service:8008
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+      - trading-service
+      - market-data-service
+      - risk-service
+      - portfolio-service
+      - strategy-service
+      - order-service
+      - analytics-service
+      - user-service
+    networks:
+      - trading-network
+    command: ["python", "src/api/main.py"]
+
+  # Internal Microservices - No external ports exposed
+  trading-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: trading-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8001"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+      - OLLAMA_URL=http://host.docker.internal:11434
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/trading-service/main.py"]
+
+  market-data-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: market-data-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8002"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/market-data-service/main.py"]
+
+  risk-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: risk-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8003"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/risk-service/main.py"]
+
+  portfolio-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: portfolio-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8004"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/portfolio-service/main.py"]
+
+  strategy-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: strategy-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8005"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+      - OLLAMA_URL=http://host.docker.internal:11434
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/strategy-service/main.py"]
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: order-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8006"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/order-service/main.py"]
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: analytics-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8007"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/analytics-service/main.py"]
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: user-service
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    expose:
+      - "8008"  # Internal port only
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: ["python", "services/user-service/main.py"]
+
+  # Development CLI container for internal operations
+  trading-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: trading-cli
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
+      - REDIS_URL=redis://redis-dev:6379
+      - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
+      - EVENTSTORE_URL=esdb://eventstore-dev:2113
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - API_GATEWAY_URL=http://api-gateway:8000
+      - TRADING_SERVICE_URL=http://trading-service:8000
+      - MARKET_DATA_SERVICE_URL=http://market-data-service:8000
+      - PORTFOLIO_SERVICE_URL=http://portfolio-service:8000
+      - ORDER_SERVICE_URL=http://order-service:8000
+      - USER_SERVICE_URL=http://user-service:8000
+      - STRATEGY_SERVICE_URL=http://strategy-service:8000
+      - RISK_SERVICE_URL=http://risk-service:8000
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8000
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+      - POLYGON_API_KEY=${POLYGON_API_KEY}
+      - IEX_CLOUD_API_KEY=${IEX_CLOUD_API_KEY}
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - rabbitmq-dev
+      - kafka-dev
+      - eventstore-dev
+    networks:
+      - trading-network
+    command: tail -f /dev/null
+
+  # Test environment
+  trading-bot-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: trading-bot-test
+    volumes:
+      - .:/app
+      - ./test-data:/app/test-data
+    environment:
+      - ENVIRONMENT=test
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://postgres:password@postgres-test:5432/trading_bot_test
+      - REDIS_URL=redis://redis-test:6379/1
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-test:9092
+      - EVENTSTORE_CONNECTION_STRING=esdb://eventstore-test:2113?tls=false
+    depends_on:
+      - postgres-test
+      - redis-test
+      - kafka-test
+      - eventstore-test
+    networks:
+      - trading-network
+    command: ["python", "-m", "pytest", "tests/", "-v", "--cov=src", "--cov-report=html", "--cov-report=term", "--cov-report=xml"]
+
+  # PostgreSQL for development
+  postgres-dev:
+    image: postgres:15
+    container_name: postgres-dev
+    environment:
+      POSTGRES_DB: trading_bot
+      POSTGRES_USER: trading_user
+      POSTGRES_PASSWORD: trading_pass
+    expose:
+      - "5432"  # Internal port only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trading_user -d trading_bot"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - trading-network
+
+  # PostgreSQL for testing
+  postgres-test:
+    image: postgres:15
+    container_name: postgres-test
+    environment:
+      POSTGRES_DB: trading_bot_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    expose:
+      - "5432"  # Internal port only - no external access needed
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - trading-network
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    expose:
+      - "6379"  # Internal port only
+    volumes:
+      - redis_data:/data
+    networks:
+      - trading-network
+
+  # Redis for testing
+  redis-test:
+    image: redis:7-alpine
+    container_name: redis-test
+    ports:
+      - "6380:6379"  # Keep test Redis accessible for debugging
+    volumes:
+      - redis_test_data:/data
+    networks:
+      - trading-network
+
+  # Kafka for development
+  kafka-dev:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-dev
+    depends_on:
+      - zookeeper-dev
+    expose:
+      - "9092"  # Internal port only
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-dev:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-dev:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    networks:
+      - trading-network
+
+  # Kafka for testing
+  kafka-test:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-test
+    depends_on:
+      - zookeeper-test
+    ports:
+      - "9093:9092"  # Keep test Kafka accessible for debugging
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-test:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-test:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - trading-network
+
+  # Zookeeper for development
+  zookeeper-dev:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper-dev
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - trading-network
+
+  # Zookeeper for testing
+  zookeeper-test:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper-test
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - trading-network
+
+  # EventStoreDB for development
+  eventstore-dev:
+    image: eventstore/eventstore:latest
+    container_name: eventstore-dev
+    expose:
+      - "2113"  # Internal port only
+      - "1113"  # Internal port only
+    environment:
+      EVENTSTORE_CLUSTER_SIZE: 1
+      EVENTSTORE_RUN_PROJECTIONS: All
+      EVENTSTORE_START_STANDARD_PROJECTIONS: true
+      EVENTSTORE_EXT_TCP_PORT: 1113
+      EVENTSTORE_HTTP_PORT: 2113
+      EVENTSTORE_ENABLE_EXTERNAL_TCP: true
+      EVENTSTORE_ENABLE_TRUSTED_AUTH: false
+    volumes:
+      - eventstore_data:/var/lib/eventstore
+    networks:
+      - trading-network
+
+  # EventStoreDB for testing
+  eventstore-test:
+    image: eventstore/eventstore:latest
+    container_name: eventstore-test
+    ports:
+      - "2114:2113"  # Keep test EventStore accessible for debugging
+      - "1114:1113"  # Keep test EventStore accessible for debugging
+    environment:
+      EVENTSTORE_CLUSTER_SIZE: 1
+      EVENTSTORE_RUN_PROJECTIONS: All
+      EVENTSTORE_START_STANDARD_PROJECTIONS: true
+      EVENTSTORE_EXT_TCP_PORT: 1113
+      EVENTSTORE_HTTP_PORT: 2113
+      EVENTSTORE_INSECURE: true
+    volumes:
+      - eventstore_test_data:/var/lib/eventstore
+    networks:
+      - trading-network
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    expose:
+      - "9090"  # Internal port only
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - trading-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    expose:
+      - "3000"  # Internal port only
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - trading-network
+
+  # RabbitMQ for development
+  rabbitmq-dev:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq-dev
+    environment:
+      RABBITMQ_DEFAULT_USER: trading_user
+      RABBITMQ_DEFAULT_PASS: trading_pass
+      RABBITMQ_DEFAULT_VHOST: trading_vhost
+    expose:
+      - "5672"  # Internal port only
+      - "15672"  # Internal port only
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - trading-network
+
+volumes:
+  postgres_data:
+  postgres_test_data:
+  redis_data:
+  redis_test_data:
+  eventstore_data:
+  eventstore_test_data:
+  prometheus_data:
+  grafana_data:
+  rabbitmq_data:
+
+networks:
+  trading-network:
+    driver: bridge 

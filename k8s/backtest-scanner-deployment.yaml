@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backtest-scanner
+  namespace: trading-system
+  labels:
+    app: backtest-scanner
+    component: data-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backtest-scanner
+  template:
+    metadata:
+      labels:
+        app: backtest-scanner
+        component: data-management
+    spec:
+      containers:
+      - name: backtest-scanner
+        image: trading-bot:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python"]
+        args: ["scan_backtest_data.py", "--multi-period"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: ALPHA_VANTAGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpha-vantage-api-key
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: PYTHONPATH
+          value: "/app/src"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: data-volume
+          mountPath: /app/data
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: logs-volume
+        emptyDir: {}
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backtest-scanner-service
+  namespace: trading-system
+  labels:
+    app: backtest-scanner
+spec:
+  selector:
+    app: backtest-scanner
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backtest-data-pvc
+  namespace: trading-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backtest-scanner-daily
+  namespace: trading-system
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backtest-scanner
+            image: trading-bot:latest
+            imagePullPolicy: IfNotPresent
+            command: ["python"]
+            args: ["scan_backtest_data.py", "--symbols", "AAPL MSFT GOOGL TSLA AMZN", "--start-date", "$(date -d 'yesterday' +%Y-%m-%d)", "--end-date", "$(date +%Y-%m-%d)"]
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database-url
+            - name: ALPHA_VANTAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: alpha-vantage-api-key
+            - name: POLYGON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: polygon-api-key
+            - name: REDIS_URL
+              value: "redis://redis-service:6379"
+            - name: PYTHONPATH
+              value: "/app/src"
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+            volumeMounts:
+            - name: logs-volume
+              mountPath: /app/logs
+            - name: data-volume
+              mountPath: /app/data
+          volumes:
+          - name: logs-volume
+            emptyDir: {}
+          - name: data-volume
+            persistentVolumeClaim:
+              claimName: backtest-data-pvc
+          restartPolicy: OnFailure
+          backoffLimit: 3 

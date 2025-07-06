@@ -1,0 +1,133 @@
+# Docker Registry Operations Makefile
+# Usage: make -f Makefile.registry <target>
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Variables
+REGISTRY_HOST := host.docker.internal:5000
+PROJECT_NAME := trading-bot
+IMAGE_TAG := latest
+REGISTRY_SCRIPT := scripts/docker-registry-setup.sh
+
+# Registry Operations
+registry-check: ## Check if local registry is accessible
+	@echo "$(GREEN)Checking local registry accessibility...$(NC)"
+	@$(REGISTRY_SCRIPT) check
+
+registry-build: ## Build all images and tag for local registry
+	@echo "$(GREEN)Building images for local registry...$(NC)"
+	@$(REGISTRY_SCRIPT) build
+
+registry-push: ## Push all images to local registry
+	@echo "$(GREEN)Pushing images to local registry...$(NC)"
+	@$(REGISTRY_SCRIPT) push
+
+registry-build-push: ## Build and push all images to local registry
+	@echo "$(GREEN)Building and pushing images to local registry...$(NC)"
+	@$(REGISTRY_SCRIPT) build-push
+
+registry-update-k8s: ## Update Kubernetes manifests with registry URLs
+	@echo "$(GREEN)Updating Kubernetes manifests...$(NC)"
+	@$(REGISTRY_SCRIPT) update-k8s
+
+registry-config: ## Create registry configuration file
+	@echo "$(GREEN)Creating registry configuration...$(NC)"
+	@$(REGISTRY_SCRIPT) config
+
+registry-setup: ## Complete registry setup (check, build, push, config, update-k8s)
+	@echo "$(GREEN)Running complete registry setup...$(NC)"
+	@$(REGISTRY_SCRIPT) all
+
+# Individual Service Operations
+registry-build-main: ## Build main trading-bot image for registry
+	@echo "$(GREEN)Building main trading-bot image...$(NC)"
+	docker build -f Dockerfile.dev -t $(PROJECT_NAME):$(IMAGE_TAG) .
+	docker tag $(PROJECT_NAME):$(IMAGE_TAG) $(REGISTRY_HOST)/$(PROJECT_NAME):$(IMAGE_TAG)
+
+registry-push-main: ## Push main trading-bot image to registry
+	@echo "$(GREEN)Pushing main trading-bot image...$(NC)"
+	docker push $(REGISTRY_HOST)/$(PROJECT_NAME):$(IMAGE_TAG)
+
+registry-build-service: ## Build a specific service (usage: make -f Makefile.registry registry-build-service SERVICE=gateway)
+	@echo "$(GREEN)Building $(SERVICE) service...$(NC)"
+	docker build -f services/$(SERVICE)/Dockerfile -t $(PROJECT_NAME)-$(SERVICE):$(IMAGE_TAG) services/$(SERVICE)
+	docker tag $(PROJECT_NAME)-$(SERVICE):$(IMAGE_TAG) $(REGISTRY_HOST)/$(PROJECT_NAME)-$(SERVICE):$(IMAGE_TAG)
+
+registry-push-service: ## Push a specific service (usage: make -f Makefile.registry registry-push-service SERVICE=gateway)
+	@echo "$(GREEN)Pushing $(SERVICE) service...$(NC)"
+	docker push $(REGISTRY_HOST)/$(PROJECT_NAME)-$(SERVICE):$(IMAGE_TAG)
+
+# Registry Management
+registry-list: ## List images in local registry
+	@echo "$(GREEN)Listing images in local registry...$(NC)"
+	@curl -s http://$(REGISTRY_HOST)/v2/_catalog | jq '.' || echo "$(RED)Registry not accessible or jq not installed$(NC)"
+
+registry-clean: ## Remove local images (keep registry images)
+	@echo "$(YELLOW)Removing local images...$(NC)"
+	docker rmi $(PROJECT_NAME):$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-trading-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-market-data-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-portfolio-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-risk-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-strategy-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-order-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-analytics-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-user-service:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-gateway:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-command-api:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-query-api:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-public-api:$(IMAGE_TAG) 2>/dev/null || true
+	docker rmi $(PROJECT_NAME)-health-dashboard:$(IMAGE_TAG) 2>/dev/null || true
+	@echo "$(GREEN)Local images cleaned$(NC)"
+
+# Kubernetes Integration
+k8s-deploy-registry: ## Deploy to Kubernetes using registry images
+	@echo "$(GREEN)Deploying to Kubernetes with registry images...$(NC)"
+	@$(REGISTRY_SCRIPT) update-k8s
+	kubectl apply -f k8s/namespace.yaml
+	kubectl apply -f k8s/secrets.yaml
+	kubectl apply -f k8s/configmap.yaml
+	kubectl apply -f k8s/postgres-deployment.yaml
+	kubectl apply -f k8s/redis-deployment.yaml
+	kubectl apply -f k8s/rabbitmq-deployment.yaml
+	kubectl apply -f k8s/backtest-scanner-deployment.yaml
+	@echo "$(GREEN)Kubernetes deployment with registry images completed$(NC)"
+
+k8s-deploy-registry-quick: ## Quick deploy with registry images (minimal services)
+	@echo "$(GREEN)Quick Kubernetes deployment with registry images...$(NC)"
+	@$(REGISTRY_SCRIPT) update-k8s
+	kubectl apply -f k8s/namespace.yaml
+	kubectl apply -f k8s/secrets.yaml
+	kubectl apply -f k8s/postgres-deployment.yaml
+	kubectl apply -f k8s/redis-deployment.yaml
+	kubectl apply -f k8s/backtest-scanner-deployment.yaml
+	@echo "$(GREEN)Quick Kubernetes deployment completed$(NC)"
+
+# Development Workflow
+dev-registry-workflow: ## Complete development workflow with registry
+	@echo "$(GREEN)Running complete development workflow with registry...$(NC)"
+	@$(REGISTRY_SCRIPT) check
+	@$(REGISTRY_SCRIPT) build-push
+	@$(REGISTRY_SCRIPT) config
+	@$(REGISTRY_SCRIPT) update-k8s
+	@echo "$(GREEN)Development workflow completed!$(NC)"
+	@echo "$(YELLOW)Next: Run 'make -f Makefile.registry k8s-deploy-registry' to deploy$(NC)"
+
+# Help
+help: ## Show this help message
+	@echo "$(GREEN)Docker Registry Operations:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-25s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(GREEN)Quick Start:$(NC)"
+	@echo "  make -f Makefile.registry registry-setup"
+	@echo "  make -f Makefile.registry k8s-deploy-registry"
+	@echo ""
+	@echo "$(GREEN)Individual Service:$(NC)"
+	@echo "  make -f Makefile.registry registry-build-service SERVICE=gateway"
+	@echo "  make -f Makefile.registry registry-push-service SERVICE=gateway"
+
+.PHONY: help registry-check registry-build registry-push registry-build-push registry-update-k8s registry-config registry-setup registry-build-main registry-push-main registry-build-service registry-push-service registry-list registry-clean k8s-deploy-registry k8s-deploy-registry-quick dev-registry-workflow 

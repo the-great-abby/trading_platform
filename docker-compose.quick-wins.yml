@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  quick-wins-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.quick-wins
+    container_name: quick-wins-demo
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src:ro
+      - ./demo_quick_wins_container.py:/app/demo_quick_wins_container.py:ro
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - LOG_DIR=/app/logs
+      - MAX_LOG_SIZE_MB=100
+      - LOG_BACKUP_COUNT=5
+      - PERFORMANCE_LOG_DAYS=30
+    command: python demo_quick_wins_container.py
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.path.insert(0, 'src'); from utils.cache_manager import AdvancedCacheManager; print('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      - redis
+
+  quick-wins-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.quick-wins
+    container_name: quick-wins-tests
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./demo_quick_wins_container.py:/app/demo_quick_wins_container.py:ro
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=test
+      - LOG_LEVEL=INFO
+      - LOG_DIR=/app/logs
+      - MAX_LOG_SIZE_MB=10
+      - LOG_BACKUP_COUNT=2
+      - PERFORMANCE_LOG_DAYS=7
+    command: python -m pytest tests/test_quick_wins.py -v
+    depends_on:
+      - redis
+      - quick-wins-demo
+
+  # Redis for L2 caching
+  redis:
+    image: redis:7-alpine
+    container_name: quick-wins-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  health-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.quick-wins
+    container_name: health-dashboard
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src:ro
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - LOG_DIR=/app/logs
+    command: uvicorn src.api.health_dashboard:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - redis
+      - quick-wins-demo
+
+volumes:
+  redis_data: 

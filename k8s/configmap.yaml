@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-config
+  namespace: trading-system
+data:
+  # Database URLs
+  DATABASE_URL_WRITE: "postgresql://postgres:password@write-db:5432/trading_write"
+  DATABASE_URL_READ: "postgresql://postgres:password@read-db:5432/trading_read"
+  
+  # Event Store
+  EVENT_STORE_URL: "eventstore:2113"
+  
+  # Message Broker
+  KAFKA_BROKERS: "kafka:9092"
+  
+  # Cache
+  REDIS_URL: "redis://redis:6379"
+  
+  # Time Series Database
+  INFLUXDB_URL: "http://influxdb:8086"
+  
+  # Public API
+  PUBLIC_API_URL: "http://public-api:8000"
+  
+  # Environment
+  ENVIRONMENT: "production"
+  
+  # Logging
+  LOG_LEVEL: "INFO"
+  
+  # Trading Configuration
+  INITIAL_CAPITAL: "10000"
+  MAX_POSITION_SIZE: "0.1"
+  STOP_LOSS_PERCENTAGE: "0.02"
+  TAKE_PROFIT_PERCENTAGE: "0.05" 

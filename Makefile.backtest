@@ -1,0 +1,123 @@
+# Backtest Operations Makefile
+# Usage: make -f Makefile.backtest <target>
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Variables
+DOCKER_COMPOSE := docker-compose
+KUBECTL := kubectl
+
+# Backtest Results Management (Docker-based)
+backtest-list: ## List backtest runs from database
+	@echo "$(GREEN)Listing backtest runs...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py list
+
+backtest-list-detailed: ## List backtest runs with detailed information
+	@echo "$(GREEN)Listing backtest runs with details...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py list --details
+
+backtest-show: ## Show details for a specific backtest run (usage: make backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy)
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "$(RED)Error: RUN_ID parameter is required$(NC)"; \
+		echo "Usage: make backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Showing details for run $(RUN_ID)...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py show $(RUN_ID)
+
+backtest-show-trades: ## Show trades for a specific backtest run (usage: make backtest-show-trades RUN_ID=backtest_20250705_123456_BollingerBandsStrategy)
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "$(RED)Error: RUN_ID parameter is required$(NC)"; \
+		echo "Usage: make backtest-show-trades RUN_ID=backtest_20250705_123456_BollingerBandsStrategy"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Showing trades for run $(RUN_ID)...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py trades $(RUN_ID)
+
+backtest-compare: ## Compare strategies
+	@echo "$(GREEN)Comparing strategies...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py compare
+
+backtest-stats: ## Show backtest statistics
+	@echo "$(GREEN)Showing backtest statistics...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py stats
+
+# Backtest Execution (Docker-based)
+backtest-run: ## Run comprehensive backtesting analysis
+	@echo "$(GREEN)Running backtesting analysis...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python run_backtest.py
+
+backtest-quick: ## Run quick backtest with fewer symbols
+	@echo "$(GREEN)Running quick backtest...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python -c "from run_backtest import main; import sys; sys.argv = ['quick']; main()"
+
+backtest-single: ## Run backtest for single strategy
+	@echo "$(GREEN)Running single strategy backtest...$(NC)"
+	@read -p "Enter strategy name (sma_crossover/rsi/macd/bollinger_bands): " strategy; \
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python -c "from run_backtest import main; import sys; sys.argv = ['single', '$$strategy']; main()"
+
+backtest-view-results: ## View backtest results
+	@echo "$(GREEN)Viewing backtest results...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python view_backtest_results.py
+
+# Kubernetes Backtest Commands
+kube-backtest-list: ## List backtest runs from database using Kubernetes
+	@echo "$(GREEN)Listing backtest runs from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py list
+
+kube-backtest-list-detailed: ## List backtest runs with detailed information using Kubernetes
+	@echo "$(GREEN)Listing backtest runs with details from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py list --details
+
+kube-backtest-show: ## Show details for a specific backtest run using Kubernetes (usage: make kube-backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy)
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "$(RED)Error: RUN_ID parameter is required$(NC)"; \
+		echo "Usage: make kube-backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Showing details for run $(RUN_ID) from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py show $(RUN_ID)
+
+kube-backtest-compare: ## Compare strategies using Kubernetes
+	@echo "$(GREEN)Comparing strategies from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py compare
+
+kube-backtest-stats: ## Show backtest statistics using Kubernetes
+	@echo "$(GREEN)Showing backtest statistics from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py stats
+
+# Kubernetes Backtest Job Management
+kube-backtest: ## Run a backtest job on Kubernetes
+	@echo "$(GREEN)Deleting existing backtest job...$(NC)"
+	@kubectl delete job backtest-job -n trading-system --ignore-not-found=true
+	@echo "$(GREEN)Creating new backtest job...$(NC)"
+	$(KUBECTL) apply -f k8s/backtest-job.yaml
+	@echo "$(GREEN)Backtest job created! Check status with: make -f Makefile.backtest kube-backtest-status$(NC)"
+
+kube-backtest-complete: ## Complete backtest workflow: rebuild image, setup DB, run backtest
+	@echo "$(GREEN)Starting complete backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest kube-backtest
+	@echo "$(GREEN)Complete backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Check results with: make -f Makefile.backtest kube-backtest-status$(NC)"
+
+kube-backtest-status: ## Check status of backtest job
+	$(KUBECTL) -n trading-system get jobs
+
+kube-backtest-logs: ## Get logs from the backtest job
+	$(KUBECTL) -n trading-system logs job/trading-backtest
+
+# Help
+help: ## Show this help message
+	@echo "$(GREEN)Backtest Operations:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}'
+
+.PHONY: help backtest-list backtest-list-detailed backtest-show backtest-show-trades backtest-compare backtest-stats backtest-run backtest-quick backtest-single backtest-view-results kube-backtest-list kube-backtest-list-detailed kube-backtest-show kube-backtest-compare kube-backtest-stats kube-backtest kube-backtest-status kube-backtest-logs kube-backtest-complete 

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-dashboard
+  namespace: trading-system
+  labels:
+    app: health-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: health-dashboard
+  template:
+    metadata:
+      labels:
+        app: health-dashboard
+    spec:
+      containers:
+      - name: health-dashboard
+        image: health-dashboard:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+        env:
+        - name: REDIS_URL
+          value: "redis://redis-dev:6379"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENVIRONMENT
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: logs-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-dashboard
+  namespace: trading-system
+  labels:
+    app: health-dashboard
+spec:
+  selector:
+    app: health-dashboard
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+    name: http
+  type: ClusterIP 

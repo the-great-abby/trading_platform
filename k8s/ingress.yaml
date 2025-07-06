@@ -1,0 +1,91 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trading-ingress
+  namespace: trading-system
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  rules:
+  - host: trading.example.com
+    http:
+      paths:
+      - path: /api/v1/commands
+        pathType: Prefix
+        backend:
+          service:
+            name: command-api
+            port:
+              number: 80
+      - path: /api/v1/queries
+        pathType: Prefix
+        backend:
+          service:
+            name: query-api
+            port:
+              number: 80
+      - path: /api/v1/trading
+        pathType: Prefix
+        backend:
+          service:
+            name: trading-service
+            port:
+              number: 80
+      - path: /api/v1/market-data
+        pathType: Prefix
+        backend:
+          service:
+            name: market-data-service
+            port:
+              number: 80
+      - path: /api/v1/portfolio
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-service
+            port:
+              number: 80
+      - path: /api/v1/analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 80
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: health-dashboard
+            port:
+              number: 80
+      - path: /dashboard
+        pathType: Prefix
+        backend:
+          service:
+            name: health-dashboard
+            port:
+              number: 80
+  - host: grafana.trading.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
+  - host: kibana.trading.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: kibana
+            port:
+              number: 5601 

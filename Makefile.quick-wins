@@ -1,0 +1,132 @@
+# Quick Wins Makefile
+# Easy commands for running quick wins in containers with Redis
+
+.PHONY: help build demo test clean logs redis-status redis-cli
+
+# Default target
+help:
+	@echo "Quick Wins Container Commands (with Redis):"
+	@echo ""
+	@echo "  make build       - Build the quick wins container"
+	@echo "  make demo        - Run the quick wins demo with Redis"
+	@echo "  make test        - Run quick wins tests"
+	@echo "  make logs        - View logs from containers"
+	@echo "  make clean       - Clean up containers and images"
+	@echo "  make shell       - Open shell in quick wins container"
+	@echo "  make redis-status - Check Redis container status"
+	@echo "  make redis-cli   - Open Redis CLI"
+	@echo "  make all         - Build and run everything"
+	@echo ""
+
+# Build the container
+build:
+	@echo "Building quick wins container..."
+	docker build -f Dockerfile.quick-wins -t quick-wins:latest .
+
+# Run the demo with Redis
+demo: build
+	@echo "Running quick wins demo with Redis..."
+	docker-compose -f docker-compose.quick-wins.yml up quick-wins-demo
+
+# Run tests
+test: build
+	@echo "Running quick wins tests..."
+	docker-compose -f docker-compose.quick-wins.yml up quick-wins-tests
+
+# View logs
+logs:
+	@echo "Quick wins demo logs:"
+	docker-compose -f docker-compose.quick-wins.yml logs quick-wins-demo
+	@echo ""
+	@echo "Quick wins test logs:"
+	docker-compose -f docker-compose.quick-wins.yml logs quick-wins-tests
+	@echo ""
+	@echo "Redis logs:"
+	docker-compose -f docker-compose.quick-wins.yml logs redis
+
+# Clean up
+clean:
+	@echo "Cleaning up containers and images..."
+	docker-compose -f docker-compose.quick-wins.yml down -v
+	docker rmi quick-wins:latest 2>/dev/null || true
+	docker system prune -f
+
+# Open shell in container
+shell: build
+	@echo "Opening shell in quick wins container..."
+	docker run -it --rm \
+		--network quick-wins_default \
+		-v $(PWD)/src:/app/src:ro \
+		-v $(PWD)/tests:/app/tests:ro \
+		-v $(PWD)/logs:/app/logs \
+		-e PYTHONPATH=/app/src \
+		-e REDIS_URL=redis://redis:6379 \
+		quick-wins:latest /bin/bash
+
+# Run demo in background
+demo-bg: build
+	@echo "Running quick wins demo in background..."
+	docker-compose -f docker-compose.quick-wins.yml up -d quick-wins-demo
+
+# Stop background demo
+stop:
+	@echo "Stopping quick wins demo..."
+	docker-compose -f docker-compose.quick-wins.yml down
+
+# Health check
+health:
+	@echo "Checking container health..."
+	docker-compose -f docker-compose.quick-wins.yml ps
+
+# Redis status
+redis-status:
+	@echo "Redis container status:"
+	docker-compose -f docker-compose.quick-wins.yml ps redis
+	@echo ""
+	@echo "Redis health check:"
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli ping
+
+# Redis CLI
+redis-cli:
+	@echo "Opening Redis CLI..."
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli
+
+# Redis info
+redis-info:
+	@echo "Redis server info:"
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli info server
+	@echo ""
+	@echo "Redis memory info:"
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli info memory
+	@echo ""
+	@echo "Redis keyspace info:"
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli info keyspace
+
+# Build and run everything
+all: build demo test
+
+# Quick test without building
+test-quick:
+	@echo "Running quick wins tests (using existing image)..."
+	docker-compose -f docker-compose.quick-wins.yml up quick-wins-tests
+
+# Monitor all containers
+monitor:
+	@echo "Monitoring all containers..."
+	watch -n 2 'docker-compose -f docker-compose.quick-wins.yml ps'
+
+# Show Redis keys
+redis-keys:
+	@echo "Redis keys:"
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli keys "*"
+
+# Clear Redis cache
+redis-clear:
+	@echo "Clearing Redis cache..."
+	docker-compose -f docker-compose.quick-wins.yml exec redis redis-cli flushdb
+	@echo "Redis cache cleared"
+
+# Performance test
+perf-test: build
+	@echo "Running performance test..."
+	docker run --rm --network quick-wins_default -v $(PWD)/src:/app/src:ro -e PYTHONPATH=/app/src -e REDIS_URL=redis://redis:6379 quick-wins:latest python -c "import asyncio, sys, time; sys.path.insert(0, '/app/src'); from utils.cache_manager import AdvancedCacheManager; print('Performance test completed')" 

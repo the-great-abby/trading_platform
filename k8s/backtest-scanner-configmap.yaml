@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backtest-scanner-config
+  namespace: trading-system
+data:
+  # Default symbols to scan
+  DEFAULT_SYMBOLS: "AAPL,MSFT,GOOGL,TSLA,AMZN,JPM,BAC,WFC,GS,MS,JNJ,PFE,UNH,ABBV,MRK,XOM,CVX,COP,EOG,SLB,SPY,QQQ,IWM,VTI,VOO"
+  
+  # Default scan periods
+  DEFAULT_PERIODS: |
+    [
+      {"start_date": "2024-01-01", "end_date": "2024-12-31", "interval": "1d"},
+      {"start_date": "2023-01-01", "end_date": "2023-12-31", "interval": "1d"},
+      {"start_date": "2022-01-01", "end_date": "2022-12-31", "interval": "1d"}
+    ]
+  
+  # Scanner configuration
+  PARALLEL_WORKERS: "4"
+  BATCH_SIZE: "10"
+  FORCE_REFRESH: "false"
+  
+  # Data retention
+  DAYS_TO_KEEP: "365"
+  CLEANUP_ENABLED: "true"
+  
+  # Performance settings
+  CACHE_TTL: "3600"
+  MAX_RETRIES: "3"
+  RETRY_DELAY: "5"
+  
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  LOG_DIR: "/app/logs"
+  
+  # Health check settings
+  HEALTH_CHECK_INTERVAL: "30"
+  HEALTH_CHECK_TIMEOUT: "10"
+  
+  # Monitoring
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090" 

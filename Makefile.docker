@@ -1,0 +1,133 @@
+# Docker Operations Makefile
+# Usage: make -f Makefile.docker <target>
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Variables
+DOCKER_COMPOSE := docker-compose
+
+# Docker Image Rebuild Operations
+docker-rebuild: ## Rebuild trading-bot image with latest code changes
+	@echo "$(GREEN)Rebuilding trading-bot image with latest code changes...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml build trading-cli
+	@echo "$(GREEN)Trading-bot image rebuilt successfully!$(NC)"
+	@echo "$(YELLOW)Next: Run 'make -f Makefile.backtest kube-backtest' to test with updated image$(NC)"
+
+docker-rebuild-no-cache: ## Rebuild trading-bot image without cache (clean build)
+	@echo "$(GREEN)Rebuilding trading-bot image without cache...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml build --no-cache trading-cli
+	@echo "$(GREEN)Trading-bot image rebuilt successfully!$(NC)"
+	@echo "$(YELLOW)Next: Run 'make -f Makefile.backtest kube-backtest' to test with updated image$(NC)"
+
+docker-rebuild-and-test: ## Rebuild image and run backtest immediately
+	@echo "$(GREEN)Rebuilding image and running backtest...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(GREEN)Running backtest with updated image...$(NC)"
+	make -f Makefile.backtest kube-backtest
+
+# Development Environment
+docker-dev: ## Start development environment
+	@echo "$(GREEN)Starting development environment...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d postgres redis kafka eventstore
+	@echo "$(GREEN)Waiting for services to be ready...$(NC)"
+	sleep 10
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up trading-bot-dev
+
+docker-test: ## Run tests in Docker
+	@echo "$(GREEN)Running tests in Docker...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d postgres-test redis-test kafka-test eventstore-test
+	@echo "$(GREEN)Waiting for test services to be ready...$(NC)"
+	sleep 10
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml up trading-bot-test
+
+docker-stop: ## Stop all containers
+	@echo "$(GREEN)Stopping all containers...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml down
+
+docker-clean: ## Clean up Docker resources
+	@echo "$(GREEN)Cleaning up Docker resources...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml down -v
+	docker system prune -f
+
+# Development utilities
+dev-shell: ## Start development shell
+	@echo "$(GREEN)Starting development shell...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-bot-dev bash
+
+dev-logs: ## Show development logs
+	@echo "$(GREEN)Showing development logs...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml logs -f trading-bot-dev
+
+# Trading System Operations
+run-api: ## Start the trading API server
+	@echo "$(GREEN)Starting trading API server...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python run_api.py
+
+run-trader: ## Start the trading engine directly
+	@echo "$(GREEN)Starting trading engine...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python run_trader.py
+
+run-signal-client: ## Run the signal client example
+	@echo "$(GREEN)Running signal client example...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python send_signal_example.py
+
+run-strategy-manager: ## Run the strategy manager demo
+	@echo "$(GREEN)Running strategy manager demo...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python strategy_manager.py
+
+run-news-bot: ## Run the news bot demo
+	@echo "$(GREEN)Running news bot demo...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python news_bot_demo.py
+
+# Market Data Operations
+yahoo-demo: ## Run Yahoo Finance market data demo in Docker
+	@echo "$(GREEN)Running Yahoo Finance market data demo in Docker...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python demo_yahoo_finance.py
+
+yahoo-test-single: ## Test single symbol data retrieval in Docker
+	@echo "$(GREEN)Testing single symbol data retrieval in Docker...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python -c "import sys; sys.path.insert(0, 'src'); from services.market_data.yahoo_finance_service import YahooFinanceService; service = YahooFinanceService(); print('AAPL Price:', service.get_live_price('AAPL')); print('AAPL Info:', service.get_symbol_info('AAPL'))"
+
+yahoo-test-batch: ## Test batch data retrieval in Docker
+	@echo "$(GREEN)Testing batch data retrieval in Docker...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python -c "import sys; sys.path.insert(0, 'src'); from services.market_data.yahoo_finance_service import get_market_data; from datetime import datetime, timedelta; end_date = datetime.now().strftime('%Y-%m-%d'); start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'); data = get_market_data(['AAPL', 'GOOGL'], start_date, end_date); print(f'Downloaded {len(data)} symbols'); [print(f'{symbol}: {len(df)} records') for symbol, df in data.items()]"
+
+test-market-data: ## Test all market data providers
+	@echo "$(GREEN)Testing all market data providers...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python demo_market_data_providers.py
+
+# Worker Operations
+docker-start-workers: ## Start background workers in Docker
+	@echo "$(GREEN)Starting background workers in Docker...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-bot-dev python -m src.services.workers.worker_manager
+
+docker-rabbitmq-status: ## Check RabbitMQ queue status
+	@echo "$(GREEN)Checking RabbitMQ queue status...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-bot-dev python -c "import asyncio; from src.services.queue.rabbitmq_service import RabbitMQService; from src.utils.config import Config; async def check(): config = Config(); rmq = RabbitMQService(config); await rmq.connect(); [print(f'{q}: {await rmq.get_queue_stats(q)}') for q in rmq.queues.values()]; await rmq.disconnect(); asyncio.run(check())"
+
+# AI/ML Operations
+docker-ollama-setup: ## Setup and pull Ollama models
+	@echo "$(GREEN)Setting up Ollama models...$(NC)"
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml exec ollama ollama pull llama2
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml exec ollama ollama pull codellama
+
+docker-ollama-status: ## Check Ollama service status
+	@echo "$(GREEN)Checking Ollama service status...$(NC)"
+	@curl -s http://localhost:11434/api/tags || echo "$(RED)Ollama service not available$(NC)"
+
+# Quick start
+quick-start: ## Quick start development environment
+	@echo "$(GREEN)Quick start development environment...$(NC)"
+	make -f Makefile.docker docker-build
+	make -f Makefile.docker docker-dev
+
+# Help
+help: ## Show this help message
+	@echo "$(GREEN)Docker Operations:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}'
+
+.PHONY: help docker-dev docker-test docker-stop docker-clean dev-shell dev-logs run-api run-trader run-signal-client run-strategy-manager run-news-bot yahoo-demo yahoo-test-single yahoo-test-batch test-market-data docker-start-workers docker-rabbitmq-status docker-ollama-setup docker-ollama-status quick-start docker-rebuild docker-rebuild-no-cache docker-rebuild-and-test 

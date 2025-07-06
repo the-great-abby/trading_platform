@@ -1,0 +1,19 @@
+# Quick Wins Requirements
+# Core dependencies for quick wins functionality
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# System monitoring (for health dashboard)
+psutil>=5.9.0
+
+# Redis for L2 caching
+redis>=4.5.0
+
+# FastAPI for health dashboard
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# Development tools
+pytest-mock>=3.10.0 
