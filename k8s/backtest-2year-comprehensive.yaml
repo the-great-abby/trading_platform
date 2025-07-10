@@ -1,0 +1,107 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-2year-comprehensive
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest
+        image: trading-system:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args:
+        - "-c"
+        - |
+          import sys
+          sys.path.append('/app')
+          
+          from src.services.backtest.backtest_data_scanner import BacktestDataScanner
+          from src.utils.config import get_config
+          from src.utils.enhanced_logging import setup_logging
+          import logging
+          
+          setup_logging()
+          logger = logging.getLogger(__name__)
+          
+          config = get_config()
+          
+          # Configure for 2-year comprehensive backtest
+          scanner = BacktestDataScanner()
+          
+          # Set date range: 2023-07-06 to 2025-07-03
+          start_date = "2023-07-06"
+          end_date = "2025-07-03"
+          
+          logger.info(f"Starting comprehensive 2-year backtest from {start_date} to {end_date}")
+          
+          # Run comprehensive backtest with all strategies
+          results = scanner.run_comprehensive_backtest(
+              start_date=start_date,
+              end_date=end_date,
+              symbols=['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC'],
+              strategies=[
+                  'BollingerBandsStrategy',
+                  'RSIStrategy', 
+                  'MACDStrategy',
+                  'MomentumStrategy',
+                  'MeanReversionStrategy',
+                  'VolatilityBreakoutStrategy',
+                  'PortfolioStrategy'
+              ],
+              initial_capital=100000,
+              commission=0.001,
+              slippage=0.0005
+          )
+          
+          logger.info("=== COMPREHENSIVE 2-YEAR BACKTEST RESULTS ===")
+          logger.info(f"Date Range: {start_date} to {end_date}")
+          logger.info(f"Total Days: {(pd.to_datetime(end_date) - pd.to_datetime(start_date)).days}")
+          
+          for strategy_name, result in results.items():
+              logger.info(f"\n--- {strategy_name} ---")
+              logger.info(f"Total Return: {result.get('total_return', 0):.2%}")
+              logger.info(f"Sharpe Ratio: {result.get('sharpe_ratio', 0):.3f}")
+              logger.info(f"Max Drawdown: {result.get('max_drawdown', 0):.2%}")
+              logger.info(f"Win Rate: {result.get('win_rate', 0):.2%}")
+              logger.info(f"Total Trades: {result.get('total_trades', 0)}")
+              logger.info(f"Winning Trades: {result.get('winning_trades', 0)}")
+              logger.info(f"Losing Trades: {result.get('losing_trades', 0)}")
+              logger.info(f"Profit Factor: {result.get('profit_factor', 0):.3f}")
+              logger.info(f"Average Win: {result.get('avg_win', 0):.2%}")
+              logger.info(f"Average Loss: {result.get('avg_loss', 0):.2%}")
+              logger.info(f"Best Trade: {result.get('best_trade', 0):.2%}")
+              logger.info(f"Worst Trade: {result.get('worst_trade', 0):.2%}")
+              logger.info(f"Final Portfolio Value: ${result.get('final_value', 0):,.2f}")
+              logger.info(f"Total P&L: ${result.get('total_pnl', 0):,.2f}")
+          
+          # Portfolio strategy results (multi-strategy combination)
+          if 'PortfolioStrategy' in results:
+              portfolio = results['PortfolioStrategy']
+              logger.info(f"\n=== PORTFOLIO STRATEGY (Multi-Strategy) ===")
+              logger.info(f"Combined Total Return: {portfolio.get('total_return', 0):.2%}")
+              logger.info(f"Combined Sharpe Ratio: {portfolio.get('sharpe_ratio', 0):.3f}")
+              logger.info(f"Combined Max Drawdown: {portfolio.get('max_drawdown', 0):.2%}")
+              logger.info(f"Combined Win Rate: {portfolio.get('win_rate', 0):.2%}")
+              logger.info(f"Combined Profit Factor: {portfolio.get('profit_factor', 0):.3f}")
+              logger.info(f"Combined Final Value: ${portfolio.get('final_value', 0):,.2f}")
+          
+          logger.info("\n=== BACKTEST COMPLETED SUCCESSFULLY ===")
+          
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+      restartPolicy: Never
+      imagePullSecrets:
+      - name: regcred 

@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fix-alembic-version-column-job
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: fix
+        image: postgres:15
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            export PGPASSWORD="$POSTGRES_PASSWORD"
+            echo "=== FIXING ALEMBIC VERSION COLUMN SIZE ==="
+            echo "Current alembic_version table structure:"
+            psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "\d alembic_version"
+            echo "=== ALTERING COLUMN SIZE ==="
+            psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(50);"
+            echo "=== VERIFYING FIX ==="
+            psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "\d alembic_version"
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-dev"
+        - name: POSTGRES_DB
+          value: "trading_bot"
+        - name: POSTGRES_USER
+          value: "trading_user"
+        - name: POSTGRES_PASSWORD
+          value: "trading_pass"
+      restartPolicy: Never 

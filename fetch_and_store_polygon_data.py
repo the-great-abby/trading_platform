@@ -10,12 +10,15 @@ import time
 import logging
 from datetime import datetime, timedelta
 from typing import List, Dict
+import asyncio
 
 # Add src to path
 sys.path.append('src')
 
 from src.services.market_data.market_data_provider import get_market_data_manager
-from src.services.database.market_data_service import MarketDataDatabaseService
+from src.services.database.market_data_service import MarketDataDatabaseService, MarketDataService
+from src.utils.config import get_config
+from src.utils.trading_config import get_symbols
 
 # Configure logging
 logging.basicConfig(
@@ -25,22 +28,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def fetch_and_store_polygon_data():
-    """Fetch data from Polygon API and store in database"""
+async def fetch_and_store_polygon_data():
+    """Fetch and store Polygon data for all symbols"""
+    config = get_config()
     
-    print("🚀 FETCHING AND STORING POLYGON DATA")
-    print("=" * 60)
+    # Initialize services
+    market_data_manager = get_market_data_manager()
+    market_data_service = MarketDataService(config.database_url)
     
-    # Configuration - Use specified date range for all symbols
-    start_date = "2023-07-06"  # Start date
-    end_date = "2025-07-03"    # End date
+    # Use centralized symbol list
+    symbols = get_symbols()
     
-    # All symbols we want data for
-    symbols = [
-        'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA',  # Tech stocks
-        'JPM', 'GS', 'PFE', 'MRK', 'UNH',          # Finance & Healthcare
-        'SPY', 'VTI', 'COP'                        # ETFs & Energy
-    ]
+    # Calculate date range (1 year ago to today)
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
+    
+    print(f"📊 Fetching and storing Polygon data for {len(symbols)} symbols")
+    print(f"📅 Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
     
     print(f"📊 Configuration:")
     print(f"   📅 Date Range: {start_date} to {end_date}")
@@ -48,10 +52,6 @@ def fetch_and_store_polygon_data():
     print(f"   🎯 Provider: Polygon API")
     print(f"   💾 Storage: PostgreSQL Database")
     print()
-    
-    # Initialize services
-    market_data_manager = get_market_data_manager()
-    db_service = MarketDataDatabaseService()
     
     # Performance tracking
     total_stored = 0
@@ -78,7 +78,7 @@ def fetch_and_store_polygon_data():
             
             if data is not None and not data.empty:
                 # Store in database
-                success = db_service.store_historical_data(
+                success = market_data_service.store_historical_data(
                     symbol=symbol,
                     data=data,
                     provider="polygon",
@@ -134,7 +134,7 @@ def fetch_and_store_polygon_data():
     
     try:
         # Get total records
-        session = db_service.get_session()
+        session = market_data_service.get_session()
         
         # Get total records for our date range
         from sqlalchemy import text
@@ -189,4 +189,4 @@ def fetch_and_store_polygon_data():
 
 
 if __name__ == "__main__":
-    fetch_and_store_polygon_data() 
+    asyncio.run(fetch_and_store_polygon_data()) 

@@ -19,13 +19,14 @@ class BaseStrategy(ABC):
         self.is_active = True
         
     @abstractmethod
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """
         Generate trading signal based on market data
         
         Args:
             symbol: Trading symbol
             data: Market data dataframe with technical indicators
+            historical_date: Historical date (YYYY-MM-DD) for backtesting, or None for current date
             
         Returns:
             TradeSignal or None if no signal

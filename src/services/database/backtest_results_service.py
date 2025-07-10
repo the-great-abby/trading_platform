@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from models.backtest_results import Base, BacktestRun, BacktestTrade, BacktestEquityCurve
+from src.models.backtest_results import Base, BacktestRun, BacktestTrade, BacktestEquityCurve
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class BacktestResultsService:
                     session.add(backtest_trade)
                 
                 # Store equity curve data
-                if 'equity_curve' in result and not result['equity_curve'].empty:
+                if 'equity_curve' in result and result['equity_curve'] is not None and not result['equity_curve'].empty:
                     for index, row in result['equity_curve'].iterrows():
                         equity_point = BacktestEquityCurve(
                             run_id=run_id,

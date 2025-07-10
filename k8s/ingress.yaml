@@ -55,6 +55,13 @@ spec:
             name: analytics-service
             port:
               number: 80
+      - path: /api/v1/backtest
+        pathType: Prefix
+        backend:
+          service:
+            name: backtest-api
+            port:
+              number: 10001
       - path: /health
         pathType: Exact
         backend:

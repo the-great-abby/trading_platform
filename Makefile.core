@@ -1,0 +1,34 @@
+# Core Development Operations Makefile
+# Usage: make -f Makefile.core <target>
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+core-install: ## Install Python dependencies
+	@echo "$(GREEN)Installing Python dependencies...$(NC)"
+	pip install -r requirements.txt
+
+core-test: ## Run all tests
+	@echo "$(GREEN)Running tests...$(NC)"
+	pytest tests/
+
+core-lint: ## Run linting checks
+	@echo "$(GREEN)Running lint checks...$(NC)"
+	flake8 src/ tests/
+
+core-format: ## Format code with black and isort
+	@echo "$(GREEN)Formatting code...$(NC)"
+	black src/ tests/
+	isort src/ tests/
+
+core-clean: ## Clean up build artifacts
+	@echo "$(GREEN)Cleaning up build artifacts...$(NC)"
+	rm -rf __pycache__ .pytest_cache htmlcov
+
+core-help: ## Show this help message
+	@echo "$(GREEN)Core Development Operations:$(NC)"
+	@grep -E '^core-[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
+
+.PHONY: core-help core-install core-test core-lint core-format core-clean 

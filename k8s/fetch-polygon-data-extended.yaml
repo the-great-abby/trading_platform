@@ -9,6 +9,7 @@ spec:
       containers:
       - name: fetch-polygon-data
         image: trading-bot:latest
+        imagePullPolicy: Never
         imagePullPolicy: IfNotPresent
         command: ["python3"]
         args: ["fetch_and_store_polygon_data.py"]

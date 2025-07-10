@@ -20,8 +20,11 @@ sys.path.append('src')
 
 from src.backtesting.backtest_engine import BacktestEngine
 from src.backtesting.results_exporter import BacktestResultsExporter
-from src.services.database.market_data_service import MarketDataDatabaseService
+from src.services.database.market_data_service import MarketDataDatabaseService, MarketDataService
 from src.services.database.backtest_results_service import BacktestResultsService
+from src.services.backtest.backtest_data_scanner import BacktestDataScanner
+from src.utils.config import get_config
+from src.utils.trading_config import get_symbols
 
 # Configure logging
 logging.basicConfig(

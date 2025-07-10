@@ -15,6 +15,7 @@ spec:
       containers:
       - name: backtest-scanner
         image: trading-bot:latest
+        imagePullPolicy: Never
         imagePullPolicy: IfNotPresent
         command: ["python"]
         args: 

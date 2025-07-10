@@ -4,8 +4,9 @@ metadata:
   name: backtest-scanner-config
   namespace: trading-system
 data:
-  # Default symbols to scan
-  DEFAULT_SYMBOLS: "AAPL,MSFT,GOOGL,TSLA,AMZN,JPM,BAC,WFC,GS,MS,JNJ,PFE,UNH,ABBV,MRK,XOM,CVX,COP,EOG,SLB,SPY,QQQ,IWM,VTI,VOO"
+  # Use centralized symbol list from trading_config.py
+  # This will be populated by the application using get_symbols()
+  DEFAULT_SYMBOLS: "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX,AMD,INTC,JPM,BAC,WFC,GS,MS,JNJ,PFE,UNH,HD,DIS,V,MA,PYPL,ADBE,CRM,ORCL,CSCO,QCOM,TXN,AVGO,SPY,QQQ,VTI,VOO,VUG,XLK,XLF,XLE,XLV,XLY"
   
   # Default scan periods
   DEFAULT_PERIODS: |
@@ -40,4 +41,10 @@ data:
   
   # Monitoring
   METRICS_ENABLED: "true"
-  METRICS_PORT: "9090" 
+  METRICS_PORT: "9090"
+  
+  # New fields from the code block
+  SCAN_INTERVAL: "3600"  # 1 hour
+  MAX_SYMBOLS_PER_SCAN: "50"
+  DATA_PROVIDER: "polygon"
+  BACKTEST_PERIOD_DAYS: "365" 

@@ -9,6 +9,7 @@ spec:
       containers:
       - name: store-data
         image: trading-bot:latest
+        imagePullPolicy: Never
         command: ["python", "store_2year_data.py"]
         env:
         - name: POLYGON_API_KEY

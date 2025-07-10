@@ -11,11 +11,15 @@ import logging
 import pandas as pd
 from datetime import datetime, timedelta
 import sys
+import asyncio
 
 # Add the src directory to the path to import our services
 sys.path.append('/app')
 
 from src.services.market_data.yahoo_finance_service import YahooFinanceService
+from src.services.database.market_data_service import MarketDataService
+from src.utils.config import get_config
+from src.utils.trading_config import get_symbols
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -268,6 +272,25 @@ async def get_market_hours():
     except Exception as e:
         logger.error(f"Failed to get market hours: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get market hours: {str(e)}")
+
+async def get_market_data():
+    """Get market data for all symbols"""
+    config = get_config()
+    
+    # Initialize services
+    market_data_service = MarketDataService(config.database_url)
+    
+    # Use centralized symbol list
+    symbols = get_symbols()
+    
+    # Calculate date range (1 year ago to today)
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
+    
+    print(f"📊 Getting market data for {len(symbols)} symbols")
+    print(f"📅 Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    
+    # ... existing code ...
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8002))

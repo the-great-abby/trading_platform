@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-alembic-job
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: alembic
+        image: localhost:5000/trading-system:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "=== TESTING ALEMBIC ==="
+            cd /app
+            echo "Current version:"
+            python -c "
+            from alembic import command
+            from alembic.config import Config
+            config = Config('alembic.ini')
+            command.current(config)
+            "
+            echo "=== TESTING UPGRADE HEAD ==="
+            python -m alembic upgrade head
+            echo "=== ALEMBIC TEST COMPLETE ==="
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: PYTHONPATH
+          value: "/app"
+      restartPolicy: Never 

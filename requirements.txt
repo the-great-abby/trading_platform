@@ -39,6 +39,7 @@ loguru==0.7.2
 ta==0.10.2
 scikit-learn==1.3.2
 scipy==1.11.4
+statsmodels==0.14.0
 
 # Machine learning
 tensorflow==2.15.0
@@ -57,3 +58,4 @@ asyncio-mqtt==0.16.1
 # Time handling
 python-dateutil==2.8.2
 pytz==2023.3 
+textblob==0.17.1 

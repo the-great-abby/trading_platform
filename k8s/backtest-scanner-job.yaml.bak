@@ -1,0 +1,134 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-scanner-initial
+  namespace: trading-bot
+  labels:
+    app: backtest-scanner
+    job-type: initial-scan
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest-scanner
+        image: trading-bot:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python"]
+        args: 
+        - "scan_backtest_data.py"
+        - "--symbols"
+        - "AAPL,MSFT,GOOGL,TSLA,AMZN,JPM,BAC,WFC,GS,MS"
+        - "--multi-period"
+        - "--start-date"
+        - "2020-01-01"
+        - "--end-date"
+        - "2024-12-31"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: ALPHA_VANTAGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpha-vantage-api-key
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: PYTHONPATH
+          value: "/app/src"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: DEFAULT_SYMBOLS
+          valueFrom:
+            configMapKeyRef:
+              name: backtest-scanner-config
+              key: DEFAULT_SYMBOLS
+        - name: PARALLEL_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: backtest-scanner-config
+              key: PARALLEL_WORKERS
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: data-volume
+          mountPath: /app/data
+        - name: config-volume
+          mountPath: /app/config
+      volumes:
+      - name: logs-volume
+        emptyDir: {}
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      - name: config-volume
+        configMap:
+          name: backtest-scanner-config
+      restartPolicy: Never
+      backoffLimit: 3
+  backoffLimit: 3
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-scanner-coverage-check
+  namespace: trading-bot
+  labels:
+    app: backtest-scanner
+    job-type: coverage-check
+spec:
+  template:
+    spec:
+      containers:
+      - name: coverage-checker
+        image: trading-bot:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python"]
+        args: 
+        - "scan_backtest_data.py"
+        - "--check-coverage"
+        - "--symbols"
+        - "AAPL,MSFT,GOOGL,TSLA,AMZN"
+        - "--start-date"
+        - "2024-01-01"
+        - "--end-date"
+        - "2024-12-31"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: PYTHONPATH
+          value: "/app/src"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: logs-volume
+        emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 1 

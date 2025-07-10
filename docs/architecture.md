@@ -1,12 +1,12 @@
-# 🏗️ Trading System Architecture: CQRS + Microservices
+# 🏗️ Space Trading Station Architecture: CQRS + Microservices
 
 ## Overview
 
-The algorithmic trading system is designed using CQRS (Command Query Responsibility Segregation) and microservices architecture for high scalability, maintainability, and fault tolerance.
+The Space Trading Station is designed using CQRS (Command Query Responsibility Segregation) and microservices architecture for high scalability, maintainability, and fault tolerance. Welcome to Mission Control!
 
-## Architecture Components
+## Space Station Components
 
-### 🎯 Core Principles
+### 🎯 Mission Control Principles
 
 - **CQRS**: Separate read and write operations
 - **Event Sourcing**: All state changes as events
@@ -14,11 +14,11 @@ The algorithmic trading system is designed using CQRS (Command Query Responsibil
 - **Event-Driven**: Asynchronous communication via events
 - **Domain-Driven Design**: Business logic in domain services
 
-### 📊 System Architecture
+### 📊 Space Station Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        API Gateway                              │
+│                    Mission Control Gateway                      │
 │                    (Kong/Envoy/Nginx)                          │
 └─────────────────┬───────────────────────────────────────────────┘
                   │
@@ -31,24 +31,24 @@ The algorithmic trading system is designed using CQRS (Command Query Responsibil
     │             │             │
     └─────────────┼─────────────┘
                   │
-┌─────────────────┼───────────────────────────────────────────────┐
-│                    Microservices                                │
+┌─────────────────┼─────────────────────────────────────────────────┐
+│                    Space Station Modules                          │
 │                                                                 │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
-│  │   Trading   │ │   Market    │ │   Risk      │ │  Portfolio  │ │
+│  │   Trading   │ │   Satellite │ │   Risk      │ │  Portfolio  │ │
 │  │  Service    │ │   Data      │ │ Management  │ │  Service    │ │
 │  │             │ │   Service   │ │   Service   │ │             │ │
 │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │
 │                                                                 │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
-│  │   Strategy  │ │   Order     │ │   Analytics │ │   User      │ │
-│  │   Service   │ │ Management  │ │   Service   │ │ Management  │ │
-│  │             │ │   Service   │ │             │ │   Service   │ │
+│  │   AI        │ │   Order     │ │   Analytics │ │   User      │ │
+│  │ Navigation  │ │ Management  │ │   Service   │ │ Management  │ │
+│  │   Service   │ │   Service   │ │             │ │   Service   │ │
 │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
                   │
-┌─────────────────┼───────────────────────────────────────────────┐
-│                    Data Layer                                   │
+┌─────────────────┼─────────────────────────────────────────────────┐
+│                    Data Storage Bay                              │
 │                                                                 │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
 │  │   Event     │ │   Read      │ │   Write     │ │   Cache     │ │
@@ -58,7 +58,7 @@ The algorithmic trading system is designed using CQRS (Command Query Responsibil
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Microservices Breakdown
+## Space Station Modules Breakdown
 
 ### 1. **Trading Service** (Command Side)
 - **Responsibility**: Execute trading strategies, place orders
@@ -66,7 +66,7 @@ The algorithmic trading system is designed using CQRS (Command Query Responsibil
 - **Events**: `OrderPlaced`, `OrderCancelled`, `TradeExecuted`
 - **Database**: Write database (orders, trades)
 
-### 2. **Market Data Service** (Query Side)
+### 2. **Satellite Data Service** (Query Side)
 - **Responsibility**: Provide real-time and historical market data
 - **Queries**: `GetQuote`, `GetHistoricalData`, `GetTechnicalIndicators`
 - **Events**: `PriceUpdated`, `MarketDataReceived`
@@ -84,7 +84,7 @@ The algorithmic trading system is designed using CQRS (Command Query Responsibil
 - **Events**: `PositionUpdated`, `PortfolioValueChanged`
 - **Database**: Read database (portfolio, positions)
 
-### 5. **Strategy Service** (Command Side)
+### 5. **AI Navigation Service** (Command Side)
 - **Responsibility**: Strategy execution and management
 - **Commands**: `CreateStrategy`, `UpdateStrategy`, `ExecuteStrategy`
 - **Events**: `StrategyCreated`, `SignalGenerated`
@@ -165,12 +165,12 @@ class OrderPlacedEventHandler:
 
 ### 1. **Command Flow**
 ```
-Client → API Gateway → Command API → Command Handler → Write DB → Event Store
+Client → Mission Control Gateway → Command API → Command Handler → Write DB → Event Store
 ```
 
 ### 2. **Query Flow**
 ```
-Client → API Gateway → Query API → Query Handler → Read DB → Response
+Client → Mission Control Gateway → Query API → Query Handler → Read DB → Response
 ```
 
 ### 3. **Event Flow**

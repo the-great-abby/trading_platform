@@ -27,8 +27,8 @@ spec:
     spec:
       containers:
       - name: backtest-cli
-        image: trading-bot:latest
-        imagePullPolicy: IfNotPresent
+        image: trading-system:latest
+        imagePullPolicy: Never
         command: ["python"]
         args: {json.dumps(command_args)}
         env:

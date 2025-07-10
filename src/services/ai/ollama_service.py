@@ -8,8 +8,10 @@ import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
-from loguru import logger
+from src.utils.enhanced_logging import get_trading_logger
+logger = get_trading_logger()
 
+import os
 from ...core.types import TradeSignal
 
 
@@ -28,32 +30,114 @@ class AIAnalysis:
 class OllamaService:
     """Ollama AI service for enhanced market analysis"""
     
-    def __init__(self, base_url: str = "http://ollama:11434", model: str = "llama2"):
+    def __init__(self, base_url: str = "http://ollama:11434", model: str = ""):
         self.base_url = base_url
-        self.model = model
+        self.model = model or os.environ.get("OLLAMA_MODEL", "gemma3:1b")
         self.session = None
         
     async def __aenter__(self):
-        self.session = aiohttp.ClientSession()
+        timeout = aiohttp.ClientTimeout(total=float(os.environ.get("OLLAMA_TIMEOUT", "120.0")))
+        self.session = aiohttp.ClientSession(timeout=timeout)
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
     
-    async def analyze_market_sentiment(self, 
-                                     news_events: List[Dict[str, Any]], 
-                                     technical_signals: List[Dict[str, Any]],
-                                     market_data: Dict[str, Any]) -> AIAnalysis:
-        """Analyze market sentiment using AI"""
-        
+    async def verify_model_availability(self) -> Dict[str, Any]:
+        """Verify if the Ollama model is available and ready"""
+        try:
+            logger.info(f"[OllamaService] 🔍 Verifying model availability for: {self.model}")
+            if not self.session:
+                timeout = aiohttp.ClientTimeout(total=float(os.environ.get("OLLAMA_TIMEOUT", "120.0")))
+                self.session = aiohttp.ClientSession(timeout=timeout)
+            
+            # Check if Ollama service is running
+            logger.info(f"[OllamaService] 📡 Checking Ollama service at {self.base_url}/api/tags")
+            async with self.session.get(f"{self.base_url}/api/tags", timeout=10) as response:
+                logger.info(f"[OllamaService] 📥 Tags response: status={response.status}")
+                
+                if response.status == 200:
+                    models_data = await response.json()
+                    models = models_data.get('models', [])
+                    logger.info(f"[OllamaService] 📊 Found {len(models)} available models")
+                    
+                    # Check if our target model is available
+                    target_model = self.model
+                    # Check for exact match first, then fallback to startswith
+                    target_available = any(
+                        model.get('name', '') == target_model or 
+                        model.get('name', '').startswith(target_model.split(':')[0])
+                        for model in models
+                    )
+                    
+                    logger.info(f"[OllamaService] 🎯 Target model '{target_model}' available: {target_available}")
+                    if not target_available:
+                        logger.warning(f"[OllamaService] ⚠️ Available models: {[model.get('name', '') for model in models]}")
+                    
+                    return {
+                        'available': True,
+                        'total_models': len(models),
+                        'target_available': target_available,
+                        'target_model': target_model,
+                        'available_models': [model.get('name', '') for model in models]
+                    }
+                else:
+                    error_text = await response.text()
+                    logger.error(f"[OllamaService] ❌ Ollama service error: {response.status} - {error_text}")
+                    return {
+                        'available': False,
+                        'error': f"Ollama service returned status {response.status}: {error_text}"
+                    }
+        except Exception as e:
+            logger.error(f"[OllamaService] ❌ Failed to connect to Ollama: {type(e).__name__}: {str(e)}")
+            return {
+                'available': False,
+                'error': f"Failed to connect to Ollama: {str(e)}"
+            }
+    
+    async def test_model_response(self) -> Dict[str, Any]:
+        """Test if the model can generate a response"""
+        try:
+            logger.info(f"[OllamaService] 🧪 Testing model response for: {self.model}")
+            test_prompt = "Respond with 'OK' if you can read this message."
+            logger.info(f"[OllamaService] 📝 Test prompt: '{test_prompt}'")
+            
+            response = await self._call_ollama(test_prompt)
+            
+            if response and len(response.strip()) > 0:
+                logger.info(f"[OllamaService] ✅ Model test successful: '{response.strip()}'")
+                return {
+                    'success': True,
+                    'model_used': self.model,
+                    'response': response.strip()
+                }
+            else:
+                logger.error(f"[OllamaService] ❌ Model test failed: Empty response")
+                return {
+                    'success': False,
+                    'error': 'Empty response from model'
+                }
+        except Exception as e:
+            logger.error(f"[OllamaService] ❌ Model test failed: {type(e).__name__}: {str(e)}")
+            return {
+                'success': False,
+                'error': f"Model test failed: {str(e)}"
+            }
+    
+    async def analyze_market_sentiment(self, news_events, technical_signals, market_data):
+        logger.info(f"[OllamaService] 🤖 Starting LLM analysis for {market_data.get('symbol', 'unknown')}...")
+        logger.info(f"[OllamaService] Technical signals: {len(technical_signals)} | News events: {len(news_events)} | Market data keys: {list(market_data.keys())}")
         prompt = self._build_analysis_prompt(news_events, technical_signals, market_data)
-        
+        logger.info(f"[OllamaService] 📤 Sending prompt to Ollama (length: {len(prompt)} chars)...")
         try:
             response = await self._call_ollama(prompt)
-            return self._parse_ai_response(response)
+            logger.info(f"[OllamaService] 📥 Received response from Ollama (length: {len(response)} chars)")
+            analysis = self._parse_ai_response(response)
+            logger.info(f"[OllamaService] ✅ LLM analysis completed: Sentiment={getattr(analysis, 'sentiment_score', None)}, Confidence={getattr(analysis, 'confidence', None)}, Action={getattr(analysis, 'recommended_action', None)}")
+            return analysis
         except Exception as e:
-            logger.error(f"Error in AI analysis: {e}")
+            logger.error(f"[OllamaService] ❌ Error in AI analysis: {e}")
             return self._fallback_analysis()
     
     async def enhance_news_sentiment(self, news_event: Dict[str, Any]) -> Dict[str, Any]:
@@ -154,9 +238,16 @@ class OllamaService:
         return None
     
     async def _call_ollama(self, prompt: str) -> str:
-        """Call Ollama API"""
+        """Call Ollama API with exponential backoff retry"""
         if not self.session:
-            self.session = aiohttp.ClientSession()
+            timeout = aiohttp.ClientTimeout(total=float(os.environ.get("OLLAMA_TIMEOUT", "120.0")))
+            self.session = aiohttp.ClientSession(timeout=timeout)
+        
+        # Get timeout and retry settings from environment variables
+        timeout = float(os.environ.get("OLLAMA_TIMEOUT", "30.0"))
+        max_retries = int(os.environ.get("OLLAMA_MAX_RETRIES", "3"))
+        base_delay = float(os.environ.get("OLLAMA_BASE_DELAY", "10.0"))
+        max_delay = float(os.environ.get("OLLAMA_MAX_DELAY", "300.0"))
         
         payload = {
             "model": self.model,
@@ -164,21 +255,75 @@ class OllamaService:
             "stream": False,
             "options": {
                 "temperature": 0.3,
-                "top_p": 0.9,
-                "max_tokens": 1000
+                "top_p": 0.9
             }
         }
         
-        async with self.session.post(
-            f"{self.base_url}/api/generate",
-            json=payload,
-            timeout=30
-        ) as response:
-            if response.status == 200:
-                result = await response.json()
-                return result.get('response', '')
-            else:
-                raise Exception(f"Ollama API error: {response.status}")
+        for attempt in range(max_retries + 1):
+            start_time = datetime.now()
+            logger.info(f"[OllamaService] 📤 Making API call to {self.base_url}/api/generate (attempt {attempt + 1}/{max_retries + 1})")
+            logger.info(f"[OllamaService] 📊 Request details: model={self.model}, prompt_length={len(prompt)}, timeout={timeout}s")
+            logger.debug(f"[OllamaService] 📝 Full prompt: {prompt[:200]}{'...' if len(prompt) > 200 else ''}")
+            logger.debug(f"[OllamaService] 📦 Request payload: {json.dumps(payload, indent=2)}")
+            
+            try:
+                async with self.session.post(
+                    f"{self.base_url}/api/generate",
+                    json=payload,
+                    timeout=timeout
+                ) as response:
+                    response_time = (datetime.now() - start_time).total_seconds()
+                    logger.info(f"[OllamaService] 📥 Response received: status={response.status}, time={response_time:.2f}s")
+                    
+                    if response.status == 200:
+                        response_data = await response.json()
+                        response_text = response_data.get('response', '')
+                        logger.info(f"[OllamaService] ✅ Success: response_length={len(response_text)}")
+                        return response_text
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"[OllamaService] ❌ HTTP {response.status}: {error_text}")
+                        logger.error(f"[OllamaService] 📊 Response headers: {dict(response.headers)}")
+                        
+                        # Don't retry on client errors (4xx)
+                        if 400 <= response.status < 500:
+                            raise Exception(f"Ollama API client error: {response.status} - {error_text}")
+                        
+                        # Retry on server errors (5xx) and other errors
+                        if attempt < max_retries:
+                            delay = min(base_delay * (2 ** attempt), max_delay)
+                            logger.warning(f"[OllamaService] ⏳ Retrying in {delay:.1f}s due to server error...")
+                            await asyncio.sleep(delay)
+                            continue
+                        else:
+                            raise Exception(f"Ollama API error after {max_retries + 1} attempts: {response.status} - {error_text}")
+                        
+            except asyncio.TimeoutError:
+                response_time = (datetime.now() - start_time).total_seconds()
+                logger.error(f"[OllamaService] ⏰ Timeout after {response_time:.2f}s (limit: {timeout}s)")
+                
+                if attempt < max_retries:
+                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    logger.warning(f"[OllamaService] ⏳ Retrying in {delay:.1f}s due to timeout...")
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    raise Exception(f"Ollama API timeout after {max_retries + 1} attempts ({timeout} seconds each)")
+                    
+            except Exception as e:
+                response_time = (datetime.now() - start_time).total_seconds()
+                logger.error(f"[OllamaService] ❌ Exception after {response_time:.2f}s: {type(e).__name__}: {str(e)}")
+                
+                if attempt < max_retries:
+                    delay = min(base_delay * (2 ** attempt), max_delay)
+                    logger.warning(f"[OllamaService] ⏳ Retrying in {delay:.1f}s due to exception...")
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    raise Exception(f"Ollama API call failed after {max_retries + 1} attempts: {str(e)}")
+        
+        # This should never be reached, but just in case
+        raise Exception(f"Ollama API call failed after {max_retries + 1} attempts")
     
     def _build_analysis_prompt(self, 
                               news_events: List[Dict[str, Any]], 
@@ -252,3 +397,15 @@ class OllamaService:
             return percentage
         except:
             return 0.05  # Default 5% 
+
+    async def cleanup(self):
+        """Clean up resources"""
+        if self.session:
+            await self.session.close()
+            self.session = None
+            logger.info("[OllamaService] ✅ Session closed")
+    
+    def __del__(self):
+        """Destructor to ensure cleanup"""
+        if self.session and not self.session.closed:
+            logger.warning("[OllamaService] ⚠️ Session not properly closed in destructor") 

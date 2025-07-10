@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: news-enhanced-backtest
+  namespace: trading-system
+  labels:
+    app: news-backtest
+    job-type: backtest
+spec:
+  template:
+    metadata:
+      labels:
+        app: news-backtest
+    spec:
+      containers:
+      - name: news-backtest
+        image: trading-bot:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args: ["demo_news_backtest.py"]
+        env:
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: BACKTEST_SYMBOLS
+          value: "AAPL,TSLA,MSFT,GOOGL"
+        - name: BACKTEST_START_DATE
+          value: "2024-01-01"
+        - name: BACKTEST_END_DATE
+          value: "2024-01-31"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+        - name: backtest-results
+          mountPath: /app/backtest_results
+      volumes:
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      - name: backtest-results
+        persistentVolumeClaim:
+          claimName: backtest-results-pvc
+      restartPolicy: Never
+  backoffLimit: 2 

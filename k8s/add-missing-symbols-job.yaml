@@ -9,6 +9,7 @@ spec:
       containers:
       - name: data-ingestion
         image: trading-bot:latest
+        imagePullPolicy: Never
         command: ["python", "add_missing_symbols.py"]
         env:
         - name: POLYGON_API_KEY

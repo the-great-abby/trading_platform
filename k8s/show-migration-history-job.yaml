@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: show-migration-history-job
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: alembic
+        image: localhost:5000/trading-system:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "=== SHOWING MIGRATION HISTORY ==="
+            cd /app
+            echo "Current version:"
+            python -c "
+            from alembic import command
+            from alembic.config import Config
+            config = Config('alembic.ini')
+            command.current(config)
+            "
+            echo "=== SHOWING ALL REVISIONS ==="
+            python -c "
+            from alembic import command
+            from alembic.config import Config
+            config = Config('alembic.ini')
+            command.history(config)
+            "
+            echo "=== SHOWING HEADS ==="
+            python -c "
+            from alembic import command
+            from alembic.config import Config
+            config = Config('alembic.ini')
+            command.heads(config)
+            "
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: PYTHONPATH
+          value: "/app"
+      restartPolicy: Never 

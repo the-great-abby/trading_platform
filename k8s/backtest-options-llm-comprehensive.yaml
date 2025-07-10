@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-options-llm-comprehensive
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest
+        image: localhost:5000/trading-system:latest
+        command: ["python", "run_greeks_comprehensive_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: OLLAMA_URL
+          value: "http://ollama-dev:11434"
+        - name: OLLAMA_MODEL
+          value: "exaone3.5:2.4b"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: PYTHONPATH
+          value: "/app"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: OLLAMA_TIMEOUT
+          value: "60"
+        - name: OLLAMA_RETRIES
+          value: "3"
+        - name: OLLAMA_BACKOFF_FACTOR
+          value: "2"
+      restartPolicy: Never 

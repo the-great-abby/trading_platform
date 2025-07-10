@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fetch-historical-news
+  namespace: trading-system
+  labels:
+    app: news-fetch
+    job-type: data-ingestion
+spec:
+  template:
+    metadata:
+      labels:
+        app: news-fetch
+    spec:
+      containers:
+      - name: news-fetch
+        image: trading-bot:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args: ["fetch_polygon_news.py"]
+        env:
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      restartPolicy: Never
+  backoffLimit: 3
+ 

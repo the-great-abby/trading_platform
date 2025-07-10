@@ -6,14 +6,110 @@ import os
 import logging
 import pandas as pd
 from datetime import datetime, date, timedelta
-from typing import List, Optional, Dict, Tuple
-from sqlalchemy import create_engine, text
+from typing import List, Optional, Dict, Tuple, Any
+from sqlalchemy import create_engine, text, Column, String, Float, Integer, Date, DateTime, and_, or_
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from ...models.market_data import Base, HistoricalPrice, MarketDataCache
 
 logger = logging.getLogger(__name__)
+
+Base = declarative_base()
+
+class OptionContractCache(Base):
+    __tablename__ = 'options_contracts_cache'
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String, index=True)
+    expiration = Column(String, index=True)
+    strike = Column(Float)
+    option_type = Column(String)
+    price = Column(Float)
+    volume = Column(Integer)
+    open_interest = Column(Integer)
+    delta = Column(Float)
+    gamma = Column(Float)
+    theta = Column(Float)
+    vega = Column(Float)
+    implied_volatility = Column(Float)
+    cache_date = Column(Date, default=lambda: datetime.date.today(), index=True)
+    last_updated = Column(DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+
+class MarketDataService:
+    """Service for managing market data - wrapper around MarketDataDatabaseService"""
+    
+    def __init__(self, database_url: Optional[str] = None):
+        self.db_service = MarketDataDatabaseService(database_url)
+    
+    def store_historical_data(self, symbol: str, data: pd.DataFrame, provider: str, interval: str = '1d') -> bool:
+        """Store historical market data"""
+        return self.db_service.store_historical_data(symbol, data, provider, interval)
+    
+    def get_historical_data(self, symbol: str, start_date: date, end_date: date, 
+                          provider: Optional[str] = None, interval: str = '1d') -> Optional[pd.DataFrame]:
+        """Retrieve historical data"""
+        return self.db_service.get_historical_data(symbol, start_date, end_date, provider, interval)
+    
+    def get_missing_dates(self, symbol: str, start_date: date, end_date: date, 
+                         provider: Optional[str] = None, interval: str = '1d') -> List[date]:
+        """Find missing dates"""
+        return self.db_service.get_missing_dates(symbol, start_date, end_date, provider, interval)
+    
+    def get_cache_status(self, symbol: str, provider: Optional[str] = None) -> Dict:
+        """Get cache status"""
+        return self.db_service.get_cache_status(symbol, provider)
+    
+    def cleanup_old_data(self, days_to_keep: int = 365) -> int:
+        """Cleanup old data"""
+        return self.db_service.cleanup_old_data(days_to_keep)
+    
+    def get_all_symbols(self) -> List[str]:
+        """Get all symbols"""
+        return self.db_service.get_all_symbols()
+    
+    def get_all_data_for_symbol(self, symbol: str, provider: Optional[str] = None, interval: str = '1d') -> Optional[pd.DataFrame]:
+        """Get all data for a symbol"""
+        return self.db_service.get_all_data_for_symbol(symbol, provider, interval)
+    
+    def get_options_data(self, symbol: str) -> Optional[List[Dict[str, Any]]]:
+        """Get options data for a symbol using real options data service"""
+        try:
+            from ..market_data.options_data_service import get_options_service
+            options_service = get_options_service()
+            
+            # Get liquid options contracts
+            liquid_contracts = options_service.get_liquid_options(symbol, min_volume=1)
+            
+            if liquid_contracts and len(liquid_contracts) > 0:
+                # Convert to list of dictionaries
+                options_data = []
+                for contract in liquid_contracts:
+                    options_data.append({
+                        'symbol': contract.symbol,
+                        'strike': contract.strike,
+                        'expiration': contract.expiration,
+                        'option_type': contract.option_type,
+                        'price': contract.price,
+                        'volume': contract.volume,
+                        'open_interest': contract.open_interest,
+                        'delta': contract.delta,
+                        'gamma': contract.gamma,
+                        'theta': contract.theta,
+                        'vega': contract.vega,
+                        'implied_volatility': contract.implied_volatility
+                    })
+                
+                logger.info(f"[MarketDataService] ✅ Found {len(options_data)} real options contracts for {symbol}")
+                return options_data
+            else:
+                logger.warning(f"[MarketDataService] ⚠️ No real options data found for {symbol}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"[MarketDataService] ❌ Error getting options data for {symbol}: {e}")
+            return None
 
 
 class MarketDataDatabaseService:

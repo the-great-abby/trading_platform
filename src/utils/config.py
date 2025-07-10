@@ -3,9 +3,10 @@ Configuration management for the trading bot
 """
 
 import os
-from typing import Optional
-from dataclasses import dataclass
+from typing import Optional, List
+from dataclasses import dataclass, field
 from dotenv import load_dotenv
+from src.utils.trading_config import get_symbols, get_options_symbols
 
 load_dotenv()
 
@@ -48,6 +49,10 @@ class Config:
     data_provider: str = os.getenv("DATA_PROVIDER", "public")  # Changed default to public
     historical_days: int = int(os.getenv("HISTORICAL_DAYS", "30"))
     
+    # Symbol lists - use default_factory for mutable defaults
+    symbols: Optional[List[str]] = field(default_factory=get_symbols)
+    options_symbols: Optional[List[str]] = field(default_factory=get_options_symbols)
+    
     def validate(self) -> bool:
         """Validate configuration"""
         if self.data_provider == "public":
@@ -58,4 +63,9 @@ class Config:
             if not self.alpaca_api_key or not self.alpaca_secret_key:
                 print("Warning: Alpaca API credentials not configured")
                 return False
-        return True 
+        return True
+
+
+def get_config() -> Config:
+    """Get configuration instance"""
+    return Config() 

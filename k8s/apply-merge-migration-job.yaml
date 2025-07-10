@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apply-merge-migration-job
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: alembic
+        image: localhost:5000/trading-system:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "=== APPLYING MERGE MIGRATION ==="
+            cd /app
+            python -m alembic upgrade head
+            echo "=== MIGRATION COMPLETE ==="
+            python -c "
+            from alembic import command
+            from alembic.config import Config
+            config = Config('alembic.ini')
+            command.current(config)
+            "
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: PYTHONPATH
+          value: "/app"
+      restartPolicy: Never 

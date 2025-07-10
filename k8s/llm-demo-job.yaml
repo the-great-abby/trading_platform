@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: llm-demo-job
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: llm-demo
+        image: trading-bot:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args: ["demo_llm_trading_strategy.py"]
+        env:
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: OLLAMA_URL
+          value: "http://ollama:11434"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      restartPolicy: Never
+  backoffLimit: 1 

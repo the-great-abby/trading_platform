@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-polygon-options-access
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: test
+        image: localhost:5000/trading-system:latest
+        command: ["python", "test_polygon_options_access.py"]
+        env:
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: PYTHONPATH
+          value: "/app"
+      restartPolicy: Never 

@@ -1,8 +1,8 @@
-# 🚀 Deployment Guide - Docker Compose & Kubernetes
+# 🚀 Space Trading Station Deployment Guide - Docker Compose & Kubernetes
 
-This guide covers deploying the algorithmic trading system using Docker Compose for development and Kubernetes for production.
+This guide covers deploying the Space Trading Station using Docker Compose for development and Kubernetes for production.
 
-## 📋 Prerequisites
+## 📋 Mission Control Prerequisites
 
 ### For Docker Compose
 - Docker Desktop or Docker Engine
@@ -16,7 +16,7 @@ This guide covers deploying the algorithmic trading system using Docker Compose 
 
 ## 🐳 Docker Compose Deployment
 
-### 1. Environment Setup
+### 1. Mission Control Environment Setup
 
 ```bash
 # Copy environment template
@@ -26,7 +26,7 @@ cp config.env.example .env
 nano .env
 ```
 
-### 2. Deploy Infrastructure
+### 2. Deploy Space Station Infrastructure
 
 ```bash
 # Start databases and message brokers
@@ -36,7 +36,7 @@ docker-compose up -d write-db read-db eventstore kafka zookeeper redis influxdb
 sleep 30
 ```
 
-### 3. Deploy Microservices
+### 3. Deploy Space Station Modules
 
 ```bash
 # Build and start all services
@@ -46,7 +46,7 @@ docker-compose up -d --build
 ./deploy.sh
 ```
 
-### 4. Verify Deployment
+### 4. Verify Space Station Status
 
 ```bash
 # Check service status
@@ -59,9 +59,9 @@ docker-compose logs -f trading-service
 curl http://localhost:8000/health
 ```
 
-### 5. Access Services
+### 5. Access Mission Control Services
 
-- **API Gateway**: http://localhost:8000
+- **Mission Control Gateway**: http://localhost:8000
 - **Command API**: http://localhost:8001
 - **Query API**: http://localhost:8002
 - **Grafana**: http://localhost:3000 (admin/admin)
@@ -69,7 +69,7 @@ curl http://localhost:8000/health
 - **Prometheus**: http://localhost:9090
 - **EventStore**: http://localhost:2113
 
-## ☸️ Kubernetes Deployment
+## ☸️ Kubernetes Space Station Deployment
 
 ### 1. Cluster Setup
 
@@ -81,7 +81,7 @@ minikube start --memory=8192 --cpus=4
 # Use your cloud provider's managed Kubernetes service
 ```
 
-### 2. Create Namespace
+### 2. Create Space Station Namespace
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
@@ -95,14 +95,14 @@ kubectl apply -f k8s/secrets.yaml
 kubectl apply -f k8s/configmap.yaml
 ```
 
-### 4. Deploy Infrastructure
+### 4. Deploy Space Station Infrastructure
 
 ```bash
 # Deploy databases and message brokers
 kubectl apply -f k8s/infrastructure/ -n trading-system
 ```
 
-### 5. Deploy Microservices
+### 5. Deploy Space Station Modules
 
 ```bash
 # Deploy all services
@@ -122,7 +122,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/cont
 kubectl apply -f k8s/ingress.yaml
 ```
 
-### 7. Verify Deployment
+### 7. Verify Space Station Deployment
 
 ```bash
 # Check pods
@@ -138,7 +138,7 @@ kubectl get ingress -n trading-system
 kubectl logs -f deployment/trading-service -n trading-system
 ```
 
-## 🔧 Configuration
+## 🔧 Mission Control Configuration
 
 ### Environment Variables
 
@@ -167,7 +167,7 @@ REDIS_URL=redis://redis:6379
 INFLUXDB_URL=http://influxdb:8086
 ```
 
-### Scaling Services
+### Scaling Space Station Modules
 
 ```bash
 # Docker Compose
@@ -177,7 +177,7 @@ docker-compose up -d --scale trading-service=3
 kubectl scale deployment trading-service --replicas=3 -n trading-system
 ```
 
-## 📊 Monitoring & Logging
+## 📊 Mission Control Monitoring & Logging
 
 ### Prometheus Metrics
 
@@ -198,7 +198,6 @@ open http://localhost:9090
 open http://localhost:3000
 
 # Default credentials: admin/admin
-# Import dashboards from monitoring/dashboards/
 ```
 
 ### ELK Stack

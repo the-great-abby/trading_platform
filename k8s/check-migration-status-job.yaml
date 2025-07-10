@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: check-migration-status-job
+  namespace: trading-system
+  labels:
+    app: migration-status
+    job-type: check
+spec:
+  template:
+    metadata:
+      labels:
+        app: migration-status
+    spec:
+      containers:
+      - name: migration-status
+        image: trading-bot:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args: ["-m", "alembic", "current"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      restartPolicy: Never
+  backoffLimit: 1 

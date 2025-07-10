@@ -1,0 +1,125 @@
+# Backtest Operations Makefile
+# Usage: make -f Makefile.backtest <target>
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Variables
+DOCKER_COMPOSE := docker-compose
+KUBECTL := kubectl
+
+# Backtest Results Management (Docker-based)
+backend-backtest-list: ## List backtest runs from database
+	@echo "$(GREEN)Listing backtest runs...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py list
+
+backend-backtest-list-detailed: ## List backtest runs with detailed information
+	@echo "$(GREEN)Listing backtest runs with details...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py list --details
+
+backend-backtest-show: ## Show details for a specific backtest run (usage: make backend-backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy)
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "$(RED)Error: RUN_ID parameter is required$(NC)"; \
+		echo "Usage: make backend-backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Showing details for run $(RUN_ID)...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py show $(RUN_ID)
+
+backend-backtest-show-trades: ## Show trades for a specific backtest run (usage: make backend-backtest-show-trades RUN_ID=backtest_20250705_123456_BollingerBandsStrategy)
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "$(RED)Error: RUN_ID parameter is required$(NC)"; \
+		echo "Usage: make backend-backtest-show-trades RUN_ID=backtest_20250705_123456_BollingerBandsStrategy"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Showing trades for run $(RUN_ID)...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py trades $(RUN_ID)
+
+backend-backtest-compare: ## Compare strategies
+	@echo "$(GREEN)Comparing strategies...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py compare
+
+backend-backtest-stats: ## Show backtest statistics
+	@echo "$(GREEN)Showing backtest statistics...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/backtest_cli.py stats
+
+# Backtest Execution (Docker-based)
+backend-backtest-run: ## Run comprehensive backtesting analysis
+	@echo "$(GREEN)Running backtesting analysis...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python run_backtest.py
+
+backend-backtest-quick: ## Run quick backtest with fewer symbols
+	@echo "$(GREEN)Running quick backtest...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python -c "from run_backtest import main; import sys; sys.argv = ['quick']; main()"
+
+backend-backtest-single: ## Run backtest for single strategy
+	@echo "$(GREEN)Running single strategy backtest...$(NC)"
+	@read -p "Enter strategy name (sma_crossover/rsi/macd/bollinger_bands): " strategy; \
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python -c "from run_backtest import main; import sys; sys.argv = ['single', '$$strategy']; main()"
+
+backend-backtest-view-results: ## View backtest results
+	@echo "$(GREEN)Viewing backtest results...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python view_backtest_results.py
+
+# Kubernetes Backtest Commands
+backend-kube-backtest-list: ## List backtest runs from database using Kubernetes
+	@echo "$(GREEN)Listing backtest runs from Kubernetes cluster...$(NC)"
+	@POD=$$(kubectl -n trading-system get pods --no-headers -o custom-columns=":metadata.name" | grep postgres | head -n 1); \
+	kubectl -n trading-system exec -it $$POD -- psql -U trading_user -d trading_db -c "SELECT run_id, strategy_name, total_return_pct, sharpe_ratio, total_trades, win_rate, max_drawdown_pct, created_at FROM backtest_runs ORDER BY created_at DESC LIMIT 10;" | cat
+
+backend-kube-backtest-list-detailed: ## List backtest runs with detailed information using Kubernetes
+	@echo "$(GREEN)Listing backtest runs with details from Kubernetes cluster...$(NC)"
+	@POD=$$(kubectl -n trading-system get pods --no-headers -o custom-columns=":metadata.name" | grep postgres | head -n 1); \
+	kubectl -n trading-system exec -it $$POD -- psql -U trading_user -d trading_db -c "SELECT run_id, strategy_name, total_return_pct, sharpe_ratio, total_trades, win_rate, max_drawdown_pct, profit_factor, avg_win_pct, avg_loss_pct, created_at FROM backtest_runs ORDER BY created_at DESC LIMIT 10;" | cat
+
+backend-kube-backtest-show: ## Show details for a specific backtest run using Kubernetes (usage: make backend-kube-backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy)
+	@if [ -z "$(RUN_ID)" ]; then \
+		echo "$(RED)Error: RUN_ID parameter is required$(NC)"; \
+		echo "Usage: make backend-kube-backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Showing details for run $(RUN_ID) from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py show $(RUN_ID)
+
+backend-kube-backtest-compare: ## Compare strategies using Kubernetes
+	@echo "$(GREEN)Comparing strategies from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py compare
+
+backend-kube-backtest-stats: ## Show backtest statistics using Kubernetes
+	@echo "$(GREEN)Showing backtest statistics from Kubernetes cluster...$(NC)"
+	@python3 scripts/kube_backtest_cli.py stats
+
+# Kubernetes Backtest Job Management
+backend-kube-backtest: ## Run a backtest job on Kubernetes
+	@echo "$(GREEN)Deleting existing backtest job...$(NC)"
+	@kubectl delete job backtest-job -n trading-system --ignore-not-found=true
+	@echo "$(GREEN)Creating new backtest job...$(NC)"
+	$(KUBECTL) apply -f k8s/backtest-job.yaml
+	@echo "$(GREEN)Backtest job created! Check status with: make -f Makefile.backtest backend-kube-backtest-status$(NC)"
+
+backend-kube-backtest-complete: ## Complete backtest workflow: rebuild image, setup DB, run backtest
+	@echo "$(GREEN)Starting complete backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest
+	@echo "$(GREEN)Complete backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Check results with: make -f Makefile.backtest backend-kube-backtest-status$(NC)"
+
+backend-kube-backtest-status: ## Check status of backtest job
+	$(KUBECTL) -n trading-system get jobs
+
+backend-kube-backtest-logs: ## Get logs from the backtest job
+	$(KUBECTL) -n trading-system logs job/trading-backtest
+
+# Help
+backend-help: ## Show this help message
+	@echo "$(GREEN)Backtest Operations:$(NC)"
+	@grep -E '^backend-[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
+
+.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete 

@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-comprehensive-historical
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest
+        image: localhost:5000/trading-system:latest
+        command: ["python", "run_comprehensive_historical_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: OLLAMA_URL
+          value: "http://ollama-dev:11434"
+        - name: OLLAMA_MODEL
+          value: "exaone3.5:2.4b"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: PYTHONPATH
+          value: "/app"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: OLLAMA_TIMEOUT
+          value: "60"
+        - name: OLLAMA_RETRIES
+          value: "3"
+        - name: OLLAMA_BACKOFF_FACTOR
+          value: "2"
+        # Backtest configuration for specific time period
+        - name: BACKTEST_START_DATE
+          value: "2023-07-10"
+        - name: BACKTEST_END_DATE
+          value: "2025-07-09"
+        - name: BACKTEST_SYMBOLS
+          value: "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX"
+        - name: BACKTEST_STRATEGIES
+          value: "GreeksEnhancedStrategy,BollingerBandsStrategy,MACDStrategy,RSIStrategy"
+        - name: BACKTEST_INITIAL_CAPITAL
+          value: "100000.0"
+      restartPolicy: Never 

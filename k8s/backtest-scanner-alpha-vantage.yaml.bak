@@ -1,0 +1,78 @@
+# Backtest Scanner Job - Alpha Vantage Focus
+# Uses 25 requests per day strategically
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-scanner-alpha-vantage
+  namespace: trading-system
+  labels:
+    app: backtest-scanner
+    provider: "alpha-vantage"
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest-scanner
+        image: trading-bot:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python"]
+        args: 
+        - "build_backtest_data.py"
+        - "--symbols"
+        - "AAPL"
+        - "MSFT"
+        - "GOOGL"
+        - "TSLA"
+        - "AMZN"
+        - "--start-date"
+        - "2020-01-01"
+        - "--end-date"
+        - "2024-12-31"
+        - "--interval"
+        - "1d"
+        - "--parallel-workers"
+        - "1"
+        - "--force-refresh"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: ALPHA_VANTAGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpha-vantage-api-key
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: PYTHONPATH
+          value: "/app/src"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: data-volume
+          mountPath: /app/data
+      volumes:
+      - name: logs-volume
+        emptyDir: {}
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      restartPolicy: Never
+  backoffLimit: 3 

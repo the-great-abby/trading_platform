@@ -9,6 +9,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
 from typing import List, Dict, Any
+import logging
 
 from src.backtesting.backtest_engine import BacktestEngine
 from src.strategies.news_enhanced_strategy import NewsEnhancedStrategy
@@ -17,6 +18,9 @@ from src.strategies.rsi_strategy import RSIStrategy
 from src.strategies.macd_strategy import MACDStrategy
 from src.strategies.bollinger_bands_strategy import BollingerBandsStrategy
 from src.backtesting.results_exporter import BacktestResultsExporter
+from src.services.database.market_data_service import MarketDataService
+from src.utils.config import get_config
+from src.utils.trading_config import get_symbols
 
 
 async def main():
@@ -51,31 +55,47 @@ async def main():
     for strategy_name, strategy in strategies.items():
         print(f"📊 Backtesting {strategy_name}...")
         
-        strategy_results = []
-        for symbol in symbols:
-            # Generate mock data with some news events
-            data = await _generate_mock_data_with_news(symbol)
-            
-            # Run backtest for this symbol
-            result = await engine.run_backtest(
-                symbols=[symbol],
+        # Run backtest for all symbols together
+        try:
+            print(f"   Running backtest for symbols: {symbols}")
+            results_dict = await engine.run_backtest(
+                symbols=symbols,
                 start_date="2020-01-01",
                 end_date="2025-07-02",
                 strategies=[strategy_name]
             )
             
-            strategy_results.append(result)
-        
-        # Aggregate results
-        total_return = sum(r['total_return'] for r in strategy_results)
-        total_trades = sum(r['total_trades'] for r in strategy_results)
-        win_rate = sum(r['win_rate'] for r in strategy_results) / len(strategy_results)
+            # Extract results for this strategy
+            if strategy_name in results_dict and results_dict[strategy_name]:
+                strategy_result = results_dict[strategy_name]
+                total_return = strategy_result.total_return_pct
+                total_trades = strategy_result.total_trades
+                win_rate = strategy_result.win_rate
+                
+                print(f"   ✅ Backtest completed successfully")
+                print(f"   📊 Total Return: {total_return:.2f}%")
+                print(f"   📈 Final Capital: ${strategy_result.final_capital:,.2f}")
+                print(f"   🔄 Total Trades: {total_trades}")
+                print(f"   📊 Win Rate: {win_rate:.2f}%")
+                print(f"   📉 Max Drawdown: {strategy_result.max_drawdown_pct:.2f}%")
+                print(f"   📈 Sharpe Ratio: {strategy_result.sharpe_ratio:.2f}")
+            else:
+                print(f"   ❌ No results found for {strategy_name}")
+                total_return = 0.0
+                total_trades = 0
+                win_rate = 0.0
+                
+        except Exception as e:
+            print(f"   ❌ Error running backtest for {strategy_name}: {e}")
+            total_return = 0.0
+            total_trades = 0
+            win_rate = 0.0
         
         results[strategy_name] = {
             'total_return': total_return,
             'total_trades': total_trades,
             'avg_win_rate': win_rate,
-            'symbol_results': strategy_results
+            'strategy_result': strategy_result if 'strategy_result' in locals() else None
         }
         
         print(f"   Total Return: {total_return:.2f}%")
@@ -149,14 +169,20 @@ async def main():
     # Show detailed news-enhanced results
     print("🔍 News-Enhanced Strategy Details")
     print("-" * 50)
-    news_results = results['news_enhanced']['symbol_results']
+    news_result = results['news_enhanced']['strategy_result']
     
-    for result in news_results:
-        print(f"📊 {result['symbol']}:")
-        print(f"   Return: {result['total_return']:.2f}%")
-        print(f"   Trades: {result['total_trades']}")
-        print(f"   Win Rate: {result['win_rate']:.2f}%")
-        print(f"   Max Drawdown: {result['max_drawdown']:.2f}%")
+    if news_result:
+        print(f"📊 News-Enhanced Strategy Summary:")
+        print(f"   Total Return: {news_result.total_return_pct:.2f}%")
+        print(f"   Final Capital: ${news_result.final_capital:,.2f}")
+        print(f"   Total Trades: {news_result.total_trades}")
+        print(f"   Win Rate: {news_result.win_rate:.2f}%")
+        print(f"   Max Drawdown: {news_result.max_drawdown_pct:.2f}%")
+        print(f"   Sharpe Ratio: {news_result.sharpe_ratio:.2f}")
+        print(f"   Profit Factor: {news_result.profit_factor:.2f}")
+        print()
+    else:
+        print("❌ No detailed results available for news-enhanced strategy")
         print()
     
     print("🎉 News-Enhanced Backtest Complete!")
@@ -228,6 +254,26 @@ def _calculate_rsi(prices: pd.Series, period: int = 14) -> pd.Series:
     rs = gain / loss
     rsi = 100 - (100 / (1 + rs))
     return rsi
+
+
+async def run_news_enhanced_backtest():
+    """Run news-enhanced backtest with real market data"""
+    config = get_config()
+    
+    # Initialize services
+    market_data_service = MarketDataService(config.database_url)
+    
+    # Use centralized symbol list
+    symbols = get_symbols()
+    
+    # Calculate date range (1 year ago to today)
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
+    
+    print(f"📊 Running news-enhanced backtest for {len(symbols)} symbols")
+    print(f"📅 Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    
+    # ... existing code ...
 
 
 if __name__ == "__main__":

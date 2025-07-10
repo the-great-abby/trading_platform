@@ -20,6 +20,7 @@ spec:
       containers:
       - name: backtest-scanner
         image: trading-bot:latest
+        imagePullPolicy: Never
         imagePullPolicy: IfNotPresent
         command: ["python"]
         args: ["scan_backtest_data.py", "--multi-period"]
@@ -119,6 +120,7 @@ spec:
           containers:
           - name: backtest-scanner
             image: trading-bot:latest
+        imagePullPolicy: Never
             imagePullPolicy: IfNotPresent
             command: ["python"]
             args: ["scan_backtest_data.py", "--symbols", "AAPL MSFT GOOGL TSLA AMZN", "--start-date", "$(date -d 'yesterday' +%Y-%m-%d)", "--end-date", "$(date +%Y-%m-%d)"]

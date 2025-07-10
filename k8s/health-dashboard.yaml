@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
       - name: health-dashboard
-        image: health-dashboard:latest
-        imagePullPolicy: Never
+        image: localhost:5000/health-dashboard:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:

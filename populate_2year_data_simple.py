@@ -8,12 +8,18 @@ import os
 import sys
 import time
 import logging
+import asyncio
 from datetime import datetime, timedelta
+from typing import Dict, List
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from services.market_data.market_data_provider import get_market_data_manager
+from src.services.database.market_data_service import MarketDataService
+from src.services.market_data.yahoo_finance_service import YahooFinanceService
+from src.utils.config import get_config
+from src.utils.trading_config import get_symbols
 
 # Configure logging
 logging.basicConfig(
@@ -21,27 +27,32 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-def populate_2year_data():
-    """Populate database with 2 years of historical data"""
-    print("🏗️  Populating Database with 2 Years of Historical Data")
-    print("=" * 70)
+async def populate_historical_data():
+    """Populate 2 years of historical data for all symbols"""
+    config = get_config()
     
-    # Calculate 2-year date range
+    # Initialize services
+    market_data_service = MarketDataService(config.database_url)
+    yahoo_service = YahooFinanceService()
+    
+    # Use centralized symbol list
+    symbols = get_symbols()
+    
+    # Calculate date range (2 years ago to today)
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=2*365)  # ~2 years
+    start_date = end_date - timedelta(days=2*365)
     
-    print(f"📅 Target Date Range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    print(f"📊 Populating 2 years of historical data for {len(symbols)} symbols")
+    print(f"📅 Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
     
-    # Top 10 symbols for testing
-    symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "UNH", "JNJ", "JPM"]
+    successful_symbols = 0
+    failed_symbols = 0
     
     # Initialize market data manager
     market_data_manager = get_market_data_manager()
     
     # Performance tracking
     total_records = 0
-    successful_symbols = 0
-    failed_symbols = 0
     start_time = time.time()
     
     print(f"\n🔍 Processing {len(symbols)} symbols...")
@@ -107,4 +118,4 @@ def populate_2year_data():
     print(f"   3. Use for backtesting")
 
 if __name__ == "__main__":
-    populate_2year_data() 
+    asyncio.run(populate_historical_data()) 

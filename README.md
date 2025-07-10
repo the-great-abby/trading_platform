@@ -1,23 +1,24 @@
-# Trading System - CQRS & Microservices
+# 🚀 Space Trading Station - CQRS & Microservices
 
-A comprehensive algorithmic trading system built with CQRS (Command Query Responsibility Segregation) architecture, featuring backtesting, real-time market data, and Kubernetes deployment.
+A comprehensive algorithmic trading system built with CQRS (Command Query Responsibility Segregation) architecture, featuring backtesting, real-time market data, and Kubernetes deployment. Welcome to Mission Control!
 
-## 🏗️ Architecture
+## 🏗️ Space Station Architecture
 
 - **CQRS Pattern**: Separate command and query models for optimal performance
 - **Microservices**: Containerized services for scalability
 - **Event Sourcing**: Complete audit trail of all trading events
 - **Kubernetes Native**: Production-ready deployment
 - **Multi-Strategy Backtesting**: Comprehensive strategy evaluation
+- **AI Navigation Systems**: LLM-enhanced trading strategies
 
-## 📁 Project Structure
+## 📁 Mission Control Structure
 
 ```
-├── Makefile                 # Main orchestrator (use Makefile.new for modular approach)
-├── Makefile.backtest       # Backtest operations and results management
-├── Makefile.kubernetes     # Kubernetes deployment and management
-├── Makefile.docker         # Docker development and operations
-├── Makefile.database       # Database operations and data management
+├── Makefile                 # Mission Control Center (use Makefile.new for modular approach)
+├── Makefile.backtest       # Orbital Backtesting operations and results management
+├── Makefile.kubernetes     # Space Station deployment and management
+├── Makefile.docker         # Development environment operations
+├── Makefile.database       # Data management operations
 ├── src/                    # Source code
 │   ├── api/               # REST API endpoints
 │   ├── backtesting/       # Backtesting engine
@@ -32,7 +33,7 @@ A comprehensive algorithmic trading system built with CQRS (Command Query Respon
 └── docs/                  # Documentation
 ```
 
-## 🚀 Quick Start
+## 🚀 Launch Sequence (Quick Start)
 
 ### Prerequisites
 
@@ -41,7 +42,11 @@ A comprehensive algorithmic trading system built with CQRS (Command Query Respon
 - Python 3.8+
 - API keys for market data providers
 
-### 1. Setup Environment
+### AI Assistant
+
+This Space Trading Station is powered by **ORION** - your AI co-pilot for Mission Control operations. All AI Navigation Systems and Space Station modules are configured through `src/utils/space_station_config.py`.
+
+### 1. Setup Mission Control Environment
 
 ```bash
 # Copy environment template
@@ -51,7 +56,7 @@ cp config.env.example .env
 # Required: POLYGON_API_KEY, ALPHA_VANTAGE_API_KEY
 ```
 
-### 2. Start Development Environment
+### 2. Initialize Space Station
 
 ```bash
 # Using modular Makefiles (recommended)
@@ -61,7 +66,7 @@ make -f Makefile.new dev-start
 make docker-dev
 ```
 
-### 3. Run Backtests
+### 3. Launch Orbital Backtests
 
 ```bash
 # List available backtest runs
@@ -74,21 +79,48 @@ make -f Makefile.backtest backtest-run
 make -f Makefile.backtest backtest-view-results
 ```
 
-## 📋 Modular Makefile System
+## 📋 Mission Control System (Modular Makefile System)
 
 We've organized the Makefile into focused, manageable modules to eliminate conflicts and improve maintainability.
 
-### Available Makefiles
+## 🚀 Real-Time Monitor ↔ API Architecture
+
+The Space Trading Station includes a real-time performance monitor that runs on your host and connects to the backtest API running in Kubernetes.
+
+### Quick Monitor Setup
+```bash
+# Deploy the backtest API
+./scripts/deploy-backtest-api.sh
+
+# Port forward the API (keep running)
+kubectl port-forward svc/backtest-api 10001:10001 -n trading-system
+
+# Run the monitor with real data
+make monitor-demo-api
+```
+
+### Documentation
+- [📖 Complete Guide](docs/MONITOR_API_GUIDE.md) - Detailed architecture and setup
+- [⚡ Quick Reference](docs/QUICK_REFERENCE.md) - One-page cheat sheet  
+- [✅ Setup Checklist](docs/MONITOR_API_CHECKLIST.md) - Step-by-step checklist
+
+### Architecture
+```
+Your Host ←→ Port Forward ←→ Kubernetes API ←→ Database
+Monitor    ←→ localhost:10001 ←→ backtest-api ←→ PostgreSQL
+```
+
+### Available Mission Control Modules
 
 | Makefile | Purpose | Usage |
 |----------|---------|-------|
-| `Makefile.new` | Main orchestrator | `make -f Makefile.new <target>` |
-| `Makefile.backtest` | Backtest operations | `make -f Makefile.backtest <target>` |
-| `Makefile.kubernetes` | K8s deployment | `make -f Makefile.kubernetes <target>` |
-| `Makefile.docker` | Docker development | `make -f Makefile.docker <target>` |
-| `Makefile.database` | Database operations | `make -f Makefile.database <target>` |
+| `Makefile.new` | Main Mission Control | `make -f Makefile.new <target>` |
+| `Makefile.backtest` | Orbital Backtesting | `make -f Makefile.backtest <target>` |
+| `Makefile.kubernetes` | Space Station deployment | `make -f Makefile.kubernetes <target>` |
+| `Makefile.docker` | Development environment | `make -f Makefile.docker <target>` |
+| `Makefile.database` | Data management | `make -f Makefile.database <target>` |
 
-### Common Workflows
+### Common Mission Operations
 
 #### Development
 ```bash
@@ -102,7 +134,7 @@ make -f Makefile.new status
 make -f Makefile.docker dev-logs
 ```
 
-#### Backtesting
+#### Orbital Backtesting
 ```bash
 # List backtest results
 make -f Makefile.backtest backtest-list
@@ -117,7 +149,7 @@ make -f Makefile.backtest backtest-compare
 make -f Makefile.backtest backtest-show RUN_ID=backtest_20250705_123456_BollingerBandsStrategy
 ```
 
-#### Kubernetes Operations
+#### Space Station Operations
 ```bash
 # Deploy to Kubernetes
 make -f Makefile.new kube-deploy
@@ -132,12 +164,12 @@ make -f Makefile.kubernetes kube-logs
 make -f Makefile.kubernetes kube-postgres-port
 ```
 
-#### Database Operations
+#### Data Management
 ```bash
 # Initialize database
 make -f Makefile.database db-init
 
-# Fetch market data
+# Fetch satellite data (market data)
 make -f Makefile.new data-fetch
 
 # Check database health
@@ -147,9 +179,9 @@ make -f Makefile.database db-health
 make -f Makefile.database db-export-data SYMBOL=AAPL
 ```
 
-## 🔧 Available Commands
+## 🔧 Available Mission Commands
 
-### Main Orchestrator (`Makefile.new`)
+### Main Mission Control (`Makefile.new`)
 ```bash
 make -f Makefile.new help              # Show main help
 make -f Makefile.new help-backtest     # Show backtest commands
@@ -159,14 +191,14 @@ make -f Makefile.new help-db           # Show database commands
 make -f Makefile.new dev-start         # Start development environment
 make -f Makefile.new kube-deploy       # Deploy to Kubernetes
 make -f Makefile.new backtest-run      # Run backtests
-make -f Makefile.new data-fetch        # Fetch market data
+make -f Makefile.new data-fetch        # Fetch satellite data
 make -f Makefile.new status            # Show system status
 make -f Makefile.new clean             # Clean up all resources
 make -f Makefile.new version           # Show version information
 make -f Makefile.new env-check         # Check environment configuration
 ```
 
-### Backtest Operations (`Makefile.backtest`)
+### Orbital Backtesting (`Makefile.backtest`)
 ```bash
 make -f Makefile.backtest help                    # Show backtest help
 make -f Makefile.backtest backtest-list           # List backtest runs
@@ -180,7 +212,7 @@ make -f Makefile.backtest kube-backtest-list      # K8s backtest list
 make -f Makefile.backtest kube-backtest-show      # K8s backtest show
 ```
 
-### Kubernetes Operations (`Makefile.kubernetes`)
+### Space Station Operations (`Makefile.kubernetes`)
 ```bash
 make -f Makefile.kubernetes help              # Show K8s help
 make -f Makefile.kubernetes kube-deploy-all   # Deploy all components
@@ -193,28 +225,11 @@ make -f Makefile.kubernetes kube-workers      # Deploy workers
 make -f Makefile.kubernetes kube-clean        # Clean up resources
 ```
 
-### Docker Operations (`Makefile.docker`)
+### Development Environment (`Makefile.docker`)
 ```bash
 make -f Makefile.docker help              # Show Docker help
 make -f Makefile.docker docker-dev        # Start development environment
 make -f Makefile.docker docker-test       # Run tests
-make -f Makefile.docker docker-stop       # Stop containers
-make -f Makefile.docker docker-clean      # Clean up resources
-make -f Makefile.docker dev-shell         # Open development shell
-make -f Makefile.docker dev-logs          # View logs
-```
-
-### Database Operations (`Makefile.database`)
-```bash
-make -f Makefile.database help              # Show database help
-make -f Makefile.database db-init           # Initialize database
-make -f Makefile.database db-migrate        # Run migrations
-make -f Makefile.database db-reset          # Reset database (WARNING)
-make -f Makefile.database db-fetch-polygon  # Fetch Polygon data
-make -f Makefile.database db-populate-2year # Populate historical data
-make -f Makefile.database db-list-symbols   # List symbols
-make -f Makefile.database db-health         # Check database health
-make -f Makefile.database db-stats          # Show statistics
 ```
 
 ## 🧪 Testing

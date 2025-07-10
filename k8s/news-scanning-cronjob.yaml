@@ -1,81 +1,91 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: news-scanning-job
+  name: news-scanning-cronjob
   namespace: trading-system
   labels:
-    app: news-scanning
-    component: cronjob
+    app: news-scanner
+    job-type: cronjob
 spec:
-  schedule: "0 * * * *"  # Every hour at minute 0
-  concurrencyPolicy: Forbid  # Don't run if previous job is still running
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       template:
         metadata:
           labels:
-            app: news-scanning
-            component: job
+            app: news-scanner
         spec:
-          restartPolicy: OnFailure
           containers:
           - name: news-scanner
-            image: trading-bot:latest
-            imagePullPolicy: IfNotPresent
-            command: ["python"]
-            args: ["-m", "src.services.workers.news_worker", "--cron-job"]
+            image: localhost:5000/trading-system:latest
+            command: ["python", "-m", "src.services.workers.news_worker_cron"]
             env:
-            - name: ENVIRONMENT
-              value: "production"
-            - name: LOG_LEVEL
-              value: "INFO"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: trading-secrets
                   key: database-url
-            - name: REDIS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: trading-secrets
-                  key: redis-url
             - name: RABBITMQ_URL
               valueFrom:
                 secretKeyRef:
                   name: trading-secrets
                   key: rabbitmq-url
-            - name: KAFKA_BOOTSTRAP_SERVERS
-              valueFrom:
-                configMapKeyRef:
-                  name: trading-config
-                  key: kafka-bootstrap-servers
-            - name: EVENTSTORE_URL
+            - name: POLYGON_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: trading-secrets
-                  key: eventstore-url
-            - name: OLLAMA_URL
+                  key: polygon-api-key
+            - name: ALPHA_VANTAGE_API_KEY
               valueFrom:
-                configMapKeyRef:
-                  name: trading-config
-                  key: ollama-url
+                secretKeyRef:
+                  name: trading-secrets
+                  key: alpha-vantage-api-key
+            - name: IEX_CLOUD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: iex-cloud-api-key
+            - name: OLLAMA_URL
+              value: "http://ollama:11434"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: SYMBOLS
+              # Use centralized symbol list from trading_config.py
+              # This will be populated by the application using get_symbols()
+              value: "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX,AMD,INTC,JPM,BAC,WFC,GS,MS,JNJ,PFE,UNH,HD,DIS,V,MA,PYPL,ADBE,CRM,ORCL,CSCO,QCOM,TXN,AVGO,SPY,QQQ,VTI,VOO,VUG,XLK,XLF,XLE,XLV,XLY"
+            - name: NEWS_SOURCES
+              value: "polygon,alpha_vantage"
+            - name: SCAN_INTERVAL
+              value: "1800"  # 30 minutes
+            - name: MAX_ARTICLES_PER_SYMBOL
+              value: "10"
+            - name: MIN_IMPACT_THRESHOLD
+              value: "0.3"
+            - name: ENABLE_LLM_ANALYSIS
+              value: "true"
+            - name: LLM_TIMEOUT
+              value: "30"
+            - name: LLM_MAX_RETRIES
+              value: "3"
             resources:
               requests:
-                memory: "256Mi"
-                cpu: "100m"
-              limits:
                 memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "1Gi"
                 cpu: "500m"
             volumeMounts:
-            - name: config-volume
-              mountPath: /app/config
-              readOnly: true
+            - name: shared-data
+              mountPath: /app/data
           volumes:
-          - name: config-volume
-            configMap:
-              name: news-scanning-config
+          - name: shared-data
+            persistentVolumeClaim:
+              claimName: backtest-data-pvc
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account
 ---
 apiVersion: v1
 kind: ConfigMap

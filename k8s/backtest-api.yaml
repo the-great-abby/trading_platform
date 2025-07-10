@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backtest-api
+  namespace: trading-system
+  labels:
+    app: backtest-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backtest-api
+  template:
+    metadata:
+      labels:
+        app: backtest-api
+    spec:
+      containers:
+      - name: backtest-api
+        image: localhost:5000/backtest-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 10001
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: read-url
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: API_PORT
+          value: "10001"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 10001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 10001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backtest-api
+  namespace: trading-system
+  labels:
+    app: backtest-api
+spec:
+  selector:
+    app: backtest-api
+  ports:
+  - protocol: TCP
+    port: 10001
+    targetPort: 10001
+    name: http
+  type: ClusterIP 

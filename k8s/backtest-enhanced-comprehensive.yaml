@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-enhanced-comprehensive
+  namespace: trading-system
+  labels:
+    app: backtest-enhanced-comprehensive
+    type: backtest
+    enhanced: "true"
+    llm: "true"
+    exit-strategies: "true"
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest-enhanced-comprehensive
+        type: backtest
+        enhanced: "true"
+        llm: "true"
+        exit-strategies: "true"
+    spec:
+      containers:
+      - name: backtest-enhanced-comprehensive
+        image: localhost:5000/trading-system:latest
+        command: ["python", "run_enhanced_comprehensive_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: OLLAMA_BASE_URL
+          value: "http://ollama-service:11434"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: BACKTEST_MODE
+          value: "enhanced_comprehensive"
+        - name: LLM_EVALUATION
+          value: "true"
+        - name: ADVANCED_EXIT_STRATEGIES
+          value: "true"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: backtest-data
+          mountPath: /app/data
+        - name: backtest-results
+          mountPath: /app/results
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: backtest-data
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      - name: backtest-results
+        persistentVolumeClaim:
+          claimName: backtest-results-pvc
+      - name: logs
+        emptyDir: {}
+      restartPolicy: Never
+      serviceAccountName: trading-service-account
+  backoffLimit: 3
+  activeDeadlineSeconds: 7200  # 2 hours 

@@ -6,8 +6,10 @@ Portfolio Strategy Backtest - Tests multi-strategy combinations with risk manage
 import asyncio
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
+import logging
+from typing import Dict, List
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -19,18 +21,32 @@ from src.strategies.rsi_strategy import RSIStrategy
 from src.strategies.mean_reversion_strategy import MeanReversionStrategy
 from src.strategies.momentum_strategy import MomentumStrategy
 from src.strategies.volatility_breakout_strategy import VolatilityBreakoutStrategy
+from src.services.database.market_data_service import MarketDataService
+from src.utils.config import get_config
+from src.utils.trading_config import get_symbols
 
 
 async def run_portfolio_backtest():
-    """Run comprehensive portfolio strategy backtest"""
+    """Run portfolio backtest with real market data"""
+    config = get_config()
+    
+    # Initialize services
+    market_data_service = MarketDataService(config.database_url)
+    
+    # Use centralized symbol list
+    symbols = get_symbols()
+    
+    # Calculate date range (1 year ago to today)
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
+    
+    print(f"📊 Running portfolio backtest for {len(symbols)} symbols")
+    print(f"📅 Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
     
     print("🚀 PORTFOLIO STRATEGY BACKTEST WITH RISK MANAGEMENT")
     print("=" * 70)
     
     # Configuration
-    symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'GS', 'PFE', 'MRK', 'UNH', 'SPY', 'VTI']
-    start_date = "2023-07-06"
-    end_date = "2025-07-03"
     initial_capital = 100000.0
     
     print(f"📊 Test Configuration:")

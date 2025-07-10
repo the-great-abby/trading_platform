@@ -82,9 +82,17 @@ class CachedMarketDataManager:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
             end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
             
+            # Calculate the date range size
+            date_range_days = (end_dt - start_dt).days
+            
+            # Force API fetch for large date ranges (more than 6 months)
+            if date_range_days > 180:
+                logger.info(f"Large date range detected ({date_range_days} days), forcing API fetch for {symbol}")
+                force_refresh = True
+            
             logger.info(f"Requesting historical data for {symbol} from {start_date} to {end_date}")
             
-            if self.database_only:
+            if self.database_only and not force_refresh:
                 # Only use database, never fetch from API
                 cached_data = self.db_service.get_historical_data(symbol, start_dt, end_dt, interval=interval)
                 if cached_data is not None and len(cached_data) > 0:
@@ -97,7 +105,13 @@ class CachedMarketDataManager:
             if not self._cache_enabled or force_refresh:
                 # Skip cache, go directly to API
                 logger.info("Cache disabled or force refresh requested, using API")
-                return self._fetch_from_api(symbol, start_date, end_date, interval)
+                api_data = self._fetch_from_api(symbol, start_date, end_date, interval)
+                if api_data is not None and len(api_data) > 0:
+                    logger.info(f"[API] Storing {len(api_data)} new records for {symbol} in database (force refresh)")
+                    self.db_service.store_historical_data(symbol, api_data, "api_force_refresh", interval)
+                else:
+                    logger.warning(f"[API] No data returned for {symbol} from API (force refresh)")
+                return api_data
             
             # Step 1: Check database for existing data
             cached_data = self.db_service.get_historical_data(symbol, start_dt, end_dt, interval=interval)
@@ -148,20 +162,17 @@ class CachedMarketDataManager:
                         return cached_data
                     # Fetch missing data from API
                     missing_data = self._fetch_missing_dates(symbol, missing_dates, interval)
-                    
                     if missing_data is not None and len(missing_data) > 0:
+                        logger.info(f"[API] Storing {len(missing_data)} new records for {symbol} in database (missing dates)")
+                        self.db_service.store_historical_data(symbol, missing_data, "api_missing_dates", interval)
                         # Combine cached and new data
                         combined_data = pd.concat([cached_data, missing_data])
                         combined_data = combined_data.sort_index()
-                        
-                        # Store new data in database
-                        self.db_service.store_historical_data(symbol, missing_data, "api_fallback", interval)
-                        
                         logger.info(f"Combined cached and API data for {symbol}: {len(combined_data)} records")
                         return combined_data
                     else:
-                        # Fallback to cached data only
                         logger.warning(f"Failed to fetch missing data for {symbol}, using cached data only")
+                        logger.warning(f"[API] No data returned for missing dates: {sorted(list(missing_dates))}")
                         return cached_data
             
             # Step 2: No cached data, fetch from API
@@ -172,12 +183,12 @@ class CachedMarketDataManager:
                 logger.warning(f"[DB-ONLY] No data for {symbol}, not fetching from API")
                 return None
             api_data = self._fetch_from_api(symbol, start_date, end_date, interval)
-            
             if api_data is not None and len(api_data) > 0:
-                # Store in database for future use
+                logger.info(f"[API] Storing {len(api_data)} new records for {symbol} in database (cache miss)")
                 self.db_service.store_historical_data(symbol, api_data, "api_primary", interval)
-                logger.info(f"Stored {len(api_data)} records for {symbol} in database")
-            
+                logger.info(f"Stored {len(api_data)} records for {symbol} in database (cache miss)")
+            else:
+                logger.warning(f"[API] No data returned for {symbol} from API (cache miss)")
             return api_data
             
         except Exception as e:
@@ -257,9 +268,31 @@ class CachedMarketDataManager:
             
             api_data = self._fetch_from_api(symbol, start_date, end_date, interval)
             
-            if api_data is not None:
+            if api_data is not None and not api_data.empty:
                 # Filter to only include missing dates
-                filtered_data = api_data[api_data.index.isin(missing_dates)]
+                # Convert index to date objects for comparison
+                filtered_data = api_data.copy()
+                
+                # Handle different index types
+                if isinstance(filtered_data.index, pd.DatetimeIndex):
+                    # Convert datetime index to date objects for comparison
+                    filtered_data['_date'] = filtered_data.index.to_pydatetime()
+                    filtered_data['_date'] = filtered_data['_date'].apply(lambda x: x.date())
+                    filtered_data = filtered_data[filtered_data['_date'].isin(list(missing_dates))]
+                    filtered_data = filtered_data.drop('_date', axis=1)
+                else:
+                    # Try to convert index to dates for comparison
+                    try:
+                        filtered_data['_date'] = pd.to_datetime(filtered_data.index).to_pydatetime()
+                        filtered_data['_date'] = filtered_data['_date'].apply(lambda x: x.date())
+                        filtered_data = filtered_data[filtered_data['_date'].isin(list(missing_dates))]
+                        filtered_data = filtered_data.drop('_date', axis=1)
+                    except Exception as e:
+                        logger.warning(f"Could not filter data by missing dates for {symbol}: {e}")
+                        # Return all data if filtering fails
+                        return api_data
+                
+                logger.info(f"Filtered API data for {symbol}: {len(filtered_data)} records from {len(api_data)} total")
                 return filtered_data
             
             return None

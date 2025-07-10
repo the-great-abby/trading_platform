@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stamp-migration-job
+  namespace: trading-system
+  labels:
+    app: migration-stamp
+    job-type: stamp
+spec:
+  template:
+    metadata:
+      labels:
+        app: migration-stamp
+    spec:
+      containers:
+      - name: migration-stamp
+        image: trading-bot:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args: ["-m", "alembic", "stamp", "65a77fa65587"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        persistentVolumeClaim:
+          claimName: backtest-data-pvc
+      restartPolicy: Never
+  backoffLimit: 1 

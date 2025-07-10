@@ -16,6 +16,7 @@ spec:
       containers:
       - name: backtest-cli
         image: trading-bot:latest
+        imagePullPolicy: Never
         imagePullPolicy: IfNotPresent
         command: ["python"]
         args: ["scripts/backtest_cli.py", "list"]  # Default command, can be overridden

@@ -9,6 +9,7 @@ spec:
       containers:
       - name: backtest-scanner
         image: trading-bot:latest
+        imagePullPolicy: Never
         command: ["python", "-m", "src.services.backtest.backtest_data_scanner"]
         args:
         - "--symbols"

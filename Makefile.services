@@ -1,0 +1,30 @@
+# Service Management Operations Makefile
+# Usage: make -f Makefile.services <target>
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+DOCKER_COMPOSE := docker-compose
+
+service-start: ## Start all services
+	@echo "$(GREEN)Starting all services...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml up -d
+
+service-stop: ## Stop all services
+	@echo "$(GREEN)Stopping all services...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml down
+
+service-status: ## Show status of all services
+	@echo "$(GREEN)Service status:$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml ps
+
+service-restart: ## Restart all services
+	@echo "$(GREEN)Restarting all services...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml restart
+
+service-help: ## Show this help message
+	@echo "$(GREEN)Service Management Operations:$(NC)"
+	@grep -E '^service-[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
+
+.PHONY: service-help service-start service-stop service-status service-restart 
