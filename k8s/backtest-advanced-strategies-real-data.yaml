@@ -1,23 +1,23 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: backtest-enhanced-comprehensive
+  name: backtest-advanced-strategies-real-data
   namespace: trading-system
 spec:
   template:
     spec:
       containers:
       - name: backtest
-        image: trading-system:latest
-        imagePullPolicy: Never
+        image: localhost:5000/trading-system:latest
+        imagePullPolicy: Always
         command: ["python"]
         args:
-        - "run_enhanced_comprehensive_backtest.py"
+        - "run_backtest_with_real_data.py"
         env:
         - name: OLLAMA_URL
           value: "http://ollama:11434"
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_password@postgres:5432/trading_db"
+          value: "postgresql://trading_user:trading_pass@postgres:5432/trading_bot"
         - name: REDIS_URL
           value: "redis://redis:6379"
         - name: RABBITMQ_URL
@@ -25,13 +25,23 @@ spec:
         - name: LOG_LEVEL
           value: "INFO"
         - name: BACKTEST_MODE
-          value: "enhanced_comprehensive"
+          value: "advanced_strategies_real_data"
         - name: USE_AI_ENHANCED_STRATEGIES
-          value: "true"
-        - name: USE_ADVANCED_EXIT_STRATEGIES
           value: "true"
         - name: USE_LLM_EVALUATION
           value: "true"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: ALPHA_VANTAGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpha-vantage-api-key
         resources:
           requests:
             memory: "2Gi"

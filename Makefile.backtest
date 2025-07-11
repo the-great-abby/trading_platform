@@ -119,6 +119,72 @@ backend-kube-backtest-complete: ## Complete backtest workflow: rebuild image, se
 	@echo "$(GREEN)Complete backtest workflow finished!$(NC)"
 	@echo "$(YELLOW)Check results with: make -f Makefile.backtest backend-kube-backtest-status$(NC)"
 
+backend-kube-backtest-advanced: ## Run advanced strategies backtest with AI-enhanced strategies
+	@echo "$(GREEN)🚀 Running advanced strategies backtest with AI-enhanced strategies...$(NC)"
+	@kubectl delete job backtest-advanced-strategies -n trading-system --ignore-not-found=true
+	@kubectl apply -f k8s/backtest-advanced-strategies.yaml
+	@echo "$(GREEN)✅ Advanced strategies backtest job submitted$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-logs$(NC)"
+
+backend-kube-backtest-advanced-logs: ## Monitor advanced strategies backtest logs
+	@echo "$(GREEN)Monitoring advanced strategies backtest...$(NC)"
+	@kubectl logs -f job/backtest-advanced-strategies -n trading-system
+
+backend-kube-backtest-advanced-complete: ## Complete advanced backtest workflow: rebuild image, setup DB, run advanced backtest
+	@echo "$(GREEN)Starting complete advanced backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running advanced strategies backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest-advanced
+	@echo "$(GREEN)Complete advanced backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-logs$(NC)"
+
+backend-kube-backtest-advanced-working: ## Run working advanced strategies backtest
+	@echo "$(GREEN)🚀 Running working advanced strategies backtest...$(NC)"
+	@kubectl delete job backtest-advanced-strategies-working -n trading-system --ignore-not-found=true
+	@kubectl apply -f k8s/backtest-advanced-strategies-working.yaml
+	@echo "$(GREEN)✅ Working advanced strategies backtest job submitted$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-working-logs$(NC)"
+
+backend-kube-backtest-advanced-working-logs: ## Monitor working advanced strategies backtest logs
+	@echo "$(GREEN)Monitoring working advanced strategies backtest...$(NC)"
+	@kubectl logs -f job/backtest-advanced-strategies-working -n trading-system
+
+backend-kube-backtest-advanced-working-complete: ## Complete working advanced backtest workflow
+	@echo "$(GREEN)Starting complete working advanced backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running working advanced strategies backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest-advanced-working
+	@echo "$(GREEN)Complete working advanced backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-working-logs$(NC)"
+
+backend-kube-backtest-enhanced-comprehensive: ## Run enhanced comprehensive backtest with AI-enhanced strategies
+	@echo "$(GREEN)🚀 Running enhanced comprehensive backtest with AI-enhanced strategies...$(NC)"
+	@kubectl delete job backtest-enhanced-comprehensive -n trading-system --ignore-not-found=true
+	@kubectl apply -f k8s/backtest-enhanced-comprehensive.yaml
+	@echo "$(GREEN)✅ Enhanced comprehensive backtest job submitted$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-enhanced-comprehensive-logs$(NC)"
+
+backend-kube-backtest-enhanced-comprehensive-logs: ## Monitor enhanced comprehensive backtest logs
+	@echo "$(GREEN)Monitoring enhanced comprehensive backtest...$(NC)"
+	@kubectl logs -f job/backtest-enhanced-comprehensive -n trading-system
+
+backend-kube-backtest-enhanced-comprehensive-complete: ## Complete enhanced comprehensive backtest workflow
+	@echo "$(GREEN)Starting complete enhanced comprehensive backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running enhanced comprehensive backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest-enhanced-comprehensive
+	@echo "$(GREEN)Complete enhanced comprehensive backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-enhanced-comprehensive-logs$(NC)"
+
 backend-kube-backtest-status: ## Check status of backtest job
 	$(KUBECTL) -n trading-system get jobs
 
@@ -130,4 +196,52 @@ backend-help: ## Show this help message
 	@echo "$(GREEN)Backtest Operations:$(NC)"
 	@grep -E '^backend-[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
 
-.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete 
+backend-kube-backtest-advanced-real-data: ## Run advanced strategies backtest with real data
+	@echo "$(GREEN)🚀 Running advanced strategies backtest with real data...$(NC)"
+	@kubectl delete job backtest-advanced-strategies-real-data -n trading-system --ignore-not-found=true
+	@kubectl apply -f k8s/backtest-advanced-strategies-real-data.yaml
+	@echo "$(GREEN)✅ Advanced strategies real data backtest job submitted$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-real-data-logs$(NC)"
+
+backend-kube-backtest-advanced-real-data-logs: ## Monitor advanced strategies real data backtest logs
+	@echo "$(GREEN)Monitoring advanced strategies real data backtest...$(NC)"
+	@kubectl logs -f job/backtest-advanced-strategies-real-data -n trading-system
+
+backend-kube-backtest-unified-advanced: ## Run unified advanced backtest combining all features
+	@echo "$(GREEN)🚀 Running unified advanced backtest combining all features...$(NC)"
+	@kubectl delete job backtest-unified-advanced -n trading-system --ignore-not-found=true
+	@kubectl apply -f k8s/backtest-unified-advanced.yaml
+	@echo "$(GREEN)✅ Unified advanced backtest job submitted$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-unified-advanced-logs$(NC)"
+
+backend-kube-backtest-unified-advanced-logs: ## Monitor unified advanced backtest logs
+	@echo "$(GREEN)Monitoring unified advanced backtest...$(NC)"
+	@kubectl logs -f job/backtest-unified-advanced -n trading-system
+
+backend-kube-backtest-unified-advanced-complete: ## Complete unified advanced backtest workflow
+	@echo "$(GREEN)Starting complete unified advanced backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running unified advanced backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest-unified-advanced
+	@echo "$(GREEN)Complete unified advanced backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-unified-advanced-logs$(NC)"
+
+backend-kube-backtest-advanced-real-data-logs: ## Monitor advanced strategies real data backtest logs
+	@echo "$(GREEN)Monitoring advanced strategies real data backtest...$(NC)"
+	@kubectl logs -f job/backtest-advanced-strategies-real-data -n trading-system
+
+backend-kube-backtest-advanced-real-data-complete: ## Complete advanced strategies real data backtest workflow
+	@echo "$(GREEN)Starting complete advanced strategies real data backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running advanced strategies real data backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest-advanced-real-data
+	@echo "$(GREEN)Complete advanced strategies real data backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-real-data-logs$(NC)"
+
+.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete backend-kube-backtest-advanced backend-kube-backtest-advanced-logs backend-kube-backtest-advanced-complete backend-kube-backtest-advanced-working backend-kube-backtest-advanced-working-logs backend-kube-backtest-advanced-working-complete backend-kube-backtest-enhanced-comprehensive backend-kube-backtest-enhanced-comprehensive-logs backend-kube-backtest-enhanced-comprehensive-complete backend-kube-backtest-advanced-real-data backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete backend-kube-backtest-unified-advanced backend-kube-backtest-unified-advanced-logs backend-kube-backtest-unified-advanced-complete backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete 

@@ -63,6 +63,21 @@ registry-clean: ## Clean up registry
 	@$(DOCKER_COMPOSE) -f docker-compose.registry.yml down -v
 	@docker system prune -f
 
+# Trading System Image Management
+registry-build-trading-system: ## Build and push trading-system image to local registry
+	@echo "$(GREEN)Building trading-system image for local registry...$(NC)"
+	@docker build -t $(REGISTRY_URL)/trading-system:latest -f Dockerfile.k8s .
+	@echo "$(GREEN)Pushing trading-system image to local registry...$(NC)"
+	@docker push $(REGISTRY_URL)/trading-system:latest
+	@echo "$(GREEN)Trading system image built and pushed successfully!$(NC)"
+
+registry-rebuild-trading-system: ## Rebuild and push trading-system image (no cache)
+	@echo "$(GREEN)Rebuilding trading-system image for local registry (no cache)...$(NC)"
+	@docker build --no-cache -t $(REGISTRY_URL)/trading-system:latest -f Dockerfile.k8s .
+	@echo "$(GREEN)Pushing trading-system image to local registry...$(NC)"
+	@docker push $(REGISTRY_URL)/trading-system:latest
+	@echo "$(GREEN)Trading system image rebuilt and pushed successfully!$(NC)"
+
 # Help
 registry-help: ## Show this help message
 	@echo "$(GREEN)Registry Operations:$(NC)"

@@ -136,6 +136,20 @@ monitor-pod: ## Monitor a Kubernetes pod with periodic status and log checks
 		sleep $$INTERVAL; \
 	done
 
+# Colored Log Viewing
+logs-colored: ## View colored logs from a pod
+	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make logs-colored POD=pod-name$(NC)" && exit 1)); \
+	NAMESPACE=$${NAMESPACE:-trading-system}; \
+	echo "$(GREEN)🎨 Viewing colored logs for pod: $$POD$(NC)"; \
+	kubectl logs -n $$NAMESPACE $$POD -f | python3 scripts/log_colorizer.py
+
+logs-colored-tail: ## View colored logs with tail
+	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make logs-colored-tail POD=pod-name$(NC)" && exit 1)); \
+	NAMESPACE=$${NAMESPACE:-trading-system}; \
+	LINES=$${LINES:-50}; \
+	echo "$(GREEN)🎨 Viewing colored logs (last $$LINES lines) for pod: $$POD$(NC)"; \
+	kubectl logs -n $$NAMESPACE $$POD --tail=$$LINES | python3 scripts/log_colorizer.py
+
 # Python Virtual Environment
 venv-create: ## Create Python virtual environment in .venv
 	python3 -m venv .venv
@@ -163,6 +177,30 @@ api-backtest: venv-install ## Start Backtest Results API on port 10001
 api-backtest-demo: venv-install ## Demo the backtest API client
 	@echo "$(GREEN)🚀 Running Backtest API Demo...$(NC)"
 	.venv/bin/python demo_backtest_api.py
+
+# Performance Dashboard
+dashboard-build: ## Build performance dashboard Docker image
+	@echo "$(GREEN)🔨 Building Performance Dashboard...$(NC)"
+	docker build -t localhost:5000/performance-dashboard:latest services/performance-dashboard/
+	docker push localhost:5000/performance-dashboard:latest
+
+dashboard-deploy: ## Deploy performance dashboard to Kubernetes
+	@echo "$(GREEN)🚀 Deploying Performance Dashboard...$(NC)"
+	kubectl apply -f k8s/performance-dashboard.yaml
+	@echo "$(BLUE)Performance Dashboard deployed!$(NC)"
+
+dashboard-port-forward: ## Port forward to performance dashboard
+	@echo "$(GREEN)🔗 Port forwarding to Performance Dashboard...$(NC)"
+	kubectl port-forward -n trading-system svc/performance-dashboard 8081:80
+
+dashboard-logs: ## View performance dashboard logs
+	@echo "$(GREEN)📋 Performance Dashboard logs:$(NC)"
+	kubectl logs -n trading-system -l app=performance-dashboard -f
+
+dashboard-status: ## Check performance dashboard status
+	@echo "$(GREEN)📊 Performance Dashboard Status:$(NC)"
+	kubectl get pods -n trading-system -l app=performance-dashboard
+	@echo "$(BLUE)Access at: http://localhost:8081/dashboard$(NC)"
 
 # .PHONY declarations
 .PHONY: help setup deploy backtest status clean dev-workflow monitor monitor-quick monitor-demo monitor-pod api-backtest api-backtest-demo 

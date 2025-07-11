@@ -59,6 +59,13 @@ k8s-db-create-tables: ## Create database tables in Kubernetes
 	@$(KUBECTL) -n $(NAMESPACE) logs job/db-setup
 	@$(KUBECTL) -n $(NAMESPACE) delete job db-setup
 
+kube-db-create-backtest-tables: ## Create backtest database tables in Kubernetes
+	@echo "$(GREEN)Creating backtest database tables in Kubernetes...$(NC)"
+	@$(KUBECTL) apply -f k8s/db-setup-job.yaml
+	@$(KUBECTL) -n $(NAMESPACE) wait --for=condition=complete job/db-setup --timeout=300s
+	@$(KUBECTL) -n $(NAMESPACE) logs job/db-setup
+	@$(KUBECTL) -n $(NAMESPACE) delete job db-setup
+
 k8s-db-migrate: ## Run database migrations in Kubernetes
 	@echo "$(GREEN)Running database migrations in Kubernetes...$(NC)"
 	@$(KUBECTL) apply -f k8s/alembic-migration-job.yaml

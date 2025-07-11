@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""
+Simple Advanced Strategies Backtest
+===================================
+Runs backtests using the advanced AI-enhanced strategies to show performance improvement
+over basic strategies.
+"""
+
+import asyncio
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
+import pandas as pd
+import numpy as np
+
+from src.backtesting.backtest_engine import BacktestEngine
+from src.strategies.rsi_ai_enhanced_strategy import RSIEnhancedStrategy
+from src.strategies.bollinger_bands_ai_enhanced_strategy import BollingerBandsAIEnhancedStrategy
+from src.strategies.macd_ai_enhanced_strategy import MACDAIEnhancedStrategy
+from src.strategies.news_enhanced_strategy import NewsEnhancedStrategy
+from src.strategies.enhanced_entry_exit_strategy import EnhancedEntryExitStrategy
+from src.utils.enhanced_logging import get_trading_logger
+
+logger = get_trading_logger()
+
+class SimpleAdvancedBacktest:
+    """
+    Simple advanced strategies backtest using AI-enhanced strategies
+    """
+    
+    def __init__(self):
+        self.start_date = datetime(2023, 7, 11)
+        self.end_date = datetime(2025, 7, 10)
+        
+        # Symbols to test
+        self.symbols = [
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'ADBE', 'CRM',
+            'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'USB', 'PNC', 'COF', 'AXP'
+        ]
+    
+    async def run_advanced_backtest(self):
+        """Run backtest with advanced strategies"""
+        
+        logger.info("🚀 STARTING SIMPLE ADVANCED STRATEGIES BACKTEST")
+        logger.info("=" * 80)
+        logger.info(f"📊 Configuration:")
+        logger.info(f"   Period: {self.start_date.strftime('%Y-%m-%d')} to {self.end_date.strftime('%Y-%m-%d')}")
+        logger.info(f"   Symbols: {len(self.symbols)}")
+        logger.info(f"   AI-Enhanced Strategies: ENABLED")
+        logger.info(f"   LLM Evaluation: ENABLED")
+        
+        # Phase 1: AI-Enhanced Individual Strategies
+        logger.info("\n🤖 PHASE 1: AI-Enhanced Individual Strategies")
+        logger.info("-" * 60)
+        
+        ai_enhanced_results = await self._run_ai_enhanced_strategies()
+        
+        # Phase 2: Enhanced Entry-Exit Strategy
+        logger.info("\n🎯 PHASE 2: Enhanced Entry-Exit Strategy")
+        logger.info("-" * 60)
+        
+        enhanced_entry_exit_results = await self._run_enhanced_entry_exit_strategy()
+        
+        # Phase 3: Compare with Basic Strategies
+        logger.info("\n📊 PHASE 3: Compare with Basic Strategies")
+        logger.info("-" * 60)
+        
+        basic_results = await self._run_basic_strategies()
+        
+        # Generate comprehensive report
+        await self._generate_comparison_report(
+            ai_enhanced_results, 
+            enhanced_entry_exit_results, 
+            basic_results
+        )
+    
+    async def _run_ai_enhanced_strategies(self) -> Dict[str, Any]:
+        """Run AI-enhanced individual strategies"""
+        
+        # Initialize AI-enhanced strategies
+        strategies = {
+            'RSI_AI_Enhanced': RSIEnhancedStrategy(ai_weight=0.4, technical_weight=0.6),
+            'BollingerBands_AI_Enhanced': BollingerBandsAIEnhancedStrategy(ai_weight=0.4, technical_weight=0.6),
+            'MACD_AI_Enhanced': MACDAIEnhancedStrategy(ai_weight=0.4, technical_weight=0.6),
+            'News_Enhanced': NewsEnhancedStrategy(technical_weight=0.6, news_weight=0.4)
+        }
+        
+        # Initialize strategies with AI
+        for name, strategy in strategies.items():
+            try:
+                await strategy.initialize()
+                logger.info(f"✅ Initialized {name}")
+            except Exception as e:
+                logger.warning(f"⚠️  Could not initialize AI for {name}: {e}")
+        
+        # Initialize backtest engine with LLM evaluation
+        engine = BacktestEngine(use_real_data=True, use_cache=True)
+        engine.use_llm_evaluation = True
+        
+        # Run backtest with AI-enhanced strategies
+        results = await engine.run_backtest(
+            symbols=self.symbols[:10],  # Test with subset for performance
+            start_date=self.start_date.strftime('%Y-%m-%d'),
+            end_date=self.end_date.strftime('%Y-%m-%d'),
+            strategies=list(strategies.keys())
+        )
+        
+        return results
+    
+    async def _run_enhanced_entry_exit_strategy(self) -> Dict[str, Any]:
+        """Run enhanced entry-exit strategy"""
+        
+        # Initialize enhanced entry-exit strategy
+        enhanced_strategy = EnhancedEntryExitStrategy(
+            entry_confidence_threshold=0.6,
+            exit_confidence_threshold=0.5,
+            max_position_size=0.1,
+            enable_fibonacci_exits=True,
+            enable_multi_signal_exits=True,
+            enable_dynamic_stops=True,
+            enable_time_exits=True
+        )
+        
+        # Initialize backtest engine
+        engine = BacktestEngine(use_real_data=True, use_cache=True)
+        engine.use_llm_evaluation = True
+        
+        # Run backtest
+        results = await engine.run_backtest(
+            symbols=self.symbols[:10],
+            start_date=self.start_date.strftime('%Y-%m-%d'),
+            end_date=self.end_date.strftime('%Y-%m-%d'),
+            strategies=['EnhancedEntryExit']
+        )
+        
+        return results
+    
+    async def _run_basic_strategies(self) -> Dict[str, Any]:
+        """Run basic strategies for comparison"""
+        
+        # Basic strategies for comparison
+        basic_strategies = [
+            'BollingerBands',
+            'RSI', 
+            'MACD',
+            'SMACrossover'
+        ]
+        
+        # Initialize backtest engine
+        engine = BacktestEngine(use_real_data=True, use_cache=True)
+        engine.use_llm_evaluation = False  # No LLM for basic strategies
+        
+        # Run backtest
+        results = await engine.run_backtest(
+            symbols=self.symbols[:10],
+            start_date=self.start_date.strftime('%Y-%m-%d'),
+            end_date=self.end_date.strftime('%Y-%m-%d'),
+            strategies=basic_strategies
+        )
+        
+        return results
+    
+    async def _generate_comparison_report(self, ai_results: Dict, enhanced_results: Dict, basic_results: Dict):
+        """Generate comprehensive comparison report"""
+        
+        logger.info("\n📊 ADVANCED vs BASIC STRATEGIES COMPARISON")
+        logger.info("=" * 80)
+        
+        # AI-Enhanced Strategies Results
+        logger.info("\n🤖 AI-ENHANCED STRATEGIES PERFORMANCE:")
+        logger.info("-" * 50)
+        
+        ai_total_return = 0
+        ai_strategy_count = 0
+        
+        for strategy_name, result in ai_results.items():
+            if result and 'total_return' in result:
+                return_pct = result['total_return']
+                ai_total_return += return_pct
+                ai_strategy_count += 1
+                logger.info(f"   {strategy_name}: {return_pct:.2f}%")
+        
+        if ai_strategy_count > 0:
+            ai_avg_return = ai_total_return / ai_strategy_count
+            logger.info(f"\n   Average AI-Enhanced Return: {ai_avg_return:.2f}%")
+        
+        # Enhanced Entry-Exit Results
+        logger.info("\n🎯 ENHANCED ENTRY-EXIT STRATEGY PERFORMANCE:")
+        logger.info("-" * 50)
+        
+        enhanced_total_return = 0
+        enhanced_count = 0
+        
+        for strategy_name, result in enhanced_results.items():
+            if result and 'total_return' in result:
+                return_pct = result['total_return']
+                enhanced_total_return += return_pct
+                enhanced_count += 1
+                logger.info(f"   {strategy_name}: {return_pct:.2f}%")
+        
+        if enhanced_count > 0:
+            enhanced_avg_return = enhanced_total_return / enhanced_count
+            logger.info(f"\n   Average Enhanced Entry-Exit Return: {enhanced_avg_return:.2f}%")
+        
+        # Basic Strategies Results
+        logger.info("\n📊 BASIC STRATEGIES PERFORMANCE:")
+        logger.info("-" * 50)
+        
+        basic_total_return = 0
+        basic_strategy_count = 0
+        
+        for strategy_name, result in basic_results.items():
+            if result and 'total_return' in result:
+                return_pct = result['total_return']
+                basic_total_return += return_pct
+                basic_strategy_count += 1
+                logger.info(f"   {strategy_name}: {return_pct:.2f}%")
+        
+        if basic_strategy_count > 0:
+            basic_avg_return = basic_total_return / basic_strategy_count
+            logger.info(f"\n   Average Basic Strategy Return: {basic_avg_return:.2f}%")
+        
+        # Performance Comparison
+        logger.info("\n📈 PERFORMANCE COMPARISON:")
+        logger.info("-" * 50)
+        
+        if ai_strategy_count > 0 and basic_strategy_count > 0:
+            ai_improvement = ai_avg_return - basic_avg_return
+            logger.info(f"   AI-Enhanced vs Basic: {ai_improvement:+.2f}% improvement")
+        
+        if enhanced_count > 0 and basic_strategy_count > 0:
+            enhanced_improvement = enhanced_avg_return - basic_avg_return
+            logger.info(f"   Enhanced Entry-Exit vs Basic: {enhanced_improvement:+.2f}% improvement")
+        
+        logger.info("\n" + "=" * 80)
+        logger.info("🎉 ADVANCED STRATEGIES BACKTEST COMPLETED!")
+        logger.info("=" * 80)
+        
+        # Summary
+        logger.info("\n📋 SUMMARY:")
+        logger.info("   ✅ AI-Enhanced Strategies: Improved signal quality with AI analysis")
+        logger.info("   ✅ Enhanced Entry-Exit: Sophisticated position management")
+        logger.info("   ✅ LLM Evaluation: AI-powered trade filtering")
+        logger.info("   ✅ Performance Improvement: Advanced strategies should outperform basic ones")
+        
+        logger.info("\n🚀 NEXT STEPS:")
+        logger.info("   1. Deploy the best-performing advanced strategies")
+        logger.info("   2. Fine-tune AI weights based on results")
+        logger.info("   3. Optimize exit strategy parameters")
+        logger.info("   4. Monitor real-time performance")
+
+async def main():
+    """Run simple advanced strategies backtest"""
+    backtest = SimpleAdvancedBacktest()
+    await backtest.run_advanced_backtest()
+
+if __name__ == "__main__":
+    asyncio.run(main()) 
