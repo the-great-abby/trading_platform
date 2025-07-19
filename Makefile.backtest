@@ -207,6 +207,28 @@ backend-kube-backtest-advanced-real-data-logs: ## Monitor advanced strategies re
 	@echo "$(GREEN)Monitoring advanced strategies real data backtest...$(NC)"
 	@kubectl logs -f job/backtest-advanced-strategies-real-data -n trading-system
 
+backend-kube-backtest-2year-llm: ## Run 2-year LLM-enhanced backtest
+	@echo "$(GREEN)🤖 Running 2-year LLM-enhanced backtest...$(NC)"
+	@kubectl delete job backtest-2year-llm -n trading-system --ignore-not-found=true
+	@kubectl apply -f k8s/backtest-2year-llm.yaml
+	@echo "$(GREEN)✅ 2-year LLM backtest job submitted$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-2year-llm-logs$(NC)"
+
+backend-kube-backtest-2year-llm-logs: ## Monitor 2-year LLM backtest logs
+	@echo "$(GREEN)Monitoring 2-year LLM backtest...$(NC)"
+	@kubectl logs -f job/backtest-2year-llm -n trading-system
+
+backend-kube-backtest-2year-llm-complete: ## Complete 2-year LLM backtest workflow
+	@echo "$(GREEN)Starting complete 2-year LLM backtest workflow...$(NC)"
+	@echo "$(YELLOW)Step 1: Rebuilding Docker image...$(NC)"
+	make -f Makefile.docker docker-rebuild
+	@echo "$(YELLOW)Step 2: Setting up backtest database tables in Kubernetes...$(NC)"
+	make -f Makefile.database kube-db-create-backtest-tables
+	@echo "$(YELLOW)Step 3: Running 2-year LLM backtest in Kubernetes...$(NC)"
+	make -f Makefile.backtest backend-kube-backtest-2year-llm
+	@echo "$(GREEN)Complete 2-year LLM backtest workflow finished!$(NC)"
+	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-2year-llm-logs$(NC)"
+
 backend-kube-backtest-unified-advanced: ## Run unified advanced backtest combining all features
 	@echo "$(GREEN)🚀 Running unified advanced backtest combining all features...$(NC)"
 	@kubectl delete job backtest-unified-advanced -n trading-system --ignore-not-found=true
@@ -244,4 +266,106 @@ backend-kube-backtest-advanced-real-data-complete: ## Complete advanced strategi
 	@echo "$(GREEN)Complete advanced strategies real data backtest workflow finished!$(NC)"
 	@echo "$(YELLOW)Monitor with: make -f Makefile.backtest backend-kube-backtest-advanced-real-data-logs$(NC)"
 
-.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete backend-kube-backtest-advanced backend-kube-backtest-advanced-logs backend-kube-backtest-advanced-complete backend-kube-backtest-advanced-working backend-kube-backtest-advanced-working-logs backend-kube-backtest-advanced-working-complete backend-kube-backtest-enhanced-comprehensive backend-kube-backtest-enhanced-comprehensive-logs backend-kube-backtest-enhanced-comprehensive-complete backend-kube-backtest-advanced-real-data backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete backend-kube-backtest-unified-advanced backend-kube-backtest-unified-advanced-logs backend-kube-backtest-unified-advanced-complete backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete 
+# Fast Backtest Targets (Kubernetes Preferred)
+fast-backtest: ## Run fast optimized backtest (Kubernetes recommended)
+	@echo "🚀 RECOMMENDED: Use 'make -f Makefile.backtest k8s-fast-backtest' for production backtests"
+	@echo "⚠️  Local execution requires database setup. Use Kubernetes for full functionality."
+	@echo "📊 Deploying to Kubernetes..."
+	make -f Makefile.backtest k8s-fast-backtest
+
+fast-backtest-local: ## Run fast backtest locally (development only)
+	@echo "⚠️  Local execution - requires database setup"
+	@echo "🚀 Running Fast Optimized Backtest (Local)..."
+	.venv/bin/python run_fast_backtest_simple.py --quick
+
+fast-backtest-symbols: ## Run fast backtest with specific symbols (Kubernetes)
+	@echo "🚀 Running Fast Backtest with Custom Symbols (Kubernetes)..."
+	@echo "📝 Edit k8s/backtest-fast-simple.yaml to customize symbols"
+	make -f Makefile.backtest k8s-fast-backtest
+
+fast-backtest-strategies: ## Run fast backtest with specific strategies (Kubernetes)
+	@echo "🚀 Running Fast Backtest with Custom Strategies (Kubernetes)..."
+	@echo "📝 Edit k8s/backtest-fast-simple.yaml to customize strategies"
+	make -f Makefile.backtest k8s-fast-backtest
+
+fast-backtest-fast-only: ## Run only fast strategies (Kubernetes)
+	@echo "⚡ Running Fast Strategies Only (Kubernetes)..."
+	@echo "📝 Edit k8s/backtest-fast-simple.yaml args to: [\"run_fast_backtest_simple.py\", \"--fast-only\"]"
+	make -f Makefile.backtest k8s-fast-backtest
+
+fast-backtest-medium-only: ## Run only medium strategies (Kubernetes)
+	@echo "🏃 Running Medium Strategies Only (Kubernetes)..."
+	@echo "📝 Edit k8s/backtest-fast-simple.yaml args to: [\"run_fast_backtest_simple.py\", \"--medium-only\"]"
+	make -f Makefile.backtest k8s-fast-backtest
+
+fast-backtest-custom: ## Run custom fast backtest (Kubernetes)
+	@echo "🚀 Running Custom Fast Backtest (Kubernetes)..."
+	@echo "📝 Edit k8s/backtest-fast-simple.yaml to customize parameters"
+	make -f Makefile.backtest k8s-fast-backtest
+
+# Kubernetes Fast Backtest
+k8s-fast-backtest: ## Run fast backtest in Kubernetes
+	@echo "🚀 Deploying Fast Backtest to Kubernetes..."
+	kubectl apply -f k8s/backtest-fast-simple.yaml
+	@echo "📊 Monitoring fast backtest job..."
+	kubectl get jobs -n trading-system backtest-fast-simple -w
+
+k8s-fast-backtest-logs: ## Get fast backtest logs
+	@echo "📋 Getting fast backtest logs..."
+	kubectl logs -n trading-system job/backtest-fast-simple --follow
+
+k8s-fast-backtest-delete: ## Delete fast backtest job
+	@echo "🗑️  Deleting fast backtest job..."
+	kubectl delete job -n trading-system backtest-fast-simple
+
+k8s-fast-backtest-status: ## Check fast backtest status
+	@echo "📊 Fast backtest job status:"
+	kubectl get jobs -n trading-system backtest-fast-simple
+	@echo ""
+	@echo "📋 Recent logs:"
+	kubectl logs -n trading-system job/backtest-fast-simple --tail=50
+
+k8s-fast-backtest-complete: ## Run complete fast backtest workflow
+	@echo "🚀 Starting Complete Fast Backtest Workflow..."
+	@echo "1. Deploying fast backtest job..."
+	kubectl apply -f k8s/backtest-fast-simple.yaml
+	@echo "2. Waiting for job to complete..."
+	kubectl wait --for=condition=complete job/backtest-fast-simple -n trading-system --timeout=30m
+	@echo "3. Getting results..."
+	kubectl logs -n trading-system job/backtest-fast-simple
+	@echo "4. Cleaning up..."
+	kubectl delete job -n trading-system backtest-fast-simple
+	@echo "✅ Fast backtest workflow completed!"
+
+# Performance Testing (Kubernetes Preferred)
+performance-test: ## Run performance comparison test (Kubernetes)
+	@echo "⚡ Running Performance Comparison Test (Kubernetes)..."
+	make -f Makefile.backtest k8s-fast-backtest
+
+performance-test-extended: ## Run extended performance test (Kubernetes)
+	@echo "🏃 Running Extended Performance Test (Kubernetes)..."
+	@echo "📝 Edit k8s/backtest-fast-simple.yaml for extended configuration"
+	make -f Makefile.backtest k8s-fast-backtest
+
+performance-test-local: ## Run performance test locally (development only)
+	@echo "⚠️  Local execution - requires database setup"
+	@echo "⚡ Running Performance Comparison Test (Local)..."
+	.venv/bin/python run_fast_backtest_simple.py --quick
+
+# Cache Management
+cache-clear: ## Clear backtest cache
+	@echo "🗑️  Clearing backtest cache..."
+	rm -rf backtest_cache/
+	@echo "✅ Cache cleared"
+
+cache-status: ## Show cache status
+	@echo "📊 Backtest Cache Status:"
+	@if [ -d "backtest_cache" ]; then \
+		echo "   Cache directory exists"; \
+		echo "   Cache size: $$(du -sh backtest_cache 2>/dev/null | cut -f1 || echo '0B')"; \
+		echo "   Cache files: $$(find backtest_cache -name "*.pkl" 2>/dev/null | wc -l)"; \
+	else \
+		echo "   No cache directory found"; \
+	fi
+
+.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete backend-kube-backtest-advanced backend-kube-backtest-advanced-logs backend-kube-backtest-advanced-complete backend-kube-backtest-advanced-working backend-kube-backtest-advanced-working-logs backend-kube-backtest-advanced-working-complete backend-kube-backtest-enhanced-comprehensive backend-kube-backtest-enhanced-comprehensive-logs backend-kube-backtest-enhanced-comprehensive-complete backend-kube-backtest-advanced-real-data backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete backend-kube-backtest-unified-advanced backend-kube-backtest-unified-advanced-logs backend-kube-backtest-unified-advanced-complete backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete fast-backtest fast-backtest-local fast-backtest-symbols fast-backtest-strategies fast-backtest-fast-only fast-backtest-medium-only fast-backtest-custom k8s-fast-backtest k8s-fast-backtest-logs k8s-fast-backtest-delete k8s-fast-backtest-status k8s-fast-backtest-complete performance-test performance-test-local performance-test-extended cache-clear cache-status 

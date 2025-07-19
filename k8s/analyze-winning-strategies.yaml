@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: analyze-winning-strategies
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: analyze-winning-strategies
+        image: localhost:5000/trading-bot:latest
+        command: ["python", "scripts/analyze_winning_strategies.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpaca-api-key
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpaca-secret-key
+        - name: RABBITMQ_URL
+          value: "amqp://guest:guest@rabbitmq:5672/"
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+      restartPolicy: Never
+  backoffLimit: 3 

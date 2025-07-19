@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alembic-migration
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: alembic-migration
+        image: localhost:5000/trading-bot:latest
+        command: ["python", "-m", "alembic", "upgrade", "head"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+      restartPolicy: Never
+  backoffLimit: 3 

@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alembic-migration-job
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: migration
+        image: localhost:5000/backtest:latest
+        command: ["python", "-m", "alembic", "upgrade", "head"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: write-url
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon_api_key
+        - name: ALPHA_VANTAGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpha_vantage_api_key
+        - name: OLLAMA_BASE_URL
+          value: "http://ollama-service:11434"
+        - name: DISABLE_LLM_EVALUATION
+          value: "true"
+        - name: DATABASE_ONLY_MODE
+          value: "true"
+        workingDir: /
+      restartPolicy: Never
+  backoffLimit: 3 

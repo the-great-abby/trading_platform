@@ -27,20 +27,19 @@ from src.services.market_data.cached_market_data_manager import CachedMarketData
 from src.services.ai.ollama_service import OllamaService
 from src.strategies.news_enhanced_strategy import NewsEnhancedStrategy
 from src.strategies.portfolio_strategy import PortfolioStrategy
-from src.strategies.rsi_strategy import RSIStrategy
-from src.strategies.macd_strategy import MACDStrategy
-from src.strategies.bollinger_bands_strategy import BollingerBandsStrategy
-from src.strategies.mean_reversion_strategy import MeanReversionStrategy
-from src.strategies.momentum_strategy import MomentumStrategy
-from src.strategies.volatility_breakout_strategy import VolatilityBreakoutStrategy
-from src.strategies.sma_crossover import SMACrossoverStrategy
-from src.backtesting.backtest_engine import BacktestEngine
+from src.strategies.momentum.rsi_strategy import RSIStrategy
+from src.strategies.macd_ai_enhanced_strategy import MACDStrategy
+from src.strategies.bollinger_bands_ai_enhanced_strategy import BollingerBandsStrategy
+from src.strategies.mean_reversion.mean_reversion_strategy import MeanReversionStrategy
+from src.strategies.momentum.momentum_strategy import MomentumStrategy
+from src.strategies.breakout.volatility_breakout_strategy import VolatilityBreakoutStrategy
+from src.strategies.sma_crossover_ai_enhanced_strategy import SMACrossoverAIEnhancedStrategy
+from src.backtesting.engine.backtest_engine import BacktestEngine
 from src.utils.config import get_config
-from src.utils.enhanced_logging import setup_logging
+from src.utils.enhanced_logging import get_trading_logger
 
 # Setup logging
-setup_logging()
-logger = logging.getLogger(__name__)
+logger = get_trading_logger()
 
 class UnifiedAdvancedBacktest:
     def __init__(self):
@@ -88,7 +87,7 @@ class UnifiedAdvancedBacktest:
             'mean_reversion': MeanReversionStrategy(),
             'momentum': MomentumStrategy(),
             'volatility_breakout': VolatilityBreakoutStrategy(),
-            'sma_crossover': SMACrossoverStrategy(),
+            'sma_crossover': SMACrossoverAIEnhancedStrategy(),
         }
         
         # Create AI-enhanced versions

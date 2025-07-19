@@ -55,6 +55,20 @@ spec:
             name: analytics-service
             port:
               number: 80
+      - path: /api/v1/strategies
+        pathType: Prefix
+        backend:
+          service:
+            name: strategy-service
+            port:
+              number: 80
+      - path: /api/v1/recommendations
+        pathType: Prefix
+        backend:
+          service:
+            name: strategy-service
+            port:
+              number: 80
       - path: /api/v1/backtest
         pathType: Prefix
         backend:

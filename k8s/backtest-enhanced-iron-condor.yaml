@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-enhanced-iron-condor
+  namespace: trading-system
+  labels:
+    app: backtest
+    strategy: enhanced-iron-condor
+    cache-integrated: "true"
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        strategy: enhanced-iron-condor
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest:latest
+        command: ["python", "run_enhanced_iron_condor_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres:password@postgres-service:5432/trading_db"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: polygon-api-key
+              key: api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: CACHE_ONLY
+          value: "true"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: PARALLEL_EXECUTION
+          value: "true"
+        - name: MAX_WORKERS
+          value: "4"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 2 

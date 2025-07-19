@@ -176,6 +176,8 @@ services:
   # Databases
   write-db:
     image: postgres:15
+    ports:
+      - "5432:5432"  # Expose write database
     environment:
       - POSTGRES_DB=trading_write
       - POSTGRES_USER=postgres
@@ -187,6 +189,8 @@ services:
 
   read-db:
     image: postgres:15
+    ports:
+      - "5433:5432"  # Expose read database on different port
     environment:
       - POSTGRES_DB=trading_read
       - POSTGRES_USER=postgres

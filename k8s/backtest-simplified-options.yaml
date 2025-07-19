@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-simplified-options
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: simplified-options
+    risk-profile: ultra_aggressive
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: simplified-options
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest-system:latest
+        command: ["python"]
+        args: ["run_simplified_options_backtest.py"]
+        env:
+        - name: BACKTEST_MODE
+          value: "ULTRA_AGGRESSIVE"
+        - name: INITIAL_CAPITAL
+          value: "1000"
+        - name: RISK_PROFILE
+          value: "ULTRA_AGGRESSIVE"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: USE_REAL_DATA
+          value: "true"
+        - name: USE_CACHE
+          value: "true"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      restartPolicy: Never
+  backoffLimit: 1 

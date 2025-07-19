@@ -62,7 +62,42 @@ sleep 30
 
 # Run database migrations
 print_status "Running database migrations..."
-# TODO: Add migration commands here
+
+# Check if we're deploying to Kubernetes
+if [ "$1" = "--k8s" ]; then
+    print_status "Running Kubernetes database migrations..."
+    
+    # Create migration job
+    kubectl apply -f k8s/db-setup-job.yaml -n trading-system
+    
+    # Wait for migration to complete
+    print_status "Waiting for database setup to complete..."
+    kubectl wait --for=condition=complete job/db-setup -n trading-system --timeout=300s
+    
+    # Show migration logs
+    kubectl logs job/db-setup -n trading-system
+    
+    # Clean up migration job
+    kubectl delete job db-setup -n trading-system
+    
+    # Run Alembic migrations
+    kubectl apply -f k8s/alembic-migration-job.yaml -n trading-system
+    kubectl wait --for=condition=complete job/alembic-migration -n trading-system --timeout=300s
+    kubectl logs job/alembic-migration -n trading-system
+    kubectl delete job alembic-migration -n trading-system
+    
+else
+    print_status "Running local database migrations..."
+    
+    # Run database setup
+    docker-compose run --rm trading-cli python scripts/create_backtest_tables.py
+    
+    # Run Alembic migrations
+    docker-compose run --rm trading-cli alembic upgrade head
+    
+    # Ensure indexes are created
+    docker-compose run --rm trading-cli python scripts/manage_indexes.py ensure
+fi
 
 # Build and start microservices
 print_status "Building and starting microservices..."

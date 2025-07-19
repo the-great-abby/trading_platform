@@ -11,7 +11,7 @@ import json
 import os
 
 from .base import BaseStrategy
-from .macd_strategy import MACDStrategy
+from src.strategies.momentum.macd_strategy import MACDStrategy
 from ..core.types import TradeSignal
 from ..services.ai.ollama_service import OllamaService, AIAnalysis
 
@@ -59,7 +59,7 @@ class MACDAIEnhancedStrategy(BaseStrategy):
             print(f"⚠️  AI service not available for {self.name}: {e}")
             self.ollama_service = None
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate AI-enhanced MACD trading signal"""
         
         if data.empty or len(data) < self.slow_period:

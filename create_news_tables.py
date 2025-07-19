@@ -5,6 +5,7 @@ Create news tables directly in the database
 
 import os
 from sqlalchemy import create_engine, text
+from sqlalchemy.pool import QueuePool
 
 def create_news_tables():
     """Create the news tables in the database"""
@@ -16,7 +17,14 @@ def create_news_tables():
         return False
     
     print(f"🔗 Connecting to database...")
-    engine = create_engine(database_url)
+    engine = create_engine(
+        database_url,
+        echo=False,
+        poolclass=QueuePool,
+        pool_size=20,
+        max_overflow=40,
+        pool_timeout=30
+    )
     
     try:
         # Create tables directly

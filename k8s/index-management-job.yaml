@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: index-management
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: index-manager
+        image: localhost:5000/trading-bot:latest
+        command: ["python", "scripts/manage_indexes.py", "ensure"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: PYTHONPATH
+          value: "/workspace/src"
+      restartPolicy: Never
+      backoffLimit: 3 

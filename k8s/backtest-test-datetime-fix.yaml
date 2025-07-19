@@ -1,0 +1,131 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-test-datetime-fix
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: test-datetime-fix
+    risk-profile: aggressive
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: test-datetime-fix
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest-system:latest
+        command: ["python"]
+        args: ["run_test_datetime_fix_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: PARALLEL_EXECUTION
+          value: "true"
+        - name: BACKTEST_SYMBOLS
+          value: "SPY,QQQ"
+        - name: BACKTEST_START_DATE
+          value: "2024-01-01"
+        - name: BACKTEST_END_DATE
+          value: "2024-01-31"
+        - name: BACKTEST_INITIAL_CAPITAL
+          value: "100000"
+        - name: BACKTEST_RISK_PROFILE
+          value: "aggressive"
+        - name: BACKTEST_STRATEGIES
+          value: "GreeksEnhanced,BollingerBands"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 2
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-options-ultra-extreme
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: options-ultra-extreme
+    risk-profile: ultra_extreme
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: options-ultra-extreme
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest-system:latest
+        command: ["python"]
+        args: ["run_centralized_config_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: PARALLEL_EXECUTION
+          value: "true"
+        - name: BACKTEST_SYMBOLS
+          value: "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX,AMD,INTC,SPY,QQQ,IWM,TLT,GLD,SLV,USO,UNG,XLE,XLF"
+        - name: BACKTEST_START_DATE
+          value: "2023-07-17"
+        - name: BACKTEST_END_DATE
+          value: "2024-07-17"
+        - name: BACKTEST_INITIAL_CAPITAL
+          value: "1000"
+        - name: BACKTEST_RISK_PROFILE
+          value: "ultra_extreme"
+        - name: BACKTEST_STRATEGIES
+          value: "VWAPStrategy,PairsTradingStrategy,CrossSectionalMomentumStrategy,KalmanFilterStrategy,QuantumMomentumStrategy,PortfolioStrategy,RegimeSwitchingStrategy,GreeksEnhancedStrategy,IronCondorStrategy,EnhancedIronCondorStrategy,CoveredCallStrategy,CashSecuredPutStrategy,VolatilityStrategy,ButterflySpreadStrategy,CalendarSpreadStrategy,EarningsStrategy,StraddleStrategy,StrangleStrategy,DiagonalSpreadStrategy,BollingerBandsStrategy,MeanReversionStrategy,SMACrossoverStrategy,TrailingStopStrategy,FibonacciStrategy,AdvancedExitStrategies"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 2 

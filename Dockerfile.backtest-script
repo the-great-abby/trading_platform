@@ -1,0 +1,10 @@
+FROM localhost:5000/backtest:latest
+
+# Copy the new script
+COPY run_comprehensive_options_backtest_database_only.py /app/
+
+# Set working directory
+WORKDIR /app
+
+# Default command
+CMD ["python", "run_comprehensive_options_backtest_database_only.py"] 

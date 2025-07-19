@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-llm-postprocess
+  namespace: trading-system
+spec:
+  template:
+    metadata:
+      name: backtest-llm-postprocess
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: postprocess
+        image: localhost:5000/backtest:latest
+        command: ["python", "run_llm_postprocess_trades.py"]
+        env:
+        - name: OLLAMA_BASE_URL
+          value: "http://192.168.0.18:11434"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      restartPolicy: Never
+  backoffLimit: 1 

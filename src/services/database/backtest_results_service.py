@@ -9,8 +9,10 @@ from typing import List, Dict, Optional, Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.pool import QueuePool
 
 from src.models.backtest_results import Base, BacktestRun, BacktestTrade, BacktestEquityCurve
+from src.utils.database_optimizer import DatabaseOptimizer
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +24,50 @@ class BacktestResultsService:
         if database_url is None:
             database_url = "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
         
-        self.engine = create_engine(database_url)
+        self.database_url = database_url
+        
+        self.engine = create_engine(
+            database_url,
+            echo=False,
+            poolclass=QueuePool,
+            pool_size=20,
+            max_overflow=40,
+            pool_timeout=30
+        )
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         
         # Create tables if they don't exist
         Base.metadata.create_all(bind=self.engine)
         
+        # Ensure indexes are created
+        self._ensure_indexes()
+        
         logger.info("Backtest results service initialized")
+    
+    def _ensure_indexes(self):
+        """Ensure all required indexes exist for backtest tables"""
+        try:
+            import asyncio
+            # Create database optimizer and ensure indexes
+            optimizer = DatabaseOptimizer(self.database_url)
+            
+            # Run the async ensure_indexes in a new event loop if needed
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If we're in an async context, schedule it
+                    asyncio.create_task(optimizer.ensure_indexes())
+                else:
+                    # If we're not in an async context, run it
+                    loop.run_until_complete(optimizer.ensure_indexes())
+            except RuntimeError:
+                # No event loop, create one
+                asyncio.run(optimizer.ensure_indexes())
+                
+            logger.info("✅ Backtest results indexes ensured")
+            
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to ensure indexes: {e}")
     
     def store_backtest_results(self, 
                               run_id: str,
@@ -38,7 +77,8 @@ class BacktestResultsService:
                               end_date: str,
                               result: dict,
                               database_only: bool = False,
-                              data_provider: Optional[str] = None) -> bool:
+                              data_provider: Optional[str] = None,
+                              backtest_name: Optional[str] = None) -> bool:
         """
         Store backtest results in the database
         
@@ -51,6 +91,7 @@ class BacktestResultsService:
             result: BacktestResult object containing the results
             database_only: Whether the backtest used database-only mode
             data_provider: Data provider used (optional)
+            backtest_name: Name of the backtest file/strategy used (optional)
             
         Returns:
             True if successful, False otherwise
@@ -61,6 +102,7 @@ class BacktestResultsService:
                 backtest_run = BacktestRun(
                     run_id=run_id,
                     strategy_name=strategy_name,
+                    backtest_name=backtest_name,
                     symbols=json.dumps(symbols),
                     start_date=datetime.strptime(start_date, "%Y-%m-%d").date(),
                     end_date=datetime.strptime(end_date, "%Y-%m-%d").date(),
@@ -165,10 +207,20 @@ class BacktestResultsService:
                 
                 result = []
                 for run in runs:
+                    # Only parse symbols if it's a string (not a Column object)
+                    symbols_value = run.symbols
+                    if isinstance(symbols_value, str):
+                        symbols_parsed = json.loads(symbols_value)
+                    else:
+                        symbols_parsed = symbols_value
+                    # Only call isoformat if created_at/completed_at are datetime objects
+                    created_at_value = run.created_at.isoformat() if hasattr(run.created_at, 'isoformat') else str(run.created_at)
+                    completed_at_value = run.completed_at.isoformat() if (run.completed_at is not None and hasattr(run.completed_at, 'isoformat')) else None
                     result.append({
                         'run_id': run.run_id,
                         'strategy_name': run.strategy_name,
-                        'symbols': json.loads(run.symbols),
+                        'backtest_name': run.backtest_name,
+                        'symbols': symbols_parsed,
                         'start_date': run.start_date.isoformat(),
                         'end_date': run.end_date.isoformat(),
                         'initial_capital': run.initial_capital,
@@ -186,8 +238,8 @@ class BacktestResultsService:
                         'avg_loss': run.avg_loss,
                         'database_only': run.database_only == 'true',
                         'data_provider': run.data_provider,
-                        'created_at': run.created_at.isoformat(),
-                        'completed_at': run.completed_at.isoformat() if run.completed_at else None
+                        'created_at': created_at_value,
+                        'completed_at': completed_at_value
                     })
                 
                 return result

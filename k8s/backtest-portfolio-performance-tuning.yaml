@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-portfolio-performance-tuning
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: portfolio-performance-tuning
+    version: v1.0
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: portfolio-performance-tuning
+    spec:
+      serviceAccountName: trading-service-account
+      restartPolicy: Never
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest:latest
+        command: ["python", "/app/run_portfolio_performance_tuning.py"]
+        env:
+        - name: USE_LLM_EVALUATION
+          value: "false"
+        - name: USE_DATABASE_ONLY
+          value: "true"
+        - name: ENABLE_CACHE
+          value: "true"
+        - name: PARALLEL_PROCESSING
+          value: "true"
+        - name: OPTIMIZATION_MODE
+          value: "portfolio_performance"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        envFrom:
+        - secretRef:
+            name: trading-secrets
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      imagePullSecrets:
+      - name: registry-secret 

@@ -43,7 +43,7 @@ class NewsEnhancedStrategy(BaseStrategy):
         """Initialize the strategy with Ollama service"""
         self.ollama_service = OllamaService(base_url=ollama_url)
         
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate trading signal combining technical and news analysis"""
         
         if data.empty or len(data) < 50:

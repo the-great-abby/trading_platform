@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-name-tracking-demo
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: backtest-name-tracking-demo
+        image: localhost:5000/trading-bot:latest
+        command: ["python", "demo_backtest_name_tracking.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: ALPACA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpaca-api-key
+        - name: ALPACA_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpaca-secret-key
+        - name: RABBITMQ_URL
+          value: "amqp://guest:guest@rabbitmq:5672/"
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      restartPolicy: Never
+  backoffLimit: 3 

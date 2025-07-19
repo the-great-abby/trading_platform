@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-fast-simple-fixed
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest:latest
+        command:
+        - python
+        - run_fast_backtest_simple_fixed.py
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: USE_CACHE
+          value: "true"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: USE_LLM_EVALUATION
+          value: "false"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+      restartPolicy: Never
+  backoffLimit: 1 

@@ -11,7 +11,7 @@ import json
 import os
 
 from .base import BaseStrategy
-from .sma_crossover import SMACrossoverStrategy
+from src.strategies.breakout.sma_crossover import SMACrossoverStrategy
 from ..core.types import TradeSignal
 from ..services.ai.ollama_service import OllamaService, AIAnalysis
 
@@ -57,7 +57,7 @@ class SMACrossoverAIEnhancedStrategy(BaseStrategy):
             print(f"⚠️  AI service not available for {self.name}: {e}")
             self.ollama_service = None
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate AI-enhanced SMA Crossover trading signal"""
         
         if data.empty or len(data) < self.long_window:

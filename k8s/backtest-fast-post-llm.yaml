@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-fast-post-llm
+  namespace: trading-system
+spec:
+  template:
+    metadata:
+      name: backtest-fast-post-llm
+    spec:
+      serviceAccountName: trading-service-account
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest:latest
+        command: ["python", "run_fast_backtest_with_post_llm.py"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: database-url
+              name: trading-secrets
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: polygon-api-key
+              name: trading-secrets
+        - name: USE_CACHE
+          value: "true"
+        - name: DATABASE_ONLY
+          value: "false"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: USE_LLM_EVALUATION
+          value: "false"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      restartPolicy: Never
+  backoffLimit: 1 

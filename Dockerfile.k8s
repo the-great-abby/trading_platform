@@ -15,6 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+# Ensure test scripts are present
+COPY run_test_datetime_fix_backtest.py /app/
+COPY run_1year_ultra_extreme_backtest.py /app/
+COPY run_1year_ultra_extreme_backtest_fixed.py /app/
+COPY run_1year_ultra_extreme_backtest_corrected.py /app/
 
 # Create config directory
 RUN mkdir -p /app/config

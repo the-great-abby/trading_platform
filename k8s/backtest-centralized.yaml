@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-centralized
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: centralized
+    risk-profile: ultra_aggressive
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: centralized
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest-system:latest
+        command: ["python"]
+        args: ["run_centralized_config_backtest.py"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: PARALLEL_EXECUTION
+          value: "true"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      restartPolicy: Never
+  backoffLimit: 1 

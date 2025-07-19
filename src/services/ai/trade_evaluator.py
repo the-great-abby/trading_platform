@@ -29,8 +29,9 @@ class TradeEvaluator:
     - Generates performance reports
     """
     
-    def __init__(self, model_name: str = "gemma3:1b"):
-        self.ollama_service = OllamaService(model=model_name)
+    def __init__(self, model_name: str = "gemma3:1b", enable_llm: bool = True):
+        self.enable_llm = enable_llm
+        self.ollama_service = OllamaService(model=model_name) if enable_llm else None
         self.evaluations = []
         self.performance_stats = {
             'total_signals': 0,
@@ -57,6 +58,17 @@ class TradeEvaluator:
         Returns:
             Dictionary with evaluation results
         """
+        # If LLM is disabled, return default approval
+        if not self.enable_llm or self.ollama_service is None:
+            return {
+                'approved': True,
+                'confidence': 0.5,
+                'reason': 'LLM evaluation disabled',
+                'timestamp': datetime.now(),
+                'signal': signal,
+                'strategy': strategy_name
+            }
+        
         try:
             # Prepare context for LLM
             context = self._prepare_evaluation_context(signal, market_data, strategy_name)

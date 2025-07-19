@@ -1,0 +1,75 @@
+# Trading System Rules
+
+## Configuration Management
+- **Define configuration values and symbol lists centrally** in `src/utils/trading_config.py`
+- **Avoid duplicating configuration** across multiple files
+- **Use environment variables** for environment-specific settings
+- **Implement configuration validation** to catch errors early
+- **Document all configuration options** with clear descriptions
+
+## AI Integration
+- **Include news events in LLM-based sentiment analysis** for trading strategies
+- **Use Ollama for local LLM processing** to reduce latency and costs
+- **Implement proper error handling** for AI service calls with fallbacks
+- **Cache AI responses** when appropriate to improve performance
+- **Monitor AI service performance** and costs
+
+## Trading Strategy Development
+- **Implement strategies in the `src/strategies/` directory** following established patterns
+- **Use the established strategy base classes** for consistency
+- **Include proper risk management** in all strategies (position sizing, stop-losses)
+- **Test strategies thoroughly** before deployment with backtesting
+- **Document strategy logic and parameters** clearly
+
+## Backtesting Framework
+- **Use the established backtesting framework** for consistency
+- **Implement proper performance metrics** (Sharpe ratio, drawdown, etc.)
+- **Include transaction costs** in backtesting for realistic results
+- **Test strategies across different market conditions** (bull, bear, sideways)
+- **Document backtesting results and assumptions** for reproducibility
+
+## Risk Management
+- **Implement position sizing rules** based on volatility and account size
+- **Use stop-loss and take-profit mechanisms** to manage risk
+- **Monitor portfolio risk metrics** (VaR, correlation, concentration)
+- **Implement proper risk alerts** for unusual market conditions
+- **Document risk management procedures** and limits
+
+## Data Management
+- **Use the established market data services** for consistency
+- **Implement proper data caching strategies** to reduce API costs
+- **Use the options data service** for options-related operations
+- **Implement data validation and quality checks** at ingestion
+- **Monitor data freshness and availability** for trading decisions
+
+## Performance Monitoring
+- **Use structured logging** throughout the trading application
+- **Monitor trading performance metrics** in real-time
+- **Implement proper error tracking** for strategy failures
+- **Use the established monitoring infrastructure** (Prometheus, Grafana)
+- **Document monitoring procedures** and alert thresholds
+
+## API Design
+- **Follow RESTful API design principles** for trading APIs
+- **Use proper HTTP status codes** for error handling
+- **Implement API versioning** for backward compatibility
+- **Include proper API documentation** with examples
+- **Use authentication and authorization** for all trading endpoints
+
+## Testing
+- **Write comprehensive tests** for all trading logic
+- **Use mock data for testing** to avoid market data costs
+- **Test edge cases and error conditions** thoroughly
+- **Implement integration tests** for critical trading paths
+- **Maintain high test coverage** for trading strategies
+
+## Deployment
+- **Deploy strategies through Kubernetes** for scalability and reliability
+- **Use rolling updates** to avoid trading interruptions
+- **Implement proper health checks** for trading services
+- **Monitor strategy performance** in production
+- **Have rollback procedures** for failed strategy deployments
+description:
+globs:
+alwaysApply: false
+---

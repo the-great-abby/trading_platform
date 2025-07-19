@@ -17,9 +17,18 @@ k8s-deploy-backtest-api: ## Deploy backtest API service
 	@$(KUBECTL) apply -f k8s/backtest-api.yaml
 	@$(KUBECTL) apply -f k8s/ingress.yaml
 
+k8s-deploy-strategy-service: ## Deploy strategy service
+	@echo "$(GREEN)Deploying strategy service...$(NC)"
+	@$(KUBECTL) apply -f k8s/strategy-service.yaml
+	@$(KUBECTL) apply -f k8s/ingress.yaml
+
 k8s-port-forward-backtest: ## Port forward backtest API to localhost
 	@echo "$(GREEN)Port forwarding backtest API to localhost:10001...$(NC)"
 	@$(KUBECTL) port-forward svc/backtest-api 10001:10001 -n $(NAMESPACE)
+
+k8s-port-forward-strategy: ## Port forward strategy service to localhost
+	@echo "$(GREEN)Port forwarding strategy service to localhost:8000...$(NC)"
+	@$(KUBECTL) port-forward svc/strategy-service 8000:80 -n $(NAMESPACE)
 
 k8s-logs-backtest: ## Show logs for backtest API
 	@echo "$(GREEN)Showing logs for backtest API...$(NC)"
@@ -28,6 +37,10 @@ k8s-logs-backtest: ## Show logs for backtest API
 k8s-status-backtest: ## Show status of backtest API pods
 	@echo "$(GREEN)Backtest API pod status:$(NC)"
 	@$(KUBECTL) -n $(NAMESPACE) get pods -l app=backtest-api
+
+k8s-status-strategy: ## Show status of strategy service pods
+	@echo "$(GREEN)Strategy service pod status:$(NC)"
+	@$(KUBECTL) -n $(NAMESPACE) get pods -l app=strategy-service
 
 k8s-logs: ## Show logs for all pods
 	@echo "$(GREEN)Showing logs for all pods...$(NC)"
@@ -44,5 +57,91 @@ k8s-clean: ## Delete all resources in the namespace
 k8s-help: ## Show this help message
 	@echo "$(GREEN)Kubernetes Operations:$(NC)"
 	@grep -E '^k8s-[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
+
+# Job Generation
+k8s-job-backtest:
+	@echo "Generating backtest job..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/generate_k8s_job.py --type backtest --script $(SCRIPT) \
+		$(if $(NAME),--name $(NAME)) \
+		$(if $(SYMBOLS),--symbols $(SYMBOLS)) \
+		$(if $(START_DATE),--start-date $(START_DATE)) \
+		$(if $(END_DATE),--end-date $(END_DATE)) \
+		$(if $(USE_LLM),--use-llm) \
+		$(if $(MEMORY_REQUEST),--memory-request $(MEMORY_REQUEST)) \
+		$(if $(MEMORY_LIMIT),--memory-limit $(MEMORY_LIMIT)) \
+		$(if $(CPU_REQUEST),--cpu-request $(CPU_REQUEST)) \
+		$(if $(CPU_LIMIT),--cpu-limit $(CPU_LIMIT)) \
+		$(if $(APPLY),--apply) \
+		$(if $(OUTPUT),--output $(OUTPUT))
+
+k8s-job-analysis:
+	@echo "Generating analysis job..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/generate_k8s_job.py --type analysis --script $(SCRIPT) \
+		$(if $(NAME),--name $(NAME)) \
+		$(if $(MEMORY_REQUEST),--memory-request $(MEMORY_REQUEST)) \
+		$(if $(MEMORY_LIMIT),--memory-limit $(MEMORY_LIMIT)) \
+		$(if $(CPU_REQUEST),--cpu-request $(CPU_REQUEST)) \
+		$(if $(CPU_LIMIT),--cpu-limit $(CPU_LIMIT)) \
+		$(if $(APPLY),--apply) \
+		$(if $(OUTPUT),--output $(OUTPUT))
+
+k8s-job-data:
+	@echo "Generating data job..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/generate_k8s_job.py --type data --script $(SCRIPT) \
+		$(if $(NAME),--name $(NAME)) \
+		$(if $(MEMORY_REQUEST),--memory-request $(MEMORY_REQUEST)) \
+		$(if $(MEMORY_LIMIT),--memory-limit $(MEMORY_LIMIT)) \
+		$(if $(CPU_REQUEST),--cpu-request $(CPU_REQUEST)) \
+		$(if $(CPU_LIMIT),--cpu-limit $(CPU_LIMIT)) \
+		$(if $(APPLY),--apply) \
+		$(if $(OUTPUT),--output $(OUTPUT))
+
+# Quick job generation examples
+k8s-quick-backtest:
+	@echo "Quick backtest job generation examples:"
+	@echo ""
+	@echo "Basic backtest:"
+	@echo "  make k8s-job-backtest SCRIPT=run_backtest.py"
+	@echo ""
+	@echo "LLM-enhanced backtest:"
+	@echo "  make k8s-job-backtest SCRIPT=run_llm_evaluated_backtest.py USE_LLM=true"
+	@echo ""
+	@echo "Custom symbols and dates:"
+	@echo "  make k8s-job-backtest SCRIPT=run_backtest.py SYMBOLS=AAPL,TSLA,MSFT START_DATE=2024-01-01 END_DATE=2024-01-31"
+	@echo ""
+	@echo "High-resource backtest:"
+	@echo "  make k8s-job-backtest SCRIPT=run_backtest.py MEMORY_REQUEST=2Gi MEMORY_LIMIT=4Gi CPU_REQUEST=1000m CPU_LIMIT=2000m"
+	@echo ""
+	@echo "Apply directly to Kubernetes:"
+	@echo "  make k8s-job-backtest SCRIPT=run_backtest.py APPLY=true"
+
+# Generated Jobs Management
+k8s-jobs-status:
+	@echo "Checking generated jobs status..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action status
+
+k8s-jobs-cleanup:
+	@echo "Cleaning up old generated jobs..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action cleanup --days $(DAYS) --dry-run
+
+k8s-jobs-cleanup-force:
+	@echo "Force cleaning up old generated jobs..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action cleanup --days $(DAYS) --force
+
+k8s-jobs-archive:
+	@echo "Archiving generated jobs..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action archive --dry-run
+
+k8s-jobs-archive-force:
+	@echo "Force archiving generated jobs..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action archive --force
+
+k8s-jobs-cleanup-completed:
+	@echo "Cleaning up completed jobs..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action cleanup-completed --dry-run
+
+k8s-jobs-cleanup-completed-force:
+	@echo "Force cleaning up completed jobs..."
+	@source k8s-job-generator-env/bin/activate && python3 scripts/manage_generated_jobs.py --action cleanup-completed --force
 
 .PHONY: k8s-help k8s-deploy k8s-deploy-backtest-api k8s-port-forward-backtest k8s-logs-backtest k8s-status-backtest k8s-logs k8s-status k8s-clean 

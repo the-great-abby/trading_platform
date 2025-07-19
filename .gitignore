@@ -79,3 +79,8 @@ backtest_results/
 trading_data/ 
 
 test-data/
+
+# Generated Kubernetes jobs
+k8s/generated/
+k8s/archived/
+k8s-job-generator-env/

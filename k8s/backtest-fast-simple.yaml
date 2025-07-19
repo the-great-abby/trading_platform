@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-fast-simple
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: fast-simple
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: fast-simple
+    spec:
+      containers:
+      - name: backtest-fast-simple
+        image: localhost:5000/trading-system:latest
+        imagePullPolicy: Always
+        command: ["python"]
+        args: ["run_fast_backtest_simple.py", "--quick"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://redis-dev:6379"
+        - name: RABBITMQ_URL
+          value: "amqp://guest:guest@rabbitmq-service:5672/"
+        - name: OLLAMA_BASE_URL
+          value: "http://192.168.65.3:11434"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: ALPHA_VANTAGE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: alpha-vantage-api-key
+        - name: NEWS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: news-api-key
+              optional: true
+        - name: BACKTEST_MODE
+          value: "fast_simple"
+        - name: USE_CACHE
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        volumeMounts:
+        - name: backtest-results
+          mountPath: /app/backtest_results
+      volumes:
+      - name: backtest-results
+        persistentVolumeClaim:
+          claimName: backtest-results-pvc
+      restartPolicy: Never
+  backoffLimit: 1 

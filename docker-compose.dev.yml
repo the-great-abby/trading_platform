@@ -353,6 +353,8 @@ services:
   postgres-dev:
     image: postgres:15
     container_name: postgres-dev
+    ports:
+      - "5432:5432"  # Expose database locally for Alembic
     environment:
       POSTGRES_DB: trading_bot
       POSTGRES_USER: trading_user

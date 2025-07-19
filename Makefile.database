@@ -51,6 +51,25 @@ db-restore: ## Restore local database
 	@echo "$(GREEN)Restoring local database from $(BACKUP_FILE)...$(NC)"
 	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml exec -T postgres psql -U trading_user -d trading_db < $(BACKUP_FILE)
 
+# Database Index Management (Local)
+db-indexes-ensure: ## Ensure all required indexes exist locally
+	@echo "$(GREEN)Ensuring all required indexes exist...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/manage_indexes.py ensure
+
+db-indexes-analyze: ## Analyze missing indexes locally
+	@echo "$(GREEN)Analyzing missing indexes...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/manage_indexes.py analyze
+
+db-indexes-report: ## Generate database performance report locally
+	@echo "$(GREEN)Generating database performance report...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/manage_indexes.py report
+
+db-indexes: ## Run complete index management (ensure + analyze + report) locally
+	@echo "$(GREEN)Running complete index management...$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/manage_indexes.py ensure
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/manage_indexes.py analyze
+	@$(DOCKER_COMPOSE) -f docker-compose.dev.yml run --rm trading-cli python scripts/manage_indexes.py report
+
 # Kubernetes Database Operations
 k8s-db-create-tables: ## Create database tables in Kubernetes
 	@echo "$(GREEN)Creating database tables in Kubernetes...$(NC)"
@@ -93,6 +112,34 @@ k8s-db-restore: ## Restore database to Kubernetes
 	@POD=$$($(KUBECTL) -n $(NAMESPACE) get pods --no-headers -o custom-columns=":metadata.name" | grep postgres | head -n 1); \
 	$(KUBECTL) -n $(NAMESPACE) exec -i $$POD -- psql -U trading_user -d trading_db < $(BACKUP_FILE)
 
+# Database Index Management (Kubernetes)
+k8s-db-indexes-ensure: ## Ensure all required indexes exist in Kubernetes
+	@echo "$(GREEN)Ensuring all required indexes exist in Kubernetes...$(NC)"
+	@$(KUBECTL) apply -f k8s/index-management-job.yaml
+	@$(KUBECTL) -n $(NAMESPACE) wait --for=condition=complete job/index-management --timeout=300s
+	@$(KUBECTL) -n $(NAMESPACE) logs job/index-management
+	@$(KUBECTL) -n $(NAMESPACE) delete job index-management
+
+k8s-db-indexes-analyze: ## Analyze missing indexes in Kubernetes
+	@echo "$(GREEN)Analyzing missing indexes in Kubernetes...$(NC)"
+	@$(KUBECTL) apply -f k8s/index-analysis-job.yaml
+	@$(KUBECTL) -n $(NAMESPACE) wait --for=condition=complete job/index-analysis --timeout=300s
+	@$(KUBECTL) -n $(NAMESPACE) logs job/index-analysis
+	@$(KUBECTL) -n $(NAMESPACE) delete job index-analysis
+
+k8s-db-indexes-report: ## Generate database performance report in Kubernetes
+	@echo "$(GREEN)Generating database performance report in Kubernetes...$(NC)"
+	@$(KUBECTL) apply -f k8s/index-report-job.yaml
+	@$(KUBECTL) -n $(NAMESPACE) wait --for=condition=complete job/index-report --timeout=300s
+	@$(KUBECTL) -n $(NAMESPACE) logs job/index-report
+	@$(KUBECTL) -n $(NAMESPACE) delete job index-report
+
+k8s-db-indexes: ## Run complete index management in Kubernetes
+	@echo "$(GREEN)Running complete index management in Kubernetes...$(NC)"
+	@make k8s-db-indexes-ensure
+	@make k8s-db-indexes-analyze
+	@make k8s-db-indexes-report
+
 # Database Monitoring
 db-status: ## Check database status
 	@echo "$(GREEN)Checking database status...$(NC)"
@@ -129,5 +176,15 @@ db-help: ## Show this help message
 	@echo ""
 	@echo "$(GREEN)Kubernetes Database Operations:$(NC)"
 	@grep -E '^k8s-db-[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-30s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(GREEN)Index Management Operations:$(NC)"
+	@echo "  $(YELLOW)db-indexes$(NC)              - Run complete index management locally"
+	@echo "  $(YELLOW)db-indexes-ensure$(NC)       - Ensure all required indexes exist locally"
+	@echo "  $(YELLOW)db-indexes-analyze$(NC)      - Analyze missing indexes locally"
+	@echo "  $(YELLOW)db-indexes-report$(NC)       - Generate performance report locally"
+	@echo "  $(YELLOW)k8s-db-indexes$(NC)          - Run complete index management in Kubernetes"
+	@echo "  $(YELLOW)k8s-db-indexes-ensure$(NC)   - Ensure all required indexes exist in Kubernetes"
+	@echo "  $(YELLOW)k8s-db-indexes-analyze$(NC)  - Analyze missing indexes in Kubernetes"
+	@echo "  $(YELLOW)k8s-db-indexes-report$(NC)   - Generate performance report in Kubernetes"
 
-.PHONY: db-help db-start db-stop db-restart db-shell db-create-tables db-migrate db-backup db-restore k8s-db-create-tables k8s-db-migrate k8s-db-shell k8s-db-backup k8s-db-restore db-status k8s-db-status db-logs k8s-db-logs db-analyze k8s-db-analyze 
+.PHONY: db-help db-start db-stop db-restart db-shell db-create-tables db-migrate db-backup db-restore db-indexes db-indexes-ensure db-indexes-analyze db-indexes-report k8s-db-create-tables k8s-db-migrate k8s-db-shell k8s-db-backup k8s-db-restore k8s-db-indexes k8s-db-indexes-ensure k8s-db-indexes-analyze k8s-db-indexes-report db-status k8s-db-status db-logs k8s-db-logs db-analyze k8s-db-analyze 

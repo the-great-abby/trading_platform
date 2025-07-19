@@ -1,0 +1,75 @@
+# Python Development Rules
+
+## Virtual Environment Management
+- **Always use virtual environments** for local Python development
+- **Use `.venv/bin/python`** for all local repository commands
+- **Create virtual environments** with `python -m venv .venv`
+- **Activate virtual environments** before installing packages
+- **Include virtual environment** in `.gitignore`
+
+## Package Management
+- **Use `requirements.txt`** for dependency specification
+- **Pin specific versions** for production dependencies
+- **Use `pip-tools`** for dependency management in complex projects
+- **Keep dependencies minimal** and up-to-date
+- **Document special installation requirements**
+
+## Code Style & Structure
+- **Follow PEP 8** style guidelines consistently
+- **Use type hints** for function parameters and return values
+- **Use f-strings** for string formatting (Python 3.6+)
+- **Use list/dict comprehensions** when appropriate
+- **Prefer `pathlib`** over `os.path` for file operations
+
+## Project Organization
+- **Use `src/` layout** for packages
+- **Include `__init__.py`** files in all packages
+- **Organize by functionality**, not by type
+- **Use relative imports** within packages
+- **Keep test files close** to the code they test
+
+## Async Programming
+- **Use `asyncio`** for I/O-bound operations
+- **Use `async def` and `await`** consistently
+- **Handle async context managers** properly
+- **Use `asyncio.gather()`** for concurrent operations
+- **Avoid blocking operations** in async functions
+
+## Testing & Quality
+- **Write unit tests** for all public functions
+- **Use `pytest`** for testing framework
+- **Use `pytest-asyncio`** for async tests
+- **Mock external dependencies** appropriately
+- **Aim for high test coverage**
+
+## Logging & Monitoring
+- **Use the `loguru` library** for structured logging
+- **Include context** in log messages
+- **Use appropriate log levels** (DEBUG, INFO, WARNING, ERROR)
+- **Configure logging** for different environments
+- **Monitor application performance** and errors
+
+## Error Handling
+- **Use appropriate exception handling** patterns
+- **Provide meaningful error messages** with context
+- **Log errors appropriately** with debugging information
+- **Fail fast and fail clearly** - don't hide problems
+- **Use custom exceptions** for domain-specific errors
+
+## Performance
+- **Use appropriate data structures** for the task
+- **Profile code** when performance is critical
+- **Use generators** for large data processing
+- **Optimize database queries** and reduce N+1 problems
+- **Use caching** for expensive operations
+
+## Security
+- **Validate all inputs** and sanitize data
+- **Use parameterized queries** to prevent injection
+- **Handle secrets securely** with environment variables
+- **Use HTTPS** for all external communications
+- **Implement proper authentication** and authorization
+description:
+globs:
+alwaysApply: false
+---

@@ -1,0 +1,253 @@
+# Centralized API Gateway Makefile
+# Provides targets for deploying, testing, and managing the API gateway
+
+.PHONY: help build-gateway deploy-gateway test-gateway start-gateway stop-gateway logs-gateway health-gateway demo-gateway clean-gateway
+
+# Configuration
+GATEWAY_IMAGE = trading-gateway
+GATEWAY_TAG = latest
+GATEWAY_PORT = 8000
+GATEWAY_NAMESPACE = trading-system
+
+help: ## Show this help message
+	@echo "🚀 Space Trading Station - Centralized API Gateway"
+	@echo "=================================================="
+	@echo ""
+	@echo "Available targets:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+build-gateway: ## Build the API gateway Docker image
+	@echo "🔨 Building API Gateway Docker image..."
+	docker build -t $(GATEWAY_IMAGE):$(GATEWAY_TAG) ./services/gateway
+	@echo "✅ API Gateway image built successfully"
+
+deploy-gateway-local: ## Deploy API gateway locally using Docker Compose
+	@echo "🚀 Deploying API Gateway locally..."
+	docker-compose up -d api-gateway
+	@echo "✅ API Gateway deployed locally"
+	@echo "🌐 Access at: http://localhost:$(GATEWAY_PORT)"
+	@echo "📚 Documentation: http://localhost:$(GATEWAY_PORT)/docs"
+
+deploy-gateway-k8s: ## Deploy API gateway to Kubernetes
+	@echo "🚀 Deploying API Gateway to Kubernetes..."
+	kubectl apply -f k8s/gateway.yaml -n $(GATEWAY_NAMESPACE)
+	@echo "✅ API Gateway deployed to Kubernetes"
+	@echo "🌐 Access via: kubectl port-forward svc/gateway $(GATEWAY_PORT):80 -n $(GATEWAY_NAMESPACE)"
+
+start-gateway: ## Start the API gateway service
+	@echo "▶️ Starting API Gateway..."
+	docker-compose up -d api-gateway
+	@echo "✅ API Gateway started"
+	@echo "🌐 Health check: http://localhost:$(GATEWAY_PORT)/health"
+
+stop-gateway: ## Stop the API gateway service
+	@echo "⏹️ Stopping API Gateway..."
+	docker-compose stop api-gateway
+	@echo "✅ API Gateway stopped"
+
+restart-gateway: ## Restart the API gateway service
+	@echo "🔄 Restarting API Gateway..."
+	docker-compose restart api-gateway
+	@echo "✅ API Gateway restarted"
+
+logs-gateway: ## Show API gateway logs
+	@echo "📋 API Gateway logs:"
+	docker-compose logs -f api-gateway
+
+health-gateway: ## Check API gateway health
+	@echo "🔍 Checking API Gateway health..."
+	@curl -s http://localhost:$(GATEWAY_PORT)/health | jq . || echo "❌ Health check failed"
+
+test-gateway: ## Test API gateway endpoints
+	@echo "🧪 Testing API Gateway endpoints..."
+	@echo "1. Testing health endpoint..."
+	@curl -s http://localhost:$(GATEWAY_PORT)/health | jq .status || echo "❌ Health check failed"
+	@echo ""
+	@echo "2. Testing system info endpoint..."
+	@curl -s http://localhost:$(GATEWAY_PORT)/ | jq .data.service || echo "❌ System info failed"
+	@echo ""
+	@echo "3. Testing authentication..."
+	@curl -s -H "Authorization: Bearer test-token" http://localhost:$(GATEWAY_PORT)/api/v1/trading/orders || echo "❌ Auth test failed"
+	@echo ""
+	@echo "✅ API Gateway tests completed"
+
+demo-gateway: ## Run the API gateway demo
+	@echo "🎯 Running API Gateway demo..."
+	@echo "Make sure the gateway is running first: make start-gateway"
+	@echo ""
+	@python scripts/demo_centralized_api.py
+
+demo-gateway-k8s: ## Run the API gateway demo with Kubernetes port forwarding
+	@echo "🎯 Running API Gateway demo with Kubernetes..."
+	@echo "Starting port forward..."
+	@kubectl port-forward svc/gateway $(GATEWAY_PORT):80 -n $(GATEWAY_NAMESPACE) &
+	@sleep 3
+	@echo "Running demo..."
+	@API_URL=http://localhost:$(GATEWAY_PORT) python scripts/demo_centralized_api.py
+	@pkill -f "kubectl port-forward"
+
+load-test-gateway: ## Run load test on API gateway
+	@echo "📊 Running load test on API Gateway..."
+	@echo "Testing 1000 requests with 10 concurrent users..."
+	@ab -n 1000 -c 10 -H "Authorization: Bearer test-token" http://localhost:$(GATEWAY_PORT)/health
+
+stress-test-gateway: ## Run stress test on API gateway
+	@echo "🔥 Running stress test on API Gateway..."
+	@echo "Testing 5000 requests with 50 concurrent users..."
+	@ab -n 5000 -c 50 -H "Authorization: Bearer test-token" http://localhost:$(GATEWAY_PORT)/health
+
+monitor-gateway: ## Monitor API gateway metrics
+	@echo "📊 API Gateway metrics:"
+	@curl -s http://localhost:$(GATEWAY_PORT)/metrics | grep gateway_ || echo "No metrics available"
+
+clean-gateway: ## Clean up API gateway resources
+	@echo "🧹 Cleaning up API Gateway..."
+	docker-compose down api-gateway
+	docker rmi $(GATEWAY_IMAGE):$(GATEWAY_TAG) 2>/dev/null || true
+	@echo "✅ API Gateway cleanup completed"
+
+setup-gateway-dev: ## Setup development environment for API gateway
+	@echo "🔧 Setting up API Gateway development environment..."
+	@echo "1. Installing dependencies..."
+	pip install -r services/gateway/requirements.txt
+	@echo "2. Creating .env file..."
+	@test -f .env || cp .env.example .env
+	@echo "3. Setting up Redis..."
+	docker-compose up -d redis
+	@echo "✅ Development environment ready"
+	@echo "🚀 Start gateway: make start-gateway"
+
+gateway-shell: ## Open shell in API gateway container
+	@echo "🐚 Opening shell in API Gateway container..."
+	docker-compose exec api-gateway /bin/bash
+
+gateway-logs-follow: ## Follow API gateway logs in real-time
+	@echo "📋 Following API Gateway logs..."
+	docker-compose logs -f --tail=100 api-gateway
+
+gateway-config: ## Show API gateway configuration
+	@echo "⚙️ API Gateway Configuration:"
+	@echo "Image: $(GATEWAY_IMAGE):$(GATEWAY_TAG)"
+	@echo "Port: $(GATEWAY_PORT)"
+	@echo "Namespace: $(GATEWAY_NAMESPACE)"
+	@echo ""
+	@echo "Environment variables:"
+	@docker-compose config | grep -A 20 "api-gateway:" || echo "No config found"
+
+gateway-status: ## Show API gateway status
+	@echo "📊 API Gateway Status:"
+	@docker-compose ps api-gateway || echo "Gateway not running"
+	@echo ""
+	@echo "Health check:"
+	@curl -s http://localhost:$(GATEWAY_PORT)/health | jq . 2>/dev/null || echo "Health check failed"
+
+# Quick start targets
+quick-start: ## Quick start the API gateway
+	@echo "🚀 Quick starting API Gateway..."
+	@make build-gateway
+	@make start-gateway
+	@sleep 5
+	@make health-gateway
+	@echo "✅ API Gateway ready at http://localhost:$(GATEWAY_PORT)"
+
+quick-test: ## Quick test the API gateway
+	@echo "🧪 Quick testing API Gateway..."
+	@make health-gateway
+	@make test-gateway
+	@echo "✅ Quick test completed"
+
+# Documentation targets
+docs-gateway: ## Open API gateway documentation
+	@echo "📚 Opening API Gateway documentation..."
+	@echo "Swagger UI: http://localhost:$(GATEWAY_PORT)/docs"
+	@echo "ReDoc: http://localhost:$(GATEWAY_PORT)/redoc"
+	@echo "OpenAPI Spec: http://localhost:$(GATEWAY_PORT)/openapi.json"
+
+# Security targets
+security-scan-gateway: ## Security scan the API gateway
+	@echo "🔒 Security scanning API Gateway..."
+	@echo "Running security scan..."
+	@echo "✅ Security scan completed (placeholder)"
+
+# Backup and restore targets
+backup-gateway-config: ## Backup API gateway configuration
+	@echo "💾 Backing up API Gateway configuration..."
+	@mkdir -p backup/gateway
+	@cp services/gateway/main.py backup/gateway/main.py.$(shell date +%Y%m%d_%H%M%S)
+	@cp services/gateway/requirements.txt backup/gateway/requirements.txt.$(shell date +%Y%m%d_%H%M%S)
+	@echo "✅ Configuration backed up"
+
+restore-gateway-config: ## Restore API gateway configuration
+	@echo "📥 Restoring API Gateway configuration..."
+	@echo "Available backups:"
+	@ls -la backup/gateway/ 2>/dev/null || echo "No backups found"
+	@echo "Use: cp backup/gateway/main.py.<timestamp> services/gateway/main.py"
+
+# Development helpers
+dev-gateway: ## Start development mode for API gateway
+	@echo "🔧 Starting API Gateway in development mode..."
+	@cd services/gateway && python main.py
+
+dev-gateway-reload: ## Start development mode with auto-reload
+	@echo "🔄 Starting API Gateway with auto-reload..."
+	@cd services/gateway && uvicorn main:app --reload --host 0.0.0.0 --port $(GATEWAY_PORT)
+
+# Integration tests
+test-gateway-integration: ## Run integration tests for API gateway
+	@echo "🔗 Running API Gateway integration tests..."
+	@echo "1. Testing service connectivity..."
+	@make health-gateway
+	@echo "2. Testing authentication flow..."
+	@curl -s -H "Authorization: Bearer test-token" http://localhost:$(GATEWAY_PORT)/api/v1/trading/orders || echo "Auth test failed"
+	@echo "3. Testing rate limiting..."
+	@for i in {1..110}; do curl -s -H "Authorization: Bearer test-token" http://localhost:$(GATEWAY_PORT)/health > /dev/null; done
+	@echo "✅ Integration tests completed"
+
+# Performance tests
+benchmark-gateway: ## Benchmark API gateway performance
+	@echo "⚡ Benchmarking API Gateway performance..."
+	@echo "Running benchmarks..."
+	@ab -n 1000 -c 10 http://localhost:$(GATEWAY_PORT)/health
+	@echo "✅ Benchmark completed"
+
+# Maintenance targets
+update-gateway-deps: ## Update API gateway dependencies
+	@echo "📦 Updating API Gateway dependencies..."
+	@cd services/gateway && pip install --upgrade -r requirements.txt
+	@echo "✅ Dependencies updated"
+
+lint-gateway: ## Lint API gateway code
+	@echo "🔍 Linting API Gateway code..."
+	@cd services/gateway && python -m flake8 main.py
+	@echo "✅ Linting completed"
+
+format-gateway: ## Format API gateway code
+	@echo "🎨 Formatting API Gateway code..."
+	@cd services/gateway && python -m black main.py
+	@echo "✅ Code formatting completed"
+
+# Help target
+help-gateway: ## Show detailed help for API gateway
+	@echo "🚀 Space Trading Station - Centralized API Gateway Help"
+	@echo "======================================================"
+	@echo ""
+	@echo "The API Gateway provides a single entry point for all trading operations."
+	@echo ""
+	@echo "Key Features:"
+	@echo "  • Single entry point for all trading operations"
+	@echo "  • Unified authentication and security"
+	@echo "  • Rate limiting and monitoring"
+	@echo "  • Real-time data via WebSocket"
+	@echo "  • Auto-generated documentation"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  1. make quick-start    # Build and start the gateway"
+	@echo "  2. make health-gateway # Check if it's working"
+	@echo "  3. make demo-gateway   # Run the demo"
+	@echo ""
+	@echo "Development:"
+	@echo "  make dev-gateway       # Start in development mode"
+	@echo "  make test-gateway      # Run tests"
+	@echo "  make logs-gateway      # View logs"
+	@echo ""
+	@echo "For more information, see docs/CENTRALIZED_API_GUIDE.md" 

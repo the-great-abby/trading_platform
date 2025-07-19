@@ -133,6 +133,10 @@ docker-registry-down: ## Stop Docker registry
 	@echo "$(GREEN)Stopping Docker registry...$(NC)"
 	@$(DOCKER_COMPOSE) -f docker-compose.registry.yml down
 
+docker-pull-base-images: ## Pull and store base images in local registry
+	@echo "$(GREEN)Pulling and storing base images in local registry...$(NC)"
+	@./scripts/pull-base-images.sh
+
 # Help
 docker-help: ## Show this help message
 	@echo "$(GREEN)Docker Operations:$(NC)"

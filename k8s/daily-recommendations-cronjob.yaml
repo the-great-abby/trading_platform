@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-recommendations-cronjob
+  namespace: trading-system
+  labels:
+    app: daily-recommendations
+    job-type: cronjob
+spec:
+  schedule: "0 9 * * 1-5"  # Every weekday at 9:00 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: daily-recommendations
+        spec:
+          containers:
+          - name: daily-recommendations
+            image: localhost:5000/trading-system:latest
+            command: ["python", "-m", "src.services.workers.daily_recommendations_cron", "--cron-job"]
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database-url
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: rabbitmq-url
+            - name: STRATEGY_SERVICE_URL
+              value: "http://strategy-service:8000"
+            - name: RSS_SERVICE_URL
+              value: "http://rss-feed-service:80"
+            - name: POLYGON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: polygon-api-key
+            - name: ALPHA_VANTAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: alpha-vantage-api-key
+            - name: OLLAMA_URL
+              value: "http://ollama:11434"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PYTHONPATH
+              value: "/app/src"
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account 

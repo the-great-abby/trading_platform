@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-comprehensive-options-database-only
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: options-database-only
+    risk-profile: aggressive
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        type: options-database-only
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest:latest
+        command: ["python"]
+        args: ["run_comprehensive_options_backtest_database_only.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: PARALLEL_EXECUTION
+          value: "true"
+        - name: BACKTEST_SYMBOLS
+          value: "SPY,QQQ,IWM,DIA,XLF,XLE,XLK,XLV,XLI,XLP"
+        - name: BACKTEST_START_DATE
+          value: "2024-01-01"
+        - name: BACKTEST_END_DATE
+          value: "2024-12-31"
+        - name: BACKTEST_INITIAL_CAPITAL
+          value: "100000"
+        - name: BACKTEST_RISK_PROFILE
+          value: "aggressive"
+        - name: BACKTEST_STRATEGIES
+          value: "GreeksEnhanced,IronCondor,BollingerBands,RSI,MACD"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 2 

@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-setup
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      serviceAccountName: trading-system-sa
+      containers:
+      - name: db-setup
+        image: localhost:5000/trading-system:latest
+        imagePullPolicy: Always
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POSTGRES_HOST
+          value: "postgres-dev"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: "trading_bot"
+        - name: POSTGRES_USER
+          value: "trading_user"
+        - name: POSTGRES_PASSWORD
+          value: "trading_pass"
+        command: ["python"]
+        args: ["scripts/create_backtest_tables.py"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      restartPolicy: Never
+  backoffLimit: 3 

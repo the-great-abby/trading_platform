@@ -4,11 +4,19 @@ Check if backtest tables exist in the database
 """
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.pool import QueuePool
 
 def check_backtest_tables():
     """Check if backtest tables exist"""
     try:
-        engine = create_engine('postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot')
+        engine = create_engine(
+            'postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot',
+            echo=False,
+            poolclass=QueuePool,
+            pool_size=20,
+            max_overflow=40,
+            pool_timeout=30
+        )
         with engine.connect() as conn:
             # Check all tables
             result = conn.execute(text("""

@@ -1,0 +1,215 @@
+# RSS Feed System Makefile
+# Handles RSS feed service deployment and management
+
+# RSS Feed Service Configuration
+RSS_SERVICE_NAME := rss-feed-service
+RSS_SERVICE_PORT := 8084
+RSS_IMAGE_NAME := localhost:5000/rss-feed-service
+RSS_IMAGE_TAG := latest
+
+# Daily Recommendations Configuration
+DAILY_RECOMMENDATIONS_WORKER := daily-recommendations-worker
+DAILY_RECOMMENDATIONS_CRONJOB := daily-recommendations-cronjob
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+# RSS Feed System Help
+rss-help: ## Show RSS feed system help
+	@echo "$(BLUE)📰 RSS FEED SYSTEM - MAKEFILE$(NC)"
+	@echo "$(BLUE)============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)📋 Available Commands:$(NC)"
+	@echo "  $(YELLOW)rss-build$(NC)                    - Build RSS feed service Docker image"
+	@echo "  $(YELLOW)rss-deploy$(NC)                   - Deploy RSS feed service to Kubernetes"
+	@echo "  $(YELLOW)rss-deploy-worker$(NC)            - Deploy daily recommendations worker"
+	@echo "  $(YELLOW)rss-deploy-cronjob$(NC)           - Deploy daily recommendations cron job"
+	@echo "  $(YELLOW)rss-deploy-all$(NC)               - Deploy all RSS feed components"
+	@echo "  $(YELLOW)rss-status$(NC)                   - Check RSS feed system status"
+	@echo "  $(YELLOW)rss-logs$(NC)                     - View RSS feed service logs"
+	@echo "  $(YELLOW)rss-worker-logs$(NC)              - View daily recommendations worker logs"
+	@echo "  $(YELLOW)rss-test-feed$(NC)                - Test RSS feed endpoints"
+	@echo "  $(YELLOW)rss-trigger-manual$(NC)           - Manually trigger daily recommendations"
+	@echo "  $(YELLOW)rss-clean$(NC)                    - Clean up RSS feed resources"
+	@echo ""
+	@echo "$(GREEN)🔧 Configuration:$(NC)"
+	@echo "  RSS Service Port: $(RSS_SERVICE_PORT)"
+	@echo "  RSS Image: $(RSS_IMAGE_NAME):$(RSS_IMAGE_TAG)"
+	@echo "  Cron Schedule: Every weekday at 9:00 AM"
+
+# Build RSS Feed Service
+rss-build: ## Build RSS feed service Docker image
+	@echo "$(GREEN)🔨 Building RSS feed service Docker image...$(NC)"
+	docker build -t $(RSS_IMAGE_NAME):$(RSS_IMAGE_TAG) services/rss-feed-service/
+	docker push $(RSS_IMAGE_NAME):$(RSS_IMAGE_TAG)
+	@echo "$(GREEN)✅ RSS feed service image built and pushed$(NC)"
+
+# Deploy RSS Feed Service
+rss-deploy: ## Deploy RSS feed service to Kubernetes
+	@echo "$(GREEN)🚀 Deploying RSS feed service to Kubernetes...$(NC)"
+	kubectl apply -f k8s/rss-feed-service.yaml -n trading-system
+	@echo "$(GREEN)✅ RSS feed service deployed$(NC)"
+
+# Deploy Daily Recommendations Worker
+rss-deploy-worker: ## Deploy daily recommendations worker
+	@echo "$(GREEN)🚀 Deploying daily recommendations worker...$(NC)"
+	kubectl apply -f k8s/daily-recommendations-worker.yaml -n trading-system
+	@echo "$(GREEN)✅ Daily recommendations worker deployed$(NC)"
+
+# Deploy Daily Recommendations Cron Job
+rss-deploy-cronjob: ## Deploy daily recommendations cron job
+	@echo "$(GREEN)🚀 Deploying daily recommendations cron job...$(NC)"
+	kubectl apply -f k8s/daily-recommendations-cronjob.yaml -n trading-system
+	@echo "$(GREEN)✅ Daily recommendations cron job deployed$(NC)"
+
+# Deploy All RSS Components
+rss-deploy-all: ## Deploy all RSS feed system components
+	@echo "$(GREEN)🚀 Deploying complete RSS feed system...$(NC)"
+	make rss-build
+	make rss-deploy
+	make rss-deploy-worker
+	make rss-deploy-cronjob
+	@echo "$(GREEN)✅ Complete RSS feed system deployed$(NC)"
+
+# Check RSS Feed System Status
+rss-status: ## Check RSS feed system status
+	@echo "$(GREEN)📊 Checking RSS feed system status...$(NC)"
+	@echo ""
+	@echo "$(BLUE)RSS Feed Service:$(NC)"
+	@kubectl get pods -n trading-system -l app=rss-feed-service 2>/dev/null || echo "$(RED)RSS feed service not found$(NC)"
+	@echo ""
+	@echo "$(BLUE)Daily Recommendations Worker:$(NC)"
+	@kubectl get pods -n trading-system -l app=daily-recommendations-worker 2>/dev/null || echo "$(RED)Daily recommendations worker not found$(NC)"
+	@echo ""
+	@echo "$(BLUE)Daily Recommendations Cron Job:$(NC)"
+	@kubectl get cronjobs -n trading-system daily-recommendations-cronjob 2>/dev/null || echo "$(RED)Daily recommendations cron job not found$(NC)"
+	@echo ""
+	@echo "$(BLUE)RSS Feed Service Endpoints:$(NC)"
+	@kubectl get svc -n trading-system rss-feed-service 2>/dev/null || echo "$(RED)RSS feed service not found$(NC)"
+
+# View RSS Feed Service Logs
+rss-logs: ## View RSS feed service logs
+	@echo "$(GREEN)📋 Viewing RSS feed service logs...$(NC)"
+	@POD=$$(kubectl get pods -n trading-system -l app=rss-feed-service -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -n "$$POD" ]; then \
+		kubectl logs -n trading-system $$POD -f; \
+	else \
+		echo "$(RED)RSS feed service pod not found$(NC)"; \
+	fi
+
+# View Daily Recommendations Worker Logs
+rss-worker-logs: ## View daily recommendations worker logs
+	@echo "$(GREEN)📋 Viewing daily recommendations worker logs...$(NC)"
+	@POD=$$(kubectl get pods -n trading-system -l app=daily-recommendations-worker -o jsonpath='{.items[0].metadata.name}' 2>/dev/null); \
+	if [ -n "$$POD" ]; then \
+		kubectl logs -n trading-system $$POD -f; \
+	else \
+		echo "$(RED)Daily recommendations worker pod not found$(NC)"; \
+	fi
+
+# Test RSS Feed Endpoints
+rss-test-feed: ## Test RSS feed endpoints
+	@echo "$(GREEN)🧪 Testing RSS feed endpoints...$(NC)"
+	@echo ""
+	@echo "$(BLUE)Testing health endpoint:$(NC)"
+	@curl -s http://localhost:$(RSS_SERVICE_PORT)/health | jq . 2>/dev/null || echo "$(RED)Health endpoint not available$(NC)"
+	@echo ""
+	@echo "$(BLUE)Testing daily recommendations RSS feed:$(NC)"
+	@curl -s http://localhost:$(RSS_SERVICE_PORT)/rss/daily-recommendations | head -20 2>/dev/null || echo "$(RED)Daily recommendations RSS feed not available$(NC)"
+	@echo ""
+	@echo "$(BLUE)Testing JSON API:$(NC)"
+	@curl -s http://localhost:$(RSS_SERVICE_PORT)/api/recommendations | jq . 2>/dev/null || echo "$(RED)JSON API not available$(NC)"
+
+# Manually Trigger Daily Recommendations
+rss-trigger-manual: ## Manually trigger daily recommendations generation
+	@echo "$(GREEN)🚀 Manually triggering daily recommendations...$(NC)"
+	@kubectl create job --from=cronjob/daily-recommendations-cronjob manual-daily-recommendations-$$(date +%Y%m%d-%H%M%S) -n trading-system
+	@echo "$(GREEN)✅ Manual daily recommendations job created$(NC)"
+	@echo "$(BLUE)Check job status with: kubectl get jobs -n trading-system | grep manual-daily-recommendations$(NC)"
+
+# Port Forward RSS Feed Service
+rss-port-forward: ## Port forward RSS feed service for local access
+	@echo "$(GREEN)🔗 Port forwarding RSS feed service...$(NC)"
+	@echo "$(BLUE)RSS feed service will be available at: http://localhost:$(RSS_SERVICE_PORT)$(NC)"
+	@echo "$(YELLOW)Press Ctrl+C to stop port forwarding$(NC)"
+	@kubectl port-forward -n trading-system svc/rss-feed-service $(RSS_SERVICE_PORT):80
+
+# Get RSS Feed URL
+rss-get-url: ## Get RSS feed URLs for subscription
+	@echo "$(GREEN)📰 RSS Feed URLs:$(NC)"
+	@echo ""
+	@echo "$(BLUE)Daily Recommendations RSS Feed:$(NC)"
+	@echo "http://localhost:$(RSS_SERVICE_PORT)/rss/daily-recommendations"
+	@echo ""
+	@echo "$(BLUE)Symbol-Specific RSS Feed (replace SYMBOL):$(NC)"
+	@echo "http://localhost:$(RSS_SERVICE_PORT)/rss/symbol/SYMBOL"
+	@echo ""
+	@echo "$(BLUE)JSON API:$(NC)"
+	@echo "http://localhost:$(RSS_SERVICE_PORT)/api/recommendations"
+	@echo ""
+	@echo "$(YELLOW)Note: Use 'make rss-port-forward' to access from localhost$(NC)"
+
+# Monitor RSS Feed System
+rss-monitor: ## Monitor RSS feed system in real-time
+	@echo "$(GREEN)📊 Monitoring RSS feed system...$(NC)"
+	@echo "$(BLUE)Press Ctrl+C to stop monitoring$(NC)"
+	@echo ""
+	@while true; do \
+		echo "=== $$(date) ==="; \
+		echo "$(BLUE)RSS Feed Service:$(NC)"; \
+		kubectl get pods -n trading-system -l app=rss-feed-service --no-headers 2>/dev/null | awk '{print $$1, $$3}' || echo "$(RED)Not found$(NC)"; \
+		echo "$(BLUE)Daily Recommendations Worker:$(NC)"; \
+		kubectl get pods -n trading-system -l app=daily-recommendations-worker --no-headers 2>/dev/null | awk '{print $$1, $$3}' || echo "$(RED)Not found$(NC)"; \
+		echo "$(BLUE)Recent Cron Jobs:$(NC)"; \
+		kubectl get jobs -n trading-system -l app=daily-recommendations --no-headers 2>/dev/null | tail -3 | awk '{print $$1, $$2}' || echo "$(RED)No recent jobs$(NC)"; \
+		echo "=================="; \
+		sleep 30; \
+	done
+
+# Clean Up RSS Feed Resources
+rss-clean: ## Clean up RSS feed resources
+	@echo "$(GREEN)🧹 Cleaning up RSS feed resources...$(NC)"
+	kubectl delete -f k8s/rss-feed-service.yaml -n trading-system 2>/dev/null || true
+	kubectl delete -f k8s/daily-recommendations-worker.yaml -n trading-system 2>/dev/null || true
+	kubectl delete -f k8s/daily-recommendations-cronjob.yaml -n trading-system 2>/dev/null || true
+	kubectl delete jobs -n trading-system -l app=daily-recommendations 2>/dev/null || true
+	@echo "$(GREEN)✅ RSS feed resources cleaned up$(NC)"
+
+# RSS Feed System Quick Start
+rss-quick-start: ## Quick start RSS feed system
+	@echo "$(GREEN)🚀 Quick starting RSS feed system...$(NC)"
+	make rss-deploy-all
+	@echo "$(GREEN)⏳ Waiting for services to be ready...$(NC)"
+	sleep 30
+	make rss-status
+	@echo ""
+	@echo "$(GREEN)✅ RSS feed system ready!$(NC)"
+	@echo "$(BLUE)Use 'make rss-port-forward' to access RSS feeds locally$(NC)"
+	@echo "$(BLUE)Use 'make rss-get-url' to see RSS feed URLs$(NC)"
+
+# RSS Feed System Demo
+rss-demo: ## Run RSS feed system demo
+	@echo "$(GREEN)🎬 Running RSS feed system demo...$(NC)"
+	@echo "$(BLUE)This will demonstrate the RSS feed system workflow$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 1: Deploy RSS feed system$(NC)"
+	make rss-deploy-all
+	@echo ""
+	@echo "$(YELLOW)Step 2: Wait for services to be ready$(NC)"
+	sleep 30
+	@echo ""
+	@echo "$(YELLOW)Step 3: Port forward RSS service$(NC)"
+	@echo "$(BLUE)In another terminal, run: make rss-port-forward$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 4: Manually trigger recommendations$(NC)"
+	make rss-trigger-manual
+	@echo ""
+	@echo "$(YELLOW)Step 5: Test RSS feeds$(NC)"
+	sleep 10
+	make rss-test-feed
+	@echo ""
+	@echo "$(GREEN)✅ RSS feed system demo complete!$(NC)" 

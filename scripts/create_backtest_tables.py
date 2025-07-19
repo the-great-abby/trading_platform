@@ -9,11 +9,19 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from models.backtest_results import Base
 from sqlalchemy import create_engine
+from sqlalchemy.pool import QueuePool
 
 def create_backtest_tables():
     """Create backtest tables"""
     try:
-        engine = create_engine('postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot')
+        engine = create_engine(
+            'postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot',
+            echo=False,
+            poolclass=QueuePool,
+            pool_size=20,
+            max_overflow=40,
+            pool_timeout=30
+        )
         Base.metadata.create_all(bind=engine)
         print('Backtest tables created successfully!')
         return True

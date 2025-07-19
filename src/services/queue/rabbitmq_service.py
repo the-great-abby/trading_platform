@@ -60,7 +60,9 @@ class RabbitMQService:
             'trading_signal': 'trading_signal_queue',
             'backtest': 'backtest_queue',
             'risk_check': 'risk_check_queue',
-            'portfolio_update': 'portfolio_update_queue'
+            'portfolio_update': 'portfolio_update_queue',
+            'daily_recommendations': 'daily_recommendations_queue',
+            'notification': 'notification_queue'
         }
         
         # Job handlers

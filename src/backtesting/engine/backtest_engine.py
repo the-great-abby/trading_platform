@@ -89,8 +89,8 @@ class BacktestEngine:
         self.results = {}
         
         # Initialize LLM trade evaluator
-        self.trade_evaluator = TradeEvaluator()
-        self.use_llm_evaluation = os.getenv('USE_LLM_EVALUATION', 'true').lower() in ('true', '1', 'yes')
+        self.use_llm_evaluation = os.getenv('ENABLE_LLM_EVALUATION', 'true').lower() in ('true', '1', 'yes')
+        self.trade_evaluator = TradeEvaluator(enable_llm=self.use_llm_evaluation)
         
     async def run_backtest(self, symbols: List[str], start_date: str, end_date: str, strategies: List[str]) -> Dict[str, BacktestResult]:
         """
@@ -321,7 +321,7 @@ class BacktestEngine:
                     # Calculate capital changes
                     for trade in symbol_result['trade_list']:
                         if trade['action'] == 'BUY':
-                            final_capital -= trade['cost']
+                            final_capital -= trade['value']
                         elif trade['action'] == 'SELL':
                             final_capital += trade['value']
                             if trade['pnl'] > 0:
@@ -566,7 +566,36 @@ class BacktestEngine:
             'VolatilityBreakout': 'src.strategies.breakout.volatility_breakout_strategy.VolatilityBreakoutStrategy',
             'TrailingStop': 'src.strategies.advanced.trailing_stop_strategy.TrailingStopStrategy',
             'Fibonacci': 'src.strategies.advanced.fibonacci_strategy.FibonacciStrategy',
-            'GreeksEnhanced': 'src.strategies.options.greeks_enhanced_strategy.GreeksEnhancedStrategy'
+            'GreeksEnhanced': 'src.strategies.options.greeks_enhanced_strategy.GreeksEnhancedStrategy',
+            'Ichimoku': 'src.strategies.ichimoku_strategy.IchimokuStrategy',
+            'IchimokuEnhanced': 'src.strategies.ichimoku_enhanced_strategy.IchimokuEnhancedStrategy',
+            'AdaptiveMomentum': 'src.strategies.adaptive_momentum_strategy.AdaptiveMomentumStrategy',
+            'NeuralNetwork': 'src.strategies.neural_network_strategy.NeuralNetworkStrategy',
+            'QuantumMomentum': 'src.strategies.quantum_momentum_strategy.QuantumMomentumStrategy',
+            'RegimeSwitching': 'src.strategies.regime_switching_strategy.RegimeSwitchingStrategy',
+            'IronCondor': 'src.strategies.options.iron_condor_strategy.IronCondorStrategy',
+            'EnhancedIronCondor': 'src.strategies.options.enhanced_iron_condor_strategy.EnhancedIronCondorStrategy',
+            'VWAP': 'src.strategies.vwap_strategy.VWAPStrategy',
+            'PairsTrading': 'src.strategies.pairs_trading_strategy.PairsTradingStrategy',
+            'KalmanFilter': 'src.strategies.kalman_filter_strategy.KalmanFilterStrategy',
+            'MLEnsemble': 'src.strategies.ml_ensemble_strategy.MLEnsembleStrategy',
+            'EnhancedDayTrading': 'src.strategies.enhanced_day_trading_strategy.EnhancedDayTradingStrategy',
+            'NewsEnhanced': 'src.strategies.news_enhanced_strategy.NewsEnhancedStrategy',
+            'SocialMediaSentiment': 'src.strategies.sentiment.social_media_sentiment_strategy.SocialMediaSentimentStrategy',
+            # New Options Strategies
+            'CashSecuredPut': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',
+            'CoveredCall': 'src.strategies.options.covered_call_strategy.CoveredCallStrategy',
+            'CalendarSpread': 'src.strategies.options.calendar_spread_strategy.CalendarSpreadStrategy',
+            'ButterflySpread': 'src.strategies.options.butterfly_spread_strategy.ButterflySpreadStrategy',
+            'VolatilityStrategy': 'src.strategies.options.volatility_strategy.VolatilityStrategy',
+            'EarningsStrategy': 'src.strategies.options.earnings_strategy.EarningsStrategy',
+            # Alternative names for options strategies
+            'CSP': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',
+            'CC': 'src.strategies.options.covered_call_strategy.CoveredCallStrategy',
+            'Calendar': 'src.strategies.options.calendar_spread_strategy.CalendarSpreadStrategy',
+            'Butterfly': 'src.strategies.options.butterfly_spread_strategy.ButterflySpreadStrategy',
+            'Volatility': 'src.strategies.options.volatility_strategy.VolatilityStrategy',
+            'Earnings': 'src.strategies.options.earnings_strategy.EarningsStrategy'
         }
         
         if strategy_name not in strategy_map:
@@ -637,7 +666,7 @@ class BacktestEngine:
         rsi = 100 - (100 / (1 + rs))
         return rsi 
 
-    async def store_results(self, results: Dict[str, BacktestResult], symbols: List[str], start_date: str, end_date: str, database_only: bool = False):
+    async def store_results(self, results: Dict[str, BacktestResult], symbols: List[str], start_date: str, end_date: str, database_only: bool = False, backtest_name: Optional[str] = None):
         """Store backtest results in the database"""
         try:
             service = BacktestResultsService()
@@ -690,11 +719,12 @@ class BacktestEngine:
                     end_date=end_date,
                     result=result_dict,
                     database_only=database_only,
-                    data_provider="cached" if self.use_cache else "direct"
+                    data_provider="cached" if self.use_cache else "direct",
+                    backtest_name=backtest_name
                 )
                 
                 if success:
-                    logger.info(f"✅ Stored backtest results for {strategy_name} (run_id: {run_id})")
+                    logger.info(f"✅ Stored backtest results for {strategy_name} (run_id: {run_id}, backtest: {backtest_name})")
                 else:
                     logger.error(f"❌ Failed to store backtest results for {strategy_name}")
             

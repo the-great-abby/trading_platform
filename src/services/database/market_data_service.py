@@ -11,8 +11,10 @@ from sqlalchemy import create_engine, text, Column, String, Float, Integer, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.pool import QueuePool
 
 from ...models.market_data import Base, HistoricalPrice, MarketDataCache
+from ...utils.database_optimizer import DatabaseOptimizer
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,28 @@ class OptionContractCache(Base):
     implied_volatility = Column(Float)
     cache_date = Column(Date, default=lambda: datetime.date.today(), index=True)
     last_updated = Column(DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+
+
+class HistoricalOptionsSnapshot(Base):
+    __tablename__ = 'historical_options_snapshots'
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String, index=True)
+    snapshot_date = Column(Date, index=True)  # Date when snapshot was taken
+    expiration = Column(String, index=True)
+    strike = Column(Float)
+    option_type = Column(String)
+    price = Column(Float)
+    volume = Column(Integer)
+    open_interest = Column(Integer)
+    delta = Column(Float)
+    gamma = Column(Float)
+    theta = Column(Float)
+    vega = Column(Float)
+    implied_volatility = Column(Float)
+    underlying_price = Column(Float)  # Stock price when snapshot was taken
+    data_source = Column(String)  # Source of the data (polygon, etc.)
+    created_at = Column(DateTime, default=lambda: datetime.utcnow())
+    updated_at = Column(DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
 
 
 class MarketDataService:
@@ -73,71 +97,62 @@ class MarketDataService:
         """Get all data for a symbol"""
         return self.db_service.get_all_data_for_symbol(symbol, provider, interval)
     
-    def get_options_data(self, symbol: str) -> Optional[List[Dict[str, Any]]]:
-        """Get options data for a symbol using real options data service"""
-        try:
-            from ..market_data.options_data_service import get_options_service
-            options_service = get_options_service()
-            
-            # Get liquid options contracts
-            liquid_contracts = options_service.get_liquid_options(symbol, min_volume=1)
-            
-            if liquid_contracts and len(liquid_contracts) > 0:
-                # Convert to list of dictionaries
-                options_data = []
-                for contract in liquid_contracts:
-                    options_data.append({
-                        'symbol': contract.symbol,
-                        'strike': contract.strike,
-                        'expiration': contract.expiration,
-                        'option_type': contract.option_type,
-                        'price': contract.price,
-                        'volume': contract.volume,
-                        'open_interest': contract.open_interest,
-                        'delta': contract.delta,
-                        'gamma': contract.gamma,
-                        'theta': contract.theta,
-                        'vega': contract.vega,
-                        'implied_volatility': contract.implied_volatility
-                    })
-                
-                logger.info(f"[MarketDataService] ✅ Found {len(options_data)} real options contracts for {symbol}")
-                return options_data
-            else:
-                logger.warning(f"[MarketDataService] ⚠️ No real options data found for {symbol}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"[MarketDataService] ❌ Error getting options data for {symbol}: {e}")
-            return None
+    # Historical options methods
+    def store_historical_options_snapshot(self, symbol: str, contracts: List[Dict], snapshot_date: date, 
+                                       underlying_price: float, data_source: str = "polygon") -> bool:
+        """Store historical options snapshot"""
+        return self.db_service.store_historical_options_snapshot(symbol, contracts, snapshot_date, underlying_price, data_source)
+    
+    def get_historical_options_data(self, symbol: str, snapshot_date: date, 
+                                  expiration_date: Optional[str] = None) -> Optional[List[Dict]]:
+        """Get historical options data for a specific date"""
+        return self.db_service.get_historical_options_data(symbol, snapshot_date, expiration_date)
+    
+    def get_historical_options_date_range(self, symbol: str, start_date: date, end_date: date,
+                                        expiration_date: Optional[str] = None) -> Optional[List[Dict]]:
+        """Get historical options data for a date range"""
+        return self.db_service.get_historical_options_date_range(symbol, start_date, end_date, expiration_date)
+    
+    def get_available_historical_dates(self, symbol: str) -> List[date]:
+        """Get list of available historical snapshot dates for a symbol"""
+        return self.db_service.get_available_historical_dates(symbol)
+    
+    def cleanup_old_historical_options(self, days_to_keep: int = 730) -> int:
+        """Cleanup old historical options data (keep 2 years by default)"""
+        return self.db_service.cleanup_old_historical_options(days_to_keep)
 
 
 class MarketDataDatabaseService:
-    """Service for managing market data in PostgreSQL"""
-    
+    """Database service for market data storage and retrieval"""
+
     def __init__(self, database_url: Optional[str] = None):
-        self.database_url = database_url or os.getenv('DATABASE_URL', 'postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot')
-        self.engine = None
-        self.SessionLocal = None
-        self._initialize()
-    
-    def _initialize(self):
-        """Initialize database connection and create tables"""
-        try:
-            self.engine = create_engine(self.database_url, echo=False)
-            self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-            
-            # Create tables if they don't exist
-            Base.metadata.create_all(bind=self.engine)
-            logger.info("Market data database initialized successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize market data database: {e}")
-            raise
+        self.database_url = database_url or os.getenv('DATABASE_URL')
+        if not self.database_url:
+            raise ValueError("DATABASE_URL environment variable is required")
+        
+        self.engine = create_engine(
+            self.database_url,
+            poolclass=QueuePool,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True
+        )
+        
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        
+        # Create tables if they don't exist
+        Base.metadata.create_all(bind=self.engine)
+        
+        # Initialize database optimizer
+        self.optimizer = DatabaseOptimizer(self.database_url)
     
     def get_session(self) -> Session:
         """Get database session"""
         return self.SessionLocal()
+    
+    def close_session(self, session: Session):
+        """Close database session"""
+        session.close()
     
     def store_historical_data(self, symbol: str, data: pd.DataFrame, provider: str, interval: str = '1d') -> bool:
         """
@@ -436,21 +451,18 @@ class MarketDataDatabaseService:
             session.close()
     
     def get_all_data_for_symbol(self, symbol: str, provider: Optional[str] = None, interval: str = '1d') -> Optional[pd.DataFrame]:
-        """Get all available data for a symbol"""
+        """Get all historical data for a symbol"""
         session = self.get_session()
         try:
-            query = session.query(HistoricalPrice).filter(
-                HistoricalPrice.symbol == symbol,
-                HistoricalPrice.interval == interval
-            )
+            query = session.query(HistoricalPrice).filter(HistoricalPrice.symbol == symbol)
             
             if provider:
                 query = query.filter(HistoricalPrice.provider == provider)
             
+            query = query.filter(HistoricalPrice.interval == interval)
             records = query.order_by(HistoricalPrice.date).all()
             
             if not records:
-                logger.info(f"No data found for {symbol}")
                 return None
             
             # Convert to DataFrame
@@ -470,14 +482,243 @@ class MarketDataDatabaseService:
             df['Date'] = [record.date for record in records]
             df.set_index('Date', inplace=True)
             
-            logger.info(f"Retrieved {len(records)} records for {symbol}")
             return df
             
         except SQLAlchemyError as e:
             logger.error(f"Database error retrieving all data for {symbol}: {e}")
             return None
+        finally:
+            session.close()
+    
+    # Historical options methods
+    def store_historical_options_snapshot(self, symbol: str, contracts: List[Dict], snapshot_date: date, 
+                                       underlying_price: float, data_source: str = "polygon") -> bool:
+        """
+        Store historical options snapshot
+        
+        Args:
+            symbol: Stock symbol
+            contracts: List of option contracts as dictionaries
+            snapshot_date: Date when snapshot was taken
+            underlying_price: Stock price when snapshot was taken
+            data_source: Source of the data
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        session = self.get_session()
+        try:
+            # Delete existing snapshots for this symbol and date to avoid duplicates
+            session.query(HistoricalOptionsSnapshot).filter(
+                HistoricalOptionsSnapshot.symbol == symbol,
+                HistoricalOptionsSnapshot.snapshot_date == snapshot_date
+            ).delete()
+            
+            # Insert new snapshots
+            for contract in contracts:
+                snapshot = HistoricalOptionsSnapshot(
+                    symbol=symbol,
+                    snapshot_date=snapshot_date,
+                    expiration=str(contract.get('expiration', '')),
+                    strike=float(contract.get('strike', 0.0)),
+                    option_type=str(contract.get('option_type', '')),
+                    price=float(contract.get('price', 0.0)),
+                    volume=int(contract.get('volume', 0)),
+                    open_interest=int(contract.get('open_interest', 0)),
+                    delta=float(contract.get('delta', 0.0)) if contract.get('delta') is not None else None,
+                    gamma=float(contract.get('gamma', 0.0)) if contract.get('gamma') is not None else None,
+                    theta=float(contract.get('theta', 0.0)) if contract.get('theta') is not None else None,
+                    vega=float(contract.get('vega', 0.0)) if contract.get('vega') is not None else None,
+                    implied_volatility=float(contract.get('implied_volatility', 0.0)) if contract.get('implied_volatility') is not None else None,
+                    underlying_price=underlying_price,
+                    data_source=data_source
+                )
+                session.add(snapshot)
+            
+            session.commit()
+            logger.info(f"Stored {len(contracts)} historical options contracts for {symbol} on {snapshot_date}")
+            return True
+            
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(f"Database error storing historical options for {symbol}: {e}")
+            return False
         except Exception as e:
-            logger.error(f"Error retrieving all data for {symbol}: {e}")
+            session.rollback()
+            logger.error(f"Error storing historical options for {symbol}: {e}")
+            return False
+        finally:
+            session.close()
+    
+    def get_historical_options_data(self, symbol: str, snapshot_date: date, 
+                                  expiration_date: Optional[str] = None) -> Optional[List[Dict]]:
+        """
+        Get historical options data for a specific date
+        
+        Args:
+            symbol: Stock symbol
+            snapshot_date: Date of the snapshot
+            expiration_date: Optional expiration date filter
+            
+        Returns:
+            List of option contracts or None if not found
+        """
+        session = self.get_session()
+        try:
+            query = session.query(HistoricalOptionsSnapshot).filter(
+                HistoricalOptionsSnapshot.symbol == symbol,
+                HistoricalOptionsSnapshot.snapshot_date == snapshot_date
+            )
+            
+            if expiration_date:
+                query = query.filter(HistoricalOptionsSnapshot.expiration == expiration_date)
+            
+            snapshots = query.all()
+            
+            if not snapshots:
+                logger.info(f"No historical options data found for {symbol} on {snapshot_date}")
+                return None
+            
+            # Convert to list of dictionaries
+            contracts = []
+            for snapshot in snapshots:
+                contracts.append({
+                    'symbol': snapshot.symbol,
+                    'expiration': snapshot.expiration,
+                    'strike': snapshot.strike,
+                    'option_type': snapshot.option_type,
+                    'price': snapshot.price,
+                    'volume': snapshot.volume,
+                    'open_interest': snapshot.open_interest,
+                    'delta': snapshot.delta,
+                    'gamma': snapshot.gamma,
+                    'theta': snapshot.theta,
+                    'vega': snapshot.vega,
+                    'implied_volatility': snapshot.implied_volatility,
+                    'underlying_price': snapshot.underlying_price,
+                    'data_source': snapshot.data_source,
+                    'snapshot_date': snapshot.snapshot_date.isoformat()
+                })
+            
+            logger.info(f"Retrieved {len(contracts)} historical options contracts for {symbol} on {snapshot_date}")
+            return contracts
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Database error retrieving historical options for {symbol}: {e}")
             return None
+        finally:
+            session.close()
+    
+    def get_historical_options_date_range(self, symbol: str, start_date: date, end_date: date,
+                                        expiration_date: Optional[str] = None) -> Optional[List[Dict]]:
+        """
+        Get historical options data for a date range
+        
+        Args:
+            symbol: Stock symbol
+            start_date: Start date
+            end_date: End date
+            expiration_date: Optional expiration date filter
+            
+        Returns:
+            List of option contracts or None if not found
+        """
+        session = self.get_session()
+        try:
+            query = session.query(HistoricalOptionsSnapshot).filter(
+                HistoricalOptionsSnapshot.symbol == symbol,
+                HistoricalOptionsSnapshot.snapshot_date >= start_date,
+                HistoricalOptionsSnapshot.snapshot_date <= end_date
+            )
+            
+            if expiration_date:
+                query = query.filter(HistoricalOptionsSnapshot.expiration == expiration_date)
+            
+            snapshots = query.order_by(HistoricalOptionsSnapshot.snapshot_date).all()
+            
+            if not snapshots:
+                logger.info(f"No historical options data found for {symbol} from {start_date} to {end_date}")
+                return None
+            
+            # Convert to list of dictionaries
+            contracts = []
+            for snapshot in snapshots:
+                contracts.append({
+                    'symbol': snapshot.symbol,
+                    'expiration': snapshot.expiration,
+                    'strike': snapshot.strike,
+                    'option_type': snapshot.option_type,
+                    'price': snapshot.price,
+                    'volume': snapshot.volume,
+                    'open_interest': snapshot.open_interest,
+                    'delta': snapshot.delta,
+                    'gamma': snapshot.gamma,
+                    'theta': snapshot.theta,
+                    'vega': snapshot.vega,
+                    'implied_volatility': snapshot.implied_volatility,
+                    'underlying_price': snapshot.underlying_price,
+                    'data_source': snapshot.data_source,
+                    'snapshot_date': snapshot.snapshot_date.isoformat()
+                })
+            
+            logger.info(f"Retrieved {len(contracts)} historical options contracts for {symbol} from {start_date} to {end_date}")
+            return contracts
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Database error retrieving historical options range for {symbol}: {e}")
+            return None
+        finally:
+            session.close()
+    
+    def get_available_historical_dates(self, symbol: str) -> List[date]:
+        """
+        Get list of available historical snapshot dates for a symbol
+        
+        Args:
+            symbol: Stock symbol
+            
+        Returns:
+            List of available dates
+        """
+        session = self.get_session()
+        try:
+            dates = session.query(HistoricalOptionsSnapshot.snapshot_date).filter(
+                HistoricalOptionsSnapshot.symbol == symbol
+            ).distinct().order_by(HistoricalOptionsSnapshot.snapshot_date).all()
+            
+            return [d.snapshot_date for d in dates]
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Database error getting available dates for {symbol}: {e}")
+            return []
+        finally:
+            session.close()
+    
+    def cleanup_old_historical_options(self, days_to_keep: int = 730) -> int:
+        """
+        Cleanup old historical options data
+        
+        Args:
+            days_to_keep: Number of days to keep (default 2 years)
+            
+        Returns:
+            Number of records deleted
+        """
+        session = self.get_session()
+        try:
+            cutoff_date = datetime.now().date() - timedelta(days=days_to_keep)
+            
+            deleted_count = session.query(HistoricalOptionsSnapshot).filter(
+                HistoricalOptionsSnapshot.snapshot_date < cutoff_date
+            ).delete()
+            
+            session.commit()
+            logger.info(f"Cleaned up {deleted_count} old historical options records")
+            return deleted_count
+            
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(f"Database error cleaning up historical options: {e}")
+            return 0
         finally:
             session.close() 

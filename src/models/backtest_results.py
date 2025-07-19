@@ -22,6 +22,7 @@ class BacktestRun(Base):
     # Run metadata
     run_id = Column(String(50), nullable=False, unique=True)  # Unique identifier for the run
     strategy_name = Column(String(100), nullable=False)
+    backtest_name = Column(String(200), nullable=True)  # Name of the backtest file/strategy used
     symbols = Column(Text, nullable=False)  # JSON array of symbols
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
@@ -55,12 +56,13 @@ class BacktestRun(Base):
     __table_args__ = (
         Index('idx_run_id', 'run_id'),
         Index('idx_strategy', 'strategy_name'),
+        Index('idx_backtest_name', 'backtest_name'),
         Index('idx_date_range', 'start_date', 'end_date'),
         Index('idx_created_at', 'created_at'),
     )
     
     def __repr__(self):
-        return f"<BacktestRun(run_id='{self.run_id}', strategy='{self.strategy_name}', return={self.total_return_pct:.2f}%)>"
+        return f"<BacktestRun(run_id='{self.run_id}', strategy='{self.strategy_name}', backtest='{self.backtest_name}', return={self.total_return_pct:.2f}%)>"
 
 
 class BacktestTrade(Base):

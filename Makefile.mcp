@@ -1,0 +1,95 @@
+# MCP Server Management Makefile
+
+.PHONY: mcp-setup mcp-install mcp-test mcp-run mcp-clean mcp-style-default mcp-style-debug mcp-style-teach mcp-style-review mcp-style-arch mcp-style-minimal mcp-style-verbose mcp-style-list mcp-style-current
+
+# Setup MCP Playwright server
+mcp-setup:
+	@echo "Setting up Playwright MCP Server..."
+	cd mcp-servers/playwright && ./setup.sh
+
+# Install MCP dependencies
+mcp-install:
+	@echo "Installing MCP dependencies..."
+	.venv/bin/pip install mcp==1.0.0 playwright==1.40.0
+	cd mcp-servers/playwright && .venv/bin/playwright install chromium
+
+# Test MCP server
+mcp-test:
+	@echo "Testing Playwright MCP Server..."
+	cd mcp-servers/playwright && .venv/bin/python test_server.py
+
+# Run MCP server
+mcp-run:
+	@echo "Running Playwright MCP Server..."
+	cd mcp-servers/playwright && .venv/bin/python server.py
+
+# Clean MCP server files
+mcp-clean:
+	@echo "Cleaning MCP server files..."
+	rm -rf mcp-servers/playwright/screenshots/*.png
+	rm -rf mcp-servers/playwright/__pycache__
+	rm -rf mcp-servers/playwright/*.pyc
+
+# AI Style Management
+mcp-style-default:
+	@echo "Switching to default technical assistant style..."
+	./scripts/switch-style.sh default
+
+mcp-style-debug:
+	@echo "Switching to debugging mode..."
+	./scripts/switch-style.sh debug
+
+mcp-style-teach:
+	@echo "Switching to teaching mode..."
+	./scripts/switch-style.sh teach
+
+mcp-style-review:
+	@echo "Switching to code review mode..."
+	./scripts/switch-style.sh review
+
+mcp-style-arch:
+	@echo "Switching to architecture mode..."
+	./scripts/switch-style.sh arch
+
+mcp-style-minimal:
+	@echo "Switching to minimal mode..."
+	./scripts/switch-style.sh minimal
+
+mcp-style-verbose:
+	@echo "Switching to verbose mode..."
+	./scripts/switch-style.sh verbose
+
+mcp-style-list:
+	@echo "Available AI styles:"
+	./scripts/switch-style.sh list
+
+mcp-style-current:
+	@echo "Current AI style:"
+	./scripts/switch-style.sh current
+
+# Show MCP server status
+mcp-status:
+	@echo "MCP Server Status:"
+	@echo "=================="
+	@echo "Server location: mcp-servers/playwright/"
+	@echo "Main server file: server.py"
+	@echo "Test file: test_server.py"
+	@echo "Requirements: requirements.txt"
+	@echo ""
+	@echo "Available commands:"
+	@echo "  make mcp-setup   - Initial setup"
+	@echo "  make mcp-install - Install dependencies"
+	@echo "  make mcp-test    - Test the server"
+	@echo "  make mcp-run     - Run the server"
+	@echo "  make mcp-clean   - Clean generated files"
+	@echo ""
+	@echo "AI Style Management:"
+	@echo "  make mcp-style-default  - Technical assistant (default)"
+	@echo "  make mcp-style-debug    - Debugging mode"
+	@echo "  make mcp-style-teach    - Teaching mode"
+	@echo "  make mcp-style-review   - Code review mode"
+	@echo "  make mcp-style-arch     - Architecture mode"
+	@echo "  make mcp-style-minimal  - Minimal mode"
+	@echo "  make mcp-style-verbose  - Verbose mode"
+	@echo "  make mcp-style-list     - Show all styles"
+	@echo "  make mcp-style-current  - Show current style" 

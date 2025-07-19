@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-single-options-test
+  namespace: trading-system
+  labels:
+    app: backtest
+    strategy: single-options-test
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+        strategy: single-options-test
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: backtest
+        image: localhost:5000/backtest:latest
+        command: ["python", "test_single_options_strategy.py"]
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: CACHE_ONLY
+          value: "true"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DATABASE_ONLY
+          value: "true"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 2 

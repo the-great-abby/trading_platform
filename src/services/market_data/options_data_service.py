@@ -1,15 +1,19 @@
 """
 Options Data Service - Fetch real options data with Greeks from Polygon API
+Enhanced with comprehensive caching functionality
 """
 
 import os
 import logging
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 from dataclasses import dataclass
 import time
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +35,19 @@ class OptionContract:
     implied_volatility: Optional[float] = None
 
 
+@dataclass
+class CacheStats:
+    """Cache performance statistics"""
+    hits: int = 0
+    misses: int = 0
+    total_requests: int = 0
+    cache_size: int = 0
+    last_cleanup: Optional[datetime] = None
+    avg_response_time: float = 0.0
+
+
 class OptionsDataService:
-    """Service for fetching real options data with Greeks from Polygon API"""
+    """Service for fetching real options data with Greeks from Polygon API with enhanced caching"""
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv('POLYGON_API_KEY')
@@ -43,18 +58,24 @@ class OptionsDataService:
         self.last_request_time = 0
         self.min_delay_between_requests = 2.0  # 2 seconds between requests
         
+        # Cache configuration
+        self.cache_expiration_hours = 4  # Cache expires after 4 hours
+        self.max_cache_size = 10000  # Maximum number of cached contracts
+        self.cache_stats = CacheStats()
+        self.cache_cleanup_interval = timedelta(hours=1)  # Cleanup every hour
+        
         if not self.api_key:
             logger.warning("Polygon API key not provided - options data will be limited")
     
     def _create_session(self) -> requests.Session:
         """Create requests session with retry logic"""
         session = requests.Session()
-        retry_strategy = requests.adapters.Retry(
+        retry_strategy = Retry(
             total=3,
             backoff_factor=2,
             status_forcelist=[429, 500, 502, 503, 504],
         )
-        adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
+        adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         return session
@@ -69,37 +90,299 @@ class OptionsDataService:
             time.sleep(sleep_time)
         self.last_request_time = time.time()
     
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache performance statistics"""
+        hit_rate = (self.cache_stats.hits / max(self.cache_stats.total_requests, 1)) * 100
+        return {
+            "hits": self.cache_stats.hits,
+            "misses": self.cache_stats.misses,
+            "total_requests": self.cache_stats.total_requests,
+            "hit_rate": f"{hit_rate:.1f}%",
+            "cache_size": self.cache_stats.cache_size,
+            "avg_response_time": f"{self.cache_stats.avg_response_time:.3f}s",
+            "last_cleanup": self.cache_stats.last_cleanup.isoformat() if self.cache_stats.last_cleanup else None
+        }
+    
+    def cleanup_expired_cache(self) -> int:
+        """Remove expired cache entries and return number of cleaned entries"""
+        try:
+            from src.services.database.market_data_service import MarketDataDatabaseService, OptionContractCache
+            db_service = MarketDataDatabaseService()
+            session = db_service.get_session()
+            
+            # Calculate expiration time
+            expiration_time = datetime.utcnow() - timedelta(hours=self.cache_expiration_hours)
+            
+            # Delete expired entries
+            deleted_count = session.query(OptionContractCache).filter(
+                OptionContractCache.last_updated < expiration_time
+            ).delete()
+            
+            session.commit()
+            session.close()
+            
+            self.cache_stats.last_cleanup = datetime.utcnow()
+            logger.info(f"🧹 Cleaned {deleted_count} expired cache entries")
+            return deleted_count
+            
+        except Exception as e:
+            logger.error(f"❌ Cache cleanup failed: {e}")
+            return 0
+    
+    def get_cache_size(self) -> int:
+        """Get current cache size"""
+        try:
+            from src.services.database.market_data_service import MarketDataDatabaseService, OptionContractCache
+            db_service = MarketDataDatabaseService()
+            session = db_service.get_session()
+            
+            count = session.query(OptionContractCache).count()
+            session.close()
+            
+            self.cache_stats.cache_size = count
+            return count
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get cache size: {e}")
+            return 0
+    
+    def invalidate_cache_for_symbol(self, symbol: str) -> int:
+        """Invalidate all cache entries for a specific symbol"""
+        try:
+            from src.services.database.market_data_service import MarketDataDatabaseService, OptionContractCache
+            db_service = MarketDataDatabaseService()
+            session = db_service.get_session()
+            
+            deleted_count = session.query(OptionContractCache).filter(
+                OptionContractCache.symbol == symbol
+            ).delete()
+            
+            session.commit()
+            session.close()
+            
+            logger.info(f"🗑️  Invalidated {deleted_count} cache entries for {symbol}")
+            return deleted_count
+            
+        except Exception as e:
+            logger.error(f"❌ Cache invalidation failed for {symbol}: {e}")
+            return 0
+    
+    def batch_cache_contracts(self, contracts_by_symbol: Dict[str, List[OptionContract]]) -> int:
+        """Batch cache multiple symbols at once for efficiency"""
+        try:
+            from src.services.database.market_data_service import MarketDataDatabaseService, OptionContractCache
+            db_service = MarketDataDatabaseService()
+            session = db_service.get_session()
+            
+            cached_count = 0
+            for symbol, contracts in contracts_by_symbol.items():
+                for contract in contracts:
+                    # Upsert by symbol, expiration, strike, option_type
+                    existing = session.query(OptionContractCache).filter(
+                        OptionContractCache.symbol == contract.symbol,
+                        OptionContractCache.expiration == contract.expiration,
+                        OptionContractCache.strike == contract.strike,
+                        OptionContractCache.option_type == contract.option_type
+                    ).first()
+                    
+                    if existing:
+                        # Update existing
+                        existing.price = contract.price
+                        existing.volume = contract.volume
+                        existing.open_interest = contract.open_interest
+                        existing.delta = contract.delta
+                        existing.gamma = contract.gamma
+                        existing.theta = contract.theta
+                        existing.vega = contract.vega
+                        existing.implied_volatility = contract.implied_volatility
+                        existing.last_updated = datetime.utcnow()
+                    else:
+                        # Insert new
+                        new_cache_entry = OptionContractCache(
+                            symbol=contract.symbol,
+                            expiration=contract.expiration,
+                            strike=contract.strike,
+                            option_type=contract.option_type,
+                            price=contract.price,
+                            volume=contract.volume,
+                            open_interest=contract.open_interest,
+                            delta=contract.delta,
+                            gamma=contract.gamma,
+                            theta=contract.theta,
+                            vega=contract.vega,
+                            implied_volatility=contract.implied_volatility,
+                            last_updated=datetime.utcnow()
+                        )
+                        session.add(new_cache_entry)
+                    
+                    cached_count += 1
+            
+            session.commit()
+            session.close()
+            
+            logger.info(f"✅ Batch cached {cached_count} contracts for {len(contracts_by_symbol)} symbols")
+            return cached_count
+            
+        except Exception as e:
+            logger.error(f"❌ Batch cache failed: {e}")
+            return 0
+    
     def get_options_chain(self, symbol: str, expiration_date: Optional[str] = None) -> Optional[List[OptionContract]]:
         """
-        Get options chain for a symbol
+        Get options chain for a symbol, with enhanced caching functionality
+        """
+        start_time = time.time()
+        self.cache_stats.total_requests += 1
         
-        Args:
-            symbol: Stock symbol
-            expiration_date: Expiration date (YYYY-MM-DD) or None for nearest expiration
+        # --- Enhanced caching logic start ---
+        try:
+            from src.services.database.market_data_service import MarketDataDatabaseService, OptionContractCache
+            db_service = MarketDataDatabaseService()
+            session = db_service.get_session()
             
-        Returns:
-            List of OptionContract objects or None if error
+            # Query cache for this symbol and expiration with expiration check
+            query = session.query(OptionContractCache).filter(
+                OptionContractCache.symbol == symbol,
+                OptionContractCache.last_updated >= datetime.utcnow() - timedelta(hours=self.cache_expiration_hours)
+            )
+            
+            if expiration_date:
+                query = query.filter(OptionContractCache.expiration == expiration_date)
+            
+            cached_contracts = query.all()
+            
+            if cached_contracts:
+                contracts = []
+                for c in cached_contracts:
+                    contracts.append(OptionContract(
+                        symbol=c.symbol,
+                        strike=c.strike,
+                        expiration=c.expiration,
+                        option_type=c.option_type,
+                        price=c.price,
+                        volume=c.volume,
+                        open_interest=c.open_interest,
+                        delta=c.delta,
+                        gamma=c.gamma,
+                        theta=c.theta,
+                        vega=c.vega,
+                        implied_volatility=c.implied_volatility
+                    ))
+                
+                # Update cache statistics
+                self.cache_stats.hits += 1
+                response_time = time.time() - start_time
+                self.cache_stats.avg_response_time = (
+                    (self.cache_stats.avg_response_time * (self.cache_stats.total_requests - 1) + response_time) / 
+                    self.cache_stats.total_requests
+                )
+                
+                logger.info(f"✅ [OptionsService] Cache HIT: Loaded {len(contracts)} contracts for {symbol} in {response_time:.3f}s")
+                session.close()
+                return contracts
+            
+            # Cache miss - update statistics
+            self.cache_stats.misses += 1
+            session.close()
+            
+        except Exception as e:
+            logger.warning(f"⚠️ [OptionsService] Cache lookup failed for {symbol}: {e}")
+            self.cache_stats.misses += 1
+        # --- Enhanced caching logic end ---
+        
+        # If not in cache or expired, fetch from Polygon
+        logger.info(f"🔄 [OptionsService] Cache MISS: Fetching fresh data for {symbol}")
+        contracts = None
+        try:
+            contracts = self._fetch_options_chain_from_polygon(symbol, expiration_date)
+        except Exception as e:
+            logger.error(f"❌ [OptionsService] Error fetching options chain from Polygon for {symbol}: {e}")
+        
+        # Store in cache with enhanced error handling
+        if contracts:
+            try:
+                from src.services.database.market_data_service import MarketDataDatabaseService, OptionContractCache
+                db_service = MarketDataDatabaseService()
+                session = db_service.get_session()
+                
+                cached_count = 0
+                for contract in contracts:
+                    # Upsert by symbol, expiration, strike, option_type
+                    existing = session.query(OptionContractCache).filter(
+                        OptionContractCache.symbol == contract.symbol,
+                        OptionContractCache.expiration == contract.expiration,
+                        OptionContractCache.strike == contract.strike,
+                        OptionContractCache.option_type == contract.option_type
+                    ).first()
+                    
+                    if existing:
+                        # Update existing
+                        existing.price = contract.price
+                        existing.volume = contract.volume
+                        existing.open_interest = contract.open_interest
+                        existing.delta = contract.delta
+                        existing.gamma = contract.gamma
+                        existing.theta = contract.theta
+                        existing.vega = contract.vega
+                        existing.implied_volatility = contract.implied_volatility
+                        existing.last_updated = datetime.utcnow()
+                    else:
+                        # Insert new
+                        new = OptionContractCache(
+                            symbol=contract.symbol,
+                            expiration=contract.expiration,
+                            strike=contract.strike,
+                            option_type=contract.option_type,
+                            price=contract.price,
+                            volume=contract.volume,
+                            open_interest=contract.open_interest,
+                            delta=contract.delta,
+                            gamma=contract.gamma,
+                            theta=contract.theta,
+                            vega=contract.vega,
+                            implied_volatility=contract.implied_volatility,
+                            cache_date=datetime.utcnow().date(),
+                            last_updated=datetime.utcnow()
+                        )
+                        session.add(new)
+                        cached_count += 1
+                
+                session.commit()
+                session.close()
+                
+                response_time = time.time() - start_time
+                logger.info(f"💾 [OptionsService] Cached {cached_count} contracts for {symbol} in {response_time:.3f}s")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ [OptionsService] Failed to cache options contracts for {symbol}: {e}")
+        
+        # Update response time for cache misses
+        response_time = time.time() - start_time
+        self.cache_stats.avg_response_time = (
+            (self.cache_stats.avg_response_time * (self.cache_stats.total_requests - 1) + response_time) / 
+            self.cache_stats.total_requests
+        )
+        
+        return contracts
+
+    def _fetch_options_chain_from_polygon(self, symbol: str, expiration_date: Optional[str] = None) -> Optional[List[OptionContract]]:
+        """
+        Fetch options chain from Polygon (original logic moved here for clarity)
         """
         if not self.api_key:
             logger.warning(f"No Polygon API key - cannot fetch options data for {symbol}")
             return None
-        
         try:
             self._enforce_rate_limit()
-            
-            # Get options chain
             endpoint = f"/v3/reference/options/contracts"
             params = {
                 "underlying_ticker": symbol,
                 "apiKey": self.api_key
             }
-            
             if expiration_date:
                 params["expiration_date"] = expiration_date
-            
             logger.info(f"[OptionsService] Fetching options chain for {symbol}")
             response = self.session.get(f"{self.base_url}{endpoint}", params=params, timeout=30)
-            
             if response.status_code == 429:
                 logger.warning(f"[OptionsService] Rate limited for {symbol}, waiting 60s...")
                 time.sleep(60)
@@ -107,15 +390,11 @@ class OptionsDataService:
             elif response.status_code != 200:
                 logger.error(f"[OptionsService] HTTP {response.status_code} for {symbol}: {response.text}")
                 return None
-            
             data = response.json()
             results = data.get("results", [])
-            
             if not results:
                 logger.warning(f"[OptionsService] No options data found for {symbol}")
                 return None
-            
-            # Convert to OptionContract objects
             contracts = []
             for contract_data in results:
                 contract = OptionContract(
@@ -128,10 +407,8 @@ class OptionsDataService:
                     open_interest=int(contract_data.get("open_interest", 0))
                 )
                 contracts.append(contract)
-            
             logger.info(f"[OptionsService] Found {len(contracts)} options contracts for {symbol}")
             return contracts
-            
         except Exception as e:
             logger.error(f"[OptionsService] Error fetching options chain for {symbol}: {e}")
             return None
@@ -304,64 +581,70 @@ class OptionsDataService:
             return None
     
     def get_liquid_options(self, symbol: str, min_volume: int = 1) -> Optional[List[OptionContract]]:
-        """
-        Get liquid options contracts for a symbol, fetch and attach Greeks, and log details.
-        Args:
-            symbol: Stock symbol
-            min_volume: Minimum volume threshold (lowered for debugging)
-        Returns:
-            List of liquid OptionContract objects
-        """
-        contracts = self.get_options_chain(symbol)
-        if contracts is None:
-            logger.warning(f"[OptionsService] No contracts returned from get_options_chain for {symbol}")
-            return None
-        
-        # Log volume distribution for debugging
-        if contracts:
-            volumes = [c.volume for c in contracts]
-            logger.info(f"[OptionsService] Volume distribution for {symbol}: min={min(volumes)}, max={max(volumes)}, avg={sum(volumes)/len(volumes):.1f}")
-            logger.info(f"[OptionsService] Contracts with volume > 0: {sum(1 for c in contracts if c.volume > 0)}/{len(contracts)}")
-            logger.info(f"[OptionsService] Contracts with open_interest > 0: {sum(1 for c in contracts if c.open_interest > 0)}/{len(contracts)}")
-        
-        logger.info(f"[OptionsService] Raw contracts from Polygon for {symbol}: {contracts}")
-        logger.info(f"[OptionsService] Total contracts from Polygon for {symbol}: {len(contracts)}")
-
-        # Filter for liquid contracts
-        liquid_contracts = [
-            contract for contract in contracts
-            if contract.volume >= min_volume and contract.open_interest > 0
-        ]
-        logger.info(f"[OptionsService] Liquid contracts after filtering for {symbol}: {len(liquid_contracts)}")
-
-        # If no liquid contracts, try with just volume > 0
-        if not liquid_contracts:
-            liquid_contracts = [
-                contract for contract in contracts
-                if contract.volume > 0
+        """Get liquid options for a symbol"""
+        try:
+            options_chain = self.get_options_chain(symbol)
+            if not options_chain:
+                return None
+            
+            # Filter for liquid options
+            liquid_options = [
+                option for option in options_chain
+                if option.volume >= min_volume and option.open_interest > 0
             ]
-            logger.info(f"[OptionsService] Contracts with volume > 0 for {symbol}: {len(liquid_contracts)}")
+            
+            if not liquid_options:
+                logger.warning(f"No liquid options found for {symbol} with min_volume={min_volume}")
+                return None
+            
+            logger.info(f"Found {len(liquid_options)} liquid options for {symbol}")
+            return liquid_options
+            
+        except Exception as e:
+            logger.error(f"Error getting liquid options for {symbol}: {e}")
+            return None
 
-        # If still no contracts, take any contracts with data
-        if not liquid_contracts and contracts:
-            liquid_contracts = contracts[:5]  # Take first 5 contracts
-            logger.info(f"[OptionsService] Using first 5 contracts for {symbol} (no volume filter)")
-
-        # Fetch and attach Greeks for each contract
-        for contract in liquid_contracts:
-            greeks = self.get_options_greeks(symbol, contract.strike, contract.expiration, contract.option_type)
-            if greeks:
-                contract.delta = greeks.get("delta")
-                contract.gamma = greeks.get("gamma")
-                contract.theta = greeks.get("theta")
-                contract.vega = greeks.get("vega")
-                contract.implied_volatility = greeks.get("implied_volatility")
-                logger.info(f"[OptionsService] Attached Greeks for {symbol} {contract.strike} {contract.option_type} {contract.expiration}: {greeks}")
-            else:
-                logger.warning(f"[OptionsService] No Greeks found for {symbol} {contract.strike} {contract.option_type} {contract.expiration}")
-
-        logger.info(f"[OptionsService] Final liquid contracts with Greeks for {symbol}: {liquid_contracts}")
-        return liquid_contracts[:10]  # Return top 10 most liquid
+    def get_liquid_options_with_historical_support(self, symbol: str, min_volume: int = 1, 
+                                                  historical_date: Optional[str] = None) -> Optional[List[OptionContract]]:
+        """Get liquid options with support for historical data during backtesting"""
+        try:
+            # If we have a historical date, try to get historical options data
+            if historical_date:
+                from .enhanced_options_data_service import get_enhanced_options_service
+                enhanced_service = get_enhanced_options_service()
+                
+                # Convert string date to date object
+                from datetime import datetime
+                hist_date = datetime.strptime(historical_date, "%Y-%m-%d").date()
+                
+                # Try to get historical options as OptionContract objects
+                historical_contracts = enhanced_service.get_historical_options_as_contracts(
+                    symbol=symbol, 
+                    snapshot_date=hist_date
+                )
+                
+                if historical_contracts:
+                    # Filter for liquid options
+                    liquid_options = [
+                        option for option in historical_contracts
+                        if option.volume >= min_volume and option.open_interest > 0
+                    ]
+                    
+                    if liquid_options:
+                        logger.info(f"Found {len(liquid_options)} historical liquid options for {symbol} on {historical_date}")
+                        return liquid_options
+                    else:
+                        logger.warning(f"No historical liquid options found for {symbol} on {historical_date} with min_volume={min_volume}")
+                        return None
+                else:
+                    logger.info(f"No historical options data found for {symbol} on {historical_date}, falling back to current data")
+            
+            # Fall back to current options data
+            return self.get_liquid_options(symbol, min_volume)
+            
+        except Exception as e:
+            logger.error(f"Error getting liquid options with historical support for {symbol}: {e}")
+            return None
     
     def calculate_greeks_metrics(self, contracts: List[OptionContract]) -> Dict[str, float]:
         """

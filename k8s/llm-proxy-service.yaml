@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-proxy
+  namespace: trading-system
+spec:
+  type: ExternalName
+  externalName: host.docker.internal
+  ports:
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: llm-proxy
+  namespace: trading-system
+subsets:
+- addresses:
+  - ip: 192.168.65.1  # Docker Desktop host IP
+  ports:
+  - port: 8081
+    protocol: TCP 
