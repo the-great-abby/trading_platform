@@ -119,7 +119,7 @@ async def get_portfolio_summary():
             
             run_id = latest_run.run_id
             
-            # Get recent trades (last 50)
+            # Get recent trades (last 50) - filter out empty symbols
             trades_result = conn.execute(text("""
                 SELECT 
                     timestamp,
@@ -135,7 +135,8 @@ async def get_portfolio_summary():
                     total_pnl
                 FROM backtest_trades 
                 WHERE run_id = :run_id
-                ORDER BY LENGTH(symbol) DESC, timestamp DESC
+                AND symbol IS NOT NULL AND symbol != '' AND LENGTH(TRIM(symbol)) > 0
+                ORDER BY timestamp DESC
                 LIMIT 50
             """), {"run_id": run_id})
             
@@ -245,6 +246,7 @@ async def get_trades_rss_feed():
         
         with engine.connect() as conn:
             # Get recent trades from all runs with enhanced information
+            # Filter out trades with empty symbols to avoid "BUY BUY BUY" display
             trades_result = conn.execute(text("""
                 SELECT 
                     bt.timestamp,
@@ -266,6 +268,7 @@ async def get_trades_rss_feed():
                     br.total_return_pct
                 FROM backtest_trades bt
                 JOIN backtest_runs br ON bt.run_id = br.run_id
+                WHERE bt.symbol IS NOT NULL AND bt.symbol != '' AND LENGTH(TRIM(bt.symbol)) > 0
                 ORDER BY bt.timestamp DESC
                 LIMIT 100
             """))
@@ -673,6 +676,44 @@ async def get_portfolio_summary_rss_feed():
     except Exception as e:
         logger.error(f"Failed to generate portfolio summary RSS feed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate RSS feed: {str(e)}")
+
+@app.get("/dashboard/symbols")
+async def get_symbol_lists():
+    """Get centralized symbol lists for trading"""
+    try:
+        # Import the trading config
+        import sys
+        import os
+        sys.path.append('/app/src')
+        
+        from utils.trading_config import get_symbols, get_options_symbols
+        
+        symbols = get_symbols()
+        options_symbols = get_options_symbols()
+        
+        return {
+            "stocks": symbols,
+            "options": options_symbols,
+            "total_stocks": len(symbols),
+            "total_options": len(options_symbols)
+        }
+    except Exception as e:
+        logger.error(f"Failed to get symbol lists: {e}")
+        # Fallback to hardcoded lists if import fails
+        return {
+            "stocks": [
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
+                'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS',
+                'V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO',
+                'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY'
+            ],
+            "options": [
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
+                'SPY', 'QQQ', 'IWM', 'TLT', 'GLD', 'SLV', 'USO', 'UNG', 'XLE', 'XLF'
+            ],
+            "total_stocks": 40,
+            "total_options": 20
+        }
 
 @app.get("/dashboard/health")
 async def health_check():

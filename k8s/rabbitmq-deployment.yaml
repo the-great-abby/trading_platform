@@ -57,8 +57,10 @@ spec:
             command:
             - rabbitmq-diagnostics
             - ping
-          initialDelaySeconds: 10
+          initialDelaySeconds: 30
           periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
         volumeMounts:
         - name: rabbitmq-data
           mountPath: /var/lib/rabbitmq
@@ -97,4 +99,4 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: standard 
+  storageClassName: hostpath 

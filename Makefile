@@ -382,5 +382,85 @@ risk-security-audit:
 	kubectl auth can-i get secrets --as=system:serviceaccount:trading-system:risk-worker-sa -n trading-system
 	@echo "✅ Risk Management Security Audit completed"
 
+# Port forwarding targets for 11000-12000 range
+.PHONY: port-forward-all port-forward-stop check-services
+
+# Start all port forwarding in 11000-12000 range
+port-forward-all:
+	@echo "🚀 Starting robust port forwarding..."
+	@echo "📊 Services will be available on ports 11000-11031"
+	@echo "🔄 Auto-restart on failure for maximum reliability"
+	@echo ""
+	@./scripts/robust-port-forward.sh start
+
+# Stop all port forwarding
+port-forward-stop:
+	@echo "🛑 Stopping all port forwarding..."
+	@./scripts/robust-port-forward.sh stop
+	@pkill -f "kubectl port-forward" || true
+	@echo "✅ All port forwarding stopped"
+
+# Check port forwarding status
+port-forward-status:
+	@echo "📊 Port forwarding status:"
+	@./scripts/robust-port-forward.sh status
+
+# Check status of all services
+check-services:
+	@echo "🔍 Checking service status..."
+	@./scripts/check-services.sh
+
+# Monitoring targets
+monitor-pods: ## Start proactive pod monitoring
+	@echo "🔍 Starting proactive pod monitoring..."
+	@echo "📝 Logs: logs/pod-monitor-$(shell date +%Y%m%d).log"
+	@echo "🚨 Alerts: logs/pod-alerts-$(shell date +%Y%m%d).log"
+	./scripts/pod-monitor.sh
+
+monitor-pods-bg: ## Start proactive pod monitoring in background
+	@echo "🔍 Starting proactive pod monitoring in background..."
+	./scripts/pod-monitor.sh > /dev/null 2>&1 &
+	@echo "📝 Monitor PID: $$!"
+	@echo "📝 Logs: logs/pod-monitor-$(shell date +%Y%m%d).log"
+	@echo "🚨 Alerts: logs/pod-alerts-$(shell date +%Y%m%d).log"
+
+check-pod-health: ## Quick pod health check
+	@echo "🔍 Quick pod health check..."
+	@kubectl get pods -n trading-system -o wide
+	@echo ""
+	@echo "📊 Recent events:"
+	@kubectl get events -n trading-system --sort-by='.lastTimestamp' | tail -5
+
+# Quick access to main dashboards
+dashboard-performance:
+	@echo "🌐 Opening Performance Dashboard..."
+	@open http://localhost:11000/dashboard || echo "Please open: http://localhost:11000/dashboard"
+
+dashboard-trading:
+	@echo "🌐 Opening Trading Dashboard..."
+	@open http://localhost:11001/ || echo "Please open: http://localhost:11001/"
+
+dashboard-health:
+	@echo "🌐 Opening Health Dashboard..."
+	@open http://localhost:11002/ || echo "Please open: http://localhost:11002/"
+
+# Quick access to APIs
+api-backtest:
+	@echo "🌐 Opening Backtest API..."
+	@open http://localhost:11010/ || echo "Please open: http://localhost:11010/"
+
+api-public:
+	@echo "🌐 Opening Public API..."
+	@open http://localhost:11011/ || echo "Please open: http://localhost:11011/"
+
+api-llm-proxy:
+	@echo "🌐 Opening Ollama LLM Proxy..."
+	@open http://localhost:12001/ || echo "Please open: http://localhost:12001/"
+
+# LLM Proxy Demo
+demo-llm-proxy:
+	@echo "🤖 Running LLM Proxy Backtest Analysis Demo..."
+	@.venv/bin/python llm_proxy_demo.py
+
 # .PHONY declarations
 .PHONY: help setup deploy backtest status clean dev-workflow monitor monitor-quick monitor-demo monitor-pod api-backtest api-backtest-demo 

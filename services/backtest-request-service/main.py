@@ -284,50 +284,194 @@ async def backtest_form():
             <!-- Strategies -->
             <div class="form-group">
                 <label>Strategies</label>
-                <div class="checkbox-group">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="bollinger_bands" name="strategies" value="BollingerBands" checked>
-                        <label for="bollinger_bands">Bollinger Bands</label>
+                <div style="margin-bottom: 15px;">
+                    <button type="button" onclick="selectAllStrategies()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Select All</button>
+                    <button type="button" onclick="clearAllStrategies()" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Clear All</button>
+                    <button type="button" onclick="selectCategory('basic')" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Basic</button>
+                    <button type="button" onclick="selectCategory('options')" style="background: #6f42c1; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Options</button>
+                    <button type="button" onclick="selectCategory('advanced')" style="background: #fd7e14; color: white; border: none; padding: 8px 16px; border-radius: 5px;">Advanced</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
+                    <!-- Basic Strategies -->
+                    <div class="strategy-category">
+                        <h4 style="color: #007bff; margin-bottom: 10px;">📊 Basic Strategies</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bollinger_bands" name="strategies" value="BollingerBands" checked>
+                                <label for="bollinger_bands">Bollinger Bands</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="rsi" name="strategies" value="RSI" checked>
+                                <label for="rsi">RSI</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="macd" name="strategies" value="MACD" checked>
+                                <label for="macd">MACD</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="momentum" name="strategies" value="Momentum">
+                                <label for="momentum">Momentum</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="mean_reversion" name="strategies" value="MeanReversion">
+                                <label for="mean_reversion">Mean Reversion</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="sma_crossover" name="strategies" value="SMACrossover">
+                                <label for="sma_crossover">SMA Crossover</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="volatility_breakout" name="strategies" value="VolatilityBreakout">
+                                <label for="volatility_breakout">Volatility Breakout</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="ichimoku" name="strategies" value="Ichimoku">
+                                <label for="ichimoku">Ichimoku</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="ichimoku_enhanced" name="strategies" value="IchimokuEnhanced">
+                                <label for="ichimoku_enhanced">Enhanced Ichimoku</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="adaptive_momentum" name="strategies" value="AdaptiveMomentum">
+                                <label for="adaptive_momentum">Adaptive Momentum</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="regime_switching" name="strategies" value="RegimeSwitching">
+                                <label for="regime_switching">Regime Switching</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="vwap" name="strategies" value="VWAP">
+                                <label for="vwap">VWAP</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pairs_trading" name="strategies" value="PairsTrading">
+                                <label for="pairs_trading">Pairs Trading</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="kalman_filter" name="strategies" value="KalmanFilter">
+                                <label for="kalman_filter">Kalman Filter</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="ml_ensemble" name="strategies" value="MLEnsemble">
+                                <label for="ml_ensemble">ML Ensemble</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="enhanced_day_trading" name="strategies" value="EnhancedDayTrading">
+                                <label for="enhanced_day_trading">Enhanced Day Trading</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="news_enhanced" name="strategies" value="NewsEnhanced">
+                                <label for="news_enhanced">News Enhanced</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="social_media_sentiment" name="strategies" value="SocialMediaSentiment">
+                                <label for="social_media_sentiment">Social Media Sentiment</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="rsi" name="strategies" value="RSI" checked>
-                        <label for="rsi">RSI</label>
+                    
+                    <!-- Options Strategies -->
+                    <div class="strategy-category">
+                        <h4 style="color: #6f42c1; margin-bottom: 10px;">🎯 Options Strategies</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="greeks_enhanced" name="strategies" value="GreeksEnhanced">
+                                <label for="greeks_enhanced">Greeks Enhanced</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="iron_condor" name="strategies" value="IronCondor">
+                                <label for="iron_condor">Iron Condor</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="enhanced_iron_condor" name="strategies" value="EnhancedIronCondor">
+                                <label for="enhanced_iron_condor">Enhanced Iron Condor</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="cash_secured_put" name="strategies" value="CashSecuredPut">
+                                <label for="cash_secured_put">Cash Secured Put</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="covered_call" name="strategies" value="CoveredCall">
+                                <label for="covered_call">Covered Call</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="calendar_spread" name="strategies" value="CalendarSpread">
+                                <label for="calendar_spread">Calendar Spread</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="butterfly_spread" name="strategies" value="ButterflySpread">
+                                <label for="butterfly_spread">Butterfly Spread</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="volatility_strategy" name="strategies" value="VolatilityStrategy">
+                                <label for="volatility_strategy">Volatility Strategy</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="earnings_strategy" name="strategies" value="EarningsStrategy">
+                                <label for="earnings_strategy">Earnings Strategy</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="straddle" name="strategies" value="Straddle">
+                                <label for="straddle">Straddle</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="long_strangle" name="strategies" value="LongStrangle">
+                                <label for="long_strangle">Long Strangle</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="short_strangle" name="strategies" value="ShortStrangle">
+                                <label for="short_strangle">Short Strangle</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bullish_diagonal" name="strategies" value="BullishDiagonal">
+                                <label for="bullish_diagonal">Bullish Diagonal</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="bearish_diagonal" name="strategies" value="BearishDiagonal">
+                                <label for="bearish_diagonal">Bearish Diagonal</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="macd" name="strategies" value="MACD" checked>
-                        <label for="macd">MACD</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="momentum" name="strategies" value="Momentum">
-                        <label for="momentum">Momentum</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="mean_reversion" name="strategies" value="MeanReversion">
-                        <label for="mean_reversion">Mean Reversion</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="sma_crossover" name="strategies" value="SMACrossover">
-                        <label for="sma_crossover">SMA Crossover</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="volatility_breakout" name="strategies" value="VolatilityBreakout">
-                        <label for="volatility_breakout">Volatility Breakout</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="trailing_stop" name="strategies" value="TrailingStop">
-                        <label for="trailing_stop">Trailing Stop</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="fibonacci" name="strategies" value="Fibonacci">
-                        <label for="fibonacci">Fibonacci</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="greeks_enhanced" name="strategies" value="GreeksEnhanced">
-                        <label for="greeks_enhanced">Greeks Enhanced</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="iron_condor" name="strategies" value="IronCondor">
-                        <label for="iron_condor">Iron Condor</label>
+                    
+                    <!-- Advanced Strategies -->
+                    <div class="strategy-category">
+                        <h4 style="color: #fd7e14; margin-bottom: 10px;">🚀 Advanced Strategies</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="trailing_stop" name="strategies" value="TrailingStop">
+                                <label for="trailing_stop">Trailing Stop</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="fibonacci" name="strategies" value="Fibonacci">
+                                <label for="fibonacci">Fibonacci</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="neural_network" name="strategies" value="NeuralNetwork">
+                                <label for="neural_network">Neural Network</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="quantum_momentum" name="strategies" value="QuantumMomentum">
+                                <label for="quantum_momentum">Quantum Momentum</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="cross_sectional_momentum" name="strategies" value="CrossSectionalMomentum">
+                                <label for="cross_sectional_momentum">Cross Sectional Momentum</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="enhanced_exit" name="strategies" value="EnhancedExit">
+                                <label for="enhanced_exit">Enhanced Exit</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="advanced_exit" name="strategies" value="AdvancedExit">
+                                <label for="advanced_exit">Advanced Exit</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="portfolio_strategy" name="strategies" value="PortfolioStrategy">
+                                <label for="portfolio_strategy">Portfolio Strategy</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -392,7 +536,7 @@ async def backtest_form():
                 end_date: "2025-01-01",
                 initial_capital: 100000,
                 risk_profile: "moderate",
-                strategies: ["BollingerBands", "RSI", "MACD", "Momentum", "MeanReversion", "SMACrossover"],
+                strategies: ["BollingerBands", "RSI", "MACD", "Momentum", "MeanReversion", "SMACrossover", "VolatilityBreakout", "Ichimoku", "AdaptiveMomentum", "VWAP", "PairsTrading"],
                 use_llm: false,
                 parallel_execution: true,
                 database_only: true
@@ -403,7 +547,7 @@ async def backtest_form():
                 end_date: "2025-01-01",
                 initial_capital: 100000,
                 risk_profile: "aggressive",
-                strategies: ["GreeksEnhanced", "IronCondor"],
+                strategies: ["GreeksEnhanced", "IronCondor", "EnhancedIronCondor", "CashSecuredPut", "CoveredCall", "CalendarSpread", "ButterflySpread", "VolatilityStrategy", "EarningsStrategy"],
                 use_llm: false,
                 parallel_execution: true,
                 database_only: true
@@ -414,7 +558,7 @@ async def backtest_form():
                 end_date: "2025-01-01",
                 initial_capital: 100000,
                 risk_profile: "aggressive",
-                strategies: ["BollingerBands", "RSI", "MACD", "Momentum", "MeanReversion", "VolatilityBreakout", "TrailingStop", "Fibonacci"],
+                strategies: ["BollingerBands", "RSI", "MACD", "Momentum", "MeanReversion", "VolatilityBreakout", "TrailingStop", "Fibonacci", "NeuralNetwork", "QuantumMomentum", "RegimeSwitching", "KalmanFilter", "MLEnsemble", "EnhancedDayTrading"],
                 use_llm: true,
                 parallel_execution: true,
                 database_only: false
@@ -540,6 +684,48 @@ async def backtest_form():
                 emailField.style.display = 'none';
             }
         });
+
+        // Strategy selection functions
+        function selectAllStrategies() {
+            document.querySelectorAll('input[name="strategies"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function clearAllStrategies() {
+            document.querySelectorAll('input[name="strategies"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        function selectCategory(category) {
+            // Clear all first
+            clearAllStrategies();
+            
+            // Select based on category
+            const basicStrategies = ['BollingerBands', 'RSI', 'MACD', 'Momentum', 'MeanReversion', 'SMACrossover', 'VolatilityBreakout', 'Ichimoku', 'IchimokuEnhanced', 'AdaptiveMomentum', 'RegimeSwitching', 'VWAP', 'PairsTrading', 'KalmanFilter', 'MLEnsemble', 'EnhancedDayTrading', 'NewsEnhanced', 'SocialMediaSentiment'];
+            const optionsStrategies = ['GreeksEnhanced', 'IronCondor', 'EnhancedIronCondor', 'CashSecuredPut', 'CoveredCall', 'CalendarSpread', 'ButterflySpread', 'VolatilityStrategy', 'EarningsStrategy', 'Straddle', 'LongStrangle', 'ShortStrangle', 'BullishDiagonal', 'BearishDiagonal'];
+            const advancedStrategies = ['TrailingStop', 'Fibonacci', 'NeuralNetwork', 'QuantumMomentum', 'CrossSectionalMomentum', 'EnhancedExit', 'AdvancedExit', 'PortfolioStrategy'];
+            
+            let strategiesToSelect = [];
+            
+            if (category === 'basic') {
+                strategiesToSelect = basicStrategies;
+            } else if (category === 'options') {
+                strategiesToSelect = optionsStrategies;
+            } else if (category === 'advanced') {
+                strategiesToSelect = advancedStrategies;
+            }
+            
+            strategiesToSelect.forEach(strategy => {
+                const checkbox = document.querySelector(`input[value="${strategy}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+
         
         // Set default date range (last 2 years)
         const today = new Date();
