@@ -225,8 +225,8 @@ api-backtest-demo: venv-install ## Demo the backtest API client
 # Performance Dashboard
 dashboard-build: ## Build performance dashboard Docker image
 	@echo "$(GREEN)🔨 Building Performance Dashboard...$(NC)"
-	docker build -t localhost:5000/performance-dashboard:latest services/performance-dashboard/
-	docker push localhost:5000/performance-dashboard:latest
+	docker build -t localhost:32000/performance-dashboard:latest services/performance-dashboard/
+	docker push localhost:32000/performance-dashboard:latest
 
 dashboard-deploy: ## Deploy performance dashboard to Kubernetes
 	@echo "$(GREEN)🚀 Deploying Performance Dashboard...$(NC)"
@@ -430,6 +430,22 @@ check-pod-health: ## Quick pod health check
 	@echo ""
 	@echo "📊 Recent events:"
 	@kubectl get events -n trading-system --sort-by='.lastTimestamp' | tail -5
+
+# Registry management
+fix-registry-urls: ## Fix registry URLs for Docker build/push commands
+	@echo "🔧 Fixing registry URLs..."
+	./scripts/fix-registry-urls.sh
+
+check-registry: ## Check registry status and configuration
+	@echo "🔍 Checking registry status..."
+	@echo "Registry service:"
+	@kubectl get svc registry -n default
+	@echo ""
+	@echo "Registry catalog:"
+	@curl -s http://localhost:32000/v2/_catalog | jq . 2>/dev/null || echo "Registry not accessible"
+	@echo ""
+	@echo "Registry health:"
+	@curl -s http://localhost:32000/v2/ || echo "Registry health check failed"
 
 # Quick access to main dashboards
 dashboard-performance:

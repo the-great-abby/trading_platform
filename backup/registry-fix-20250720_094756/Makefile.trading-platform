@@ -1,0 +1,482 @@
+# Ultimate Trading Platform Makefile
+# Comprehensive CQRS-based trading system management
+
+.PHONY: help build deploy start stop restart logs status clean test lint security-scan backup restore
+
+# Configuration
+PLATFORM_NAME = ultimate-trading-platform
+NAMESPACE = trading-system
+REGISTRY = localhost:5000
+VERSION = latest
+
+# Services
+SERVICES = order-management strategy-management signal-management risk-management market-data compliance analytics notification gateway dashboard llm-service
+WORKERS = order-worker strategy-worker signal-worker risk-worker analytics-worker notification-worker llm-worker
+
+# Colors for output
+RED = \033[0;31m
+GREEN = \033[0;32m
+YELLOW = \033[0;33m
+BLUE = \033[0;34m
+PURPLE = \033[0;35m
+CYAN = \033[0;36m
+WHITE = \033[0;37m
+NC = \033[0m # No Color
+
+help: ## Show this help message
+	@echo "$(CYAN)Ultimate Trading Platform Management$(NC)"
+	@echo "$(YELLOW)=====================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Available commands:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(YELLOW)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "$(GREEN)Service Management:$(NC)"
+	@echo "  $(BLUE)build-services$(NC)     - Build all service Docker images"
+	@echo "  $(BLUE)deploy-services$(NC)    - Deploy all services to Kubernetes"
+	@echo "  $(BLUE)start-services$(NC)     - Start all services"
+	@echo "  $(BLUE)stop-services$(NC)      - Stop all services"
+	@echo "  $(BLUE)restart-services$(NC)   - Restart all services"
+	@echo ""
+	@echo "$(GREEN)Worker Management:$(NC)"
+	@echo "  $(BLUE)build-workers$(NC)      - Build all worker Docker images"
+	@echo "  $(BLUE)deploy-workers$(NC)     - Deploy all workers to Kubernetes"
+	@echo "  $(BLUE)start-workers$(NC)      - Start all workers"
+	@echo "  $(BLUE)stop-workers$(NC)       - Stop all workers"
+	@echo "  $(BLUE)restart-workers$(NC)    - Restart all workers"
+	@echo ""
+	@echo "$(GREEN)Platform Management:$(NC)"
+	@echo "  $(BLUE)build-platform$(NC)     - Build entire platform"
+	@echo "  $(BLUE)deploy-platform$(NC)    - Deploy entire platform"
+	@echo "  $(BLUE)start-platform$(NC)     - Start entire platform"
+	@echo "  $(BLUE)stop-platform$(NC)      - Stop entire platform"
+	@echo "  $(BLUE)restart-platform$(NC)   - Restart entire platform"
+
+# =============================================================================
+# BUILD COMMANDS
+# =============================================================================
+
+build-services: ## Build all service Docker images
+	@echo "$(GREEN)Building service Docker images...$(NC)"
+	@for service in $(SERVICES); do \
+		echo "$(BLUE)Building $$service...$(NC)"; \
+		docker build -t $(REGISTRY)/$$service:$(VERSION) services/$$service/; \
+		docker push $(REGISTRY)/$$service:$(VERSION); \
+	done
+	@echo "$(GREEN)All services built and pushed!$(NC)"
+
+build-workers: ## Build all worker Docker images
+	@echo "$(GREEN)Building worker Docker images...$(NC)"
+	@for worker in $(WORKERS); do \
+		echo "$(BLUE)Building $$worker...$(NC)"; \
+		docker build -t $(REGISTRY)/$$worker:$(VERSION) services/$$worker/; \
+		docker push $(REGISTRY)/$$worker:$(VERSION); \
+	done
+	@echo "$(GREEN)All workers built and pushed!$(NC)"
+
+build-platform: build-services build-workers ## Build entire platform
+	@echo "$(GREEN)Platform build complete!$(NC)"
+
+# =============================================================================
+# DEPLOY COMMANDS
+# =============================================================================
+
+deploy-services: ## Deploy all services to Kubernetes
+	@echo "$(GREEN)Deploying services to Kubernetes...$(NC)"
+	kubectl apply -f k8s/trading-platform-comprehensive.yaml
+	@echo "$(GREEN)Services deployed!$(NC)"
+
+deploy-workers: ## Deploy all workers to Kubernetes
+	@echo "$(GREEN)Workers are deployed as part of the comprehensive platform$(NC)"
+
+deploy-platform: deploy-services ## Deploy entire platform
+	@echo "$(GREEN)Platform deployment complete!$(NC)"
+
+# =============================================================================
+# START COMMANDS
+# =============================================================================
+
+start-services: ## Start all services
+	@echo "$(GREEN)Starting services...$(NC)"
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) order-management-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) strategy-management-service
+	kubectl scale deployment --replicas=3 -n $(NAMESPACE) signal-management-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) risk-management-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) market-data-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) compliance-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) analytics-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) notification-service
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) trading-gateway
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) trading-dashboard
+	@echo "$(GREEN)Services started!$(NC)"
+
+start-workers: ## Start all workers
+	@echo "$(GREEN)Starting workers...$(NC)"
+	kubectl scale deployment --replicas=5 -n $(NAMESPACE) order-worker
+	kubectl scale deployment --replicas=3 -n $(NAMESPACE) strategy-worker
+	kubectl scale deployment --replicas=3 -n $(NAMESPACE) signal-worker
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) risk-worker
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) analytics-worker
+	kubectl scale deployment --replicas=2 -n $(NAMESPACE) notification-worker
+	@echo "$(GREEN)Workers started!$(NC)"
+
+start-platform: start-services start-workers ## Start entire platform
+	@echo "$(GREEN)Platform started!$(NC)"
+
+# =============================================================================
+# STOP COMMANDS
+# =============================================================================
+
+stop-services: ## Stop all services
+	@echo "$(YELLOW)Stopping services...$(NC)"
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) order-management-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) strategy-management-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) signal-management-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) risk-management-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) market-data-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) compliance-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) analytics-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) notification-service
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) trading-gateway
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) trading-dashboard
+	@echo "$(YELLOW)Services stopped!$(NC)"
+
+stop-workers: ## Stop all workers
+	@echo "$(YELLOW)Stopping workers...$(NC)"
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) order-worker
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) strategy-worker
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) signal-worker
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) risk-worker
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) analytics-worker
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) notification-worker
+	@echo "$(YELLOW)Workers stopped!$(NC)"
+
+stop-platform: stop-services stop-workers ## Stop entire platform
+	@echo "$(YELLOW)Platform stopped!$(NC)"
+
+# =============================================================================
+# RESTART COMMANDS
+# =============================================================================
+
+restart-services: stop-services start-services ## Restart all services
+	@echo "$(GREEN)Services restarted!$(NC)"
+
+restart-workers: stop-workers start-workers ## Restart all workers
+	@echo "$(GREEN)Workers restarted!$(NC)"
+
+restart-platform: stop-platform start-platform ## Restart entire platform
+	@echo "$(GREEN)Platform restarted!$(NC)"
+
+# =============================================================================
+# MONITORING COMMANDS
+# =============================================================================
+
+status: ## Show platform status
+	@echo "$(CYAN)Platform Status$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Services:$(NC)"
+	kubectl get pods -n $(NAMESPACE) -l app=order-management-service
+	kubectl get pods -n $(NAMESPACE) -l app=strategy-management-service
+	kubectl get pods -n $(NAMESPACE) -l app=signal-management-service
+	kubectl get pods -n $(NAMESPACE) -l app=risk-management-service
+	kubectl get pods -n $(NAMESPACE) -l app=market-data-service
+	kubectl get pods -n $(NAMESPACE) -l app=compliance-service
+	kubectl get pods -n $(NAMESPACE) -l app=analytics-service
+	kubectl get pods -n $(NAMESPACE) -l app=notification-service
+	kubectl get pods -n $(NAMESPACE) -l app=trading-gateway
+	kubectl get pods -n $(NAMESPACE) -l app=trading-dashboard
+	@echo ""
+	@echo "$(GREEN)Workers:$(NC)"
+	kubectl get pods -n $(NAMESPACE) -l app=order-worker
+	kubectl get pods -n $(NAMESPACE) -l app=strategy-worker
+	kubectl get pods -n $(NAMESPACE) -l app=signal-worker
+	kubectl get pods -n $(NAMESPACE) -l app=risk-worker
+	kubectl get pods -n $(NAMESPACE) -l app=analytics-worker
+	kubectl get pods -n $(NAMESPACE) -l app=notification-worker
+	@echo ""
+	@echo "$(GREEN)Services:$(NC)"
+	kubectl get services -n $(NAMESPACE)
+
+logs: ## Show platform logs
+	@echo "$(CYAN)Platform Logs$(NC)"
+	@echo "$(YELLOW)=============$(NC)"
+	@echo ""
+	@echo "$(GREEN)Order Management Service:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=order-management-service --tail=50
+	@echo ""
+	@echo "$(GREEN)Strategy Management Service:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=strategy-management-service --tail=50
+	@echo ""
+	@echo "$(GREEN)Signal Management Service:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=signal-management-service --tail=50
+	@echo ""
+	@echo "$(GREEN)Risk Management Service:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=risk-management-service --tail=50
+
+logs-workers: ## Show worker logs
+	@echo "$(CYAN)Worker Logs$(NC)"
+	@echo "$(YELLOW)===========$(NC)"
+	@echo ""
+	@echo "$(GREEN)Order Worker:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=order-worker --tail=50
+	@echo ""
+	@echo "$(GREEN)Strategy Worker:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=strategy-worker --tail=50
+	@echo ""
+	@echo "$(GREEN)Signal Worker:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=signal-worker --tail=50
+	@echo ""
+	@echo "$(GREEN)Risk Worker:$(NC)"
+	kubectl logs -n $(NAMESPACE) -l app=risk-worker --tail=50
+
+# =============================================================================
+# DEVELOPMENT COMMANDS
+# =============================================================================
+
+test: ## Run platform tests
+	@echo "$(GREEN)Running platform tests...$(NC)"
+	python -m pytest tests/ -v --tb=short
+	@echo "$(GREEN)Tests completed!$(NC)"
+
+test-services: ## Run service tests
+	@echo "$(GREEN)Running service tests...$(NC)"
+	python -m pytest tests/unit/ -v --tb=short
+	@echo "$(GREEN)Service tests completed!$(NC)"
+
+test-integration: ## Run integration tests
+	@echo "$(GREEN)Running integration tests...$(NC)"
+	python -m pytest tests/integration/ -v --tb=short
+	@echo "$(GREEN)Integration tests completed!$(NC)"
+
+lint: ## Run code linting
+	@echo "$(GREEN)Running code linting...$(NC)"
+	flake8 src/ tests/
+	black --check src/ tests/
+	isort --check-only src/ tests/
+	@echo "$(GREEN)Linting completed!$(NC)"
+
+lint-fix: ## Fix code linting issues
+	@echo "$(GREEN)Fixing code linting issues...$(NC)"
+	black src/ tests/
+	isort src/ tests/
+	@echo "$(GREEN)Linting fixes completed!$(NC)"
+
+# =============================================================================
+# SECURITY COMMANDS
+# =============================================================================
+
+security-scan: ## Run security scans
+	@echo "$(GREEN)Running security scans...$(NC)"
+	bandit -r src/
+	safety check
+	@echo "$(GREEN)Security scans completed!$(NC)"
+
+security-audit: ## Run comprehensive security audit
+	@echo "$(GREEN)Running security audit...$(NC)"
+	bandit -r src/ -f json -o security-report.json
+	safety check --json --output security-vulnerabilities.json
+	@echo "$(GREEN)Security audit completed!$(NC)"
+
+# =============================================================================
+# DATABASE COMMANDS
+# =============================================================================
+
+db-migrate: ## Run database migrations
+	@echo "$(GREEN)Running database migrations...$(NC)"
+	kubectl apply -f k8s/alembic-migration-job.yaml
+	@echo "$(GREEN)Database migrations completed!$(NC)"
+
+db-backup: ## Backup database
+	@echo "$(GREEN)Backing up database...$(NC)"
+	kubectl exec -n $(NAMESPACE) deployment/postgres -- pg_dump -U trading_user trading_db > backup_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "$(GREEN)Database backup completed!$(NC)"
+
+db-restore: ## Restore database from backup
+	@echo "$(YELLOW)Restoring database from backup...$(NC)"
+	@read -p "Enter backup file name: " backup_file; \
+	kubectl exec -i -n $(NAMESPACE) deployment/postgres -- psql -U trading_user trading_db < $$backup_file
+	@echo "$(GREEN)Database restore completed!$(NC)"
+
+# =============================================================================
+# CLEANUP COMMANDS
+# =============================================================================
+
+clean: ## Clean up platform resources
+	@echo "$(YELLOW)Cleaning up platform resources...$(NC)"
+	kubectl delete -f k8s/trading-platform-comprehensive.yaml --ignore-not-found=true
+	@echo "$(GREEN)Cleanup completed!$(NC)"
+
+clean-images: ## Clean up Docker images
+	@echo "$(YELLOW)Cleaning up Docker images...$(NC)"
+	docker system prune -f
+	@echo "$(GREEN)Docker images cleaned!$(NC)"
+
+clean-all: clean clean-images ## Clean up everything
+	@echo "$(GREEN)Complete cleanup finished!$(NC)"
+
+# =============================================================================
+# UTILITY COMMANDS
+# =============================================================================
+
+port-forward: ## Set up port forwarding for local development
+	@echo "$(GREEN)Setting up port forwarding...$(NC)"
+	kubectl port-forward -n $(NAMESPACE) service/trading-gateway 8080:80 &
+	kubectl port-forward -n $(NAMESPACE) service/trading-dashboard 8081:8080 &
+	kubectl port-forward -n $(NAMESPACE) service/analytics-service 8082:8006 &
+	@echo "$(GREEN)Port forwarding active:$(NC)"
+	@echo "  Gateway: http://localhost:8080"
+	@echo "  Dashboard: http://localhost:8081"
+	@echo "  Analytics: http://localhost:8082"
+
+health-check: ## Check platform health
+	@echo "$(GREEN)Checking platform health...$(NC)"
+	@echo "$(BLUE)Order Management:$(NC)"
+	curl -s http://localhost:8080/health || echo "$(RED)Order Management: DOWN$(NC)"
+	@echo "$(BLUE)Strategy Management:$(NC)"
+	curl -s http://localhost:8080/strategy/health || echo "$(RED)Strategy Management: DOWN$(NC)"
+	@echo "$(BLUE)Signal Management:$(NC)"
+	curl -s http://localhost:8080/signal/health || echo "$(RED)Signal Management: DOWN$(NC)"
+	@echo "$(BLUE)Risk Management:$(NC)"
+	curl -s http://localhost:8080/risk/health || echo "$(RED)Risk Management: DOWN$(NC)"
+	@echo "$(BLUE)Market Data:$(NC)"
+	curl -s http://localhost:8080/market/health || echo "$(RED)Market Data: DOWN$(NC)"
+	@echo "$(BLUE)Analytics:$(NC)"
+	curl -s http://localhost:8082/health || echo "$(RED)Analytics: DOWN$(NC)"
+
+metrics: ## Show platform metrics
+	@echo "$(CYAN)Platform Metrics$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	kubectl top pods -n $(NAMESPACE)
+	kubectl top nodes
+
+# =============================================================================
+# DOCUMENTATION COMMANDS
+# =============================================================================
+
+docs: ## Generate documentation
+	@echo "$(GREEN)Generating documentation...$(NC)"
+	pdoc --html src/ --output-dir docs/
+	@echo "$(GREEN)Documentation generated!$(NC)"
+
+docs-serve: ## Serve documentation locally
+	@echo "$(GREEN)Serving documentation...$(NC)"
+	python -m http.server 8000 --directory docs/
+
+# =============================================================================
+# DEPLOYMENT COMMANDS
+# =============================================================================
+
+deploy-production: ## Deploy to production
+	@echo "$(RED)Deploying to production...$(NC)"
+	@read -p "Are you sure you want to deploy to production? (y/N): " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		kubectl apply -f k8s/production/; \
+		echo "$(GREEN)Production deployment completed!$(NC)"; \
+	else \
+		echo "$(YELLOW)Production deployment cancelled.$(NC)"; \
+	fi
+
+deploy-staging: ## Deploy to staging
+	@echo "$(YELLOW)Deploying to staging...$(NC)"
+	kubectl apply -f k8s/staging/
+	@echo "$(GREEN)Staging deployment completed!$(NC)"
+
+# =============================================================================
+# MONITORING COMMANDS
+# =============================================================================
+
+monitor: ## Start platform monitoring
+	@echo "$(GREEN)Starting platform monitoring...$(NC)"
+	kubectl apply -f k8s/monitoring/
+	@echo "$(GREEN)Monitoring started!$(NC)"
+
+monitor-stop: ## Stop platform monitoring
+	@echo "$(YELLOW)Stopping platform monitoring...$(NC)"
+	kubectl delete -f k8s/monitoring/ --ignore-not-found=true
+	@echo "$(GREEN)Monitoring stopped!$(NC)"
+
+# =============================================================================
+# BACKUP AND RECOVERY
+# =============================================================================
+
+backup: db-backup ## Create complete platform backup
+	@echo "$(GREEN)Creating complete platform backup...$(NC)"
+	kubectl get all -n $(NAMESPACE) -o yaml > platform-backup-$(shell date +%Y%m%d_%H%M%S).yaml
+	@echo "$(GREEN)Complete backup created!$(NC)"
+
+restore: ## Restore platform from backup
+	@echo "$(YELLOW)Restoring platform from backup...$(NC)"
+	@read -p "Enter backup file name: " backup_file; \
+	kubectl apply -f $$backup_file
+	@echo "$(GREEN)Platform restore completed!$(NC)"
+
+# =============================================================================
+# DEVELOPMENT TOOLS
+# =============================================================================
+
+dev-setup: ## Setup development environment
+	@echo "$(GREEN)Setting up development environment...$(NC)"
+	python -m venv .venv
+	.venv/bin/pip install -r requirements.txt
+	.venv/bin/pip install -r requirements-dev.txt
+	@echo "$(GREEN)Development environment setup complete!$(NC)"
+
+dev-shell: ## Open development shell
+	@echo "$(GREEN)Opening development shell...$(NC)"
+	.venv/bin/python
+
+# =============================================================================
+# PERFORMANCE TESTING
+# =============================================================================
+
+load-test: ## Run load tests
+	@echo "$(GREEN)Running load tests...$(NC)"
+	locust -f tests/load/locustfile.py --host=http://localhost:8080
+	@echo "$(GREEN)Load tests completed!$(NC)"
+
+stress-test: ## Run stress tests
+	@echo "$(GREEN)Running stress tests...$(NC)"
+	artillery run tests/stress/artillery-config.yml
+	@echo "$(GREEN)Stress tests completed!$(NC)"
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+
+debug: ## Debug platform issues
+	@echo "$(CYAN)Platform Debug Information$(NC)"
+	@echo "$(YELLOW)==========================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Pod Status:$(NC)"
+	kubectl get pods -n $(NAMESPACE) -o wide
+	@echo ""
+	@echo "$(GREEN)Service Status:$(NC)"
+	kubectl get services -n $(NAMESPACE)
+	@echo ""
+	@echo "$(GREEN)Events:$(NC)"
+	kubectl get events -n $(NAMESPACE) --sort-by='.lastTimestamp'
+	@echo ""
+	@echo "$(GREEN)Resource Usage:$(NC)"
+	kubectl top pods -n $(NAMESPACE)
+
+debug-service: ## Debug specific service
+	@read -p "Enter service name: " service_name; \
+	echo "$(CYAN)Debugging $$service_name$(NC)"; \
+	echo "$(YELLOW)=======================$(NC)"; \
+	kubectl describe pod -n $(NAMESPACE) -l app=$$service_name; \
+	echo ""; \
+	echo "$(GREEN)Logs:$(NC)"; \
+	kubectl logs -n $(NAMESPACE) -l app=$$service_name --tail=100
+
+# =============================================================================
+# QUICK COMMANDS
+# =============================================================================
+
+quick-start: build-platform deploy-platform start-platform ## Quick start the platform
+	@echo "$(GREEN)Platform quick start completed!$(NC)"
+
+quick-stop: stop-platform clean ## Quick stop and cleanup
+	@echo "$(GREEN)Platform quick stop completed!$(NC)"
+
+quick-restart: quick-stop quick-start ## Quick restart the platform
+	@echo "$(GREEN)Platform quick restart completed!$(NC)" 

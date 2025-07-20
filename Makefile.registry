@@ -10,7 +10,7 @@ NC := \033[0m # No Color
 
 # Variables
 DOCKER_COMPOSE := docker-compose
-REGISTRY_URL := localhost:5000
+REGISTRY_URL := localhost:32000
 
 # Registry Management
 registry-start: ## Start Docker registry
