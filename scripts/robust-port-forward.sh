@@ -77,6 +77,7 @@ monitor_port_forwards() {
         "trading-dashboard-service:11001:8000"
         "backtest-request-service:11031:80"
         "health-dashboard:11002:80"
+        "rss-dashboard:11003:80"
     )
     
     # Start initial port forwards
@@ -90,6 +91,7 @@ monitor_port_forwards() {
     log "📈 Trading Dashboard: http://localhost:11001/"
     log "🔧 Backtest Request: http://localhost:11031/"
     log "🏥 Health Dashboard: http://localhost:11002/dashboard"
+    log "📰 RSS Dashboard: http://localhost:11003/"
     
     # Monitor and restart failed port forwards
     while true; do
