@@ -432,9 +432,9 @@ async def report_dashboard():
         </div>
         
         <div class="nav-buttons">
-            <a href="http://localhost:8082/" class="nav-btn">🚀 Run New Backtest</a>
-            <a href="http://localhost:8081/dashboard" class="nav-btn">📈 Performance Dashboard</a>
-            <a href="http://localhost:8083/test" class="nav-btn">📧 Test Email Notifications</a>
+            <a href="http://localhost:11031/" class="nav-btn">🚀 Run New Backtest</a>
+            <a href="http://localhost:11000/dashboard" class="nav-btn">📈 Performance Dashboard</a>
+            <a href="http://localhost:11002/dashboard" class="nav-btn">📧 Test Email Notifications</a>
         </div>
         
         <div id="reports-container">

@@ -281,7 +281,7 @@ async def get_trades_rss_feed():
             title.text = 'Space Trading Station - Recent Trades & Transactions'
             
             link = ET.SubElement(channel, 'link')
-            link.text = 'http://localhost:8000/dashboard/rss/trades'
+            link.text = 'http://localhost:11001/dashboard/rss/trades'
             
             description = ET.SubElement(channel, 'description')
             description.text = 'Detailed trading activity and transaction history from the Space Trading Station'
@@ -327,7 +327,7 @@ async def get_trades_rss_feed():
                 item_title.text = f"{action_emoji} {action_desc} {trade_row.quantity:,} {symbol_display} @ ${trade_row.price:.2f} = ${trade_row.value:,.2f}"
                 
                 item_link = ET.SubElement(item, 'link')
-                item_link.text = f"http://localhost:8000/dashboard/trade/{symbol_display}"
+                item_link.text = f"http://localhost:11001/dashboard/trade/{symbol_display}"
                 
                 item_description = ET.SubElement(item, 'description')
                 item_description.text = f"""
@@ -404,7 +404,7 @@ async def get_positions_rss_feed():
         title.text = 'Space Trading Station - Active Positions'
         
         link = ET.SubElement(channel, 'link')
-        link.text = 'http://localhost:8000/dashboard/rss/positions'
+        link.text = 'http://localhost:11001/dashboard/rss/positions'
         
         description = ET.SubElement(channel, 'description')
         description.text = f'Active trading positions. Total Value: ${portfolio_summary.total_value:,.2f}, P&L: ${portfolio_summary.total_pnl:,.2f} ({portfolio_summary.total_pnl_percentage:+.2f}%)'
@@ -419,7 +419,7 @@ async def get_positions_rss_feed():
             item_title.text = f"{position.symbol}: {position.quantity} shares @ ${position.avg_price:.2f} (P&L: ${position.unrealized_pnl:+.2f})"
             
             item_link = ET.SubElement(item, 'link')
-            item_link.text = f"http://localhost:8000/dashboard/position/{position.symbol}"
+            item_link.text = f"http://localhost:11001/dashboard/position/{position.symbol}"
             
             item_description = ET.SubElement(item, 'description')
             item_description.text = f"""
@@ -487,7 +487,7 @@ async def get_strategy_events_rss_feed():
             title.text = 'Space Trading Station - Strategy Events & Signals'
             
             link = ET.SubElement(channel, 'link')
-            link.text = 'http://localhost:8000/dashboard/rss/strategy-events'
+            link.text = 'http://localhost:11001/dashboard/rss/strategy-events'
             
             description = ET.SubElement(channel, 'description')
             description.text = 'Trading signals, strategy events, and market analysis from the Space Trading Station'
@@ -541,7 +541,7 @@ async def get_strategy_events_rss_feed():
                 item_title.text = f"{event_type}: {action_emoji} {action_desc} {symbol_display} ({event_row.confidence:.1%} confidence)"
                 
                 item_link = ET.SubElement(item, 'link')
-                item_link.text = f"http://localhost:8000/dashboard/strategy/{event_row.strategy_name}"
+                item_link.text = f"http://localhost:11001/dashboard/strategy/{event_row.strategy_name}"
                 
                 # Enhanced description with more details
                 item_description = ET.SubElement(item, 'description')
@@ -616,7 +616,7 @@ async def get_portfolio_summary_rss_feed():
         title.text = 'Space Trading Station - Portfolio Summary'
         
         link = ET.SubElement(channel, 'link')
-        link.text = 'http://localhost:8000/dashboard/rss/portfolio-summary'
+        link.text = 'http://localhost:11001/dashboard/rss/portfolio-summary'
         
         description = ET.SubElement(channel, 'description')
         description.text = f'Portfolio Summary - Total Value: ${portfolio_summary.total_value:,.2f}, P&L: ${portfolio_summary.total_pnl:,.2f} ({portfolio_summary.total_pnl_percentage:+.2f}%), Positions: {portfolio_summary.num_positions}'
@@ -631,7 +631,7 @@ async def get_portfolio_summary_rss_feed():
         item_title.text = f"Portfolio Summary - ${portfolio_summary.total_value:,.2f} ({portfolio_summary.total_pnl_percentage:+.2f}%)"
         
         item_link = ET.SubElement(item, 'link')
-        item_link.text = 'http://localhost:8000/dashboard/portfolio/summary'
+        item_link.text = 'http://localhost:11001/dashboard/portfolio/summary'
         
         item_description = ET.SubElement(item, 'description')
         

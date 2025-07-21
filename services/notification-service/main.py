@@ -34,7 +34,7 @@ SENDER_EMAIL = os.getenv("SENDER_EMAIL", "noreply@trading-system.com")
 
 # Backtest API configuration
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:8000")
-DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8081/dashboard")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:11000/dashboard")
 
 class NotificationRequest(BaseModel):
     """Notification request model"""
@@ -210,7 +210,7 @@ class EmailNotification:
     
     <div style="text-align: center; margin: 30px 0;">
         <a href="{DASHBOARD_URL}" class="cta-button">📊 View Full Results</a>
-        <a href="http://localhost:8082/" class="cta-button">🚀 Run New Backtest</a>
+                    <a href="http://localhost:11031/" class="cta-button">🚀 Run New Backtest</a>
     </div>
     
     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">

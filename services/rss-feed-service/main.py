@@ -35,7 +35,7 @@ class RSSFeedConfig(BaseModel):
     ttl: int = 60  # minutes
     max_items: int = 50
     feed_url: str = "http://localhost:8084/rss/daily-recommendations"
-    site_url: str = "http://localhost:8081"
+    site_url: str = "http://localhost:11001/"
 
 class RSSItem(BaseModel):
     """RSS item structure"""
@@ -186,7 +186,7 @@ class DailyRecommendationsService:
             """
             
             # Create link
-            link = f"http://localhost:8081/dashboard/recommendations/{symbol}"
+            link = f"http://localhost:11001/dashboard/recommendations/{symbol}"
             
             # Create GUID
             guid = f"recommendation-{symbol}-{datetime.now().strftime('%Y%m%d')}"

@@ -113,7 +113,7 @@ class LLMClient:
     """LLM client for remote LLM proxy service integration with native callback support"""
     
     def __init__(self, 
-                 base_url: str = "http://localhost:8081",
+                 base_url: str = "http://localhost:12001",
                  api_key: str = None,
                  timeout: int = 30,
                  max_retries: int = 3,

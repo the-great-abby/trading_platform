@@ -103,7 +103,7 @@ class LLMService:
         
         # LLM client configuration
         self.llm_config = self.config.get('llm_service', {})
-        self.base_url = self.llm_config.get('base_url', 'http://localhost:8081')
+        self.base_url = self.llm_config.get('base_url', 'http://localhost:12001')
         self.api_key = self.llm_config.get('api_key')
         self.timeout = self.llm_config.get('timeout', 30)
         self.max_retries = self.llm_config.get('max_retries', 3)

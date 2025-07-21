@@ -7,29 +7,40 @@ This document contains comprehensive Mermaid diagrams showing how the Space Trad
 ```mermaid
 graph TB
     subgraph "🌌 External Universe"
-        MD[Market Data Providers]
-        NP[News Providers]
-        API[External APIs]
+        MD[Market Data Providers<br/>Polygon, Alpha Vantage]
+        NP[News Providers<br/>Reuters, Bloomberg]
+        API[External APIs<br/>Trading APIs]
     end
     
     subgraph "🚀 Space Trading Station"
         subgraph "🎯 Mission Control Gateway"
-            GW[API Gateway]
+            GW[API Gateway<br/>localhost:8080]
             LB[Load Balancer]
         end
         
-        subgraph "🛰️ Space Station Modules"
+        subgraph "📊 Dashboard Layer"
+            PD[Performance Dashboard<br/>localhost:11000]
+            TD[Trading Dashboard<br/>localhost:11001]
+            HD[Health Dashboard<br/>localhost:11002]
+            RD[RSS Dashboard<br/>localhost:11003]
+            BR[Backtest Request<br/>localhost:11031]
+        end
+        
+        subgraph "🛰️ Core Services"
             TS[Trading Service]
-            MDS[Satellite Data Service]
+            MDS[Market Data Service]
             RMS[Risk Management Service]
             PS[Portfolio Service]
-            ANS[AI Navigation Systems]
+            SS[Strategy Service]
             OMS[Order Management Service]
             AS[Analytics Service]
             UMS[User Management Service]
         end
         
-        subgraph "🤖 AI Navigation Systems"
+        subgraph "🤖 AI & LLM Systems"
+            LLM[LLM Service<br/>Ollama Integration]
+            LP[LLM Proxy<br/>localhost:12001]
+            TE[Trade Evaluator]
             RSI[RSI AI Enhanced]
             BB[Bollinger Bands AI]
             MACD[MACD AI Enhanced]
@@ -37,9 +48,16 @@ graph TB
             NE[News Enhanced]
         end
         
+        subgraph "📰 RSS & News Systems"
+            RSS[RSS Feed Service]
+            RSSD[RSS Dashboard]
+            NS[News Scanner]
+            NW[News Worker]
+        end
+        
         subgraph "📊 Data Storage Bay"
-            WDB[(Write Database)]
-            RDB[(Read Database)]
+            WDB[(Write Database<br/>PostgreSQL)]
+            RDB[(Read Database<br/>PostgreSQL)]
             ES[(Event Store)]
             CACHE[(Redis Cache)]
             TSDB[(Time Series DB)]
@@ -47,12 +65,16 @@ graph TB
         
         subgraph "🔄 Event Bus"
             EB[Event Bus]
-            MQ[Message Queue]
+            MQ[RabbitMQ<br/>Message Queue]
+        end
+        
+        subgraph "🐳 Container Registry"
+            REG[Docker Registry<br/>localhost:32000]
         end
     end
     
     MD --> MDS
-    NP --> ANS
+    NP --> NS
     API --> GW
     
     GW --> TS
@@ -62,13 +84,21 @@ graph TB
     
     TS --> OMS
     TS --> RMS
-    TS --> ANS
+    TS --> SS
     
-    ANS --> RSI
-    ANS --> BB
-    ANS --> MACD
-    ANS --> SMA
-    ANS --> NE
+    SS --> RSI
+    SS --> BB
+    SS --> MACD
+    SS --> SMA
+    SS --> NE
+    
+    LLM --> TE
+    LP --> LLM
+    TE --> SS
+    
+    RSS --> RSSD
+    NS --> RSS
+    NW --> RSS
     
     TS --> WDB
     MDS --> RDB
@@ -84,8 +114,14 @@ graph TB
     EB --> PS
     EB --> AS
     
-    MQ --> ANS
+    MQ --> SS
     MQ --> TS
+    MQ --> NW
+    
+    REG -.->|Build/Push| TS
+    REG -.->|Build/Push| MDS
+    REG -.->|Build/Push| RSS
+    REG -.->|Build/Push| RSSD
 ```
 
 ## 🔄 Data Flow Architecture
@@ -1812,6 +1848,65 @@ graph LR
     TRANSACTION_COST --> CORRELATION
     SLIPPAGE --> DIVERSIFICATION
 ```
+
+## 🚀 Current System Configuration (July 2025)
+
+### **📡 Port Configuration & Service Mapping**
+
+| Service | External Port | Internal Port | Status | Recent Changes |
+|---------|---------------|---------------|---------|----------------|
+| Performance Dashboard | 11000 | 80 | ✅ Running | Registry fix |
+| Trading Dashboard | 11001 | 8000 | ✅ Running | Registry fix |
+| Health Dashboard | 11002 | 80 | ✅ Running | Registry fix |
+| **RSS Dashboard** | **11003** | **80** | **✅ Running** | **NEW** |
+| Backtest Request | 11031 | 80 | ✅ Running | Registry fix |
+| **LLM Proxy** | **12001** | **11434** | **✅ Running** | **NEW** |
+
+### **🔧 Infrastructure Services**
+
+| Service | Port | Status | Notes |
+|---------|------|---------|-------|
+| Docker Registry | 32000 | ✅ Running | NodePort (Fixed) |
+| RabbitMQ | 5672 | ✅ Running | Message Queue |
+| PostgreSQL | 5432 | ✅ Running | Database |
+| Redis | 6379 | ✅ Running | Cache |
+
+### **🎯 Recent Architecture Updates**
+
+#### **✅ July 2025 Changes**
+
+1. **🔧 Registry Port Configuration Fix**
+   - **Problem**: Docker registry accessible on port 32000 but build scripts used port 5000
+   - **Solution**: Updated all build/push commands to use `localhost:32000`
+   - **Impact**: All Docker builds now work correctly
+
+2. **📰 RSS Dashboard Addition**
+   - **New Service**: Complete RSS dashboard for trading recommendations
+   - **Features**: Real-time recommendations, multiple feed types, auto-refresh
+   - **URL**: `http://localhost:11003/`
+
+3. **🤖 LLM Proxy Integration**
+   - **New Service**: LLM Proxy for external access to Ollama
+   - **Port**: `localhost:12001`
+   - **Integration**: Connects to internal Ollama LLM service
+
+4. **🔄 Port Forwarding Stability**
+   - **Improvement**: Robust port forwarding with auto-restart
+   - **Features**: Auto-restart on failure, proactive monitoring
+   - **Result**: All dashboards now accessible
+
+### **📊 Health Check Endpoints**
+
+All services now have working health endpoints:
+- `http://localhost:11000/health` - Performance Dashboard
+- `http://localhost:11001/health` - Trading Dashboard  
+- `http://localhost:11002/health` - Health Dashboard
+- `http://localhost:11003/health` - RSS Dashboard
+- `http://localhost:12001/health` - LLM Proxy
+
+### **🔍 Registry Health**
+- Registry Catalog: `http://localhost:32000/v2/_catalog`
+- Registry Status: `kubectl get svc registry -n default`
 
 ---
 

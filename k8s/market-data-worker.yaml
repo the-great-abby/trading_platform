@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-data-worker
+  namespace: trading-system
+  labels:
+    app: market-data-worker
+    component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: market-data-worker
+  template:
+    metadata:
+      labels:
+        app: market-data-worker
+        component: worker
+    spec:
+      containers:
+      - name: market-data-worker
+        image: localhost:5000/market-data-worker:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        - name: MARKET_DATA_UPDATE_INTERVAL
+          value: "15"
+        - name: MARKET_DATA_GAP_FILL_DAYS
+          value: "7"
+        - name: MAX_CONCURRENT_JOBS
+          value: "5"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-data-worker
+  namespace: trading-system
+  labels:
+    app: market-data-worker
+    component: worker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: market-data-worker
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: market-data-worker-hpa
+  namespace: trading-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: market-data-worker
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80 

@@ -1,15 +1,20 @@
-# 🏗️ System Architecture & Development Workflow
+# 🏗️ System Architecture & Development Workflow (Updated July 2025)
 
 ## 📊 High-Level Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           ALGORITHMIC TRADING SYSTEM                           │
+│                        SPACE TRADING STATION (Updated)                        │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐            │
-│  │   FRONTEND      │    │   API GATEWAY   │    │   MONITORING    │            │
+│  │   DASHBOARDS    │    │   API GATEWAY   │    │   MONITORING    │            │
 │  │   (Web UI)      │◄──►│   (Nginx)       │◄──►│   (Prometheus)  │            │
+│  │                 │    │                 │    │                 │            │
+│  │ • Performance   │    │ • localhost:8080│    │ • Health Checks │            │
+│  │ • Trading       │    │ • Load Balancer │    │ • Metrics       │            │
+│  │ • Health        │    │ • Rate Limiting │    │ • Alerts        │            │
+│  │ • RSS (NEW)     │    │                 │    │                 │            │
 │  └─────────────────┘    └─────────────────┘    └─────────────────┘            │
 │           │                       │                       │                    │
 │           └───────────────────────┼───────────────────────┘                    │
@@ -28,14 +33,21 @@
 │  │  │  SERVICE    │ │    BOT      │ │  MANAGEMENT │ │  SERVICE    │        │  │
 │  │  │             │ │             │ │             │ │             │        │  │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │  │
+│  │                                                                           │  │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │  │
+│  │  │   RSS       │ │   RSS       │ │    LLM      │ │    LLM      │        │  │
+│  │  │  FEED       │ │ DASHBOARD   │ │  SERVICE    │ │   PROXY     │        │  │
+│  │  │  SERVICE    │ │  (NEW)      │ │ (Ollama)    │ │  (NEW)      │        │  │
+│  │  │             │ │             │ │             │ │             │        │  │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 │                                   │                                            │
 │  ┌─────────────────────────────────┼─────────────────────────────────────────┐  │
 │  │                    DATA LAYER                                            │  │
 │  │                                                                           │  │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │  │
-│  │  │   KAFKA     │ │ EVENT STORE │ │   REDIS     │ │ POSTGRESQL  │        │  │
-│  │  │ (Messages)  │ │ (Events)    │ │  (Cache)    │ │ (Read DB)   │        │  │
+│  │  │  RABBITMQ   │ │ EVENT STORE │ │   REDIS     │ │ POSTGRESQL  │        │  │
+│  │  │ (Messages)  │ │ (Events)    │ │  (Cache)    │ │ (Database)  │        │  │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 │                                   │                                            │
@@ -47,6 +59,17 @@
 │  │  │    API      │ │    API      │ │  FINANCE    │ │  SOURCES    │        │  │
 │  │  │ (Trading)   │ │ (Trading)   │ │ (Market)    │ │ (Reuters,   │        │  │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ │ Bloomberg)  │        │  │
+│  └───────────────────────────────────────────────────────────────────────────┘  │
+│                                   │                                            │
+│  ┌─────────────────────────────────┼─────────────────────────────────────────┐  │
+│  │                  INFRASTRUCTURE                                          │  │
+│  │                                                                           │  │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │  │
+│  │  │   DOCKER    │ │ KUBERNETES  │ │   REGISTRY  │ │   PORTS     │        │  │
+│  │  │  REGISTRY   │ │ (Docker     │ │ (localhost: │ │ (11000-     │        │  │
+│  │  │ (localhost: │ │ Desktop)    │ │   32000)    │ │  12001)     │        │  │
+│  │  │   32000)    │ │             │ │             │ │             │        │  │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘        │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -411,5 +434,64 @@ make docker-dev-logs     # View logs
 - Fast container startup
 - Live code mounting for instant changes
 - Integrated development tools
+
+## 🚀 Current System Configuration (July 2025)
+
+### **📡 Port Configuration & Service Mapping**
+
+| Service | External Port | Internal Port | Status | Recent Changes |
+|---------|---------------|---------------|---------|----------------|
+| Performance Dashboard | 11000 | 80 | ✅ Running | Registry fix |
+| Trading Dashboard | 11001 | 8000 | ✅ Running | Registry fix |
+| Health Dashboard | 11002 | 80 | ✅ Running | Registry fix |
+| **RSS Dashboard** | **11003** | **80** | **✅ Running** | **NEW** |
+| Backtest Request | 11031 | 80 | ✅ Running | Registry fix |
+| **LLM Proxy** | **12001** | **11434** | **✅ Running** | **NEW** |
+
+### **🔧 Infrastructure Services**
+
+| Service | Port | Status | Notes |
+|---------|------|---------|-------|
+| Docker Registry | 32000 | ✅ Running | NodePort (Fixed) |
+| RabbitMQ | 5672 | ✅ Running | Message Queue |
+| PostgreSQL | 5432 | ✅ Running | Database |
+| Redis | 6379 | ✅ Running | Cache |
+
+### **🎯 Recent Architecture Updates**
+
+#### **✅ July 2025 Changes**
+
+1. **🔧 Registry Port Configuration Fix**
+   - **Problem**: Docker registry accessible on port 32000 but build scripts used port 5000
+   - **Solution**: Updated all build/push commands to use `localhost:32000`
+   - **Impact**: All Docker builds now work correctly
+
+2. **📰 RSS Dashboard Addition**
+   - **New Service**: Complete RSS dashboard for trading recommendations
+   - **Features**: Real-time recommendations, multiple feed types, auto-refresh
+   - **URL**: `http://localhost:11003/`
+
+3. **🤖 LLM Proxy Integration**
+   - **New Service**: LLM Proxy for external access to Ollama
+   - **Port**: `localhost:12001`
+   - **Integration**: Connects to internal Ollama LLM service
+
+4. **🔄 Port Forwarding Stability**
+   - **Improvement**: Robust port forwarding with auto-restart
+   - **Features**: Auto-restart on failure, proactive monitoring
+   - **Result**: All dashboards now accessible
+
+### **📊 Health Check Endpoints**
+
+All services now have working health endpoints:
+- `http://localhost:11000/health` - Performance Dashboard
+- `http://localhost:11001/health` - Trading Dashboard  
+- `http://localhost:11002/health` - Health Dashboard
+- `http://localhost:11003/health` - RSS Dashboard
+- `http://localhost:12001/health` - LLM Proxy
+
+### **🔍 Registry Health**
+- Registry Catalog: `http://localhost:32000/v2/_catalog`
+- Registry Status: `kubectl get svc registry -n default`
 
 This architecture provides a robust foundation for developing, testing, and deploying your algorithmic trading system with full Docker integration throughout the development lifecycle. 

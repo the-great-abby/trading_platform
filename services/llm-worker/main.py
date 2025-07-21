@@ -34,7 +34,7 @@ class LLMWorker:
         # LLM client
         llm_config = self.config.get('llm_service', {})
         self.llm_client = LLMClient(
-            base_url=llm_config.get('base_url', 'http://localhost:8081'),
+            base_url=llm_config.get('base_url', 'http://localhost:12001'),
             api_key=llm_config.get('api_key'),
             timeout=llm_config.get('timeout', 30),
             max_retries=llm_config.get('max_retries', 3)
