@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: cache-populator
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command:
         - python
         - populate_options_cache.py

@@ -11,7 +11,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python", "run_fast_backtest_with_post_llm.py"]
         env:
         - name: DATABASE_URL

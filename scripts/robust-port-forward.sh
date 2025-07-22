@@ -78,6 +78,7 @@ monitor_port_forwards() {
         "backtest-request-service:11031:80"
         "health-dashboard:11002:80"
         "rss-dashboard:11003:80"
+        "rss-feed-service:11004:80"
     )
     
     # Start initial port forwards

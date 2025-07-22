@@ -4,7 +4,7 @@
 # RSS Feed Service Configuration
 RSS_SERVICE_NAME := rss-feed-service
 RSS_SERVICE_PORT := 8084
-RSS_IMAGE_NAME := localhost:5000/rss-feed-service
+RSS_IMAGE_NAME := localhost:32000/rss-feed-service
 RSS_IMAGE_TAG := latest
 
 # Daily Recommendations Configuration

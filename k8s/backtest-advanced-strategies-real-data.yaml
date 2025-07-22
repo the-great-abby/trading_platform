@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - name: backtest
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         imagePullPolicy: Always
         command: ["python"]
         args:

@@ -16,7 +16,7 @@ spec:
       serviceAccountName: default
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python", "test_single_options_strategy.py"]
         env:
         - name: DATABASE_URL

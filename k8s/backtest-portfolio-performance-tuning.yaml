@@ -18,7 +18,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python", "/app/run_portfolio_performance_tuning.py"]
         env:
         - name: USE_LLM_EVALUATION

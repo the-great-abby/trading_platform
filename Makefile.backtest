@@ -368,4 +368,67 @@ cache-status: ## Show cache status
 		echo "   No cache directory found"; \
 	fi
 
-.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete backend-kube-backtest-advanced backend-kube-backtest-advanced-logs backend-kube-backtest-advanced-complete backend-kube-backtest-advanced-working backend-kube-backtest-advanced-working-logs backend-kube-backtest-advanced-working-complete backend-kube-backtest-enhanced-comprehensive backend-kube-backtest-enhanced-comprehensive-logs backend-kube-backtest-enhanced-comprehensive-complete backend-kube-backtest-advanced-real-data backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete backend-kube-backtest-unified-advanced backend-kube-backtest-unified-advanced-logs backend-kube-backtest-unified-advanced-complete backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete fast-backtest fast-backtest-local fast-backtest-symbols fast-backtest-strategies fast-backtest-fast-only fast-backtest-medium-only fast-backtest-custom k8s-fast-backtest k8s-fast-backtest-logs k8s-fast-backtest-delete k8s-fast-backtest-status k8s-fast-backtest-complete performance-test performance-test-local performance-test-extended cache-clear cache-status 
+# ============================================================================
+# END OF DAY BACKTEST TARGETS
+# ============================================================================
+
+eod-backtest-deploy: ## Deploy end-of-day backtest cronjob
+	@echo "$(GREEN)🚀 Deploying end-of-day backtest cronjob...$(NC)"
+	@kubectl apply -f k8s/end-of-day-backtest-cronjob.yaml
+	@echo "$(GREEN)✅ End-of-day backtest cronjob deployed$(NC)"
+	@echo "$(BLUE)Schedule: Every weekday at 6:00 PM (after market close)$(NC)"
+
+eod-backtest-status: ## Check end-of-day backtest status
+	@echo "$(GREEN)📊 End-of-Day Backtest Status:$(NC)"
+	@kubectl get cronjobs -n trading-system | grep end-of-day
+	@echo ""
+	@echo "$(BLUE)Recent jobs:$(NC)"
+	@kubectl get jobs -n trading-system -l app=end-of-day-backtest --sort-by=.metadata.creationTimestamp | tail -5
+
+eod-backtest-trigger: ## Manually trigger end-of-day backtest
+	@echo "$(GREEN)🚀 Manually triggering end-of-day backtest...$(NC)"
+	@kubectl create job --from=cronjob/end-of-day-backtest-cronjob manual-eod-backtest-$$(date +%Y%m%d-%H%M%S) -n trading-system
+	@echo "$(GREEN)✅ Manual end-of-day backtest job created$(NC)"
+	@echo "$(BLUE)Check job status with: kubectl get jobs -n trading-system | grep manual-eod-backtest$(NC)"
+
+eod-backtest-logs: ## View end-of-day backtest logs
+	@echo "$(GREEN)📋 End-of-Day Backtest Logs:$(NC)"
+	@kubectl logs -n trading-system job/end-of-day-backtest-cronjob-$$(kubectl get jobs -n trading-system -l app=end-of-day-backtest --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}') --tail=50
+
+eod-backtest-delete: ## Delete end-of-day backtest cronjob
+	@echo "$(YELLOW)🗑️ Deleting end-of-day backtest cronjob...$(NC)"
+	@kubectl delete cronjob end-of-day-backtest-cronjob -n trading-system
+	@echo "$(GREEN)✅ End-of-day backtest cronjob deleted$(NC)"
+
+# ============================================================================
+# RSS FEED TARGETS
+# ============================================================================
+
+rss-status: ## Check RSS feed and recommendation status
+	@echo "$(GREEN)📰 RSS Feed & Recommendations Status:$(NC)"
+	@echo ""
+	@echo "$(BLUE)Daily Recommendations CronJob:$(NC)"
+	@kubectl get cronjobs -n trading-system daily-recommendations-cronjob -o wide
+	@echo ""
+	@echo "$(BLUE)RSS Feed Service:$(NC)"
+	@kubectl get pods -n trading-system -l app=rss-feed-service
+	@echo ""
+	@echo "$(BLUE)Recent RSS Feed Activity:$(NC)"
+	@kubectl get jobs -n trading-system -l app=daily-recommendations --sort-by=.metadata.creationTimestamp | tail -3
+
+rss-trigger-manual: ## Manually trigger daily recommendations
+	@echo "$(GREEN)🚀 Manually triggering daily recommendations...$(NC)"
+	@kubectl create job --from=cronjob/daily-recommendations-cronjob manual-daily-recommendations-$$(date +%Y%m%d-%H%M%S) -n trading-system
+	@echo "$(GREEN)✅ Manual daily recommendations job created$(NC)"
+	@echo "$(BLUE)Check job status with: kubectl get jobs -n trading-system | grep manual-daily-recommendations$(NC)"
+
+rss-test-feed: ## Test RSS feed endpoints
+	@echo "$(GREEN)🧪 Testing RSS feed endpoints...$(NC)"
+	@echo ""
+	@echo "$(BLUE)Testing RSS feed service health:$(NC)"
+	@curl -s http://localhost:11003/health 2>/dev/null || echo "$(RED)RSS service not available$(NC)"
+	@echo ""
+	@echo "$(BLUE)Testing daily recommendations RSS feed:$(NC)"
+	@curl -s http://localhost:11003/api/feed?type=daily | head -10 2>/dev/null || echo "$(RED)Daily recommendations RSS feed not available$(NC)"
+
+.PHONY: backend-help backend-backtest-list backend-backtest-list-detailed backend-backtest-show backend-backtest-show-trades backend-backtest-compare backend-backtest-stats backend-backtest-run backend-backtest-quick backend-backtest-single backend-backtest-view-results backend-kube-backtest-list backend-kube-backtest-list-detailed backend-kube-backtest-show backend-kube-backtest-compare backend-kube-backtest-stats backend-kube-backtest backend-kube-backtest-status backend-kube-backtest-logs backend-kube-backtest-complete backend-kube-backtest-advanced backend-kube-backtest-advanced-logs backend-kube-backtest-advanced-complete backend-kube-backtest-advanced-working backend-kube-backtest-advanced-working-logs backend-kube-backtest-advanced-working-complete backend-kube-backtest-enhanced-comprehensive backend-kube-backtest-enhanced-comprehensive-logs backend-kube-backtest-enhanced-comprehensive-complete backend-kube-backtest-advanced-real-data backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete backend-kube-backtest-unified-advanced backend-kube-backtest-unified-advanced-logs backend-kube-backtest-unified-advanced-complete backend-kube-backtest-advanced-real-data-logs backend-kube-backtest-advanced-real-data-complete fast-backtest fast-backtest-local fast-backtest-symbols fast-backtest-strategies fast-backtest-fast-only fast-backtest-medium-only fast-backtest-custom k8s-fast-backtest k8s-fast-backtest-logs k8s-fast-backtest-delete k8s-fast-backtest-status k8s-fast-backtest-complete performance-test performance-test-local performance-test-extended cache-clear cache-status eod-backtest-deploy eod-backtest-status eod-backtest-trigger eod-backtest-logs eod-backtest-delete rss-status rss-trigger-manual rss-test-feed 

@@ -17,7 +17,7 @@ spec:
       serviceAccountName: default
       containers:
       - name: backtest
-        image: localhost:5000/backtest-system:latest
+        image: localhost:32000/backtest-system:latest
         command: ["python"]
         args: ["run_simplified_options_backtest.py"]
         env:

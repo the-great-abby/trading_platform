@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: risk-worker
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         command: ["python", "-m", "src.services.workers.risk_worker", "--worker"]
         ports:
         - containerPort: 8000

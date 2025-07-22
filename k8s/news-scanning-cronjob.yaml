@@ -20,7 +20,7 @@ spec:
         spec:
           containers:
           - name: news-scanner
-            image: localhost:5000/trading-system:latest
+            image: localhost:32000/trading-system:latest
             command: ["python", "-m", "src.services.workers.news_worker_cron"]
             env:
             - name: DATABASE_URL

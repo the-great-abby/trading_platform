@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq
-        image: localhost:5000/rabbitmq:3-management-alpine
+        image: localhost:32000/rabbitmq:3-management-alpine
         ports:
         - containerPort: 5672
           name: amqp
@@ -50,17 +50,19 @@ spec:
             command:
             - rabbitmq-diagnostics
             - ping
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 60
+          timeoutSeconds: 15
+          failureThreshold: 5
         readinessProbe:
           exec:
             command:
             - rabbitmq-diagnostics
             - ping
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 30
-          timeoutSeconds: 10
-          failureThreshold: 3
+          timeoutSeconds: 15
+          failureThreshold: 5
         volumeMounts:
         - name: rabbitmq-data
           mountPath: /var/lib/rabbitmq

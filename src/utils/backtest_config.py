@@ -60,13 +60,13 @@ class BacktestConfig:
     # ============================================================================
     
     # Initial capital
-    initial_capital: float = 100000.0
+    initial_capital: float = 1000.0
     
     # Position sizing
     position_size: float = 0.05  # 5% of portfolio per trade
     max_position_size: float = 0.15  # Max 15% per position
     min_trade_value: float = 50.0  # Minimum $50 per trade
-    max_trade_value: float = 15000.0  # Maximum trade value
+    max_trade_value: float = 150.0  # Maximum trade value (15% of $1K)
     
     # Position limits
     max_positions: int = 5
@@ -83,7 +83,7 @@ class BacktestConfig:
     trailing_stop_pct: float = 0.05  # 5% trailing stop
     
     # Risk limits
-    max_daily_loss: float = 100.0  # Max daily loss in dollars
+    max_daily_loss: float = 50.0  # Max daily loss in dollars (5% of $1K)
     max_drawdown_pct: float = 0.25  # 25% max drawdown
     max_portfolio_risk: float = 0.10  # 10% max portfolio risk per trade
     

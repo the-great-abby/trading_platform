@@ -15,7 +15,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Configuration
-REGISTRY="localhost:5000"
+REGISTRY="localhost:32000"
 IMAGE_NAME="backtest-api"
 TAG="latest"
 NAMESPACE="trading-system"

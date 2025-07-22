@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: portfolio-service
-        image: localhost:5000/portfolio-service:latest
+        image: localhost:32000/portfolio-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

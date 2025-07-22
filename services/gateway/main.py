@@ -1,668 +1,444 @@
+#!/usr/bin/env python3
 """
-Centralized API Gateway for Space Trading Station
-Single entry point for all external systems
+API Gateway - Central entry point for all trading platform services
 """
 
 import os
+import json
+import aiohttp
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 import logging
-import asyncio
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
-from contextlib import asynccontextmanager
-
-from fastapi import FastAPI, HTTPException, Depends, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse, Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, Field
-import httpx
-import redis.asyncio as redis
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from prometheus_client import CollectorRegistry, push_to_gateway
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Security
-security = HTTPBearer()
-
-# Prometheus metrics
-REQUEST_COUNT = Counter('gateway_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
-REQUEST_LATENCY = Histogram('gateway_request_duration_seconds', 'Request latency', ['method', 'endpoint'])
+app = FastAPI(title="Trading Platform Gateway", version="1.0.0")
 
 # Configuration
-class GatewayConfig:
-    """Gateway configuration"""
-    # Service URLs
-    TRADING_SERVICE_URL = os.getenv("TRADING_SERVICE_URL", "http://trading-service:8000")
-    MARKET_DATA_SERVICE_URL = os.getenv("MARKET_DATA_SERVICE_URL", "http://market-data-service:8000")
-    PORTFOLIO_SERVICE_URL = os.getenv("PORTFOLIO_SERVICE_URL", "http://portfolio-service:8000")
-    ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:8000")
-    STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:8000")
-    ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
-    RISK_SERVICE_URL = os.getenv("RISK_SERVICE_URL", "http://risk-service:8000")
-    USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://user-service:8000")
-    BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:8000")
-    
-    # Redis for caching and rate limiting
-    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
-    
-    # Security
-    API_KEY_HEADER = "X-API-Key"
-    JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key")
-    
-    # Rate limiting
-    RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
-    RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
-    
-    # Caching
-    CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))
-    
-    # Timeouts
-    REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "30"))
+SERVICES = {
+    "market_data": os.getenv("MARKET_DATA_URL", "http://localhost:8002"),
+    "backtest_api": os.getenv("BACKTEST_API_URL", "http://localhost:8003"),
+    "trading_dashboard": os.getenv("TRADING_DASHBOARD_URL", "http://localhost:8004"),
+    "health_dashboard": os.getenv("HEALTH_DASHBOARD_URL", "http://localhost:8005"),
+    "ai_analysis": os.getenv("AI_ANALYSIS_URL", "http://localhost:11085"),
+    "llm_service": os.getenv("LLM_SERVICE_URL", "http://localhost:12001"),
+    "central_hub": os.getenv("CENTRAL_HUB_URL", "http://localhost:11080")
+}
 
-config = GatewayConfig()
+# Mount static files for reports
+if os.path.exists("reports/html"):
+    app.mount("/reports", StaticFiles(directory="reports/html"), name="reports")
 
-# Pydantic models
-class APIResponse(BaseModel):
-    """Standard API response format"""
-    success: bool
-    data: Optional[Dict[str, Any]] = None
-    message: Optional[str] = None
-    error: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    request_id: Optional[str] = None
+# Templates
+templates = Jinja2Templates(directory="templates")
 
-class HealthCheck(BaseModel):
-    """Health check response"""
+class ServiceHealth(BaseModel):
+    service: str
     status: str
-    version: str
-    timestamp: datetime
-    services: Dict[str, str]
+    response_time: float
+    last_check: datetime
 
-class TradingRequest(BaseModel):
-    """Trading request model"""
-    symbol: str
-    action: str  # buy, sell
-    quantity: int
-    order_type: str = "market"  # market, limit, stop
-    price: Optional[float] = None
-    strategy: Optional[str] = None
+# Health check cache
+health_cache: Dict[str, ServiceHealth] = {}
 
-class MarketDataRequest(BaseModel):
-    """Market data request model"""
-    symbols: List[str]
-    interval: str = "1d"  # 1m, 5m, 15m, 1h, 1d
-    period: str = "1y"  # 1d, 5d, 1m, 3m, 6m, 1y, 2y, 5y, 10y
-
-class PortfolioRequest(BaseModel):
-    """Portfolio request model"""
-    account_id: Optional[str] = None
-    include_positions: bool = True
-    include_history: bool = False
-
-class BacktestRequest(BaseModel):
-    """Backtest request model"""
-    strategy: str
-    symbols: List[str]
-    start_date: str
-    end_date: str
-    initial_capital: float = 100000
-    commission: float = 0.001
-
-# Global variables
-redis_client: Optional[redis.Redis] = None
-http_client: Optional[httpx.AsyncClient] = None
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
-    global redis_client, http_client
+async def check_service_health(service_name: str, url: str) -> ServiceHealth:
+    """Check health of a service"""
+    import time
+    start_time = time.time()
     
-    # Initialize Redis
     try:
-        redis_client = redis.from_url(config.REDIS_URL)
-        await redis_client.ping()
-        logger.info("✅ Redis connected")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{url}/health", timeout=5) as response:
+                response_time = time.time() - start_time
+                status = "healthy" if response.status == 200 else "unhealthy"
+                return ServiceHealth(
+                    service=service_name,
+                    status=status,
+                    response_time=response_time,
+                    last_check=datetime.utcnow()
+                )
     except Exception as e:
-        logger.error(f"❌ Redis connection failed: {e}")
-        redis_client = None
-    
-    # Initialize HTTP client
-    http_client = httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT)
-    logger.info("✅ HTTP client initialized")
-    
-    yield
-    
-    # Cleanup
-    if redis_client:
-        await redis_client.close()
-    if http_client:
-        await http_client.aclose()
-    logger.info("✅ Gateway shutdown complete")
-
-# Create FastAPI app
-app = FastAPI(
-    title="Space Trading Station API Gateway",
-    description="Centralized API gateway for all trading system operations",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan
-)
-
-# Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"]  # Configure appropriately for production
-)
-
-# Authentication
-async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Verify API key and return user ID"""
-    # In production, implement proper API key validation
-    # For now, accept any valid Bearer token
-    if not credentials or not credentials.credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key"
+        response_time = time.time() - start_time
+        logger.error(f"Health check failed for {service_name}: {e}")
+        return ServiceHealth(
+            service=service_name,
+            status="unhealthy",
+            response_time=response_time,
+            last_check=datetime.utcnow()
         )
-    return "user_123"  # Return user ID
 
-# Rate limiting
-async def check_rate_limit(request: Request, user_id: str = Depends(verify_api_key)):
-    """Check rate limit for user"""
-    if not redis_client:
-        return  # Skip rate limiting if Redis is unavailable
-    
-    key = f"rate_limit:{user_id}:{request.url.path}"
-    current = await redis_client.get(key)
-    
-    if current and int(current) >= config.RATE_LIMIT_REQUESTS:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Rate limit exceeded"
-        )
-    
-    pipe = redis_client.pipeline()
-    pipe.incr(key)
-    pipe.expire(key, config.RATE_LIMIT_WINDOW)
-    await pipe.execute()
-
-# Request tracking
-@app.middleware("http")
-async def track_requests(request: Request, call_next):
-    """Track requests for monitoring"""
-    start_time = datetime.utcnow()
-    
-    response = await call_next(request)
-    
-    # Record metrics
-    duration = (datetime.utcnow() - start_time).total_seconds()
-    REQUEST_COUNT.labels(
-        method=request.method,
-        endpoint=request.url.path,
-        status=response.status_code
-    ).inc()
-    
-    REQUEST_LATENCY.labels(
-        method=request.method,
-        endpoint=request.url.path
-    ).observe(duration)
-    
-    return response
-
-# Error handling
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler"""
-    logger.error(f"Unhandled exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content=APIResponse(
-            success=False,
-            error="Internal server error",
-            message="An unexpected error occurred"
-        ).dict()
-    )
-
-# Health check
-@app.get("/health", response_model=HealthCheck)
-async def health_check():
-    """Comprehensive health check"""
-    services = {}
-    
-    # Check all services
-    service_urls = {
-        "trading": config.TRADING_SERVICE_URL,
-        "market_data": config.MARKET_DATA_SERVICE_URL,
-        "portfolio": config.PORTFOLIO_SERVICE_URL,
-        "analytics": config.ANALYTICS_SERVICE_URL,
-        "strategy": config.STRATEGY_SERVICE_URL,
-        "order": config.ORDER_SERVICE_URL,
-        "risk": config.RISK_SERVICE_URL,
-        "user": config.USER_SERVICE_URL,
-        "backtest": config.BACKTEST_API_URL
-    }
-    
-    for service_name, url in service_urls.items():
-        try:
-            if http_client:
-                response = await http_client.get(f"{url}/health", timeout=5)
-                services[service_name] = "healthy" if response.status_code == 200 else "error"
-            else:
-                services[service_name] = "unknown"
-        except Exception as e:
-            services[service_name] = "error"
-            logger.warning(f"Service {service_name} health check failed: {e}")
-    
-    # Check Redis
-    if redis_client:
-        try:
-            await redis_client.ping()
-            services["redis"] = "healthy"
-        except:
-            services["redis"] = "error"
-    else:
-        services["redis"] = "unknown"
-    
-    return HealthCheck(
-        status="healthy" if all(s == "healthy" for s in services.values()) else "degraded",
-        version="1.0.0",
-        timestamp=datetime.utcnow(),
-        services=services
-    )
-
-# Metrics endpoint
-@app.get("/metrics")
-async def metrics():
-    """Prometheus metrics endpoint"""
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-# API Documentation
-@app.get("/", response_model=APIResponse)
+@app.get("/")
 async def root():
-    """API Gateway root endpoint"""
-    return APIResponse(
-        success=True,
-        data={
-            "service": "Space Trading Station API Gateway",
-            "version": "1.0.0",
-            "status": "operational",
-            "endpoints": {
-                "trading": "/api/v1/trading",
-                "market_data": "/api/v1/market-data",
-                "portfolio": "/api/v1/portfolio",
-                "analytics": "/api/v1/analytics",
-                "strategies": "/api/v1/strategies",
-                "orders": "/api/v1/orders",
-                "risk": "/api/v1/risk",
-                "backtest": "/api/v1/backtest",
-                "users": "/api/v1/users"
-            },
-            "documentation": {
-                "swagger": "/docs",
-                "redoc": "/redoc"
-            }
-        },
-        message="Welcome to Space Trading Station API Gateway"
-    )
+    """Gateway root - redirect to central hub"""
+    return RedirectResponse(url="/central-hub")
 
-# Trading endpoints
-@app.post("/api/v1/trading/orders", response_model=APIResponse)
-async def create_order(
-    request: TradingRequest,
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Create a new trading order"""
+@app.get("/health")
+async def health_check():
+    """Gateway health check"""
+    return {
+        "status": "healthy",
+        "service": "trading-gateway",
+        "timestamp": datetime.utcnow(),
+        "services": SERVICES
+    }
+
+@app.get("/api/services/health")
+async def get_all_services_health():
+    """Get health status of all services"""
+    import asyncio
+    
+    # Check all services concurrently
+    health_checks = []
+    for service_name, url in SERVICES.items():
+        health_checks.append(check_service_health(service_name, url))
+    
+    results = await asyncio.gather(*health_checks, return_exceptions=True)
+    
+    # Update cache
+    for result in results:
+        if isinstance(result, ServiceHealth):
+            health_cache[result.service] = result
+    
+    return {
+        "timestamp": datetime.utcnow(),
+        "services": [result.dict() if isinstance(result, ServiceHealth) else 
+                    {"service": "unknown", "status": "error", "response_time": 0, "last_check": datetime.utcnow()}
+                    for result in results]
+    }
+
+# AI Analysis Integration
+@app.get("/api/ai-analysis/health")
+async def ai_analysis_health():
+    """Check AI analysis service health"""
+    return await check_service_health("ai_analysis", SERVICES["ai_analysis"])
+
+@app.post("/api/ai-analysis/analyze/{symbol}")
+async def analyze_stock(symbol: str, request: Request):
+    """Analyze a single stock using AI"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.post(
-            f"{config.ORDER_SERVICE_URL}/orders",
-            json=request.dict(),
-            headers={"Authorization": f"Bearer {user_id}"}
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Order created successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+        body = await request.json()
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['ai_analysis']}/api/analyze/symbol/{symbol}"
+            async with session.post(url, json=body) as response:
+                result = await response.json()
+                return result
     except Exception as e:
-        logger.error(f"Error creating order: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create order")
+        logger.error(f"Error analyzing stock {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed for {symbol}")
 
-@app.get("/api/v1/trading/orders", response_model=APIResponse)
-async def get_orders(
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get user's trading orders"""
+@app.post("/api/ai-analysis/batch")
+async def analyze_batch(request: Request):
+    """Run batch analysis on multiple stocks"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.ORDER_SERVICE_URL}/orders",
-            headers={"Authorization": f"Bearer {user_id}"}
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Orders retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+        body = await request.json()
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['ai_analysis']}/api/analyze/batch"
+            async with session.post(url, json=body) as response:
+                result = await response.json()
+                return result
     except Exception as e:
-        logger.error(f"Error getting orders: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get orders")
+        logger.error(f"Error in batch analysis: {e}")
+        raise HTTPException(status_code=500, detail="Batch analysis failed")
 
-# Market data endpoints
-@app.post("/api/v1/market-data/quotes", response_model=APIResponse)
-async def get_market_quotes(
-    request: MarketDataRequest,
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get market data quotes"""
+@app.get("/api/ai-analysis/results/{analysis_id}")
+async def get_analysis_results(analysis_id: str):
+    """Get results of a batch analysis"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.post(
-            f"{config.MARKET_DATA_SERVICE_URL}/quotes",
-            json=request.dict()
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Market data retrieved successfully"
-            )
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['ai_analysis']}/api/analysis/{analysis_id}"
+            async with session.get(url) as response:
+                if response.status == 200:
+                    return await response.json()
         else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+                    raise HTTPException(status_code=404, detail="Analysis not found")
     except Exception as e:
-        logger.error(f"Error getting market data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get market data")
+        logger.error(f"Error getting analysis results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get analysis results")
 
-# Portfolio endpoints
-@app.get("/api/v1/portfolio", response_model=APIResponse)
-async def get_portfolio(
-    request: PortfolioRequest,
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get user portfolio"""
+@app.get("/api/ai-analysis/recent")
+async def get_recent_analyses(limit: int = 10):
+    """Get recent analysis results"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.PORTFOLIO_SERVICE_URL}/portfolio",
-            params=request.dict(exclude_none=True),
-            headers={"Authorization": f"Bearer {user_id}"}
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Portfolio retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['ai_analysis']}/api/analysis/recent?limit={limit}"
+            async with session.get(url) as response:
+                return await response.json()
     except Exception as e:
-        logger.error(f"Error getting portfolio: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get portfolio")
+        logger.error(f"Error getting recent analyses: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get recent analyses")
 
-# Strategy endpoints
-@app.get("/api/v1/strategies", response_model=APIResponse)
-async def get_strategies(
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get available trading strategies"""
+@app.get("/api/ai-analysis/daily")
+async def get_daily_recommendations():
+    """Get daily stock recommendations"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.STRATEGY_SERVICE_URL}/strategies"
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Strategies retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['ai_analysis']}/api/recommendations/daily"
+            async with session.get(url) as response:
+                return await response.json()
     except Exception as e:
-        logger.error(f"Error getting strategies: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get strategies")
+        logger.error(f"Error getting daily recommendations: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get daily recommendations")
 
-@app.post("/api/v1/strategies/recommendations", response_model=APIResponse)
-async def get_strategy_recommendations(
-    request: Dict[str, Any],
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get strategy recommendations"""
+# Reports Integration
+@app.get("/reports")
+async def reports_dashboard():
+    """Reports dashboard page"""
+    html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Platform - Reports Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .card p {
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+        
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .btn.warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status.healthy {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+        
+        .status.unhealthy {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Reports Dashboard</h1>
+            <p>AI-Powered Trading Analysis & Reports</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>🤖 AI Analysis Reports</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Daily Recommendations</h3>
+                        <p>Get AI-powered buy/sell recommendations for your watchlist stocks with confidence scoring and detailed analysis.</p>
+                        <a href="/api/ai-analysis/daily" class="btn success">View Daily Recommendations</a>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Recent Analyses</h3>
+                        <p>Browse recent AI analysis results and recommendations with detailed technical and sentiment analysis.</p>
+                        <a href="/api/ai-analysis/recent" class="btn">View Recent Analyses</a>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Single Stock Analysis</h3>
+                        <p>Analyze a specific stock with AI-powered insights including technical indicators and sentiment analysis.</p>
+                        <a href="/api/ai-analysis/analyze/AAPL" class="btn secondary">Analyze AAPL</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📈 Backtest Reports</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Backtest Results</h3>
+                        <p>View comprehensive backtest reports with performance metrics, trade analysis, and equity curves.</p>
+                        <a href="/reports/html/" class="btn">Browse Reports</a>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Performance Analysis</h3>
+                        <p>Detailed performance analysis with risk metrics, drawdown analysis, and strategy comparison.</p>
+                        <a href="/api/backtest/results" class="btn secondary">View Results</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🔧 System Status</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Service Health</h3>
+                        <p>Monitor the health and status of all trading platform services and components.</p>
+                        <a href="/api/services/health" class="btn">Check Health</a>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Central Hub</h3>
+                        <p>Access the centralized dashboard for all trading platform services and tools.</p>
+                        <a href="/central-hub" class="btn warning">Go to Central Hub</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Trading Platform Gateway | AI-Powered Analysis & Reporting</p>
+        </div>
+    </div>
+</body>
+</html>
+    """
+    return HTMLResponse(content=html_content)
+
+@app.get("/central-hub")
+async def central_hub():
+    """Redirect to central hub dashboard"""
+    return RedirectResponse(url=SERVICES["central_hub"])
+
+# Legacy endpoints for backward compatibility
+@app.get("/api/market-data/{symbol}")
+async def get_market_data(symbol: str):
+    """Get market data for a symbol"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.post(
-            f"{config.STRATEGY_SERVICE_URL}/recommendations/stock",
-            json=request
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Recommendations generated successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['market_data']}/api/market-data/{symbol}"
+            async with session.get(url) as response:
+                return await response.json()
     except Exception as e:
-        logger.error(f"Error getting recommendations: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get recommendations")
+        logger.error(f"Error getting market data for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get market data for {symbol}")
 
-# Backtest endpoints
-@app.post("/api/v1/backtest/run", response_model=APIResponse)
-async def run_backtest(
-    request: BacktestRequest,
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Run a backtest"""
-    try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.post(
-            f"{config.BACKTEST_API_URL}/api/v1/backtest",
-            json=request.dict()
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Backtest started successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
-    except Exception as e:
-        logger.error(f"Error running backtest: {e}")
-        raise HTTPException(status_code=500, detail="Failed to run backtest")
-
-@app.get("/api/v1/backtest/results", response_model=APIResponse)
-async def get_backtest_results(
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
+@app.get("/api/backtest/results")
+async def get_backtest_results():
     """Get backtest results"""
     try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.BACKTEST_API_URL}/api/v1/runs"
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Backtest results retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
+        async with aiohttp.ClientSession() as session:
+            url = f"{SERVICES['backtest_api']}/api/results"
+            async with session.get(url) as response:
+                return await response.json()
     except Exception as e:
         logger.error(f"Error getting backtest results: {e}")
         raise HTTPException(status_code=500, detail="Failed to get backtest results")
-
-# Analytics endpoints
-@app.get("/api/v1/analytics/performance", response_model=APIResponse)
-async def get_performance_analytics(
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get performance analytics"""
-    try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.ANALYTICS_SERVICE_URL}/analytics/performance"
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Performance analytics retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
-    except Exception as e:
-        logger.error(f"Error getting performance analytics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get performance analytics")
-
-# Risk management endpoints
-@app.get("/api/v1/risk/positions", response_model=APIResponse)
-async def get_risk_positions(
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get risk positions"""
-    try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.RISK_SERVICE_URL}/risk/positions"
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="Risk positions retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
-    except Exception as e:
-        logger.error(f"Error getting risk positions: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get risk positions")
-
-# User management endpoints
-@app.get("/api/v1/users/profile", response_model=APIResponse)
-async def get_user_profile(
-    user_id: str = Depends(verify_api_key),
-    _: None = Depends(check_rate_limit)
-):
-    """Get user profile"""
-    try:
-        if not http_client:
-            raise HTTPException(status_code=503, detail="Service unavailable")
-        
-        response = await http_client.get(
-            f"{config.USER_SERVICE_URL}/users/profile",
-            headers={"Authorization": f"Bearer {user_id}"}
-        )
-        
-        if response.status_code == 200:
-            return APIResponse(
-                success=True,
-                data=response.json(),
-                message="User profile retrieved successfully"
-            )
-        else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-            
-    except Exception as e:
-        logger.error(f"Error getting user profile: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get user profile")
-
-# WebSocket support for real-time data
-@app.websocket("/ws/market-data")
-async def websocket_market_data(websocket):
-    """WebSocket endpoint for real-time market data"""
-    try:
-        await websocket.accept()
-        
-        while True:
-            # Send real-time market data
-            # This would integrate with your market data service
-            data = {
-                "type": "market_data",
-                "timestamp": datetime.utcnow().isoformat(),
-                "data": {
-                    "AAPL": {"price": 150.25, "change": 0.5},
-                    "MSFT": {"price": 300.10, "change": -0.3}
-                }
-            }
-            
-            await websocket.send_json(data)
-            await asyncio.sleep(1)  # Send updates every second
-            
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-    finally:
-        await websocket.close()
 
 if __name__ == "__main__":
     import uvicorn

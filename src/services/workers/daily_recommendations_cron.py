@@ -28,7 +28,7 @@ class DailyRecommendationsCron:
             print(f"🚀 Starting daily recommendations generation at {datetime.now()}")
             
             # Get symbols to analyze
-            symbols = get_symbols()[:20]  # Top 20 symbols
+            symbols = get_symbols()[:15]  # Top 15 symbols for better performance
             
             print(f"📈 Generating recommendations for {len(symbols)} symbols")
             print(f"Symbols: {symbols}")

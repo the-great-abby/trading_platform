@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: end-of-day-backtest-cronjob
+  namespace: trading-system
+  labels:
+    app: end-of-day-backtest
+    job-type: cronjob
+spec:
+  schedule: "0 18 * * 1-5"  # Every weekday at 6:00 PM (after market close)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: end-of-day-backtest
+        spec:
+          containers:
+          - name: end-of-day-backtest
+            image: localhost:32000/trading-system:latest
+            command: ["python", "-m", "src.services.workers.end_of_day_backtest_worker", "--cron-job"]
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database-url
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: rabbitmq-url
+            - name: POLYGON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: polygon-api-key
+            - name: BACKTEST_SYMBOLS
+              value: "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX,AMD,INTC,SPY,QQQ,VTI,VOO"
+            - name: BACKTEST_STRATEGIES
+              value: "RSIStrategy,MACDStrategy,BollingerBandsStrategy,MomentumStrategy,MeanReversionStrategy"
+            - name: BACKTEST_PERIOD_DAYS
+              value: "365"  # Last 1 year
+            - name: BACKTEST_INITIAL_CAPITAL
+              value: "100000"  # $100k
+            - name: USE_CACHE
+              value: "true"
+            - name: USE_REAL_DATA
+              value: "true"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PYTHONPATH
+              value: "/app/src"
+            resources:
+              requests:
+                memory: "2Gi"
+                cpu: "1000m"
+              limits:
+                memory: "4Gi"
+                cpu: "2000m"
+          restartPolicy: OnFailure 

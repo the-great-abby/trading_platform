@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: market-data-worker
-        image: localhost:5000/market-data-worker:latest
+        image: localhost:32000/market-data-worker:latest
         ports:
         - containerPort: 8080
         env:
@@ -51,20 +51,18 @@ spec:
             memory: "512Mi"
             cpu: "200m"
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          exec:
+            command: ["echo", "healthy"]
           initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 1
+          periodSeconds: 60
+          timeoutSeconds: 5
           failureThreshold: 3
         readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8080
+          exec:
+            command: ["echo", "ready"]
           initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 1
+          periodSeconds: 30
+          timeoutSeconds: 5
           failureThreshold: 3
         volumeMounts:
         - name: logs

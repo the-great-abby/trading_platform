@@ -320,28 +320,28 @@ clean-all: clean clean-images ## Clean up everything
 
 port-forward: ## Set up port forwarding for local development
 	@echo "$(GREEN)Setting up port forwarding...$(NC)"
-	kubectl port-forward -n $(NAMESPACE) service/trading-gateway 8080:80 &
-	kubectl port-forward -n $(NAMESPACE) service/trading-dashboard 8081:8080 &
-	kubectl port-forward -n $(NAMESPACE) service/analytics-service 8082:8006 &
+	kubectl port-forward -n $(NAMESPACE) service/trading-gateway 11005:80 &
+	kubectl port-forward -n $(NAMESPACE) service/trading-dashboard 11001:8000 &
+	kubectl port-forward -n $(NAMESPACE) service/analytics-service 11006:8000 &
 	@echo "$(GREEN)Port forwarding active:$(NC)"
-	@echo "  Gateway: http://localhost:8080"
-	@echo "  Dashboard: http://localhost:8081"
-	@echo "  Analytics: http://localhost:8082"
+	@echo "  Gateway: http://localhost:11005"
+	@echo "  Dashboard: http://localhost:11001"
+	@echo "  Analytics: http://localhost:11006"
 
 health-check: ## Check platform health
 	@echo "$(GREEN)Checking platform health...$(NC)"
 	@echo "$(BLUE)Order Management:$(NC)"
-	curl -s http://localhost:8080/health || echo "$(RED)Order Management: DOWN$(NC)"
+	curl -s http://localhost:11005/health || echo "$(RED)Order Management: DOWN$(NC)"
 	@echo "$(BLUE)Strategy Management:$(NC)"
-	curl -s http://localhost:8080/strategy/health || echo "$(RED)Strategy Management: DOWN$(NC)"
+	curl -s http://localhost:11005/strategy/health || echo "$(RED)Strategy Management: DOWN$(NC)"
 	@echo "$(BLUE)Signal Management:$(NC)"
-	curl -s http://localhost:8080/signal/health || echo "$(RED)Signal Management: DOWN$(NC)"
+	curl -s http://localhost:11005/signal/health || echo "$(RED)Signal Management: DOWN$(NC)"
 	@echo "$(BLUE)Risk Management:$(NC)"
-	curl -s http://localhost:8080/risk/health || echo "$(RED)Risk Management: DOWN$(NC)"
+	curl -s http://localhost:11005/risk/health || echo "$(RED)Risk Management: DOWN$(NC)"
 	@echo "$(BLUE)Market Data:$(NC)"
-	curl -s http://localhost:8080/market/health || echo "$(RED)Market Data: DOWN$(NC)"
+	curl -s http://localhost:11005/market/health || echo "$(RED)Market Data: DOWN$(NC)"
 	@echo "$(BLUE)Analytics:$(NC)"
-	curl -s http://localhost:8082/health || echo "$(RED)Analytics: DOWN$(NC)"
+	curl -s http://localhost:11006/health || echo "$(RED)Analytics: DOWN$(NC)"
 
 metrics: ## Show platform metrics
 	@echo "$(CYAN)Platform Metrics$(NC)"

@@ -301,7 +301,7 @@ class BacktestEngine:
                 return None
             
             strategy = strategy_class()
-            initial_capital = 100000.0
+            initial_capital = 1000.0
             final_capital = initial_capital
             total_trades = 0
             winning_trades = 0

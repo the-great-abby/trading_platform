@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trading-system
+  labels:
+    name: trading-system
+    app: trading-platform
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: trading-secrets
+  namespace: trading-system
+type: Opaque
+data:
+  polygon-api-key: UHdTUWIyeUJoMmFZcUVzMGxaSXFuVFhfblQyYjdDSHI=
+  database-url: cG9zdGdyZXNxbDovL3RyYWRpbmdfdXNlcjp0cmFkaW5nX3Bhc3NAcG9zdGdyZXMtZGV2OjU0MzIvdHJhZGluZ19ib3Q=
+  rabbitmq-password: dHJhZGluZ19wYXNz
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-config
+  namespace: trading-system
+data:
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  REGISTRY: "localhost:32000" 

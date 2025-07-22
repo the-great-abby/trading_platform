@@ -96,10 +96,10 @@ LLM_SERVICE_URL=$(kubectl get service llm-service -n trading-system -o jsonpath=
 if [ -z "$LLM_SERVICE_URL" ]; then
     # If no LoadBalancer, use port-forward
     echo "   Setting up port-forward for LLM service..."
-    kubectl port-forward service/llm-service 8008:8008 -n trading-system &
+    kubectl port-forward service/llm-service 11008:8008 -n trading-system &
     PF_PID=$!
     sleep 5
-    LLM_SERVICE_URL="http://localhost:8008"
+    LLM_SERVICE_URL="http://localhost:11008"
 fi
 
 echo "   Testing LLM service health at $LLM_SERVICE_URL/health"

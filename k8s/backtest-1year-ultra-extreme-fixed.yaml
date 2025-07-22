@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python", "run_1year_ultra_extreme_backtest_fixed.py"]
         env:
         - name: DATABASE_URL

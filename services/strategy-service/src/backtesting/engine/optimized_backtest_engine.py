@@ -44,7 +44,7 @@ class BacktestConfig:
     start_date: str
     end_date: str
     strategies: List[str]
-    initial_capital: float = 100000.0
+    initial_capital: float = 1000.0
     commission: float = 0.001
     slippage: float = 0.0005
     max_workers: int = None

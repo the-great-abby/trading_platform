@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: daily-recommendations-worker
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         command: ["python", "-m", "src.services.workers.daily_recommendations_worker"]
         env:
         - name: DATABASE_URL

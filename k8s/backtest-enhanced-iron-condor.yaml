@@ -17,7 +17,7 @@ spec:
       serviceAccountName: default
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python", "run_enhanced_iron_condor_backtest.py"]
         env:
         - name: DATABASE_URL

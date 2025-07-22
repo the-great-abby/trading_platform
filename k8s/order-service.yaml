@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: order-service
-        image: localhost:5000/order-service:latest
+        image: localhost:32000/order-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

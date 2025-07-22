@@ -1,482 +1,234 @@
-# Master Makefile - Trading Bot System
-# This file includes all modular Makefiles and provides a unified interface
+# Trading Platform Service Management
+# Easy commands to start/stop services in optimized configuration
 
-# Include all modular Makefiles
-include Makefile.core
-include Makefile.docker
-include Makefile.kubernetes
-include Makefile.database
-include Makefile.backtest
-include Makefile.services
-include Makefile.quick-wins
-include Makefile.registry
-include Makefile.rss
+.PHONY: help status start-all stop-all start-core stop-core start-heavy stop-heavy start-dashboards stop-dashboards start-workers stop-workers start-management stop-management scale-down scale-up logs
 
 # Default target
-.DEFAULT_GOAL := help
-
-# Colors for output
-GREEN := \033[0;32m
-YELLOW := \033[1;33m
-RED := \033[0;31m
-BLUE := \033[0;34m
-NC := \033[0m # No Color
-
-# Unified Help System
-help: ## Show comprehensive help for all categories
-	@echo "$(BLUE)🏗️  TRADING BOT SYSTEM - MASTER MAKEFILE$(NC)"
-	@echo "$(BLUE)============================================$(NC)"
+help:
+	@echo "Trading Platform Service Management"
+	@echo "=================================="
 	@echo ""
-	@echo "$(GREEN)📋 Available Categories:$(NC)"
-	@echo "  $(YELLOW)core-*$(NC)      - Core development operations (install, test, lint, etc.)"
-	@echo "  $(YELLOW)docker-*$(NC)    - Docker container management"
-	@echo "  $(YELLOW)k8s-*$(NC)       - Kubernetes deployment and management"
-	@echo "  $(YELLOW)db-*$(NC)        - Database operations (local and Kubernetes)"
-	@echo "  $(YELLOW)backend-*$(NC)   - Backtesting operations"
-	@echo "  $(YELLOW)service-*$(NC)   - Service management and execution"
-	@echo "  $(YELLOW)registry-*$(NC)  - Docker registry operations"
-	@echo "  $(YELLOW)quick-*$(NC)     - Quick wins operations"
-
+	@echo "Available commands:"
+	@echo "  status          - Show current pod status"
+	@echo "  start-all       - Start all services"
+	@echo "  stop-all        - Stop all services (scale to 0)"
+	@echo "  start-core      - Start core services only"
+	@echo "  stop-core       - Stop core services"
+	@echo "  start-heavy     - Start heavy services (market-data, analytics)"
+	@echo "  stop-heavy      - Stop heavy services"
+	@echo "  start-dashboards - Start dashboard services"
+	@echo "  stop-dashboards - Stop dashboard services"
+	@echo "  start-workers   - Start worker services"
+	@echo "  stop-workers    - Stop worker services"
+	@echo "  start-management - Start management services"
+	@echo "  stop-management - Stop management services"
+	@echo "  scale-down      - Scale down to minimal configuration"
+	@echo "  scale-up        - Scale up to full configuration"
+	@echo "  logs <service>  - Show logs for a specific service"
+	@echo "  port-forward    - Set up port forwarding for dashboards"
 	@echo ""
-	@echo "$(GREEN)🚀 Quick Start Commands:$(NC)"
-	@echo "  $(YELLOW)make core-setup$(NC)           - Setup development environment"
-	@echo "  $(YELLOW)make docker-build$(NC)         - Build Docker images"
-	@echo "  $(YELLOW)make k8s-deploy$(NC)           - Deploy to Kubernetes"
-	@echo "  $(YELLOW)make backend-kube-backtest$(NC) - Run backtest in Kubernetes"
-	@echo "  $(YELLOW)make k8s-port-forward-strategy$(NC) - Port forward strategy service"
 
+# Show current status
+status:
+	@echo "=== Current Pod Status ==="
+	kubectl get pods -n trading-system --sort-by=.metadata.name
 	@echo ""
-	@echo "$(GREEN)📖 Detailed Help by Category:$(NC)"
-	@echo "  $(YELLOW)make core-help$(NC)            - Core operations"
-	@echo "  $(YELLOW)make docker-help$(NC)          - Docker operations"
-	@echo "  $(YELLOW)make k8s-help$(NC)             - Kubernetes operations"
-	@echo "  $(YELLOW)make db-help$(NC)              - Database operations"
-	@echo "  $(YELLOW)make backend-help$(NC)         - Backtesting operations"
-	@echo "  $(YELLOW)make service-help$(NC)         - Service operations"
-	@echo "  $(YELLOW)make registry-help$(NC)        - Registry operations"
-	@echo "  $(YELLOW)make quick-help$(NC)           - Quick wins operations"
-
-# Quick Start Targets
-setup: ## Complete system setup
-	@echo "$(GREEN)🚀 Setting up complete trading bot system...$(NC)"
-	make core-setup
-	make docker-build
-	@echo "$(GREEN)✅ Setup complete!$(NC)"
-
-deploy: ## Deploy to Kubernetes
-	@echo "$(GREEN)🚀 Deploying to Kubernetes...$(NC)"
-	make k8s-deploy
-	@echo "$(GREEN)✅ Deployment complete!$(NC)"
-
-backtest: ## Run comprehensive backtest
-	@echo "$(GREEN)📊 Running comprehensive backtest...$(NC)"
-	make backend-kube-backtest
-	@echo "$(GREEN)✅ Backtest complete!$(NC)"
-
-# Status Targets
-status: ## Check system status
-	@echo "$(GREEN)📊 Checking system status...$(NC)"
-	@echo "$(BLUE)Docker Status:$(NC)"
-	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -10
+	@echo "=== Resource Usage ==="
+	kubectl top pods -n trading-system --sort-by=memory | head -10
 	@echo ""
-	@echo "$(BLUE)Kubernetes Status:$(NC)"
-	@kubectl -n trading-system get pods 2>/dev/null || echo "$(RED)Kubernetes not available$(NC)"
+	@echo "=== Node Resources ==="
+	kubectl describe nodes | grep -A 5 "Allocated resources"
 
-# Cleanup Targets
-clean: ## Clean up all resources
-	@echo "$(GREEN)🧹 Cleaning up all resources...$(NC)"
-	make core-clean
-	make docker-clean
-	make k8s-clean
-	@echo "$(GREEN)✅ Cleanup complete!$(NC)"
+# Start all services
+start-all:
+	@echo "Starting all services..."
+	kubectl scale deployment --all --replicas=2 -n trading-system
+	@echo "All services started"
 
-# Development Workflow
-dev-workflow: ## Complete development workflow
-	@echo "$(GREEN)🔄 Running complete development workflow...$(NC)"
-	make core-setup
-	make docker-build
-	make k8s-deploy
-	make backend-kube-backtest
-	@echo "$(GREEN)✅ Development workflow complete!$(NC)"
+# Stop all services
+stop-all:
+	@echo "Stopping all services..."
+	kubectl scale deployment --all --replicas=0 -n trading-system
+	@echo "All services stopped"
 
-# Space Station Monitor
-monitor: ## Start Space Trading Station Monitor
-	@echo "$(GREEN)🚀 Starting Space Trading Station Monitor...$(NC)"
-	@echo "$(BLUE)This is ORION, Mission Control. All systems are go!$(NC)"
-	python space_station_monitor.py
+# Start core services (essential for basic functionality)
+start-core:
+	@echo "Starting core services..."
+	kubectl scale deployment central-hub-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment trading-gateway --replicas=2 -n trading-system
+	kubectl scale deployment health-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment postgres-dev --replicas=1 -n trading-system
+	kubectl scale deployment rabbitmq --replicas=1 -n trading-system
+	@echo "Core services started"
 
-monitor-quick: ## Start Space Station Monitor (Quick Mode)
-	@echo "$(GREEN)🚀 Starting Space Trading Station Monitor (Quick Mode)...$(NC)"
-	python -c "import asyncio; from src.utils.space_station_monitor import SpaceStationMonitor; asyncio.run(SpaceStationMonitor(refresh_interval=1).start_monitoring())"
+# Stop core services
+stop-core:
+	@echo "Stopping core services..."
+	kubectl scale deployment central-hub-dashboard --replicas=0 -n trading-system
+	kubectl scale deployment trading-gateway --replicas=0 -n trading-system
+	kubectl scale deployment health-dashboard --replicas=0 -n trading-system
+	@echo "Core services stopped"
 
-monitor-demo: ## Start Space Station Monitor with Demo Data
-	@echo "$(GREEN)🚀 Starting Space Trading Station Monitor Demo...$(NC)"
-	@echo "$(BLUE)This will show simulated trading data in real-time.$(NC)"
-	python demo_monitor.py
+# Start heavy services (market data and analytics)
+start-heavy:
+	@echo "Starting heavy services..."
+	kubectl scale deployment market-data-service --replicas=1 -n trading-system
+	kubectl scale deployment market-data-worker --replicas=1 -n trading-system
+	kubectl scale deployment analytics-service --replicas=1 -n trading-system
+	kubectl scale deployment analytics-worker --replicas=1 -n trading-system
+	@echo "Heavy services started"
 
-monitor-demo-api: ## Run the monitor with API integration demo
-	@echo "$(GREEN)🚀 Starting Monitor with API Integration Demo...$(NC)"
-	@echo "$(BLUE)This will connect to the Kubernetes API for real data.$(NC)"
-	python demo_monitor_with_api.py
+# Stop heavy services
+stop-heavy:
+	@echo "Stopping heavy services..."
+	kubectl scale deployment market-data-service --replicas=0 -n trading-system
+	kubectl scale deployment market-data-worker --replicas=0 -n trading-system
+	kubectl scale deployment analytics-service --replicas=0 -n trading-system
+	kubectl scale deployment analytics-worker --replicas=0 -n trading-system
+	@echo "Heavy services stopped"
 
-# Kubernetes Pod Monitoring
-monitor-pod: ## Monitor a Kubernetes pod with periodic status and log checks
-	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make monitor-pod POD=pod-name$(NC)" && exit 1)); \
-	NAMESPACE=$${NAMESPACE:-trading-system}; \
-	INTERVAL=$${INTERVAL:-60}; \
-	LOG_LINES=$${LOG_LINES:-5}; \
-	echo "$(GREEN)🔍 Monitoring pod: $$POD in namespace: $$NAMESPACE$(NC)"; \
-	echo "$(BLUE)Interval: $$INTERVAL seconds, Log lines: $$LOG_LINES$(NC)"; \
-	echo "$(YELLOW)Press Ctrl+C to stop monitoring$(NC)"; \
-	echo ""; \
-	while true; do \
-		echo "=== $$(date) ==="; \
-		kubectl get pods -n $$NAMESPACE | grep $$POD || echo "$(RED)Pod not found$(NC)"; \
-		echo "--- Recent logs ---"; \
-		kubectl logs -n $$NAMESPACE $$(kubectl get pods -n $$NAMESPACE | grep $$POD | awk '{print $$1}' | head -1) --tail=$$LOG_LINES 2>/dev/null || echo "$(RED)No logs available$(NC)"; \
-		echo "=================="; \
-		sleep $$INTERVAL; \
-	done
+# Start dashboard services
+start-dashboards:
+	@echo "Starting dashboard services..."
+	kubectl scale deployment trading-dashboard-service --replicas=1 -n trading-system
+	kubectl scale deployment performance-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment rss-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment rss-feed-service --replicas=1 -n trading-system
+	@echo "Dashboard services started"
 
-# Colored Log Viewing
-logs-colored: ## View colored logs from a pod
-	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make logs-colored POD=pod-name$(NC)" && exit 1)); \
-	NAMESPACE=$${NAMESPACE:-trading-system}; \
-	echo "$(GREEN)🎨 Viewing colored logs for pod: $$POD$(NC)"; \
-	kubectl logs -n $$NAMESPACE $$POD -f | python3 scripts/log_colorizer.py
+# Stop dashboard services
+stop-dashboards:
+	@echo "Stopping dashboard services..."
+	kubectl scale deployment trading-dashboard-service --replicas=0 -n trading-system
+	kubectl scale deployment performance-dashboard --replicas=0 -n trading-system
+	kubectl scale deployment rss-dashboard --replicas=0 -n trading-system
+	kubectl scale deployment rss-feed-service --replicas=0 -n trading-system
+	@echo "Dashboard services stopped"
 
-logs-colored-tail: ## View colored logs with tail
-	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make logs-colored-tail POD=pod-name$(NC)" && exit 1)); \
-	NAMESPACE=$${NAMESPACE:-trading-system}; \
-	LINES=$${LINES:-50}; \
-	echo "$(GREEN)🎨 Viewing colored logs (last $$LINES lines) for pod: $$POD$(NC)"; \
-	kubectl logs -n $$NAMESPACE $$POD --tail=$$LINES | python3 scripts/log_colorizer.py
+# Start worker services
+start-workers:
+	@echo "Starting worker services..."
+	kubectl scale deployment order-worker --replicas=1 -n trading-system
+	kubectl scale deployment strategy-worker --replicas=1 -n trading-system
+	kubectl scale deployment signal-worker --replicas=1 -n trading-system
+	kubectl scale deployment risk-worker --replicas=1 -n trading-system
+	kubectl scale deployment notification-worker --replicas=1 -n trading-system
+	@echo "Worker services started"
 
-# GRC Log Viewing (Generic Colouriser)
-logs-grc: ## View logs with grc colorizer
-	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make logs-grc POD=pod-name$(NC)" && exit 1)); \
-	NAMESPACE=$${NAMESPACE:-trading-system}; \
-	echo "$(GREEN)🎨 Viewing logs with grc for pod: $$POD$(NC)"; \
-	kubectl logs -n $$NAMESPACE $$POD -f | grc -c ~/.grc/trading-logs.conf cat
+# Stop worker services
+stop-workers:
+	@echo "Stopping worker services..."
+	kubectl scale deployment order-worker --replicas=0 -n trading-system
+	kubectl scale deployment strategy-worker --replicas=0 -n trading-system
+	kubectl scale deployment signal-worker --replicas=0 -n trading-system
+	kubectl scale deployment risk-worker --replicas=0 -n trading-system
+	kubectl scale deployment notification-worker --replicas=0 -n trading-system
+	@echo "Worker services stopped"
 
-logs-grc-tail: ## View logs with grc colorizer and tail
-	@POD=$$(test -n "$(POD)" && echo "$(POD)" || (echo "$(RED)POD variable required. Usage: make logs-grc-tail POD=pod-name$(NC)" && exit 1)); \
-	NAMESPACE=$${NAMESPACE:-trading-system}; \
-	LINES=$${LINES:-50}; \
-	echo "$(GREEN)🎨 Viewing logs with grc (last $$LINES lines) for pod: $$POD$(NC)"; \
-	kubectl logs -n $$NAMESPACE $$POD --tail=$$LINES | grc -c ~/.grc/trading-logs.conf cat
+# Start management services
+start-management:
+	@echo "Starting management services..."
+	kubectl scale deployment order-management-service --replicas=1 -n trading-system
+	kubectl scale deployment strategy-management-service --replicas=1 -n trading-system
+	kubectl scale deployment signal-management-service --replicas=1 -n trading-system
+	kubectl scale deployment risk-management-service --replicas=1 -n trading-system
+	@echo "Management services started"
 
-logs-grc-file: ## View log file with grc colorizer
-	@FILE=$$(test -n "$(FILE)" && echo "$(FILE)" || (echo "$(RED)FILE variable required. Usage: make logs-grc-file FILE=logs/trading_system.log$(NC)" && exit 1)); \
-	echo "$(GREEN)🎨 Viewing log file with grc: $$FILE$(NC)"; \
-	tail -f $$FILE | grc -c ~/.grc/trading-logs.conf cat
+# Stop management services
+stop-management:
+	@echo "Stopping management services..."
+	kubectl scale deployment order-management-service --replicas=0 -n trading-system
+	kubectl scale deployment strategy-management-service --replicas=0 -n trading-system
+	kubectl scale deployment signal-management-service --replicas=0 -n trading-system
+	kubectl scale deployment risk-management-service --replicas=0 -n trading-system
+	@echo "Management services stopped"
 
-# Ollama GRC Log Viewing
-logs-ollama-grc: ## View Ollama logs with grc colorizer
-	@POD=$${POD:-ollama}; \
-	NAMESPACE=$${NAMESPACE:-trading-system}; \
-	echo "$(GREEN)🎨 Viewing Ollama logs with grc for pod: $$POD$(NC)"; \
-	kubectl logs -n $$NAMESPACE $$POD -f | grc -c $$HOME/.grc/ollama-logs.conf cat
+# Scale down to minimal configuration (core + management only)
+scale-down:
+	@echo "Scaling down to minimal configuration..."
+	$(MAKE) stop-heavy
+	$(MAKE) stop-dashboards
+	$(MAKE) stop-workers
+	$(MAKE) start-core
+	$(MAKE) start-management
+	@echo "Minimal configuration active"
 
-logs-ollama-host: ## View Ollama logs from host with grc colorizer
-	@LOG_FILE=$${LOG_FILE:-/var/log/ollama.log}; \
-	echo "$(GREEN)🎨 Viewing Ollama logs from host: $$LOG_FILE$(NC)"; \
-	if [ -f "$$LOG_FILE" ]; then \
-		grc -c $$HOME/.grc/ollama-logs.conf tail -f $$LOG_FILE; \
+# Scale up to full configuration
+scale-up:
+	@echo "Scaling up to full configuration..."
+	$(MAKE) start-all
+	@echo "Full configuration active"
+
+# Show logs for a specific service
+logs:
+	@if [ -z "$(service)" ]; then \
+		echo "Usage: make logs service=<service-name>"; \
+		echo "Example: make logs service=market-data-service"; \
+		echo ""; \
+		echo "Available services:"; \
+		kubectl get deployments -n trading-system --no-headers | awk '{print $$1}'; \
 	else \
-		echo "$(YELLOW)Log file not found: $$LOG_FILE$(NC)"; \
-		echo "$(BLUE)Try: make logs-ollama-host LOG_FILE=/path/to/ollama.log$(NC)"; \
-		echo "$(BLUE)Or: ollama serve 2>&1 | grc -c $$HOME/.grc/ollama-logs.conf cat$(NC)"; \
+		echo "Showing logs for $(service)..."; \
+		kubectl logs -f deployment/$(service) -n trading-system; \
 	fi
 
-logs-ollama-live: ## View live Ollama logs from host process
-	@echo "$(GREEN)🎨 Viewing live Ollama logs from host process$(NC)"; \
-	echo "$(BLUE)Starting Ollama serve with grc colorization...$(NC)"; \
-	ollama serve 2>&1 | grc -c $$HOME/.grc/ollama-logs.conf cat
-
-# Python Virtual Environment
-venv-create: ## Create Python virtual environment in .venv
-	python3 -m venv .venv
-
-venv-activate: ## Activate the Python virtual environment
-	@echo "Run: source .venv/bin/activate"
-
-venv-install: venv-create ## Install Python dependencies in venv
-	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -r requirements.txt
-	.venv/bin/pip install loguru psutil
-
-venv-monitor: venv-install ## Run Space Station Monitor in venv
-	.venv/bin/python space_station_monitor.py
-
-venv-monitor-demo: venv-install ## Run Space Station Monitor Demo in venv
-	.venv/bin/python demo_monitor.py
-
-# API Services
-api-backtest: venv-install ## Start Backtest Results API on port 10001
-	@echo "$(GREEN)🚀 Starting Backtest Results API on port 10001...$(NC)"
-	@echo "$(BLUE)API will be available at: http://localhost:10001$(NC)"
-	.venv/bin/python -m uvicorn src.api.backtest_api:app --host 0.0.0.0 --port 10001 --reload
-
-api-backtest-demo: venv-install ## Demo the backtest API client
-	@echo "$(GREEN)🚀 Running Backtest API Demo...$(NC)"
-	.venv/bin/python demo_backtest_api.py
-
-# Performance Dashboard
-dashboard-build: ## Build performance dashboard Docker image
-	@echo "$(GREEN)🔨 Building Performance Dashboard...$(NC)"
-	docker build -t localhost:32000/performance-dashboard:latest services/performance-dashboard/
-	docker push localhost:32000/performance-dashboard:latest
-
-dashboard-deploy: ## Deploy performance dashboard to Kubernetes
-	@echo "$(GREEN)🚀 Deploying Performance Dashboard...$(NC)"
-	kubectl apply -f k8s/performance-dashboard.yaml
-	@echo "$(BLUE)Performance Dashboard deployed!$(NC)"
-
-dashboard-port-forward: ## Port forward to performance dashboard
-	@echo "$(GREEN)🔗 Port forwarding to Performance Dashboard...$(NC)"
-	kubectl port-forward -n trading-system svc/performance-dashboard 8081:80
-
-dashboard-logs: ## View performance dashboard logs
-	@echo "$(GREEN)📋 Performance Dashboard logs:$(NC)"
-	kubectl logs -n trading-system -l app=performance-dashboard -f
-
-dashboard-status: ## Check performance dashboard status
-	@echo "$(GREEN)📊 Performance Dashboard Status:$(NC)"
-	kubectl get pods -n trading-system -l app=performance-dashboard
-	@echo "$(BLUE)Access at: http://localhost:8081/dashboard$(NC)"
-
-# ============================================================================
-# RISK MANAGEMENT TARGETS
-# ============================================================================
-
-.PHONY: risk-deploy risk-deploy-all risk-start risk-stop risk-logs risk-status risk-config risk-test
-
-# Deploy risk management system
-risk-deploy:
-	@echo "🛡️ Deploying Risk Management System..."
-	kubectl apply -f k8s/risk-worker.yaml
-	@echo "✅ Risk Management System deployed"
-
-# Deploy all risk management components
-risk-deploy-all: risk-deploy
-	@echo "🔄 Waiting for risk worker to be ready..."
-	kubectl wait --for=condition=ready pod -l app=risk-worker -n trading-system --timeout=300s
-	@echo "✅ All risk management components deployed and ready"
-
-# Start risk management system
-risk-start:
-	@echo "🚀 Starting Risk Management System..."
-	kubectl scale deployment risk-worker -n trading-system --replicas=2
-	@echo "✅ Risk Management System started"
-
-# Stop risk management system
-risk-stop:
-	@echo "🛑 Stopping Risk Management System..."
-	kubectl scale deployment risk-worker -n trading-system --replicas=0
-	@echo "✅ Risk Management System stopped"
-
-# View risk management logs
-risk-logs:
-	@echo "📋 Risk Management Logs:"
-	kubectl logs -f deployment/risk-worker -n trading-system
-
-# Check risk management status
-risk-status:
-	@echo "📊 Risk Management Status:"
-	kubectl get pods -l app=risk-worker -n trading-system
-	kubectl get services -l app=risk-worker -n trading-system
-	kubectl get configmaps -l app=risk-worker -n trading-system
-
-# Update risk configuration
-risk-config:
-	@echo "⚙️ Updating Risk Configuration..."
-	kubectl apply -f k8s/risk-worker.yaml
-	@echo "✅ Risk Configuration updated"
-
-# Test risk management system
-risk-test:
-	@echo "🧪 Testing Risk Management System..."
-	@echo "Testing risk worker health..."
-	kubectl exec -n trading-system deployment/risk-worker -- curl -f http://localhost:8000/health || echo "❌ Risk worker health check failed"
-	@echo "Testing risk configuration..."
-	kubectl get configmap risk-config -n trading-system -o yaml
-	@echo "✅ Risk Management System tests completed"
-
-# Risk management monitoring
-risk-monitor:
-	@echo "📈 Risk Management Monitoring:"
-	@echo "Pod Status:"
-	kubectl get pods -l app=risk-worker -n trading-system -o wide
+# Set up port forwarding for dashboards
+port-forward:
+	@echo "Setting up port forwarding..."
+	@echo "Central Hub Dashboard: http://localhost:11080"
+	@echo "Health Dashboard: http://localhost:11081"
+	@echo "Trading Dashboard: http://localhost:11082"
 	@echo ""
-	@echo "Resource Usage:"
-	kubectl top pods -l app=risk-worker -n trading-system
+	@echo "Starting port forwarding (Ctrl+C to stop)..."
+	kubectl port-forward service/central-hub-dashboard 11080:80 -n trading-system &
+	kubectl port-forward service/health-dashboard 11081:80 -n trading-system &
+	kubectl port-forward service/trading-dashboard-service 11082:80 -n trading-system &
+	@echo "Port forwarding started. Access dashboards at the URLs above."
+
+# Quick status check
+quick-status:
+	@echo "=== Quick Status Check ==="
+	@echo "Core Services:"
+	kubectl get pods -n trading-system -l app=central-hub-dashboard --no-headers | awk '{print "  " $$1 ": " $$3}'
+	kubectl get pods -n trading-system -l app=trading-gateway --no-headers | awk '{print "  " $$1 ": " $$3}'
 	@echo ""
-	@echo "Recent Logs:"
-	kubectl logs --tail=50 deployment/risk-worker -n trading-system
-
-# Risk management troubleshooting
-risk-troubleshoot:
-	@echo "🔧 Risk Management Troubleshooting:"
-	@echo "1. Checking pod status..."
-	kubectl get pods -l app=risk-worker -n trading-system
+	@echo "Management Services:"
+	kubectl get pods -n trading-system -l app=order-management-service --no-headers | awk '{print "  " $$1 ": " $$3}'
+	kubectl get pods -n trading-system -l app=strategy-management-service --no-headers | awk '{print "  " $$1 ": " $$3}'
+	kubectl get pods -n trading-system -l app=signal-management-service --no-headers | awk '{print "  " $$1 ": " $$3}'
+	kubectl get pods -n trading-system -l app=risk-management-service --no-headers | awk '{print "  " $$1 ": " $$3}'
 	@echo ""
-	@echo "2. Checking events..."
-	kubectl get events -n trading-system --sort-by='.lastTimestamp' | grep risk-worker
-	@echo ""
-	@echo "3. Checking configuration..."
-	kubectl describe configmap risk-config -n trading-system
-	@echo ""
-	@echo "4. Checking service endpoints..."
-	kubectl get endpoints risk-worker-service -n trading-system
+	@echo "Heavy Services:"
+	kubectl get pods -n trading-system -l app=market-data-service --no-headers | awk '{print "  " $$1 ": " $$3}'
+	kubectl get pods -n trading-system -l app=analytics-service --no-headers | awk '{print "  " $$1 ": " $$3}'
 
-# Risk management cleanup
-risk-cleanup:
-	@echo "🧹 Cleaning up Risk Management System..."
-	kubectl delete -f k8s/risk-worker.yaml --ignore-not-found=true
-	@echo "✅ Risk Management System cleaned up"
+# Emergency stop (stop everything except core)
+emergency-stop:
+	@echo "EMERGENCY STOP - Stopping all non-core services..."
+	$(MAKE) stop-heavy
+	$(MAKE) stop-dashboards
+	$(MAKE) stop-workers
+	$(MAKE) stop-management
+	@echo "Emergency stop complete. Only core services remain running." 
 
-# Risk management backup
-risk-backup:
-	@echo "💾 Backing up Risk Management Configuration..."
-	kubectl get configmap risk-config -n trading-system -o yaml > backup/risk-config-$(shell date +%Y%m%d_%H%M%S).yaml
-	@echo "✅ Risk Management Configuration backed up"
+# AI Analysis Service
+ai-analysis-build:
+	@echo "🤖 Building AI Analysis Service..."
+	cd services/ai-analysis-service && docker build -t localhost:32000/ai-analysis-service:latest .
+	docker push localhost:32000/ai-analysis-service:latest
 
-# Risk management restore
-risk-restore:
-	@echo "🔄 Restoring Risk Management Configuration..."
-	@if [ -z "$(BACKUP_FILE)" ]; then \
-		echo "❌ Please specify BACKUP_FILE=<filename>"; \
-		exit 1; \
-	fi
-	kubectl apply -f backup/$(BACKUP_FILE)
-	@echo "✅ Risk Management Configuration restored"
+ai-analysis-deploy: ai-analysis-build
+	@echo "🚀 Deploying AI Analysis Service..."
+	kubectl apply -f k8s/trading-platform-comprehensive.yaml
+	kubectl wait --for=condition=available --timeout=300s deployment/ai-analysis-service -n trading-system
 
-# Risk management scaling
-risk-scale:
-	@echo "📏 Scaling Risk Management System..."
-	@if [ -z "$(REPLICAS)" ]; then \
-		echo "❌ Please specify REPLICAS=<number>"; \
-		exit 1; \
-	fi
-	kubectl scale deployment risk-worker -n trading-system --replicas=$(REPLICAS)
-	@echo "✅ Risk Management System scaled to $(REPLICAS) replicas"
+ai-analysis-logs:
+	kubectl logs -f deployment/ai-analysis-service -n trading-system
 
-# Risk management performance test
-risk-perf-test:
-	@echo "⚡ Risk Management Performance Test:"
-	@echo "1. Testing risk check throughput..."
-	@echo "2. Testing portfolio risk assessment..."
-	@echo "3. Testing stress test scenarios..."
-	@echo "4. Testing alert processing..."
-	@echo "✅ Risk Management Performance Test completed"
+ai-analysis-test:
+	@echo "🧪 Testing AI Analysis Service..."
+	curl -X POST http://localhost:11085/api/analyze/symbol/AAPL -H "Content-Type: application/json" -d '{"include_news": true, "include_technical": true}'
 
-# Risk management security audit
-risk-security-audit:
-	@echo "🔒 Risk Management Security Audit:"
-	@echo "1. Checking RBAC permissions..."
-	kubectl auth can-i get pods --as=system:serviceaccount:trading-system:risk-worker-sa -n trading-system
-	@echo "2. Checking network policies..."
-	kubectl get networkpolicy risk-worker-network-policy -n trading-system
-	@echo "3. Checking secret access..."
-	kubectl auth can-i get secrets --as=system:serviceaccount:trading-system:risk-worker-sa -n trading-system
-	@echo "✅ Risk Management Security Audit completed"
-
-# Port forwarding targets for 11000-12000 range
-.PHONY: port-forward-all port-forward-stop check-services
-
-# Start all port forwarding in 11000-12000 range
-port-forward-all:
-	@echo "🚀 Starting robust port forwarding..."
-	@echo "📊 Services will be available on ports 11000-11031"
-	@echo "🔄 Auto-restart on failure for maximum reliability"
-	@echo ""
-	@./scripts/robust-port-forward.sh start
-
-# Stop all port forwarding
-port-forward-stop:
-	@echo "🛑 Stopping all port forwarding..."
-	@./scripts/robust-port-forward.sh stop
-	@pkill -f "kubectl port-forward" || true
-	@echo "✅ All port forwarding stopped"
-
-# Check port forwarding status
-port-forward-status:
-	@echo "📊 Port forwarding status:"
-	@./scripts/robust-port-forward.sh status
-
-# Check status of all services
-check-services:
-	@echo "🔍 Checking service status..."
-	@./scripts/check-services.sh
-
-# Monitoring targets
-monitor-pods: ## Start proactive pod monitoring
-	@echo "🔍 Starting proactive pod monitoring..."
-	@echo "📝 Logs: logs/pod-monitor-$(shell date +%Y%m%d).log"
-	@echo "🚨 Alerts: logs/pod-alerts-$(shell date +%Y%m%d).log"
-	./scripts/pod-monitor.sh
-
-monitor-pods-bg: ## Start proactive pod monitoring in background
-	@echo "🔍 Starting proactive pod monitoring in background..."
-	./scripts/pod-monitor.sh > /dev/null 2>&1 &
-	@echo "📝 Monitor PID: $$!"
-	@echo "📝 Logs: logs/pod-monitor-$(shell date +%Y%m%d).log"
-	@echo "🚨 Alerts: logs/pod-alerts-$(shell date +%Y%m%d).log"
-
-check-pod-health: ## Quick pod health check
-	@echo "🔍 Quick pod health check..."
-	@kubectl get pods -n trading-system -o wide
-	@echo ""
-	@echo "📊 Recent events:"
-	@kubectl get events -n trading-system --sort-by='.lastTimestamp' | tail -5
-
-# Registry management
-fix-registry-urls: ## Fix registry URLs for Docker build/push commands
-	@echo "🔧 Fixing registry URLs..."
-	./scripts/fix-registry-urls.sh
-
-check-registry: ## Check registry status and configuration
-	@echo "🔍 Checking registry status..."
-	@echo "Registry service:"
-	@kubectl get svc registry -n default
-	@echo ""
-	@echo "Registry catalog:"
-	@curl -s http://localhost:32000/v2/_catalog | jq . 2>/dev/null || echo "Registry not accessible"
-	@echo ""
-	@echo "Registry health:"
-	@curl -s http://localhost:32000/v2/ || echo "Registry health check failed"
-
-# Quick access to main dashboards
-dashboard-performance:
-	@echo "🌐 Opening Performance Dashboard..."
-	@open http://localhost:11000/dashboard || echo "Please open: http://localhost:11000/dashboard"
-
-dashboard-trading:
-	@echo "🌐 Opening Trading Dashboard..."
-	@open http://localhost:11001/ || echo "Please open: http://localhost:11001/"
-
-dashboard-health:
-	@echo "🌐 Opening Health Dashboard..."
-	@open http://localhost:11002/ || echo "Please open: http://localhost:11002/"
-
-# Quick access to APIs
-api-backtest:
-	@echo "🌐 Opening Backtest API..."
-	@open http://localhost:11010/ || echo "Please open: http://localhost:11010/"
-
-api-public:
-	@echo "🌐 Opening Public API..."
-	@open http://localhost:11011/ || echo "Please open: http://localhost:11011/"
-
-api-llm-proxy:
-	@echo "🌐 Opening Ollama LLM Proxy..."
-	@open http://localhost:12001/ || echo "Please open: http://localhost:12001/"
-
-# LLM Proxy Demo
-demo-llm-proxy:
-	@echo "🤖 Running LLM Proxy Backtest Analysis Demo..."
-	@.venv/bin/python llm_proxy_demo.py
-
-# .PHONY declarations
-.PHONY: help setup deploy backtest status clean dev-workflow monitor monitor-quick monitor-demo monitor-pod api-backtest api-backtest-demo 
+ai-analysis-daily:
+	@echo "📊 Getting Daily AI Recommendations..."
+	curl http://localhost:11085/api/recommendations/daily 

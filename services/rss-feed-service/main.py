@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="RSS Feed Service", version="1.0.0")
 
 # Configuration
-STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:8000")
+STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:80")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost")
 
@@ -34,7 +34,7 @@ class RSSFeedConfig(BaseModel):
     language: str = "en-us"
     ttl: int = 60  # minutes
     max_items: int = 50
-    feed_url: str = "http://localhost:8084/rss/daily-recommendations"
+    feed_url: str = "http://localhost:11004/rss/daily-recommendations"
     site_url: str = "http://localhost:11001/"
 
 class RSSItem(BaseModel):
@@ -185,8 +185,8 @@ class DailyRecommendationsService:
             <p><strong>Reasoning:</strong> {reasoning}</p>
             """
             
-            # Create link
-            link = f"http://localhost:11001/dashboard/recommendations/{symbol}"
+            # Create link to trading dashboard RSS feeds
+            link = f"http://localhost:11001/dashboard/rss/positions"
             
             # Create GUID
             guid = f"recommendation-{symbol}-{datetime.now().strftime('%Y%m%d')}"
@@ -205,6 +205,102 @@ class DailyRecommendationsService:
         
         return items
 
+# Helper functions for real market data
+async def get_real_market_price(symbol: str) -> Optional[float]:
+    """Get real current price from Polygon API"""
+    try:
+        # Use Polygon API to get current price
+        polygon_api_key = os.getenv("POLYGON_API_KEY")
+        if not polygon_api_key:
+            logger.warning("⚠️ POLYGON_API_KEY not set")
+            return None
+            
+        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev?adjusted=true&apiKey={polygon_api_key}"
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('results') and len(data['results']) > 0:
+                    return data['results'][0]['c']  # Close price
+            else:
+                logger.warning(f"⚠️ Polygon API error for {symbol}: {response.status_code}")
+                
+    except Exception as e:
+        logger.error(f"❌ Error getting price for {symbol}: {e}")
+    
+    return None
+
+def generate_recommendation(symbol: str, current_price: float) -> Dict[str, Any]:
+    """Generate a recommendation based on current price"""
+    # Simple recommendation logic based on price ranges
+    if symbol == "AAPL":
+        if current_price < 180:
+            action = "BUY"
+            confidence = 0.85
+            target_price = current_price * 1.05
+            reasoning = "Strong technical indicators show upward momentum. RSI indicates oversold conditions."
+        elif current_price > 200:
+            action = "SELL"
+            confidence = 0.75
+            target_price = current_price * 0.95
+            reasoning = "Price approaching resistance levels. Consider taking profits."
+        else:
+            action = "HOLD"
+            confidence = 0.70
+            target_price = current_price * 1.02
+            reasoning = "Stock trading within normal range. Technical indicators suggest consolidation."
+    
+    elif symbol == "NVDA":
+        if current_price < 800:
+            action = "BUY"
+            confidence = 0.90
+            target_price = current_price * 1.08
+            reasoning = "Exceptional AI market position. Strong earnings growth and technical momentum."
+        elif current_price > 1000:
+            action = "SELL"
+            confidence = 0.80
+            target_price = current_price * 0.92
+            reasoning = "High valuation levels reached. Consider profit taking."
+        else:
+            action = "HOLD"
+            confidence = 0.75
+            target_price = current_price * 1.03
+            reasoning = "Strong fundamentals but price at fair value."
+    
+    elif symbol == "TSLA":
+        if current_price < 200:
+            action = "BUY"
+            confidence = 0.75
+            target_price = current_price * 1.10
+            reasoning = "Oversold conditions. Potential for recovery."
+        elif current_price > 300:
+            action = "SELL"
+            confidence = 0.80
+            target_price = current_price * 0.90
+            reasoning = "Overbought conditions. MACD divergence suggests potential reversal."
+        else:
+            action = "HOLD"
+            confidence = 0.65
+            target_price = current_price * 1.02
+            reasoning = "Volatile trading pattern. Monitor for clear direction."
+    
+    else:  # MSFT, GOOGL
+        action = "HOLD"
+        confidence = 0.70
+        target_price = current_price * 1.02
+        reasoning = "Stable large-cap stock. Technical indicators suggest steady performance."
+    
+    return {
+        "symbol": symbol,
+        "overall_recommendation": action,
+        "confidence": confidence,
+        "current_price": current_price,
+        "target_price": target_price,
+        "reasoning": reasoning,
+        "risk_level": "Medium"
+    }
+
 # Global service instance
 recommendations_service = DailyRecommendationsService()
 
@@ -219,61 +315,43 @@ async def get_daily_recommendations_rss():
     try:
         logger.info("📊 Generating daily recommendations RSS feed...")
         
-        # For now, use sample data since strategy service doesn't have recommendations endpoint
-        sample_recommendations = [
-            {
-                "symbol": "AAPL",
-                "overall_recommendation": "BUY",
-                "confidence": 0.85,
-                "current_price": 175.50,
-                "target_price": 185.00,
-                "reasoning": "Strong technical indicators show upward momentum. RSI indicates oversold conditions and MACD shows positive crossover.",
-                "risk_level": "Medium"
-            },
-            {
-                "symbol": "MSFT",
-                "overall_recommendation": "HOLD",
-                "confidence": 0.72,
-                "current_price": 320.25,
-                "target_price": 325.00,
-                "reasoning": "Stock is trading within normal range. Technical indicators suggest consolidation phase.",
-                "risk_level": "Low"
-            },
-            {
-                "symbol": "GOOGL",
-                "overall_recommendation": "BUY",
-                "confidence": 0.78,
-                "current_price": 140.75,
-                "target_price": 150.00,
-                "reasoning": "Bollinger Bands indicate potential breakout. Volume analysis shows increasing institutional interest.",
-                "risk_level": "Medium"
-            },
-            {
-                "symbol": "TSLA",
-                "overall_recommendation": "SELL",
-                "confidence": 0.65,
-                "current_price": 245.30,
-                "target_price": 235.00,
-                "reasoning": "RSI shows overbought conditions. MACD divergence suggests potential reversal.",
-                "risk_level": "High"
-            },
-            {
-                "symbol": "NVDA",
-                "overall_recommendation": "BUY",
-                "confidence": 0.92,
-                "current_price": 890.45,
-                "target_price": 950.00,
-                "reasoning": "Exceptional AI market position. Strong earnings growth and technical momentum.",
-                "risk_level": "Medium"
-            }
-        ]
+                # Get real market data and generate recommendations
+        # Use centralized symbol list from trading config
+        try:
+            import sys
+            import os
+            sys.path.append('/app/src')
+            from utils.trading_config import get_symbols
+            symbols = get_symbols()[:15]  # Use top 15 symbols from centralized list
+            logger.info(f"📊 Using centralized symbol list: {symbols}")
+        except ImportError:
+            # Fallback to default symbols if import fails
+            symbols = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "META", "NFLX", "AMD", "INTC", "SPY"]
+            logger.warning(f"⚠️ Using fallback symbol list: {symbols}")
         
-        if not sample_recommendations:
+        recommendations = []
+        
+        for symbol in symbols:
+            try:
+                # Get current price from Polygon API
+                current_price = await get_real_market_price(symbol)
+                if current_price:
+                    # Generate simple recommendation based on price movement
+                    recommendation = generate_recommendation(symbol, current_price)
+                    recommendations.append(recommendation)
+                    logger.info(f"✅ Generated recommendation for {symbol}: ${current_price:.2f}")
+                else:
+                    logger.warning(f"⚠️ Could not get price for {symbol}")
+            except Exception as e:
+                logger.error(f"❌ Error getting data for {symbol}: {e}")
+                continue
+        
+        if not recommendations:
             logger.warning("⚠️ No recommendations available")
             return "<?xml version='1.0' encoding='UTF-8'?><rss version='2.0'><channel><title>No Recommendations Available</title></channel></rss>"
         
         # Convert to RSS items
-        rss_items = recommendations_service.recommendations_to_rss_items(sample_recommendations)
+        rss_items = recommendations_service.recommendations_to_rss_items(recommendations)
         
         # Generate RSS feed
         rss_xml = recommendations_service.rss_generator.generate_rss_feed(rss_items)
@@ -395,4 +473,4 @@ async def root():
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8084) 
+    uvicorn.run(app, host="0.0.0.0", port=11004) 

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backtest-unified-advanced
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         imagePullPolicy: Always
         command: ["python"]
         args: ["run_unified_advanced_backtest.py"]

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: report-viewer-service
-        image: localhost:5000/report-viewer-service:latest
+        image: localhost:32000/report-viewer-service:latest
         ports:
         - containerPort: 8084
         env:

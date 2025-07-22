@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-system-sa
       containers:
       - name: db-setup
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         imagePullPolicy: Always
         env:
         - name: DATABASE_URL

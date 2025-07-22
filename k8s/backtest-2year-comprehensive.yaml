@@ -50,7 +50,7 @@ spec:
                   'VolatilityBreakoutStrategy',
                   'PortfolioStrategy'
               ],
-              initial_capital=100000,
+              initial_capital=1000,
               commission=0.001,
               slippage=0.0005
           )

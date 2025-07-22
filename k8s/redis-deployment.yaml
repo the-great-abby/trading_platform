@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: redis
-        image: localhost:5000/redis:7-alpine
+        image: localhost:32000/redis:7-alpine
         ports:
         - containerPort: 6379
         env:

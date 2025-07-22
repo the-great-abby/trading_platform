@@ -99,6 +99,52 @@
             color: white;
         }
 
+        .reports-section {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .reports-section .card-header {
+            border-bottom-color: rgba(255,255,255,0.2);
+        }
+
+        .reports-section .card-title {
+            color: white;
+        }
+
+        .reports-section .card-icon {
+            color: white;
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .report-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            transition: background 0.3s ease;
+        }
+
+        .report-item:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .report-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .report-link:hover {
+            text-decoration: underline;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -334,6 +380,22 @@
                     <button class="refresh-btn" onclick="loadSymbolLists()">🔄 Refresh Lists</button>
                 </div>
             </div>
+
+            <!-- Reports Section -->
+            <div class="card reports-section">
+                <div class="card-header">
+                    <div class="card-title">📊 Backtest Reports</div>
+                    <div class="card-icon">📈</div>
+                </div>
+                <div id="reports-content">
+                    <div class="loading">Loading reports...</div>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="/reports" class="report-link" target="_blank">📊 View All Reports</a>
+                    <span style="margin: 0 10px;">|</span>
+                    <a href="/api/v1/reports" class="report-link" target="_blank">📋 API Endpoint</a>
+                </div>
+            </div>
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
@@ -359,8 +421,78 @@
                 loadRecentTrades(),
                 loadActivePositions(),
                 loadStrategyEvents(),
-                loadSymbolLists()
+                loadSymbolLists(),
+                loadReports()
             ]);
+        }
+
+        // Load reports
+        async function loadReports() {
+            try {
+                const response = await fetch('/api/v1/reports');
+                if (!response.ok) throw new Error('Failed to load reports');
+                
+                const data = await response.json();
+                displayReports(data.data.reports || []);
+            } catch (error) {
+                document.getElementById('reports-content').innerHTML = 
+                    `<div class="error">Error loading reports: ${error.message}</div>`;
+            }
+        }
+
+        // Display reports
+        function displayReports(reports) {
+            const content = document.getElementById('reports-content');
+            
+            if (reports.length === 0) {
+                content.innerHTML = `
+                    <div class="loading">
+                        <h3>📊 No Reports Available</h3>
+                        <p>No backtest reports found.</p>
+                        <p><strong>To generate reports:</strong></p>
+                        <ul style="text-align: left; margin: 10px 0;">
+                            <li>Run backtests to generate data</li>
+                            <li>Use: <code>make reports</code></li>
+                            <li>Or: <code>python scripts/generate_html_report.py --latest 5</code></li>
+                        </ul>
+                    </div>
+                `;
+                return;
+            }
+
+            const reportsHtml = reports.slice(0, 6).map(report => {
+                const modifiedDate = new Date(report.modified * 1000).toLocaleDateString();
+                return `
+                    <div class="report-item">
+                        <div class="item-header">
+                            <div class="item-title">📊 ${report.name}</div>
+                            <div class="item-meta">${modifiedDate}</div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value">${report.size}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Modified:</span>
+                                <span class="detail-value">${modifiedDate}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <a href="${report.url}" class="report-link" target="_blank">📊 View Report</a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            content.innerHTML = `
+                <div class="reports-grid">
+                    ${reportsHtml}
+                </div>
+                ${reports.length > 6 ? `<div style="text-align: center; margin-top: 15px;">
+                    <a href="/reports" class="report-link">📊 View All ${reports.length} Reports</a>
+                </div>` : ''}
+            `;
         }
 
         // Load portfolio summary

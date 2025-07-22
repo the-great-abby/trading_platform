@@ -456,7 +456,7 @@ docker run -p 8000:8000 trading-gateway
 kubectl apply -f k8s/gateway.yaml
 
 # Port forward for local access
-kubectl port-forward svc/gateway 8000:80 -n trading-system
+kubectl port-forward svc/gateway 11005:80 -n trading-system
 ```
 
 ### Development

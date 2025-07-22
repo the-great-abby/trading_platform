@@ -22,6 +22,9 @@ k8s-deploy-strategy-service: ## Deploy strategy service
 	@$(KUBECTL) apply -f k8s/strategy-service.yaml
 	@$(KUBECTL) apply -f k8s/ingress.yaml
 
+k8s-see-allocated-resources:
+	kubectl describe nodes | grep -A 10 "Allocated resources"
+
 k8s-deploy-market-data-worker: ## Deploy market data worker
 	@echo "$(GREEN)Deploying market data worker...$(NC)"
 	@$(KUBECTL) apply -f k8s/market-data-worker.yaml
@@ -31,8 +34,8 @@ k8s-port-forward-backtest: ## Port forward backtest API to localhost
 	@$(KUBECTL) port-forward svc/backtest-api 10001:10001 -n $(NAMESPACE)
 
 k8s-port-forward-strategy: ## Port forward strategy service to localhost
-	@echo "$(GREEN)Port forwarding strategy service to localhost:8000...$(NC)"
-	@$(KUBECTL) port-forward svc/strategy-service 8000:80 -n $(NAMESPACE)
+	@echo "$(GREEN)Port forwarding strategy service to localhost:11003...$(NC)"
+	@$(KUBECTL) port-forward svc/strategy-service 11003:80 -n $(NAMESPACE)
 
 k8s-logs-backtest: ## Show logs for backtest API
 	@echo "$(GREEN)Showing logs for backtest API...$(NC)"

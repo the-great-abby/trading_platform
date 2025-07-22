@@ -1,0 +1,57 @@
+# Job Template for Backtest and Analysis Jobs
+# This template can be used to create various analysis and backtest jobs
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: JOB_NAME_PLACEHOLDER
+  namespace: trading-system
+spec:
+  template:
+    metadata:
+      labels:
+        app: JOB_APP_PLACEHOLDER
+    spec:
+      containers:
+      - name: job-container
+        image: localhost:32000/IMAGE_PLACEHOLDER:latest
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: DATABASE_URL
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: POLYGON_API_KEY
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: trading-config
+              key: LOG_LEVEL
+        # Job-specific environment variables
+        - name: JOB_TYPE
+          value: "JOB_TYPE_PLACEHOLDER"
+        - name: STRATEGY_NAME
+          value: "STRATEGY_NAME_PLACEHOLDER"
+        - name: SYMBOLS
+          value: "SYMBOLS_PLACEHOLDER"
+        - name: START_DATE
+          value: "START_DATE_PLACEHOLDER"
+        - name: END_DATE
+          value: "END_DATE_PLACEHOLDER"
+        - name: ACCOUNT_SIZE
+          value: "1000"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      restartPolicy: Never
+  backoffLimit: 3 

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: analytics-service
-        image: localhost:5000/analytics-service:latest
+        image: localhost:32000/analytics-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

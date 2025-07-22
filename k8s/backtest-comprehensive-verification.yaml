@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python", "run_comprehensive_data_structure_verification.py"]
         env:
         - name: DATABASE_URL

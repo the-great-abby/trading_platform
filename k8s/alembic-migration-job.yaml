@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: alembic-migration
-        image: localhost:5000/trading-bot:latest
+        image: localhost:32000/trading-bot:latest
         command: ["python", "-m", "alembic", "upgrade", "head"]
         env:
         - name: DATABASE_URL

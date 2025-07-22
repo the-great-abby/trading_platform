@@ -21,22 +21,24 @@ spec:
       - name: rss-feed-service
         image: localhost:32000/rss-feed-service:latest
         ports:
-        - containerPort: 8084
+        - containerPort: 11004
         env:
         - name: STRATEGY_SERVICE_URL
-          value: "http://strategy-service:8000"
+          value: "http://strategy-service:80"
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
               name: trading-secrets
               key: database-url
         - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: POLYGON_API_KEY
           valueFrom:
             secretKeyRef:
               name: trading-secrets
-              key: rabbitmq-url
-        - name: LOG_LEVEL
-          value: "INFO"
+              key: polygon_api_key
         resources:
           requests:
             memory: "256Mi"
@@ -47,15 +49,19 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8084
-          initialDelaySeconds: 30
-          periodSeconds: 10
+            port: 11004
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5
         readinessProbe:
           httpGet:
             path: /health
-            port: 8084
-          initialDelaySeconds: 5
-          periodSeconds: 5
+            port: 11004
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 8
+          failureThreshold: 5
 ---
 apiVersion: v1
 kind: Service
@@ -70,6 +76,6 @@ spec:
     app: rss-feed-service
   ports:
   - port: 80
-    targetPort: 8084
+    targetPort: 11004
     protocol: TCP
   type: ClusterIP 

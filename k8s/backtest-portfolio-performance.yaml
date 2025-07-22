@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - name: backtest-portfolio-performance
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         command: ["python", "run_portfolio_performance_test.py"]
         env:
         - name: DATABASE_URL

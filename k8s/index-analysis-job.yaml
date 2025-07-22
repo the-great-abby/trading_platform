@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       - name: index-analyzer
-        image: localhost:5000/trading-bot:latest
+        image: localhost:32000/trading-bot:latest
         command: ["python", "scripts/manage_indexes.py", "analyze"]
         env:
         - name: DATABASE_URL

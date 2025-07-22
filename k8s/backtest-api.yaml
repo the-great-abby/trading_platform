@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: backtest-api
-        image: localhost:5000/backtest-api:latest
+        image: localhost:32000/backtest-api:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 10001

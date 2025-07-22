@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: health-dashboard
-        image: localhost:5000/health-dashboard:latest
+        image: localhost:32000/health-dashboard:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -39,18 +39,18 @@ spec:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5
         readinessProbe:
           httpGet:
             path: /ready
             port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 8
+          failureThreshold: 5
         volumeMounts:
         - name: logs-volume
           mountPath: /app/logs

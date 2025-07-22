@@ -1,0 +1,283 @@
+# Core Trading Platform Services
+# This file contains all the main services for the trading platform
+
+---
+# Strategy Service - Core trading logic and backtesting
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strategy-service
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: strategy-service
+  template:
+    metadata:
+      labels:
+        app: strategy-service
+    spec:
+      containers:
+      - name: strategy-service
+        image: localhost:32000/strategy-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: trading-config
+              key: LOG_LEVEL
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: strategy-service
+  namespace: trading-system
+spec:
+  selector:
+    app: strategy-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+# Market Data Service - Real-time market data
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-data-service
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: market-data-service
+  template:
+    metadata:
+      labels:
+        app: market-data-service
+    spec:
+      containers:
+      - name: market-data-service
+        image: localhost:32000/market-data-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-data-service
+  namespace: trading-system
+spec:
+  selector:
+    app: market-data-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+# Market Data Worker - Background data processing
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-data-worker
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: market-data-worker
+  template:
+    metadata:
+      labels:
+        app: market-data-worker
+    spec:
+      containers:
+      - name: market-data-worker
+        image: localhost:32000/market-data-worker:latest
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: UPDATE_INTERVAL_MINUTES
+          value: "15"
+        - name: GAP_FILL_DAYS
+          value: "7"
+        - name: MAX_CONCURRENT_JOBS
+          value: "5"
+        livenessProbe:
+          exec:
+            command:
+            - echo
+            - "healthy"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - echo
+            - "ready"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+# Backtest API Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backtest-api
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backtest-api
+  template:
+    metadata:
+      labels:
+        app: backtest-api
+    spec:
+      containers:
+      - name: backtest-api
+        image: localhost:32000/backtest-api:latest
+        ports:
+        - containerPort: 10001
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 10001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 10001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backtest-api
+  namespace: trading-system
+spec:
+  selector:
+    app: backtest-api
+  ports:
+  - protocol: TCP
+    port: 10001
+    targetPort: 10001
+  type: ClusterIP 

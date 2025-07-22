@@ -1,0 +1,328 @@
+# Dashboard and UI Services
+# This file contains all dashboard and monitoring services
+
+---
+# Trading Dashboard Service - Main trading interface
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-dashboard-service
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-dashboard-service
+  template:
+    metadata:
+      labels:
+        app: trading-dashboard-service
+    spec:
+      containers:
+      - name: trading-dashboard-service
+        image: localhost:32000/trading-dashboard-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: STRATEGY_SERVICE_URL
+          value: "http://strategy-service:80"
+        - name: MARKET_DATA_SERVICE_URL
+          value: "http://market-data-service:80"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trading-dashboard-service
+  namespace: trading-system
+spec:
+  selector:
+    app: trading-dashboard-service
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+# Performance Dashboard - Trading performance metrics
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-dashboard
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: performance-dashboard
+  template:
+    metadata:
+      labels:
+        app: performance-dashboard
+    spec:
+      containers:
+      - name: performance-dashboard
+        image: localhost:32000/performance-dashboard:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-dashboard
+  namespace: trading-system
+spec:
+  selector:
+    app: performance-dashboard
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+# Health Dashboard - System health monitoring
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-dashboard
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: health-dashboard
+  template:
+    metadata:
+      labels:
+        app: health-dashboard
+    spec:
+      containers:
+      - name: health-dashboard
+        image: localhost:32000/health-dashboard:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: RABBITMQ_URL
+          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-dashboard
+  namespace: trading-system
+spec:
+  selector:
+    app: health-dashboard
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+# RSS Feed Service - Trading recommendations feed
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rss-feed-service
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rss-feed-service
+  template:
+    metadata:
+      labels:
+        app: rss-feed-service
+    spec:
+      containers:
+      - name: rss-feed-service
+        image: localhost:32000/rss-feed-service:latest
+        ports:
+        - containerPort: 8084
+        env:
+        - name: STRATEGY_SERVICE_URL
+          value: "http://strategy-service:80"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8084
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rss-feed-service
+  namespace: trading-system
+spec:
+  selector:
+    app: rss-feed-service
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8084
+  type: ClusterIP
+---
+# RSS Dashboard - RSS feed viewer
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rss-dashboard
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rss-dashboard
+  template:
+    metadata:
+      labels:
+        app: rss-dashboard
+    spec:
+      containers:
+      - name: rss-dashboard
+        image: localhost:32000/rss-dashboard:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: RSS_FEED_URL
+          value: "http://rss-feed-service:80/feed"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rss-dashboard
+  namespace: trading-system
+spec:
+  selector:
+    app: rss-dashboard
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP 

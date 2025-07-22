@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: market-data-service
-        image: localhost:5000/market-data-service:latest
+        image: localhost:32000/market-data-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

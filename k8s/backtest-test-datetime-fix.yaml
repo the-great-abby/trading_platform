@@ -17,7 +17,7 @@ spec:
       serviceAccountName: default
       containers:
       - name: backtest
-        image: localhost:5000/backtest-system:latest
+        image: localhost:32000/backtest-system:latest
         command: ["python"]
         args: ["run_test_datetime_fix_backtest.py"]
         env:
@@ -83,7 +83,7 @@ spec:
       serviceAccountName: default
       containers:
       - name: backtest
-        image: localhost:5000/backtest-system:latest
+        image: localhost:32000/backtest-system:latest
         command: ["python"]
         args: ["run_centralized_config_backtest.py"]
         env:

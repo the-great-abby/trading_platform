@@ -60,13 +60,13 @@ kubectl get ingress -n trading-system | grep strategy
 
 ```bash
 # Port forward the service
-kubectl port-forward svc/strategy-service 8000:80 -n trading-system
+kubectl port-forward svc/strategy-service 11003:80 -n trading-system
 ```
 
 ## 📊 API Endpoints
 
 ### Base URL
-- **Local**: `http://localhost:8000`
+- **Local**: `http://localhost:11003`
 - **Kubernetes**: `http://strategy-service:80` (internal)
 - **Ingress**: `http://trading.example.com/api/v1/strategies`
 
@@ -74,17 +74,17 @@ kubectl port-forward svc/strategy-service 8000:80 -n trading-system
 
 #### 1. Health Check
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:11003/health
 ```
 
 #### 2. Get Available Strategies
 ```bash
-curl http://localhost:8000/strategies
+curl http://localhost:11003/strategies
 ```
 
 #### 3. Get Stock Recommendation
 ```bash
-curl -X POST http://localhost:8000/recommendations/stock \
+curl -X POST http://localhost:11003/recommendations/stock \
   -H "Content-Type: application/json" \
   -d '{
     "symbol": "AAPL",
@@ -199,7 +199,7 @@ import httpx
 async def get_stock_recommendation(symbol: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "http://localhost:8000/recommendations/stock",
+            "http://localhost:11003/recommendations/stock",
             json={"symbol": symbol}
         )
         return response.json()
@@ -251,7 +251,7 @@ await monitor_stock("AAPL")
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:11003/health
 
 # Service status
 kubectl get svc -n trading-system strategy-service
@@ -306,7 +306,7 @@ docker images | grep strategy-service
 #### Database Connection Issues
 ```bash
 # Check database connectivity
-kubectl exec -n trading-system deployment/strategy-service -- curl -f http://localhost:8000/health
+kubectl exec -n trading-system deployment/strategy-service -- curl -f http://localhost:11003/health
 
 # Check database pod
 kubectl get pods -n trading-system -l app=postgres
@@ -328,7 +328,7 @@ kubectl describe pod -n trading-system -l app=strategy-service | grep -A 5 "Limi
 
 ```bash
 # Test API response time
-time curl -X POST http://localhost:8000/recommendations/stock \
+time curl -X POST http://localhost:11003/recommendations/stock \
   -H "Content-Type: application/json" \
   -d '{"symbol": "AAPL"}'
 

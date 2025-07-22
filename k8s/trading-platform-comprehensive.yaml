@@ -115,7 +115,7 @@ spec:
     spec:
       containers:
       - name: order-management
-        image: localhost:5000/order-management-service:latest
+        image: localhost:32000/order-management-service:latest
         ports:
         - containerPort: 8000
         env:
@@ -186,9 +186,9 @@ spec:
     spec:
       containers:
       - name: strategy-management
-        image: localhost:5000/strategy-management-service:latest
+        image: localhost:32000/strategy-management-service:latest
         ports:
-        - containerPort: 8001
+        - containerPort: 8000
         env:
         - name: STRATEGY_MANAGEMENT_CONFIG
           valueFrom:
@@ -207,21 +207,21 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "512Mi"
+            cpu: "500m"
         livenessProbe:
           httpGet:
             path: /health
-            port: 8001
+            port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /ready
-            port: 8001
+            path: /health
+            port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
 
@@ -235,8 +235,8 @@ spec:
   selector:
     app: strategy-management-service
   ports:
-  - port: 8001
-    targetPort: 8001
+  - port: 8000
+    targetPort: 8000
   type: ClusterIP
 
 ---
@@ -257,7 +257,7 @@ spec:
     spec:
       containers:
       - name: signal-management
-        image: localhost:5000/signal-management-service:latest
+        image: localhost:32000/signal-management-service:latest
         ports:
         - containerPort: 8002
         env:
@@ -328,7 +328,7 @@ spec:
     spec:
       containers:
       - name: risk-management
-        image: localhost:5000/risk-management-service:latest
+        image: localhost:32000/risk-management-service:latest
         ports:
         - containerPort: 8003
         env:
@@ -349,11 +349,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "512Mi"
+            cpu: "500m"
         livenessProbe:
           httpGet:
             path: /health
@@ -399,7 +399,7 @@ spec:
     spec:
       containers:
       - name: market-data
-        image: localhost:5000/market-data-service:latest
+        image: localhost:32000/market-data-service:latest
         ports:
         - containerPort: 8004
         env:
@@ -470,7 +470,7 @@ spec:
     spec:
       containers:
       - name: compliance
-        image: localhost:5000/compliance-service:latest
+        image: localhost:32000/compliance-service:latest
         ports:
         - containerPort: 8005
         env:
@@ -530,7 +530,7 @@ metadata:
   name: analytics-service
   namespace: trading-system
 spec:
-  replicas: 2
+  replicas: 1  # Reduced from 2
   selector:
     matchLabels:
       app: analytics-service
@@ -540,8 +540,8 @@ spec:
         app: analytics-service
     spec:
       containers:
-      - name: analytics
-        image: localhost:5000/analytics-service:latest
+      - name: analytics-service
+        image: localhost:32000/analytics-service:latest
         ports:
         - containerPort: 8006
         env:
@@ -562,23 +562,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8006
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8006
-          initialDelaySeconds: 5
-          periodSeconds: 5
+            memory: "256Mi"
+            cpu: "100m"
 
 ---
 apiVersion: v1
@@ -612,7 +600,7 @@ spec:
     spec:
       containers:
       - name: notification
-        image: localhost:5000/notification-service:latest
+        image: localhost:32000/notification-service:latest
         ports:
         - containerPort: 8007
         env:
@@ -703,9 +691,9 @@ spec:
     spec:
       containers:
       - name: gateway
-        image: localhost:5000/gateway:latest
+        image: localhost:32000/gateway:latest
         ports:
-        - containerPort: 80
+        - containerPort: 8000
         env:
         - name: ORDER_MANAGEMENT_URL
           value: "http://order-management-service:8000"
@@ -723,25 +711,15 @@ spec:
           value: "http://analytics-service:8006"
         - name: NOTIFICATION_URL
           value: "http://notification-service:8007"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "250m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: REPORTS_DIR
+          value: "/app/reports/html"
+        volumeMounts:
+        - name: reports-volume
+          mountPath: /app/reports
+      volumes:
+      - name: reports-volume
+        persistentVolumeClaim:
+          claimName: reports-pvc
 
 ---
 apiVersion: v1
@@ -754,7 +732,7 @@ spec:
     app: trading-gateway
   ports:
   - port: 80
-    targetPort: 80
+    targetPort: 8000
   type: LoadBalancer
 
 ---
@@ -775,7 +753,7 @@ spec:
     spec:
       containers:
       - name: dashboard
-        image: localhost:5000/trading-dashboard-service:latest
+        image: localhost:32000/trading-dashboard-service:latest
         ports:
         - containerPort: 8080
         env:
@@ -824,7 +802,7 @@ metadata:
   name: order-worker
   namespace: trading-system
 spec:
-  replicas: 5
+  replicas: 2  # Reduced from 5
   selector:
     matchLabels:
       app: order-worker
@@ -835,7 +813,7 @@ spec:
     spec:
       containers:
       - name: order-worker
-        image: localhost:5000/order-worker:latest
+        image: localhost:32000/order-worker:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -849,11 +827,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "250m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "100m"
 
 ---
 apiVersion: apps/v1
@@ -862,7 +840,7 @@ metadata:
   name: strategy-worker
   namespace: trading-system
 spec:
-  replicas: 3
+  replicas: 1  # Reduced from 3
   selector:
     matchLabels:
       app: strategy-worker
@@ -873,7 +851,7 @@ spec:
     spec:
       containers:
       - name: strategy-worker
-        image: localhost:5000/strategy-worker:latest
+        image: localhost:32000/strategy-worker:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -887,11 +865,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "256Mi"
+            cpu: "100m"
 
 ---
 apiVersion: apps/v1
@@ -900,7 +878,7 @@ metadata:
   name: signal-worker
   namespace: trading-system
 spec:
-  replicas: 3
+  replicas: 1  # Reduced from 3
   selector:
     matchLabels:
       app: signal-worker
@@ -911,7 +889,7 @@ spec:
     spec:
       containers:
       - name: signal-worker
-        image: localhost:5000/signal-worker:latest
+        image: localhost:32000/signal-worker:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -925,11 +903,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "256Mi"
+            cpu: "100m"
 
 ---
 apiVersion: apps/v1
@@ -949,7 +927,7 @@ spec:
     spec:
       containers:
       - name: risk-worker
-        image: localhost:5000/risk-worker:latest
+        image: localhost:32000/risk-worker:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -976,7 +954,7 @@ metadata:
   name: analytics-worker
   namespace: trading-system
 spec:
-  replicas: 2
+  replicas: 1  # Reduced from 2
   selector:
     matchLabels:
       app: analytics-worker
@@ -987,7 +965,7 @@ spec:
     spec:
       containers:
       - name: analytics-worker
-        image: localhost:5000/analytics-worker:latest
+        image: localhost:32000/analytics-worker:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -1001,11 +979,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "256Mi"
+            cpu: "100m"
 
 ---
 apiVersion: apps/v1
@@ -1025,7 +1003,7 @@ spec:
     spec:
       containers:
       - name: notification-worker
-        image: localhost:5000/notification-worker:latest
+        image: localhost:32000/notification-worker:latest
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -1043,4 +1021,161 @@ spec:
             cpu: "250m"
           limits:
             memory: "1Gi"
-            cpu: "500m" 
+            cpu: "500m"
+
+---
+# Central Hub Dashboard - Main navigation hub
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: central-hub-dashboard
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: central-hub-dashboard
+  template:
+    metadata:
+      labels:
+        app: central-hub-dashboard
+    spec:
+      containers:
+      - name: central-hub
+        image: localhost:32000/central-hub-dashboard:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: TRADING_DASHBOARD_URL
+          value: "http://trading-dashboard-service:80"
+        - name: HEALTH_DASHBOARD_URL
+          value: "http://health-dashboard:80"
+        - name: PERFORMANCE_DASHBOARD_URL
+          value: "http://performance-dashboard:80"
+        - name: RSS_DASHBOARD_URL
+          value: "http://rss-dashboard:80"
+        - name: GATEWAY_URL
+          value: "http://trading-gateway:80"
+        - name: BACKTEST_API_URL
+          value: "http://backtest-api:8000"
+        - name: ANALYTICS_SERVICE_URL
+          value: "http://analytics-service:8000"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: central-hub-dashboard
+  namespace: trading-system
+spec:
+  selector:
+    app: central-hub-dashboard
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
+
+---
+# Reports Storage PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: reports-pvc
+  namespace: trading-system
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: hostpath 
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-analysis-service
+  namespace: trading-system
+  labels:
+    app: ai-analysis-service
+    tier: management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-analysis-service
+  template:
+    metadata:
+      labels:
+        app: ai-analysis-service
+        tier: management
+    spec:
+      containers:
+      - name: ai-analysis-service
+        image: localhost:32000/ai-analysis-service:latest
+        ports:
+        - containerPort: 11085
+        env:
+        - name: LLM_PROXY_URL
+          value: "http://llm-proxy:12001"
+        - name: MARKET_DATA_URL
+          value: "http://market-data-service:8002"
+        - name: DATABASE_URL
+          value: "postgresql://user:password@postgres:5432/trading"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 11085
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 11085
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-analysis-service
+  namespace: trading-system
+  labels:
+    app: ai-analysis-service
+    tier: management
+spec:
+  type: ClusterIP
+  ports:
+  - port: 11085
+    targetPort: 11085
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-analysis-service 

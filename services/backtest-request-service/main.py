@@ -30,7 +30,7 @@ class BacktestRequest(BaseModel):
     strategies: List[str]
     start_date: str
     end_date: str
-    initial_capital: float = 100000.0
+    initial_capital: float = 1000.0
     risk_profile: str = "moderate"
     use_llm: bool = False
     parallel_execution: bool = True
@@ -284,12 +284,13 @@ async def backtest_form():
             <!-- Strategies -->
             <div class="form-group">
                 <label>Strategies</label>
-                <div style="margin-bottom: 15px;">
-                    <button type="button" onclick="selectAllStrategies()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Select All</button>
-                    <button type="button" onclick="clearAllStrategies()" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Clear All</button>
-                    <button type="button" onclick="selectCategory('basic')" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Basic</button>
-                    <button type="button" onclick="selectCategory('options')" style="background: #6f42c1; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px;">Options</button>
-                    <button type="button" onclick="selectCategory('advanced')" style="background: #fd7e14; color: white; border: none; padding: 8px 16px; border-radius: 5px;">Advanced</button>
+                <div style="margin-bottom: 8px; color: #555; font-size: 0.98em;">
+                    <span style="font-weight: 600;">Legend:</span>
+                    <span style="color: #28a745;">(No AI)</span> = No LLM/AI required &nbsp;|&nbsp;
+                    <span style="color: #fd7e14;">(AI/LLM)</span> = Requires LLM/AI assistance
+                    <span title="LLM/AI strategies use large language models for signal generation, filtering, or news/sentiment analysis. Non-AI strategies are pure quant/statistical.">
+                        <svg style="vertical-align: middle; margin-left: 4px;" width="16" height="16" fill="#888" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="#fff">i</text></svg>
+                    </span>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
@@ -299,75 +300,75 @@ async def backtest_form():
                         <div class="checkbox-group">
                             <div class="checkbox-item">
                                 <input type="checkbox" id="bollinger_bands" name="strategies" value="BollingerBands" checked>
-                                <label for="bollinger_bands">Bollinger Bands</label>
+                                <label for="bollinger_bands">Bollinger Bands <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="rsi" name="strategies" value="RSI" checked>
-                                <label for="rsi">RSI</label>
+                                <label for="rsi">RSI <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="macd" name="strategies" value="MACD" checked>
-                                <label for="macd">MACD</label>
+                                <label for="macd">MACD <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="momentum" name="strategies" value="Momentum">
-                                <label for="momentum">Momentum</label>
+                                <label for="momentum">Momentum <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="mean_reversion" name="strategies" value="MeanReversion">
-                                <label for="mean_reversion">Mean Reversion</label>
+                                <label for="mean_reversion">Mean Reversion <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="sma_crossover" name="strategies" value="SMACrossover">
-                                <label for="sma_crossover">SMA Crossover</label>
+                                <label for="sma_crossover">SMA Crossover <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="volatility_breakout" name="strategies" value="VolatilityBreakout">
-                                <label for="volatility_breakout">Volatility Breakout</label>
+                                <label for="volatility_breakout">Volatility Breakout <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="ichimoku" name="strategies" value="Ichimoku">
-                                <label for="ichimoku">Ichimoku</label>
+                                <label for="ichimoku">Ichimoku <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="ichimoku_enhanced" name="strategies" value="IchimokuEnhanced">
-                                <label for="ichimoku_enhanced">Enhanced Ichimoku</label>
+                                <label for="ichimoku_enhanced">Enhanced Ichimoku <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="adaptive_momentum" name="strategies" value="AdaptiveMomentum">
-                                <label for="adaptive_momentum">Adaptive Momentum</label>
+                                <label for="adaptive_momentum">Adaptive Momentum <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="regime_switching" name="strategies" value="RegimeSwitching">
-                                <label for="regime_switching">Regime Switching</label>
+                                <label for="regime_switching">Regime Switching <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="vwap" name="strategies" value="VWAP">
-                                <label for="vwap">VWAP</label>
+                                <label for="vwap">VWAP <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="pairs_trading" name="strategies" value="PairsTrading">
-                                <label for="pairs_trading">Pairs Trading</label>
+                                <label for="pairs_trading">Pairs Trading <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="kalman_filter" name="strategies" value="KalmanFilter">
-                                <label for="kalman_filter">Kalman Filter</label>
+                                <label for="kalman_filter">Kalman Filter <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="ml_ensemble" name="strategies" value="MLEnsemble">
-                                <label for="ml_ensemble">ML Ensemble</label>
+                                <label for="ml_ensemble">ML Ensemble <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="enhanced_day_trading" name="strategies" value="EnhancedDayTrading">
-                                <label for="enhanced_day_trading">Enhanced Day Trading</label>
+                                <label for="enhanced_day_trading">Enhanced Day Trading <span title='No LLM/AI required' style='color: #28a745;'>(No AI)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="news_enhanced" name="strategies" value="NewsEnhanced">
-                                <label for="news_enhanced">News Enhanced</label>
+                                <label for="news_enhanced">News Enhanced <span title='Requires LLM/AI' style='color: #fd7e14;'>(AI/LLM)</span></label>
                             </div>
                             <div class="checkbox-item">
                                 <input type="checkbox" id="social_media_sentiment" name="strategies" value="SocialMediaSentiment">
-                                <label for="social_media_sentiment">Social Media Sentiment</label>
+                                <label for="social_media_sentiment">Social Media Sentiment <span title='Requires LLM/AI' style='color: #fd7e14;'>(AI/LLM)</span></label>
                             </div>
                         </div>
                     </div>
@@ -836,11 +837,20 @@ def generate_job_yaml(request: BacktestRequest, job_name: str, script_name: str)
             {"name": "NOTIFICATION_SERVICE_URL", "value": "http://notification-service:80"}
         ])
     
-    env_yaml = "\n".join([
-        f'        - name: {env["name"]}\n          value: "{env["value"]}"' if "value" in env
-        else f'        - name: {env["name"]}\n          valueFrom:\n            secretKeyRef:\n              name: {env["valueFrom"]["secretKeyRef"]["name"]}\n              key: {env["valueFrom"]["secretKeyRef"]["key"]}'
-        for env in env_vars
-    ])
+    # Generate environment variables YAML
+    env_yaml_lines = []
+    for env in env_vars:
+        if "value" in env:
+            env_yaml_lines.append(f'        - name: {env["name"]}')
+            env_yaml_lines.append(f'          value: "{env["value"]}"')
+        else:
+            env_yaml_lines.append(f'        - name: {env["name"]}')
+            env_yaml_lines.append(f'          valueFrom:')
+            env_yaml_lines.append(f'            secretKeyRef:')
+            env_yaml_lines.append(f'              name: {env["valueFrom"]["secretKeyRef"]["name"]}')
+            env_yaml_lines.append(f'              key: {env["valueFrom"]["secretKeyRef"]["key"]}')
+    
+    env_yaml = "\n".join(env_yaml_lines)
     
     return f"""apiVersion: batch/v1
 kind: Job
@@ -861,9 +871,10 @@ spec:
       serviceAccountName: default
       containers:
       - name: backtest
-        image: localhost:5000/backtest:latest
+        image: localhost:32000/backtest:latest
         command: ["python"]
         args: ["{script_name}"]
+        env:
 {env_yaml}
         resources:
           requests:

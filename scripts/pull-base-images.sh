@@ -5,7 +5,7 @@
 
 set -e
 
-REGISTRY="localhost:5000"
+REGISTRY="localhost:32000"
 
 echo "Pulling and storing base images in local registry..."
 

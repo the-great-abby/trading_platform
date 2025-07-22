@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: backtest-historical-options
-        image: localhost:5000/trading-bot:latest
+        image: localhost:32000/trading-bot:latest
         command: ["python", "demo_historical_options_backtest.py"]
         env:
         - name: DATABASE_URL

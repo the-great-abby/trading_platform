@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backtest-2year-llm
-        image: localhost:5000/trading-system:latest
+        image: localhost:32000/trading-system:latest
         imagePullPolicy: Always
         command: ["python"]
         args: ["run_2year_llm_backtest.py"]

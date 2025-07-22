@@ -9,7 +9,7 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: analyze-winning-strategies
-        image: localhost:5000/trading-bot:latest
+        image: localhost:32000/trading-bot:latest
         command: ["python", "scripts/analyze_winning_strategies.py"]
         env:
         - name: DATABASE_URL

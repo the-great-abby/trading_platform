@@ -78,7 +78,7 @@ kubectl exec -it deployment/trading-service -- python src/main.py
 kubectl run python-script --rm -it --image=python:3.11 -- python test_script.py
 
 # Use port-forward for local development
-kubectl port-forward deployment/trading-service 8000:8000 -n trading-system
+kubectl port-forward deployment/trading-service 11006:8000 -n trading-system
 ```
 
 ### 3. Install Packages
@@ -164,8 +164,8 @@ kubectl get configmap -n trading-system
 kubectl exec -it deployment/trading-service -- python test_cached_market_data_container.py
 
 # Test with port-forward for local access
-kubectl port-forward deployment/trading-service 8000:8000 -n trading-system
-curl http://localhost:8000/health
+kubectl port-forward deployment/trading-service 11006:8000 -n trading-system
+curl http://localhost:11006/health
 ```
 
 ## 📊 Makefile Commands

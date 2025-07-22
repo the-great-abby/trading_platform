@@ -248,7 +248,7 @@ The service queries the following tables:
 ### 1. Access the Dashboard
 ```bash
 # Port-forward the service
-kubectl port-forward -n trading-system svc/trading-dashboard-service 8080:8000
+kubectl port-forward -n trading-system svc/trading-dashboard-service 11001:8000
 
 # Open in browser
 open http://localhost:8080
@@ -286,9 +286,9 @@ curl http://localhost:8080/dashboard/health
    - Verify market data service is available
 
 3. **Port forwarding issues**
-   - Check if port 8080 is available
+   - Check if port 11001 is available
    - Verify the service is running
-   - Try a different port: `kubectl port-forward -n trading-system svc/trading-dashboard-service 8081:8000`
+   - Try a different port: `kubectl port-forward -n trading-system svc/trading-dashboard-service 11002:8000`
 
 ### Service Health
 ```bash
