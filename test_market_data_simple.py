@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""
+Simple Market Data Cache Test
+"""
+
+import sys
+import os
+sys.path.append('/app/src')
+
+from src.services.market_data.cached_market_data_manager import get_cached_market_data_manager
+from datetime import datetime, timedelta
+
+def test_market_data():
+    print('🧪 Testing Market Data Cache')
+    print('=' * 50)
+    
+    try:
+        # Initialize market data manager
+        market_data_manager = get_cached_market_data_manager()
+        print('✅ Market data manager initialized')
+        
+        # Test symbols
+        test_symbols = ['AAPL', 'MSFT', 'GOOGL']
+        
+        # Date range (last 7 days)
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        print(f'📅 Date Range: {start_date} to {end_date}')
+        print(f'📈 Test Symbols: {test_symbols}')
+        print()
+        
+        for symbol in test_symbols:
+            print(f'🔍 Testing {symbol}...')
+            
+            try:
+                # Fetch data using cached manager
+                data = market_data_manager.get_historical_data(
+                    symbol, start_date, end_date, '1d'
+                )
+                
+                if data is not None and len(data) > 0:
+                    print(f'✅ {symbol}: {len(data)} records fetched')
+                    print(f'   Latest: {data.index[-1].strftime("%Y-%m-%d")}')
+                    print(f'   Close: ${data["Close"].iloc[-1]:.2f}')
+                else:
+                    print(f'❌ {symbol}: No data returned')
+                    
+            except Exception as e:
+                print(f'❌ {symbol}: Error - {e}')
+            
+            print()
+        
+        print('✅ Test completed!')
+        
+    except Exception as e:
+        print(f'❌ Test failed: {e}')
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    test_market_data() 

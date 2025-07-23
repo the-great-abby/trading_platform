@@ -435,7 +435,7 @@ class AdaptiveMomentumStrategy(BaseStrategy):
         
         return np.clip(rsi_momentum, -1, 1)
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate adaptive momentum trading signal"""
         
         if len(data) < self.trend_lookback:

@@ -77,7 +77,8 @@ class BacktestResultsService:
                               end_date: str,
                               result: dict,
                               database_only: bool = False,
-                              data_provider: Optional[str] = None) -> bool:
+                              data_provider: Optional[str] = None,
+                              backtest_name: Optional[str] = None) -> bool:
         """
         Store backtest results in the database
         
@@ -90,6 +91,7 @@ class BacktestResultsService:
             result: BacktestResult object containing the results
             database_only: Whether the backtest used database-only mode
             data_provider: Data provider used (optional)
+            backtest_name: Name of the backtest file/strategy used (optional)
             
         Returns:
             True if successful, False otherwise
@@ -100,6 +102,7 @@ class BacktestResultsService:
                 backtest_run = BacktestRun(
                     run_id=run_id,
                     strategy_name=strategy_name,
+                    backtest_name=backtest_name,
                     symbols=json.dumps(symbols),
                     start_date=datetime.strptime(start_date, "%Y-%m-%d").date(),
                     end_date=datetime.strptime(end_date, "%Y-%m-%d").date(),
@@ -216,6 +219,7 @@ class BacktestResultsService:
                     result.append({
                         'run_id': run.run_id,
                         'strategy_name': run.strategy_name,
+                        'backtest_name': run.backtest_name,
                         'symbols': symbols_parsed,
                         'start_date': run.start_date.isoformat(),
                         'end_date': run.end_date.isoformat(),

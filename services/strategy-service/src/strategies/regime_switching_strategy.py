@@ -546,7 +546,7 @@ class RegimeSwitchingStrategy(BaseStrategy):
                 'reason': 'Low volatility waiting'
             }
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate regime switching trading signal"""
         
         if len(data) < self.lookback_period:

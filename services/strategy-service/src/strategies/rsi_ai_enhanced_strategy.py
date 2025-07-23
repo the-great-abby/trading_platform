@@ -58,7 +58,7 @@ class RSIEnhancedStrategy(BaseStrategy):
             print(f"⚠️  AI service not available for {self.name}: {e}")
             self.ollama_service = None
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate AI-enhanced RSI trading signal"""
         
         if data.empty or len(data) < self.period:

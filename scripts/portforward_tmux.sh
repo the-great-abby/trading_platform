@@ -9,12 +9,11 @@ NAMESPACE="trading-system"
 # List of services and ports (only services with running pods)
 SERVICES=(
   "central-hub-dashboard 11080 80"
-  "trading-gateway 11081 80"
-  "trading-dashboard 11082 8080"
   "health-dashboard 11083 80"
   "performance-dashboard 11084 80"
   "rss-dashboard 11085 80"
-  "report-viewer-service 11086 80"
+  "trading-dashboard-service 11082 8000"
+  "trading-ultra-service 11099 80"
 )
 
 # Start tmux session if it doesn't exist

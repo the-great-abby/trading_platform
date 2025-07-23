@@ -136,7 +136,7 @@ class VWAPStrategy(BaseStrategy):
             'volume_profile': volume_profile
         }
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate VWAP-based trading signal"""
         
         if len(data) < self.vwap_period + 10:

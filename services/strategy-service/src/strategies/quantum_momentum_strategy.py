@@ -361,7 +361,7 @@ class QuantumMomentumStrategy(BaseStrategy):
             'satisfies_uncertainty_principle': uncertainty_product >= minimum_uncertainty
         }
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate quantum momentum trading signal"""
         
         if len(data) < self.lookback_period:

@@ -9,13 +9,21 @@ spec:
       serviceAccountName: trading-service-account
       containers:
       - name: alembic-migration
-        image: localhost:32000/trading-bot:latest
+        image: localhost:32000/strategy-service:latest
         command: ["python", "-m", "alembic", "upgrade", "head"]
+        workingDir: /app
         env:
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
         - name: LOG_LEVEL
           value: "INFO"
+        volumeMounts:
+        - name: alembic-config
+          mountPath: /app/alembic.ini
+          subPath: alembic.ini
         resources:
           requests:
             memory: "256Mi"
@@ -23,5 +31,9 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "200m"
+      volumes:
+      - name: alembic-config
+        configMap:
+          name: alembic-config
       restartPolicy: Never
   backoffLimit: 3 

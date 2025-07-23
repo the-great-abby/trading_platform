@@ -198,7 +198,7 @@ class OptionsDataService:
                         existing.last_updated = datetime.utcnow()
                     else:
                         # Insert new
-                        new = OptionContractCache(
+                        new_cache_entry = OptionContractCache(
                             symbol=contract.symbol,
                             expiration=contract.expiration,
                             strike=contract.strike,
@@ -211,20 +211,20 @@ class OptionsDataService:
                             theta=contract.theta,
                             vega=contract.vega,
                             implied_volatility=contract.implied_volatility,
-                            cache_date=datetime.utcnow().date(),
                             last_updated=datetime.utcnow()
                         )
-                        session.add(new)
-                        cached_count += 1
+                        session.add(new_cache_entry)
+                    
+                    cached_count += 1
             
             session.commit()
             session.close()
             
-            logger.info(f"📦 Batch cached {cached_count} contracts for {len(contracts_by_symbol)} symbols")
+            logger.info(f"✅ Batch cached {cached_count} contracts for {len(contracts_by_symbol)} symbols")
             return cached_count
             
         except Exception as e:
-            logger.error(f"❌ Batch caching failed: {e}")
+            logger.error(f"❌ Batch cache failed: {e}")
             return 0
     
     def get_options_chain(self, symbol: str, expiration_date: Optional[str] = None) -> Optional[List[OptionContract]]:
@@ -581,64 +581,70 @@ class OptionsDataService:
             return None
     
     def get_liquid_options(self, symbol: str, min_volume: int = 1) -> Optional[List[OptionContract]]:
-        """
-        Get liquid options contracts for a symbol, fetch and attach Greeks, and log details.
-        Args:
-            symbol: Stock symbol
-            min_volume: Minimum volume threshold (lowered for debugging)
-        Returns:
-            List of liquid OptionContract objects
-        """
-        contracts = self.get_options_chain(symbol)
-        if contracts is None:
-            logger.warning(f"[OptionsService] No contracts returned from get_options_chain for {symbol}")
-            return None
-        
-        # Log volume distribution for debugging
-        if contracts:
-            volumes = [c.volume for c in contracts]
-            logger.info(f"[OptionsService] Volume distribution for {symbol}: min={min(volumes)}, max={max(volumes)}, avg={sum(volumes)/len(volumes):.1f}")
-            logger.info(f"[OptionsService] Contracts with volume > 0: {sum(1 for c in contracts if c.volume > 0)}/{len(contracts)}")
-            logger.info(f"[OptionsService] Contracts with open_interest > 0: {sum(1 for c in contracts if c.open_interest > 0)}/{len(contracts)}")
-        
-        logger.info(f"[OptionsService] Raw contracts from Polygon for {symbol}: {contracts}")
-        logger.info(f"[OptionsService] Total contracts from Polygon for {symbol}: {len(contracts)}")
-
-        # Filter for liquid contracts
-        liquid_contracts = [
-            contract for contract in contracts
-            if contract.volume >= min_volume and contract.open_interest > 0
-        ]
-        logger.info(f"[OptionsService] Liquid contracts after filtering for {symbol}: {len(liquid_contracts)}")
-
-        # If no liquid contracts, try with just volume > 0
-        if not liquid_contracts:
-            liquid_contracts = [
-                contract for contract in contracts
-                if contract.volume > 0
+        """Get liquid options for a symbol"""
+        try:
+            options_chain = self.get_options_chain(symbol)
+            if not options_chain:
+                return None
+            
+            # Filter for liquid options
+            liquid_options = [
+                option for option in options_chain
+                if option.volume >= min_volume and option.open_interest > 0
             ]
-            logger.info(f"[OptionsService] Contracts with volume > 0 for {symbol}: {len(liquid_contracts)}")
+            
+            if not liquid_options:
+                logger.warning(f"No liquid options found for {symbol} with min_volume={min_volume}")
+                return None
+            
+            logger.info(f"Found {len(liquid_options)} liquid options for {symbol}")
+            return liquid_options
+            
+        except Exception as e:
+            logger.error(f"Error getting liquid options for {symbol}: {e}")
+            return None
 
-        # If still no contracts, take any contracts with data
-        if not liquid_contracts and contracts:
-            liquid_contracts = contracts[:5]  # Take first 5 contracts
-            logger.info(f"[OptionsService] Using first 5 contracts for {symbol} (no volume filter)")
-
-        # Fetch and attach Greeks for each contract
-        for contract in liquid_contracts:
-            greeks = self.get_options_greeks(symbol, contract.strike, contract.expiration, contract.option_type)
-            if greeks:
-                contract.delta = greeks.get("delta")
-                contract.gamma = greeks.get("gamma")
-                contract.theta = greeks.get("theta")
-                contract.vega = greeks.get("vega")
-                contract.implied_volatility = greeks.get("implied_volatility")
-                logger.info(f"[OptionsService] Attached Greeks for {symbol} {contract.strike} {contract.option_type} {contract.expiration}: {greeks}")
-            else:
-                logger.warning(f"[OptionsService] No Greeks found for {symbol} {contract.strike} {contract.option_type} {contract.expiration}")
-
-        logger.info(f"[OptionsService] Final liquid contracts with Greeks for {symbol}: {liquid_contracts}")
-        return liquid_contracts[:10]  # Return top 10 most liquid
+    def get_liquid_options_with_historical_support(self, symbol: str, min_volume: int = 1, 
+                                                  historical_date: Optional[str] = None) -> Optional[List[OptionContract]]:
+        """Get liquid options with support for historical data during backtesting"""
+        try:
+            # If we have a historical date, try to get historical options data
+            if historical_date:
+                from .enhanced_options_data_service import get_enhanced_options_service
+                enhanced_service = get_enhanced_options_service()
+                
+                # Convert string date to date object
+                from datetime import datetime
+                hist_date = datetime.strptime(historical_date, "%Y-%m-%d").date()
+                
+                # Try to get historical options as OptionContract objects
+                historical_contracts = enhanced_service.get_historical_options_as_contracts(
+                    symbol=symbol, 
+                    snapshot_date=hist_date
+                )
+                
+                if historical_contracts:
+                    # Filter for liquid options
+                    liquid_options = [
+                        option for option in historical_contracts
+                        if option.volume >= min_volume and option.open_interest > 0
+                    ]
+                    
+                    if liquid_options:
+                        logger.info(f"Found {len(liquid_options)} historical liquid options for {symbol} on {historical_date}")
+                        return liquid_options
+                    else:
+                        logger.warning(f"No historical liquid options found for {symbol} on {historical_date} with min_volume={min_volume}")
+                        return None
+                else:
+                    logger.info(f"No historical options data found for {symbol} on {historical_date}, falling back to current data")
+            
+            # Fall back to current options data
+            return self.get_liquid_options(symbol, min_volume)
+            
+        except Exception as e:
+            logger.error(f"Error getting liquid options with historical support for {symbol}: {e}")
+            return None
     
     def calculate_greeks_metrics(self, contracts: List[OptionContract]) -> Dict[str, float]:
         """

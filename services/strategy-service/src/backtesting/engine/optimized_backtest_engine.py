@@ -31,7 +31,7 @@ from src.strategies.momentum.momentum_strategy import MomentumStrategy
 from src.strategies.mean_reversion.mean_reversion_strategy import MeanReversionStrategy
 from src.strategies.breakout.volatility_breakout_strategy import VolatilityBreakoutStrategy
 from src.strategies.options.greeks_enhanced_strategy import GreeksEnhancedStrategy
-# from src.strategies.sentiment.social_media_sentiment_strategy import SocialMediaSentimentStrategy
+from src.strategies.sentiment.social_media_sentiment_strategy import SocialMediaSentimentStrategy
 # Import BacktestResult from the existing backtest engine
 from .backtest_engine import BacktestResult, BacktestTrade
 
@@ -81,8 +81,8 @@ class OptimizedBacktestEngine:
             'Momentum': MomentumStrategy,
             'MeanReversion': MeanReversionStrategy,
             'VolatilityBreakout': VolatilityBreakoutStrategy,
-            'GreeksEnhanced': GreeksEnhancedStrategy
-            # 'SocialMediaSentiment': SocialMediaSentimentStrategy  # Temporarily disabled
+            'GreeksEnhanced': GreeksEnhancedStrategy,
+            'SocialMediaSentiment': SocialMediaSentimentStrategy
         }
         
         # Performance tracking
@@ -177,12 +177,22 @@ class OptimizedBacktestEngine:
     def _fetch_single_symbol_data(self, symbol: str) -> pd.DataFrame:
         """Fetch data for a single symbol"""
         try:
-            # Use the correct method from CachedMarketDataManager
-            data = self.cached_manager.get_historical_data(
-                symbol, self.config.start_date, self.config.end_date, interval="1d"
+            # Try cached data first
+            cached_data = self.cached_manager.get_cached_data(
+                symbol, self.config.start_date, self.config.end_date
+            )
+            
+            if cached_data is not None and not cached_data.empty:
+                return cached_data
+            
+            # Fetch from database
+            data = self.market_data_service.get_market_data(
+                symbol, self.config.start_date, self.config.end_date
             )
             
             if data is not None and not data.empty:
+                # Cache the data
+                self.cached_manager.cache_data(symbol, data)
                 return data
             
             return pd.DataFrame()

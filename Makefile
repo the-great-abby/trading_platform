@@ -27,6 +27,10 @@ help:
 	@echo "  logs <service>  - Show logs for a specific service"
 	@echo "  port-forward    - Set up port forwarding for dashboards"
 	@echo ""
+	@echo "VAPID Push Notification Commands:"
+	@echo "  make vapid-*    - Use Makefile.vapid commands"
+	@echo "  make vapid-help - Show VAPID help"
+	@echo ""
 
 # Show current status
 status:
@@ -231,4 +235,10 @@ ai-analysis-test:
 
 ai-analysis-daily:
 	@echo "📊 Getting Daily AI Recommendations..."
-	curl http://localhost:11085/api/recommendations/daily 
+	curl http://localhost:11085/api/recommendations/daily
+
+# Include VAPID Makefile
+include Makefile.vapid
+
+# Include Kubernetes Makefile
+include Makefile.kubernetes 

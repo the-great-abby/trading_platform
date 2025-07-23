@@ -193,7 +193,7 @@ class KalmanFilterStrategy(BaseStrategy):
         
         return action, confidence, price_diff_pct
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate Kalman filter-based trading signal"""
         
         if len(data) < 10:

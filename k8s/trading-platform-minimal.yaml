@@ -1,0 +1,312 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trading-system
+
+---
+# Trading Core Service - Consolidated (replaces 4 separate services)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-core-service
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-core-service
+  template:
+    metadata:
+      labels:
+        app: trading-core-service
+    spec:
+      containers:
+      - name: trading-core
+        image: localhost:32000/trading-core-service:latest
+        ports:
+        - containerPort: 11090
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database_url
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: rabbitmq_url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 11090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 11090
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trading-core-service
+  namespace: trading-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 11090
+    targetPort: 11090
+    protocol: TCP
+    name: http
+  selector:
+    app: trading-core-service
+
+---
+# AI Analysis Service (keep this one - it's working well)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-analysis-service
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-analysis-service
+  template:
+    metadata:
+      labels:
+        app: ai-analysis-service
+    spec:
+      containers:
+      - name: ai-analysis-service
+        image: localhost:32000/ai-analysis-service:latest
+        ports:
+        - containerPort: 11085
+        env:
+        - name: LLM_PROXY_URL
+          value: "http://llm-proxy:12001"
+        - name: MARKET_DATA_URL
+          value: "http://market-data-service:8002"
+        - name: DATABASE_URL
+          value: "postgresql://user:password@postgres:5432/trading"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 11085
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 11085
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-analysis-service
+  namespace: trading-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 11085
+    targetPort: 11085
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-analysis-service
+
+---
+# Central Hub Dashboard
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: central-hub-dashboard
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: central-hub-dashboard
+  template:
+    metadata:
+      labels:
+        app: central-hub-dashboard
+    spec:
+      containers:
+      - name: central-hub
+        image: localhost:32000/central-hub-dashboard:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: TRADING_DASHBOARD_URL
+          value: "http://trading-core-service:11090"
+        - name: HEALTH_DASHBOARD_URL
+          value: "http://health-dashboard:80"
+        - name: PERFORMANCE_DASHBOARD_URL
+          value: "http://performance-dashboard:80"
+        - name: RSS_DASHBOARD_URL
+          value: "http://rss-dashboard:80"
+        - name: GATEWAY_URL
+          value: "http://trading-gateway:80"
+        - name: BACKTEST_API_URL
+          value: "http://backtest-api:8000"
+        - name: ANALYTICS_SERVICE_URL
+          value: "http://analytics-service:8000"
+        - name: AI_ANALYSIS_URL
+          value: "http://ai-analysis-service:11085"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: central-hub-dashboard
+  namespace: trading-system
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: central-hub-dashboard
+
+---
+# Database (essential)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "trading"
+        - name: POSTGRES_USER
+          value: "user"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: trading-system
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: postgres
+
+---
+# Trading Gateway (essential for API access)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-gateway
+  namespace: trading-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-gateway
+  template:
+    metadata:
+      labels:
+        app: trading-gateway
+    spec:
+      containers:
+      - name: trading-gateway
+        image: localhost:32000/trading-gateway:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trading-gateway
+  namespace: trading-system
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: trading-gateway 

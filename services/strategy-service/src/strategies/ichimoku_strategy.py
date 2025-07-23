@@ -252,7 +252,7 @@ class IchimokuStrategy(BaseStrategy):
         
         return min(confidence, 1.0)
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate Ichimoku-based trading signal"""
         
         if len(data) < self.senkou_b_period + self.displacement:

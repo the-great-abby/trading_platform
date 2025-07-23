@@ -128,21 +128,48 @@ class GreeksEnhancedStrategy(BaseStrategy):
         try:
             # Try to get real options data
             from src.services.market_data.options_data_service import get_options_service
-            options_service = get_options_service()
+            from src.services.market_data.enhanced_options_data_service import get_enhanced_options_service
             
-            # If we have a historical date, we need to simulate what options were available then
+            options_service = get_options_service()
+            enhanced_service = get_enhanced_options_service()
+            
+            # If we have a historical date, try to get historical options data
             if historical_date:
-                logger.info(f"[GreeksStrategy] Looking for options data for {symbol} on historical date {historical_date}")
+                logger.info(f"[GreeksStrategy] Looking for historical options data for {symbol} on {historical_date}")
                 
-                # For historical backtesting, we need to find options that were available on that date
-                # This is a simplified approach - in a real system, you'd need historical options data
+                # Convert string date to date object
+                hist_date = datetime.strptime(historical_date, "%Y-%m-%d").date()
+                
+                # Try to get historical Greeks data
+                historical_greeks = enhanced_service.get_historical_greeks_data(
+                    symbol=symbol,
+                    snapshot_date=hist_date,
+                    current_price=current_price
+                )
+                
+                if historical_greeks:
+                    logger.info(f"[GreeksStrategy] ✅ Found REAL historical Greeks data for {symbol} on {historical_date}")
+                    
+                    greeks_data = GreeksData(
+                        delta=historical_greeks['delta'],
+                        gamma=historical_greeks['gamma'],
+                        theta=historical_greeks['theta'],
+                        vega=historical_greeks['vega'],
+                        strike=historical_greeks['strike'],
+                        expiration=historical_greeks['expiration'],
+                        option_type=historical_greeks['option_type']
+                    )
+                    
+                    cache_key = f"{symbol}_{historical_date}"
+                    self.greeks_cache[cache_key] = greeks_data
+                    return greeks_data
+                
+                # Fallback to current options data if no historical data available
+                logger.info(f"[GreeksStrategy] No historical data found for {symbol} on {historical_date}, trying current data")
                 
                 # Calculate what expiration dates would have been available on the historical date
                 # Typically, options expire on the third Friday of each month
-                from datetime import datetime, timedelta
                 import calendar
-                
-                hist_date = datetime.strptime(historical_date, "%Y-%m-%d")
                 
                 # Find the next few expiration dates that would have been available
                 available_expirations = []
@@ -199,51 +226,50 @@ class GreeksEnhancedStrategy(BaseStrategy):
                 # Current date - use existing logic
                 liquid_contracts = options_service.get_liquid_options(symbol, min_volume=1)
             
+            # Process liquid contracts to get Greeks
             if liquid_contracts and len(liquid_contracts) > 0:
-                # Calculate weighted average Greeks from liquid contracts
-                total_volume = sum(c.volume for c in liquid_contracts if c.volume > 0)
+                # Calculate average Greeks across liquid contracts
+                total_delta = 0.0
+                total_gamma = 0.0
+                total_theta = 0.0
+                total_vega = 0.0
+                valid_contracts = 0
                 
-                if total_volume > 0:
-                    avg_delta = 0.0
-                    avg_gamma = 0.0
-                    avg_theta = 0.0
-                    avg_vega = 0.0
-                    valid_contracts = 0
-                    
-                    for contract in liquid_contracts:
-                        if contract.volume > 0:
-                            weight = contract.volume / total_volume
-                            
-                            # Use Greeks if available, otherwise use reasonable defaults
-                            delta = contract.delta if contract.delta is not None else 0.5
-                            gamma = contract.gamma if contract.gamma is not None else 0.02
-                            theta = contract.theta if contract.theta is not None else -0.05
-                            vega = contract.vega if contract.vega is not None else 0.1
-                            
-                            avg_delta += delta * weight
-                            avg_gamma += gamma * weight
-                            avg_theta += theta * weight
-                            avg_vega += vega * weight
-                            valid_contracts += 1
-                    
-                    if valid_contracts > 0:
-                        # Use the most liquid contract for strike and expiration
-                        most_liquid = max(liquid_contracts, key=lambda x: x.volume)
+                for contract in liquid_contracts:
+                    if (contract.delta is not None and 
+                        contract.gamma is not None and 
+                        contract.theta is not None and 
+                        contract.vega is not None):
                         
-                        real_greeks = GreeksData(
-                            delta=avg_delta,
-                            gamma=avg_gamma,
-                            theta=avg_theta,
-                            vega=avg_vega,
-                            strike=most_liquid.strike,
-                            expiration=most_liquid.expiration,
-                            option_type=most_liquid.option_type
-                        )
-                        
-                        cache_key = f"{symbol}_{historical_date}" if historical_date else symbol
-                        self.greeks_cache[cache_key] = real_greeks
-                        logger.info(f"[GreeksStrategy] ✅ Using REAL Greeks data for {symbol} on {historical_date or 'current date'}: delta={avg_delta:.3f}, gamma={avg_gamma:.3f}, theta={avg_theta:.3f}, vega={avg_vega:.3f}")
-                        return real_greeks
+                        total_delta += contract.delta
+                        total_gamma += contract.gamma
+                        total_theta += contract.theta
+                        total_vega += contract.vega
+                        valid_contracts += 1
+                
+                if valid_contracts > 0:
+                    avg_delta = total_delta / valid_contracts
+                    avg_gamma = total_gamma / valid_contracts
+                    avg_theta = total_theta / valid_contracts
+                    avg_vega = total_vega / valid_contracts
+                    
+                    # Use the most liquid contract for strike and expiration
+                    most_liquid = max(liquid_contracts, key=lambda x: x.volume)
+                    
+                    real_greeks = GreeksData(
+                        delta=avg_delta,
+                        gamma=avg_gamma,
+                        theta=avg_theta,
+                        vega=avg_vega,
+                        strike=most_liquid.strike,
+                        expiration=most_liquid.expiration,
+                        option_type=most_liquid.option_type
+                    )
+                    
+                    cache_key = f"{symbol}_{historical_date}" if historical_date else symbol
+                    self.greeks_cache[cache_key] = real_greeks
+                    logger.info(f"[GreeksStrategy] ✅ Using REAL Greeks data for {symbol} on {historical_date or 'current date'}: delta={avg_delta:.3f}, gamma={avg_gamma:.3f}, theta={avg_theta:.3f}, vega={avg_vega:.3f}")
+                    return real_greeks
             
             # Fallback to mock data if no real options data available
             logger.warning(f"[GreeksStrategy] ⚠️ No real options data available for {symbol} on {historical_date or 'current date'}, using mock data")
@@ -352,11 +378,31 @@ class GreeksEnhancedStrategy(BaseStrategy):
             elif isinstance(data, pd.DataFrame):
                 if data.empty:
                     logger.warning(f"[GreeksStrategy] Empty DataFrame for {symbol}")
-                    return {"action": "HOLD", "confidence": 0.1, "price": 0, "timestamp": datetime.now(), "metadata": {"error": "Empty data"}}
+                    from src.core.types import TradeSignal
+                    return TradeSignal(
+                        symbol=symbol,
+                        action="HOLD",
+                        quantity=0,
+                        price=0,
+                        timestamp=datetime.now(),
+                        strategy=self.name,
+                        confidence=0.1,
+                        metadata={"error": "Empty data"}
+                    )
                 current_price = data['Close'].iloc[-1]
             else:
                 logger.error(f"[GreeksStrategy] Unsupported data type for {symbol}: {type(data)}")
-                return {"action": "HOLD", "confidence": 0.1, "price": 0, "timestamp": datetime.now(), "metadata": {"error": f"Unsupported data type: {type(data)}"}}
+                from src.core.types import TradeSignal
+                return TradeSignal(
+                    symbol=symbol,
+                    action="HOLD",
+                    quantity=0,
+                    price=0,
+                    timestamp=datetime.now(),
+                    strategy=self.name,
+                    confidence=0.1,
+                    metadata={"error": f"Unsupported data type: {type(data)}"}
+                )
             
             greeks = self.get_greeks_data(symbol, current_price, historical_date)
             greeks_score = self.calculate_greeks_score(greeks) if greeks else 0.0
@@ -384,10 +430,30 @@ class GreeksEnhancedStrategy(BaseStrategy):
                         logger.warning(f"[GreeksStrategy] ⚠️ LLM analysis returned no result for {symbol}")
                 except Exception as e:
                     logger.error(f"[GreeksStrategy] ❌ LLM analysis failed for {symbol}: {e}")
-            return {"action": action, "confidence": confidence, "price": current_price, "timestamp": datetime.now(), "metadata": metadata}
+            from src.core.types import TradeSignal
+            return TradeSignal(
+                symbol=symbol,
+                action=action,
+                quantity=1,
+                price=current_price,
+                timestamp=datetime.now(),
+                strategy=self.name,
+                confidence=confidence,
+                metadata=metadata
+            )
         except Exception as e:
             logger.error(f"[GreeksStrategy] ❌ Error generating signal for {symbol}: {e}")
-            return {"action": "HOLD", "confidence": 0.1, "price": 0, "timestamp": datetime.now(), "metadata": {"error": str(e)}}
+            from src.core.types import TradeSignal
+            return TradeSignal(
+                symbol=symbol,
+                action="HOLD",
+                quantity=0,
+                price=0,
+                timestamp=datetime.now(),
+                strategy=self.name,
+                confidence=0.1,
+                metadata={"error": str(e)}
+            )
     
     def get_position_size(self, signal: Dict, available_capital: float) -> float:
         """

@@ -386,7 +386,7 @@ class NeuralNetworkStrategy(BaseStrategy):
         features, _ = dataset[-1]
         return features.numpy()
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate neural network trading signal"""
         
         if not TORCH_AVAILABLE:

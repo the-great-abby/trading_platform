@@ -71,7 +71,7 @@ class IchimokuEnhancedStrategy(BaseStrategy):
             logger.warning(f"⚠️  Could not initialize AI service: {e}")
             self.ollama_service = None
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate enhanced Ichimoku trading signal"""
         
         if len(data) < 60:  # Need sufficient data for Ichimoku

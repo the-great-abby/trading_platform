@@ -71,7 +71,7 @@ class PortfolioStrategy(BaseStrategy):
             if strategy_name in strategy_classes:
                 self.strategies[strategy_name] = strategy_classes[strategy_name]()
         
-    async def generate_signal(self, symbol: str, data: pd.DataFrame) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate portfolio signal with confirmation logic"""
         if len(data) < 50:  # Need sufficient data
             return None

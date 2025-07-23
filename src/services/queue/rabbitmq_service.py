@@ -62,7 +62,11 @@ class RabbitMQService:
             'risk_check': 'risk_check_queue',
             'portfolio_update': 'portfolio_update_queue',
             'daily_recommendations': 'daily_recommendations_queue',
-            'notification': 'notification_queue'
+            'notification': 'notification_queue',
+            'market_data_fetch': 'market_data_fetch_queue',
+            'options_data_fetch': 'options_data_fetch_queue',
+            'gap_fill': 'gap_fill_queue',
+            'cache_cleanup': 'cache_cleanup_queue'
         }
         
         # Job handlers
@@ -89,14 +93,23 @@ class RabbitMQService:
             
             # Declare queues
             for queue_name in self.queues.values():
-                queue = await self.channel.declare_queue(
-                    queue_name,
-                    durable=True,
-                    arguments={
-                        'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
-                        'x-max-priority': 10
-                    }
-                )
+                try:
+                    queue = await self.channel.declare_queue(
+                        queue_name,
+                        durable=True,
+                        arguments={
+                            'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
+                            'x-max-priority': 10
+                        }
+                    )
+                except Exception as e:
+                    # If queue already exists with different arguments, try to declare it passively
+                    logger.warning(f"Failed to declare queue {queue_name} with arguments: {e}")
+                    queue = await self.channel.declare_queue(
+                        queue_name,
+                        durable=True,
+                        passive=True
+                    )
                 
                 # Bind queue to exchange
                 await queue.bind(self.exchange, routing_key=queue_name)
@@ -156,8 +169,12 @@ class RabbitMQService:
             # Set QoS
             await self.channel.set_qos(prefetch_count=prefetch_count)
             
-            # Get queue
-            queue = await self.channel.declare_queue(queue_name, durable=True)
+            # Get queue - try passive first to avoid conflicts
+            try:
+                queue = await self.channel.declare_queue(queue_name, durable=True, passive=True)
+            except Exception:
+                # If passive declaration fails, try active declaration
+                queue = await self.channel.declare_queue(queue_name, durable=True)
             
             logger.info(f"Starting to consume from queue: {queue_name}")
             

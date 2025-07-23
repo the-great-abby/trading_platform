@@ -125,3 +125,66 @@ k8s-quick-data:
 	@make k8s-job-data SCRIPT=scripts/fetch_and_store_polygon_data.py NAME=quick-data APPLY=true
 
 .PHONY: k8s-deploy k8s-deploy-backtest-api k8s-deploy-strategy-service k8s-deploy-market-data-worker k8s-port-forward-backtest k8s-port-forward-strategy k8s-logs-backtest k8s-status-backtest k8s-status-strategy k8s-status-market-data-worker k8s-logs-market-data-worker k8s-logs k8s-status k8s-clean k8s-help k8s-job-backtest k8s-job-analysis k8s-job-data k8s-quick-backtest k8s-quick-analysis k8s-quick-data 
+
+.PHONY: k8s-port-forward-start k8s-port-forward-stop k8s-port-forward-restart k8s-port-forward-status k8s-port-forward-attach k8s-port-forward-help
+
+# Port Forwarding Commands (using existing tmux structure)
+k8s-port-forward-start:
+	@echo "🚀 Starting comprehensive tmux port forward session..."
+	@./scripts/portforward_tmux.sh
+
+k8s-port-forward-stop:
+	@echo "🛑 Stopping tmux port forward session..."
+	tmux kill-session -t k8s-portforwards 2>/dev/null || echo "Session not running"
+
+k8s-port-forward-restart:
+	@echo "🔄 Restarting tmux port forward session..."
+	$(MAKE) k8s-port-forward-stop
+	sleep 2
+	$(MAKE) k8s-port-forward-start
+
+k8s-port-forward-status:
+	@if tmux has-session -t k8s-portforwards 2>/dev/null; then \
+		echo "✅ Session 'k8s-portforwards' is running"; \
+		echo "📋 Attach: tmux attach-session -t k8s-portforwards"; \
+		echo "🛑 Stop: make k8s-port-forward-stop"; \
+		echo ""; \
+		echo "📡 Active Port Forwards:"; \
+		tmux list-windows -t k8s-portforwards; \
+	else \
+		echo "❌ Session 'k8s-portforwards' is not running"; \
+		echo "🚀 Start: make k8s-port-forward-start"; \
+	fi
+
+k8s-port-forward-attach:
+	@echo "📋 Attaching to tmux session..."
+	tmux attach-session -t k8s-portforwards
+
+# Simple Port Forwarding (without tmux)
+k8s-port-forward-simple:
+	@echo "📡 Starting simple port forward..."
+	kubectl port-forward service/trading-ultra-service 11100:80 -n trading-system --address=0.0.0.0
+
+# Help
+k8s-port-forward-help:
+	@echo "📡 Kubernetes Port Forwarding Commands:"
+	@echo "  make k8s-port-forward-start       - Start comprehensive tmux port forward session"
+	@echo "  make k8s-port-forward-stop        - Stop tmux port forward session"
+	@echo "  make k8s-port-forward-restart     - Restart tmux port forward session"
+	@echo "  make k8s-port-forward-status      - Check tmux session status"
+	@echo "  make k8s-port-forward-attach      - Attach to tmux session"
+	@echo "  make k8s-port-forward-simple      - Start simple port forward"
+	@echo ""
+	@echo "📋 Direct Script Usage:"
+	@echo "  ./scripts/portforward_tmux.sh"
+	@echo "  tmux attach-session -t k8s-portforwards"
+	@echo "  tmux kill-session -t k8s-portforwards"
+	@echo ""
+	@echo "📡 Available Services:"
+	@echo "  central-hub-dashboard:11080"
+	@echo "  trading-gateway:11081"
+	@echo "  trading-dashboard:11082"
+	@echo "  health-dashboard:11083"
+	@echo "  performance-dashboard:11084"
+	@echo "  rss-dashboard:11085"
+	@echo "  report-viewer-service:11086" 

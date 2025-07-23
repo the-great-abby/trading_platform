@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VAPID Key Test</title>
+</head>
+<body>
+    <h1>VAPID Key Test</h1>
+    <button onclick="testKey()">Test VAPID Key</button>
+    <div id="result"></div>
+
+    <script>
+        async function testKey() {
+            try {
+                // Get VAPID public key from server
+                const response = await fetch('/api/notifications/vapid-public-key');
+                const data = await response.json();
+                
+                console.log('VAPID Response:', data);
+                
+                if (!data.public_key) {
+                    throw new Error('VAPID public key not available');
+                }
+                
+                // Convert base64 URL-safe string to Uint8Array
+                function urlBase64ToUint8Array(base64String) {
+                    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                    const base64 = (base64String + padding)
+                        .replace(/-/g, '+')
+                        .replace(/_/g, '/');
+                    
+                    const rawData = window.atob(base64);
+                    const outputArray = new Uint8Array(rawData.length);
+                    
+                    for (let i = 0; i < rawData.length; ++i) {
+                        outputArray[i] = rawData.charCodeAt(i);
+                    }
+                    return outputArray;
+                }
+                
+                const convertedKey = urlBase64ToUint8Array(data.public_key);
+                console.log('Original key:', data.public_key);
+                console.log('Converted key length:', convertedKey.length);
+                console.log('Converted key (first 10 bytes):', Array.from(convertedKey.slice(0, 10)));
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>Key Test Results:</h3>
+                    <p><strong>Original Key:</strong> ${data.public_key}</p>
+                    <p><strong>Converted Length:</strong> ${convertedKey.length} bytes</p>
+                    <p><strong>First Byte:</strong> 0x${convertedKey[0].toString(16)}</p>
+                    <p><strong>Key Format:</strong> ${convertedKey[0] === 0x04 ? 'Valid P-256 (0x04)' : 'Invalid format'}</p>
+                `;
+                
+                // Test if we can create a subscription (this will fail in non-HTTPS, but we can see the key format)
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                    try {
+                        const registration = await navigator.serviceWorker.register('/sw.js');
+                        console.log('Service Worker registered');
+                        
+                        const subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: convertedKey
+                        });
+                        
+                        console.log('Subscription successful:', subscription);
+                        document.getElementById('result').innerHTML += '<p style="color: green;"><strong>✅ Push subscription successful!</strong></p>';
+                        
+                    } catch (subError) {
+                        console.log('Subscription error:', subError);
+                        document.getElementById('result').innerHTML += `<p style="color: red;"><strong>❌ Subscription error:</strong> ${subError.message}</p>`;
+                    }
+                } else {
+                    document.getElementById('result').innerHTML += '<p style="color: orange;"><strong>⚠️ Service Worker or Push Manager not supported</strong></p>';
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;"><strong>❌ Error:</strong> ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

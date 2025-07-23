@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc
+  name: timescaledb-pvc
   namespace: trading-system
 spec:
   accessModes:
@@ -11,26 +11,52 @@ spec:
       storage: 10Gi
   storageClassName: hostpath
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: trading-system
+data:
+  postgresql.conf: |
+    # Basic PostgreSQL settings
+    max_connections = 100
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    maintenance_work_mem = 64MB
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    work_mem = 4MB
+    min_wal_size = 1GB
+    max_wal_size = 4GB
+    
+    # TimescaleDB settings
+    shared_preload_libraries = 'timescaledb'
+    timescaledb.max_background_workers = 8
+    timescaledb.license = 'apache'
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-dev
+  name: timescaledb
   namespace: trading-system
   labels:
-    app: postgres-dev
+    app: timescaledb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-dev
+      app: timescaledb
   template:
     metadata:
       labels:
-        app: postgres-dev
+        app: timescaledb
     spec:
       containers:
       - name: postgres
-        image: localhost:32000/postgres:15-alpine
+        image: timescale/timescaledb:latest-pg15
         ports:
         - containerPort: 5432
         env:
@@ -43,21 +69,27 @@ spec:
         - name: PGDATA
           value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
-        - name: postgres-storage
+        - name: timescaledb-storage
           mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
         - name: init-scripts
           mountPath: /docker-entrypoint-initdb.d
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
             memory: "512Mi"
             cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
       volumes:
-      - name: postgres-storage
+      - name: timescaledb-storage
         persistentVolumeClaim:
-          claimName: postgres-pvc
+          claimName: timescaledb-pvc
+      - name: postgres-config
+        configMap:
+          name: postgres-config
       - name: init-scripts
         configMap:
           name: postgres-init-scripts
@@ -65,13 +97,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-dev
+  name: timescaledb
   namespace: trading-system
   labels:
-    app: postgres-dev
+    app: timescaledb
 spec:
   selector:
-    app: postgres-dev
+    app: timescaledb
   ports:
   - port: 5432
     targetPort: 5432
@@ -85,7 +117,10 @@ metadata:
   namespace: trading-system
 data:
   01-init.sql: |
-    -- Create tables for market data (matching SQLAlchemy models)
+    -- Enable TimescaleDB extension
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+    
+    -- Create hypertable for historical_prices (time-series optimized)
     CREATE TABLE IF NOT EXISTS historical_prices (
         symbol VARCHAR(10) NOT NULL,
         date DATE NOT NULL,
@@ -97,10 +132,16 @@ data:
         provider VARCHAR(50) NOT NULL,
         interval VARCHAR(10) NOT NULL DEFAULT '1d',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (symbol, date)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     
+    -- Convert to hypertable for better time-series performance
+    SELECT create_hypertable('historical_prices', 'date', if_not_exists => TRUE);
+    
+    -- Create compressed hypertable for older data (optional)
+    -- SELECT add_compression_policy('historical_prices', INTERVAL '7 days');
+    
+    -- Create market data cache table
     CREATE TABLE IF NOT EXISTS market_data_cache (
         symbol VARCHAR(10) NOT NULL,
         provider VARCHAR(50) NOT NULL,
@@ -115,6 +156,22 @@ data:
     -- Create indexes for better performance
     CREATE INDEX IF NOT EXISTS idx_symbol_date ON historical_prices(symbol, date);
     CREATE INDEX IF NOT EXISTS idx_provider_symbol ON historical_prices(provider, symbol);
-    CREATE INDEX IF NOT EXISTS idx_date_range ON historical_prices(date);
     CREATE INDEX IF NOT EXISTS idx_cache_symbol ON market_data_cache(symbol);
     CREATE INDEX IF NOT EXISTS idx_cache_provider ON market_data_cache(provider);
+    
+    -- Create continuous aggregates for common queries (optional)
+    -- CREATE MATERIALIZED VIEW daily_stats AS
+    -- SELECT 
+    --     symbol,
+    --     date_trunc('day', date) as day,
+    --     avg(close_price) as avg_close,
+    --     max(high_price) as max_high,
+    --     min(low_price) as min_low,
+    --     sum(volume) as total_volume
+    -- FROM historical_prices
+    -- GROUP BY symbol, day;
+    -- 
+    -- SELECT add_continuous_aggregate_policy('daily_stats', 
+    --     start_offset => INTERVAL '3 days',
+    --     end_offset => INTERVAL '1 hour',
+    --     schedule_interval => INTERVAL '1 hour');

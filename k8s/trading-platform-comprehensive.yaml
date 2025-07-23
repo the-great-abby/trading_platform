@@ -1021,7 +1021,7 @@ spec:
             cpu: "250m"
           limits:
             memory: "1Gi"
-            cpu: "500m"
+            cpu: "500m" 
 
 ---
 # Central Hub Dashboard - Main navigation hub

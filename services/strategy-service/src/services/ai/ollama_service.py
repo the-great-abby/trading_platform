@@ -30,8 +30,8 @@ class AIAnalysis:
 class OllamaService:
     """Ollama AI service for enhanced market analysis"""
     
-    def __init__(self, base_url: str = "http://ollama:11434", model: str = ""):
-        self.base_url = base_url
+    def __init__(self, base_url: str = "", model: str = ""):
+        self.base_url = base_url or os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434")
         self.model = model or os.environ.get("OLLAMA_MODEL", "gemma3:1b")
         self.session = None
         

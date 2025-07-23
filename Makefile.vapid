@@ -1,0 +1,62 @@
+# VAPID Key Generation and Push Notification Setup
+
+.PHONY: vapid-generate vapid-deploy vapid-setup vapid-test
+
+# Generate VAPID keys in container
+vapid-generate:
+	@echo "🔑 Generating VAPID keys for Web Push Notifications..."
+	kubectl apply -f k8s/generate-vapid-keys-job.yaml
+	kubectl wait --for=condition=complete job/generate-vapid-keys -n trading-system --timeout=60s
+	kubectl logs job/generate-vapid-keys -n trading-system
+	@echo "✅ VAPID keys generated successfully!"
+
+# Deploy VAPID keys and trading service
+vapid-deploy:
+	@echo "🚀 Deploying VAPID keys and trading service..."
+	kubectl apply -f k8s/vapid-keys-secret.yaml
+	kubectl apply -f k8s/trading-ultra-service.yaml
+	@echo "✅ VAPID deployment completed!"
+
+# Complete VAPID setup
+vapid-setup: vapid-generate vapid-deploy
+	@echo "🎉 VAPID setup completed!"
+	@echo "📋 Next steps:"
+	@echo "1. Access the dashboard at http://localhost:11099"
+	@echo "2. Click 'Subscribe to Push' to test web push notifications"
+	@echo "3. Check the browser console for any errors"
+
+# Test VAPID functionality
+vapid-test:
+	@echo "🧪 Testing VAPID functionality..."
+	@echo "1. Open http://localhost:11099 in your browser"
+	@echo "2. Click 'Subscribe to Push' button"
+	@echo "3. Allow notifications when prompted"
+	@echo "4. Click 'Test Web Push' to send a test notification"
+	@echo "5. Check browser console for any errors"
+
+# Get VAPID public key from service
+vapid-get-key:
+	@echo "📋 Getting VAPID public key from service..."
+	curl -s http://localhost:11099/api/notifications/vapid-public-key | jq .
+
+# Clean up VAPID resources
+vapid-cleanup:
+	@echo "🧹 Cleaning up VAPID resources..."
+	kubectl delete job generate-vapid-keys -n trading-system --ignore-not-found=true
+	kubectl delete secret vapid-keys -n trading-system --ignore-not-found=true
+	@echo "✅ VAPID cleanup completed!"
+
+# Help
+vapid-help:
+	@echo "🔑 VAPID Key Management Commands:"
+	@echo "  make vapid-generate  - Generate new VAPID keys"
+	@echo "  make vapid-deploy    - Deploy VAPID keys and service"
+	@echo "  make vapid-setup     - Complete VAPID setup"
+	@echo "  make vapid-test      - Test VAPID functionality"
+	@echo "  make vapid-get-key   - Get VAPID public key"
+	@echo "  make vapid-cleanup   - Clean up VAPID resources"
+	@echo ""
+	@echo "📡 Port Forwarding (use k8s-port-forward-* commands):"
+	@echo "  make k8s-port-forward-start       - Start tmux port forward session"
+	@echo "  make k8s-port-forward-status      - Check tmux session status"
+	@echo "  make k8s-port-forward-attach      - Attach to tmux session" 

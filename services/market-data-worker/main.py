@@ -145,8 +145,18 @@ class MarketDataWorker:
             # Register job handlers
             self._register_handlers()
             
-            # Start periodic data fetching
-            await self._start_periodic_fetching()
+            # Start consuming from all queues
+            self.consumer_tasks = await self._start_consuming()
+            
+            # Start periodic data fetching as a separate task
+            self.periodic_task = asyncio.create_task(self._start_periodic_fetching())
+            
+            # Keep the main task running
+            await asyncio.gather(
+                *self.consumer_tasks,
+                self.periodic_task,
+                return_exceptions=True
+            )
             
         except Exception as e:
             logger.error(f"❌ Failed to start Market Data Worker: {e}")
@@ -159,6 +169,25 @@ class MarketDataWorker:
         self.rabbitmq.register_handler('fill_gaps', self._handle_fill_gaps)
         self.rabbitmq.register_handler('cleanup_cache', self._handle_cleanup_cache)
         logger.info("✅ Registered job handlers")
+    
+    async def _start_consuming(self):
+        """Start consuming from all queues"""
+        logger.info("🔄 Starting to consume from all queues...")
+        
+        # Start consuming from all queues concurrently
+        # Use create_task to run them concurrently without waiting
+        tasks = [
+            asyncio.create_task(self.rabbitmq.start_worker(self.job_queues['market_data_fetch'], 'fetch_ohlcv')),
+            asyncio.create_task(self.rabbitmq.start_worker(self.job_queues['options_data_fetch'], 'fetch_options')),
+            asyncio.create_task(self.rabbitmq.start_worker(self.job_queues['gap_fill'], 'fill_gaps')),
+            asyncio.create_task(self.rabbitmq.start_worker(self.job_queues['cache_cleanup'], 'cleanup_cache'))
+        ]
+        
+        # Don't wait for the tasks to complete, just start them
+        logger.info("✅ Started consuming from all queues")
+        
+        # Return the tasks so they can be managed if needed
+        return tasks
     
     async def _start_periodic_fetching(self):
         """Start periodic data fetching"""
