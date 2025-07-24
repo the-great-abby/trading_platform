@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="RSS Dashboard", version="1.0.0")
 
 # Configuration
-RSS_SERVICE_URL = os.getenv("RSS_SERVICE_URL", "http://rss-feed-service:80")
+RSS_SERVICE_URL = os.getenv("RSS_SERVICE_URL", "http://rss-feed-service:11004")
 STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:8000")
 REFRESH_INTERVAL = int(os.getenv("REFRESH_INTERVAL", "30"))  # seconds
 
@@ -41,27 +41,39 @@ class RSSDashboard:
         """Get RSS feed data"""
         try:
             if feed_type == "daily":
-                url = f"{self.rss_service_url}/rss/daily-recommendations"
+                url = f"{self.rss_service_url}/api/feed"
             elif feed_type == "symbol" and symbol:
-                url = f"{self.rss_service_url}/rss/symbol/{symbol}"
+                url = f"{self.rss_service_url}/api/feed?type=symbol&symbol={symbol}"
             else:
                 url = f"{self.rss_service_url}/api/recommendations"
             
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(url)
-                
-                if response.status_code == 200:
-                    if url.endswith("/api/recommendations"):
-                        return response.json()
+            logger.info(f"🔗 Calling RSS service at: {url}")
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                try:
+                    response = await client.get(url)
+                    logger.info(f"📡 RSS service response: {response.status_code}")
+                    logger.info(f"📄 Response headers: {dict(response.headers)}")
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        logger.info(f"✅ Got data with {len(data.get('recommendations', []))} recommendations")
+                        return data
                     else:
-                        # Parse RSS XML
-                        return await self._parse_rss_xml(response.text)
-                else:
-                    logger.error(f"Failed to get RSS feed: {response.status_code}")
-                    return {"error": f"HTTP {response.status_code}"}
+                        logger.error(f"❌ RSS service returned {response.status_code}: {response.text}")
+                        return {"error": f"HTTP {response.status_code}: {response.text}"}
+                except httpx.ConnectError as e:
+                    logger.error(f"❌ Connection error to RSS service: {e}")
+                    return {"error": f"Connection error: {str(e)}"}
+                except httpx.TimeoutException as e:
+                    logger.error(f"❌ Timeout error to RSS service: {e}")
+                    return {"error": f"Timeout error: {str(e)}"}
+                except Exception as e:
+                    logger.error(f"❌ HTTP client error: {e}")
+                    return {"error": f"HTTP client error: {str(e)}"}
                     
         except Exception as e:
-            logger.error(f"Error getting RSS feed: {e}")
+            logger.error(f"❌ Error getting RSS feed: {e}")
             return {"error": str(e)}
     
     async def _parse_rss_xml(self, xml_content: str) -> Dict[str, Any]:
@@ -368,9 +380,9 @@ async def dashboard_home():
         <div class="control-group">
             <label for="feedType">Feed Type:</label>
             <select id="feedType" onchange="updateFeed()">
+                <option value="api" selected>JSON API</option>
                 <option value="daily">Daily Recommendations</option>
                 <option value="symbol">Symbol Specific</option>
-                <option value="api">JSON API</option>
             </select>
             
             <label for="symbol" id="symbolLabel" style="display: none;">Symbol:</label>
@@ -427,7 +439,7 @@ async def dashboard_home():
     <script>
         let refreshInterval = 30;
         let refreshTimer = null;
-        let currentFeedType = 'daily';
+        let currentFeedType = 'api';
         let currentSymbol = '';
         
         // Initialize dashboard

@@ -1,5 +1,6 @@
 """
 RSS Feed Service - Generates and serves RSS feeds for daily trade recommendations
+Enhanced with news event caching and LLM analysis
 """
 
 import uvicorn
@@ -16,16 +17,22 @@ import httpx
 from xml.etree import ElementTree as ET
 from xml.dom import minidom
 
+# Import news data service
+from news_data_service import NewsDataService, NewsEvent
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="RSS Feed Service", version="1.0.0")
+app = FastAPI(title="RSS Feed Service", version="2.0.0")
 
 # Configuration
 STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:80")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost")
+
+# Initialize news data service
+news_data_service = NewsDataService()
 
 class RSSFeedConfig(BaseModel):
     """RSS feed configuration"""
@@ -114,52 +121,133 @@ class RSSFeedGenerator:
         return reparsed.toprettyxml(indent="  ")
 
 class DailyRecommendationsService:
-    """Service for generating daily trading recommendations"""
+    """Service for generating daily trading recommendations with news analysis"""
     
     def __init__(self):
         self.strategy_service_url = STRATEGY_SERVICE_URL
         self.rss_generator = RSSFeedGenerator(RSSFeedConfig())
+        self.news_data_service = news_data_service
         
     async def get_daily_recommendations(self, symbols: List[str] = None) -> List[Dict[str, Any]]:
-        """Get daily recommendations for symbols"""
+        """Get daily trading recommendations with news analysis"""
+        if symbols is None:
+            # Use centralized symbol list (same as trading_config.py)
+            symbols = [
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
+                'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS',
+                'V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO',
+                'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY'
+            ]
+            logger.info(f"✅ Using centralized symbol list with {len(symbols)} symbols")
+        
+        recommendations = []
+        
+        # Check if we have API key for real data
+        polygon_api_key = os.getenv("POLYGON_API_KEY")
+        
+        if not polygon_api_key:
+            logger.warning("⚠️ POLYGON_API_KEY not set - generating mock recommendations")
+            # Generate mock recommendations when API key is not available
+            mock_prices = {
+                "AAPL": 185.50, "MSFT": 420.30, "GOOGL": 175.80, "AMZN": 155.20,
+                "TSLA": 245.90, "NVDA": 850.75, "META": 485.60, "NFLX": 625.40,
+                "AMD": 145.30, "INTC": 42.80, "SPY": 485.20
+            }
+            
+            for symbol in symbols:
+                if symbol in mock_prices:
+                    current_price = mock_prices[symbol]
+                    recommendation = generate_recommendation(symbol, current_price)
+                    recommendations.append(recommendation)
+            
+            if recommendations:
+                logger.info(f"✅ Generated {len(recommendations)} mock recommendations")
+                return recommendations
+        
+        # Process each symbol with news analysis
+        for symbol in symbols:
+            try:
+                # Get current price
+                current_price = await get_real_market_price(symbol)
+                if not current_price:
+                    logger.warning(f"⚠️ Could not get price for {symbol}")
+                    continue
+                
+                # Get news analysis for the symbol
+                news_analysis = await self._get_news_analysis(symbol)
+                
+                # Generate recommendation with news context
+                recommendation = generate_recommendation_with_news(symbol, current_price, news_analysis)
+                recommendations.append(recommendation)
+                
+                logger.info(f"✅ Generated recommendation for {symbol}: ${current_price:.2f} with news analysis")
+                
+            except Exception as e:
+                logger.error(f"❌ Error processing {symbol}: {e}")
+        
+        if not recommendations:
+            logger.warning("⚠️ No recommendations available")
+        
+        return recommendations
+    
+    async def _get_news_analysis(self, symbol: str) -> Dict[str, Any]:
+        """Get news analysis for a symbol"""
         try:
-            if not symbols:
-                # Use default symbols from trading config
-                symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX", "AMD", "INTC"]
+            # Get recent news from database
+            recent_news = self.news_data_service.get_recent_news_for_symbol(symbol, hours_back=24)
             
-            recommendations = []
+            if not recent_news:
+                # Try to fetch fresh news from Polygon
+                logger.info(f"📰 No recent news in database for {symbol}, fetching from Polygon...")
+                news_events = await self.news_data_service.fetch_news_from_polygon(symbol, days_back=7)
+                
+                if news_events:
+                    # Analyze news with LLM
+                    analyzed_news = await self.news_data_service.analyze_news_with_llm(news_events)
+                    
+                    # Store in database
+                    store_result = self.news_data_service.store_news_batch(analyzed_news)
+                    logger.info(f"💾 Stored {store_result['stored']} news articles for {symbol}")
+                    
+                    # Get updated recent news
+                    recent_news = self.news_data_service.get_recent_news_for_symbol(symbol, hours_back=24)
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                for symbol in symbols:
-                    try:
-                        # Get recommendation from strategy service
-                        response = await client.post(
-                            f"{self.strategy_service_url}/recommendations/stock",
-                            json={
-                                "symbol": symbol,
-                                "include_ai_analysis": True,
-                                "include_news_sentiment": True,
-                                "include_risk_assessment": True,
-                                "strategies": ["rsi_strategy", "macd_strategy", "bollinger_bands_strategy", "news_enhanced_strategy"]
-                            }
-                        )
-                        
-                        if response.status_code == 200:
-                            recommendation = response.json()
-                            recommendations.append(recommendation)
-                            logger.info(f"✅ Got recommendation for {symbol}: {recommendation['overall_recommendation']}")
-                        else:
-                            logger.warning(f"⚠️ Failed to get recommendation for {symbol}: {response.status_code}")
-                            
-                    except Exception as e:
-                        logger.error(f"❌ Error getting recommendation for {symbol}: {e}")
-                        continue
-            
-            return recommendations
-            
+            # Calculate news metrics
+            if recent_news:
+                sentiments = [n.get('sentiment_score', 0) for n in recent_news if n.get('sentiment_score') is not None]
+                impacts = [n.get('impact_score', 0) for n in recent_news if n.get('impact_score') is not None]
+                
+                avg_sentiment = sum(sentiments) / len(sentiments) if sentiments else 0.0
+                avg_impact = sum(impacts) / len(impacts) if impacts else 0.0
+                
+                return {
+                    "has_news": True,
+                    "article_count": len(recent_news),
+                    "avg_sentiment": avg_sentiment,
+                    "avg_impact": avg_impact,
+                    "recent_articles": recent_news[:3],  # Top 3 most recent
+                    "event_types": list(set(n.get('event_type', 'general') for n in recent_news))
+                }
+            else:
+                return {
+                    "has_news": False,
+                    "article_count": 0,
+                    "avg_sentiment": 0.0,
+                    "avg_impact": 0.0,
+                    "recent_articles": [],
+                    "event_types": []
+                }
+                
         except Exception as e:
-            logger.error(f"❌ Error getting daily recommendations: {e}")
-            return []
+            logger.error(f"❌ Error getting news analysis for {symbol}: {e}")
+            return {
+                "has_news": False,
+                "article_count": 0,
+                "avg_sentiment": 0.0,
+                "avg_impact": 0.0,
+                "recent_articles": [],
+                "event_types": []
+            }
     
     def recommendations_to_rss_items(self, recommendations: List[Dict[str, Any]]) -> List[RSSItem]:
         """Convert recommendations to RSS items"""
@@ -172,11 +260,12 @@ class DailyRecommendationsService:
             current_price = rec.get('current_price', 0.0)
             target_price = rec.get('target_price', 0.0)
             reasoning = rec.get('reasoning', 'No reasoning provided')
+            news_context = rec.get('news_context', {})
             
             # Create title
             title = f"{action} {symbol} - {confidence:.1%} Confidence"
             
-            # Create description
+            # Create description with news context
             description = f"""
             <h3>{action} {symbol}</h3>
             <p><strong>Current Price:</strong> ${current_price:.2f}</p>
@@ -184,6 +273,21 @@ class DailyRecommendationsService:
             <p><strong>Confidence:</strong> {confidence:.1%}</p>
             <p><strong>Reasoning:</strong> {reasoning}</p>
             """
+            
+            # Add news context if available
+            if news_context.get('has_news'):
+                description += f"""
+                <h4>📰 News Analysis</h4>
+                <p><strong>Recent Articles:</strong> {news_context.get('article_count', 0)}</p>
+                <p><strong>Sentiment:</strong> {news_context.get('avg_sentiment', 0.0):.2f}</p>
+                <p><strong>Impact:</strong> {news_context.get('avg_impact', 0.0):.2f}</p>
+                """
+                
+                if news_context.get('recent_articles'):
+                    description += "<p><strong>Latest News:</strong></p><ul>"
+                    for article in news_context['recent_articles'][:2]:  # Show top 2
+                        description += f"<li>{article.get('title', 'No title')}</li>"
+                    description += "</ul>"
             
             # Create link to trading dashboard RSS feeds
             link = f"http://localhost:11001/dashboard/rss/positions"
@@ -298,8 +402,45 @@ def generate_recommendation(symbol: str, current_price: float) -> Dict[str, Any]
         "current_price": current_price,
         "target_price": target_price,
         "reasoning": reasoning,
-        "risk_level": "Medium"
+        "risk_level": "Medium",
+        "news_context": {}
     }
+
+def generate_recommendation_with_news(symbol: str, current_price: float, news_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate a recommendation with news analysis context"""
+    # Get base recommendation
+    base_rec = generate_recommendation(symbol, current_price)
+    
+    # Enhance with news analysis
+    if news_analysis.get('has_news'):
+        avg_sentiment = news_analysis.get('avg_sentiment', 0.0)
+        avg_impact = news_analysis.get('avg_impact', 0.0)
+        article_count = news_analysis.get('article_count', 0)
+        
+        # Adjust recommendation based on news sentiment
+        if avg_sentiment > 0.3 and base_rec['overall_recommendation'] == 'HOLD':
+            base_rec['overall_recommendation'] = 'BUY'
+            base_rec['confidence'] = min(0.95, base_rec['confidence'] + 0.1)
+            base_rec['reasoning'] += f" Positive news sentiment ({avg_sentiment:.2f}) supports bullish outlook."
+        elif avg_sentiment < -0.3 and base_rec['overall_recommendation'] == 'HOLD':
+            base_rec['overall_recommendation'] = 'SELL'
+            base_rec['confidence'] = min(0.95, base_rec['confidence'] + 0.1)
+            base_rec['reasoning'] += f" Negative news sentiment ({avg_sentiment:.2f}) suggests caution."
+        
+        # Adjust target price based on sentiment
+        if avg_sentiment > 0.2:
+            base_rec['target_price'] *= (1 + avg_sentiment * 0.05)
+        elif avg_sentiment < -0.2:
+            base_rec['target_price'] *= (1 + avg_sentiment * 0.05)
+        
+        # Add news context to reasoning
+        if article_count > 0:
+            base_rec['reasoning'] += f" Recent news activity ({article_count} articles) with {avg_impact:.2f} average impact."
+    
+    # Add news context to recommendation
+    base_rec['news_context'] = news_analysis
+    
+    return base_rec
 
 # Global service instance
 recommendations_service = DailyRecommendationsService()
@@ -307,44 +448,16 @@ recommendations_service = DailyRecommendationsService()
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "rss-feed-service", "timestamp": datetime.now().isoformat()}
+    return {"status": "healthy", "service": "rss-feed-service", "version": "2.0.0", "timestamp": datetime.now().isoformat()}
 
 @app.get("/rss/daily-recommendations", response_class=PlainTextResponse)
 async def get_daily_recommendations_rss():
-    """Get RSS feed for daily recommendations"""
+    """Get RSS feed for daily recommendations with news analysis"""
     try:
-        logger.info("📊 Generating daily recommendations RSS feed...")
+        logger.info("📊 Generating daily recommendations RSS feed with news analysis...")
         
-                # Get real market data and generate recommendations
-        # Use centralized symbol list from trading config
-        try:
-            import sys
-            import os
-            sys.path.append('/app/src')
-            from utils.trading_config import get_symbols
-            symbols = get_symbols()[:15]  # Use top 15 symbols from centralized list
-            logger.info(f"📊 Using centralized symbol list: {symbols}")
-        except ImportError:
-            # Fallback to default symbols if import fails
-            symbols = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "META", "NFLX", "AMD", "INTC", "SPY"]
-            logger.warning(f"⚠️ Using fallback symbol list: {symbols}")
-        
-        recommendations = []
-        
-        for symbol in symbols:
-            try:
-                # Get current price from Polygon API
-                current_price = await get_real_market_price(symbol)
-                if current_price:
-                    # Generate simple recommendation based on price movement
-                    recommendation = generate_recommendation(symbol, current_price)
-                    recommendations.append(recommendation)
-                    logger.info(f"✅ Generated recommendation for {symbol}: ${current_price:.2f}")
-                else:
-                    logger.warning(f"⚠️ Could not get price for {symbol}")
-            except Exception as e:
-                logger.error(f"❌ Error getting data for {symbol}: {e}")
-                continue
+        # Get recommendations with news analysis
+        recommendations = await recommendations_service.get_daily_recommendations()
         
         if not recommendations:
             logger.warning("⚠️ No recommendations available")
@@ -356,7 +469,7 @@ async def get_daily_recommendations_rss():
         # Generate RSS feed
         rss_xml = recommendations_service.rss_generator.generate_rss_feed(rss_items)
         
-        logger.info(f"✅ Generated RSS feed with {len(rss_items)} items")
+        logger.info(f"✅ Generated RSS feed with {len(rss_items)} items including news analysis")
         
         return PlainTextResponse(content=rss_xml, media_type="application/rss+xml")
         
@@ -366,9 +479,9 @@ async def get_daily_recommendations_rss():
 
 @app.get("/rss/symbol/{symbol}", response_class=PlainTextResponse)
 async def get_symbol_recommendation_rss(symbol: str):
-    """Get RSS feed for a specific symbol"""
+    """Get RSS feed for a specific symbol with news analysis"""
     try:
-        logger.info(f"📊 Generating RSS feed for {symbol}...")
+        logger.info(f"📊 Generating RSS feed for {symbol} with news analysis...")
         
         # Get recommendation for specific symbol
         recommendations = await recommendations_service.get_daily_recommendations([symbol])
@@ -383,7 +496,7 @@ async def get_symbol_recommendation_rss(symbol: str):
         # Generate RSS feed
         rss_xml = recommendations_service.rss_generator.generate_rss_feed(rss_items)
         
-        logger.info(f"✅ Generated RSS feed for {symbol}")
+        logger.info(f"✅ Generated RSS feed for {symbol} with news analysis")
         
         return PlainTextResponse(content=rss_xml, media_type="application/rss+xml")
         
@@ -391,85 +504,165 @@ async def get_symbol_recommendation_rss(symbol: str):
         logger.error(f"❌ Error generating RSS feed for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate RSS feed: {str(e)}")
 
-@app.get("/api/recommendations")
-async def get_recommendations_api():
-    """Get recommendations as JSON API"""
+@app.get("/api/feed")
+async def get_feed_data(feed_type: str = "daily", symbol: str = None):
+    """Get feed data for the RSS dashboard"""
     try:
-        logger.info("📊 Getting daily recommendations via API...")
+        logger.info(f"📊 Getting feed data for type: {feed_type}, symbol: {symbol}")
         
-        # For now, return sample data since strategy service doesn't have recommendations endpoint
-        sample_recommendations = [
-            {
-                "symbol": "AAPL",
-                "overall_recommendation": "BUY",
-                "confidence": 0.85,
-                "current_price": 175.50,
-                "target_price": 185.00,
-                "reasoning": "Strong technical indicators show upward momentum. RSI indicates oversold conditions and MACD shows positive crossover.",
-                "risk_level": "Medium"
-            },
-            {
-                "symbol": "MSFT",
-                "overall_recommendation": "HOLD",
-                "confidence": 0.72,
-                "current_price": 320.25,
-                "target_price": 325.00,
-                "reasoning": "Stock is trading within normal range. Technical indicators suggest consolidation phase.",
-                "risk_level": "Low"
-            },
-            {
-                "symbol": "GOOGL",
-                "overall_recommendation": "BUY",
-                "confidence": 0.78,
-                "current_price": 140.75,
-                "target_price": 150.00,
-                "reasoning": "Bollinger Bands indicate potential breakout. Volume analysis shows increasing institutional interest.",
-                "risk_level": "Medium"
-            },
-            {
-                "symbol": "TSLA",
-                "overall_recommendation": "SELL",
-                "confidence": 0.65,
-                "current_price": 245.30,
-                "target_price": 235.00,
-                "reasoning": "RSI shows overbought conditions. MACD divergence suggests potential reversal.",
-                "risk_level": "High"
-            },
-            {
-                "symbol": "NVDA",
-                "overall_recommendation": "BUY",
-                "confidence": 0.92,
-                "current_price": 890.45,
-                "target_price": 950.00,
-                "reasoning": "Exceptional AI market position. Strong earnings growth and technical momentum.",
-                "risk_level": "Medium"
+        if feed_type == "symbol" and symbol:
+            # Get recommendation for specific symbol
+            recommendations = await recommendations_service.get_daily_recommendations([symbol])
+        elif feed_type == "api":
+            # Return API format
+            recommendations = await recommendations_service.get_daily_recommendations()
+            return {
+                "status": "success",
+                "count": len(recommendations),
+                "timestamp": datetime.now().isoformat(),
+                "recommendations": recommendations
             }
-        ]
+        else:
+            # Get daily recommendations
+            recommendations = await recommendations_service.get_daily_recommendations()
+        
+        if not recommendations:
+            return {
+                "status": "success",
+                "count": 0,
+                "recommendations": [],
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Convert to format expected by dashboard
+        feed_data = []
+        for rec in recommendations:
+            feed_item = {
+                "symbol": rec.get("symbol"),
+                "overall_recommendation": rec.get("overall_recommendation", "HOLD"),
+                "confidence": rec.get("confidence", 0.0),
+                "current_price": rec.get("current_price", 0.0),
+                "target_price": rec.get("target_price", 0.0),
+                "reasoning": rec.get("reasoning", ""),
+                "risk_level": rec.get("risk_level", "Medium"),
+                "news_context": rec.get("news_context", {})
+            }
+            feed_data.append(feed_item)
         
         return {
             "status": "success",
-            "count": len(sample_recommendations),
+            "count": len(feed_data),
+            "recommendations": feed_data,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting feed data: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "count": 0,
+            "recommendations": []
+        }
+
+@app.get("/api/recommendations")
+async def get_recommendations_api():
+    """Get recommendations as JSON API with news analysis"""
+    try:
+        logger.info("📊 Getting daily recommendations via API with news analysis...")
+        
+        # Get real recommendations with news analysis
+        recommendations = await recommendations_service.get_daily_recommendations()
+        
+        return {
+            "status": "success",
+            "count": len(recommendations),
             "timestamp": datetime.now().isoformat(),
-            "recommendations": sample_recommendations
+            "recommendations": recommendations
         }
         
     except Exception as e:
         logger.error(f"❌ Error getting recommendations: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get recommendations: {str(e)}")
 
+@app.get("/api/news/{symbol}")
+async def get_symbol_news(symbol: str, hours_back: int = 24):
+    """Get recent news for a specific symbol"""
+    try:
+        logger.info(f"📰 Getting recent news for {symbol}...")
+        
+        recent_news = news_data_service.get_recent_news_for_symbol(symbol, hours_back)
+        news_stats = news_data_service.get_news_statistics(symbol, days_back=7)
+        
+        return {
+            "symbol": symbol,
+            "hours_back": hours_back,
+            "articles": recent_news,
+            "statistics": news_stats
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting news for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get news: {str(e)}")
+
+@app.post("/api/news/fetch/{symbol}")
+async def fetch_symbol_news(symbol: str, days_back: int = 7):
+    """Fetch fresh news for a symbol from Polygon API"""
+    try:
+        logger.info(f"📰 Fetching fresh news for {symbol} from Polygon...")
+        
+        # Fetch news from Polygon
+        news_events = await news_data_service.fetch_news_from_polygon(symbol, days_back)
+        
+        if news_events:
+            # Analyze with LLM
+            analyzed_news = await news_data_service.analyze_news_with_llm(news_events)
+            
+            # Store in database
+            store_result = news_data_service.store_news_batch(analyzed_news)
+            
+            return {
+                "symbol": symbol,
+                "days_back": days_back,
+                "fetched": len(news_events),
+                "stored": store_result['stored'],
+                "errors": store_result['errors']
+            }
+        else:
+            return {
+                "symbol": symbol,
+                "days_back": days_back,
+                "fetched": 0,
+                "stored": 0,
+                "errors": 0,
+                "message": "No news found"
+            }
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching news for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch news: {str(e)}")
+
 @app.get("/")
 async def root():
     """Root endpoint with service information"""
     return {
         "service": "RSS Feed Service",
-        "version": "1.0.0",
+        "version": "2.0.0",
+        "features": [
+            "News event caching",
+            "LLM analysis integration", 
+            "Polygon API integration",
+            "Database storage"
+        ],
         "endpoints": {
             "rss_feed": "/rss/daily-recommendations",
             "symbol_feed": "/rss/symbol/{symbol}",
             "api": "/api/recommendations",
+            "news": "/api/news/{symbol}",
+            "fetch_news": "/api/news/fetch/{symbol}",
             "health": "/health"
         },
-        "description": "Generates RSS feeds for daily trading recommendations"
+        "description": "Generates RSS feeds for daily trading recommendations with news analysis"
     }
 
 if __name__ == "__main__":

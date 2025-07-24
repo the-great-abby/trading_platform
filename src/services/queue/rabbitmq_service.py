@@ -94,14 +94,14 @@ class RabbitMQService:
             # Declare queues
             for queue_name in self.queues.values():
                 try:
-                    queue = await self.channel.declare_queue(
-                        queue_name,
-                        durable=True,
-                        arguments={
-                            'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
-                            'x-max-priority': 10
-                        }
-                    )
+                queue = await self.channel.declare_queue(
+                    queue_name,
+                    durable=True,
+                    arguments={
+                        'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
+                        'x-max-priority': 10
+                    }
+                )
                 except Exception as e:
                     # If queue already exists with different arguments, try to declare it passively
                     logger.warning(f"Failed to declare queue {queue_name} with arguments: {e}")
@@ -174,7 +174,7 @@ class RabbitMQService:
                 queue = await self.channel.declare_queue(queue_name, durable=True, passive=True)
             except Exception:
                 # If passive declaration fails, try active declaration
-                queue = await self.channel.declare_queue(queue_name, durable=True)
+            queue = await self.channel.declare_queue(queue_name, durable=True)
             
             logger.info(f"Starting to consume from queue: {queue_name}")
             

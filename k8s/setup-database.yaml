@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-database
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: db-setup
+        image: postgres:15
+        command: ["psql"]
+        args: 
+        - "-h"
+        - "postgres-dev"
+        - "-U"
+        - "trading_user"
+        - "-d"
+        - "trading_bot"
+        - "-f"
+        - "/tmp/setup.sql"
+        env:
+        - name: PGPASSWORD
+          value: "trading_pass"
+        volumeMounts:
+        - name: setup-script
+          mountPath: /tmp
+      volumes:
+      - name: setup-script
+        configMap:
+          name: db-setup-script
+      restartPolicy: Never
+  backoffLimit: 3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-setup-script
+  namespace: trading-system
+data:
+  setup.sql: |
+    -- Create historical_prices table
+    CREATE TABLE IF NOT EXISTS historical_prices (
+        symbol VARCHAR(10) NOT NULL,
+        date DATE NOT NULL,
+        open_price DOUBLE PRECISION NOT NULL,
+        high_price DOUBLE PRECISION NOT NULL,
+        low_price DOUBLE PRECISION NOT NULL,
+        close_price DOUBLE PRECISION NOT NULL,
+        volume INTEGER NOT NULL,
+        provider VARCHAR(50) NOT NULL,
+        interval VARCHAR(10) NOT NULL DEFAULT '1d',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (symbol, date)
+    );
+    
+    -- Create indexes
+    CREATE INDEX IF NOT EXISTS idx_date_range ON historical_prices (date);
+    CREATE INDEX IF NOT EXISTS idx_provider_symbol ON historical_prices (provider, symbol);
+    CREATE INDEX IF NOT EXISTS idx_symbol_date ON historical_prices (symbol, date);
+    
+    -- Create market_data_cache table
+    CREATE TABLE IF NOT EXISTS market_data_cache (
+        symbol VARCHAR(10) NOT NULL,
+        provider VARCHAR(50) NOT NULL,
+        interval VARCHAR(10) DEFAULT '1d' NOT NULL,
+        earliest_date DATE,
+        latest_date DATE,
+        total_records INTEGER DEFAULT 0,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (symbol, provider, interval)
+    );
+    
+    -- Create indexes for cache
+    CREATE INDEX IF NOT EXISTS idx_cache_provider ON market_data_cache (provider);
+    CREATE INDEX IF NOT EXISTS idx_cache_symbol ON market_data_cache (symbol);
+    
+    -- Create alembic_version table
+    CREATE TABLE IF NOT EXISTS alembic_version (
+        version_num VARCHAR(32) NOT NULL
+    );
+    
+    -- Insert current version
+    INSERT INTO alembic_version (version_num) VALUES ('20250723_add_missing_tables')
+    ON CONFLICT (version_num) DO NOTHING; 

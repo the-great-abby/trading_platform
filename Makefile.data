@@ -1,0 +1,40 @@
+# Data Fetching Makefile
+# Easy commands to fetch historical market data
+
+.PHONY: help fetch-recent fetch-symbols fetch-period coverage status
+
+help:
+	@echo "Data Fetching Commands"
+	@echo "======================"
+	@echo ""
+	@echo "  fetch-recent                    - Fetch data for all symbols (last 30 days)"
+	@echo "  fetch-symbols SYMBOLS='AAPL,MSFT,GOOGL' - Fetch data for specific symbols"
+	@echo "  fetch-period START='2024-01-01' END='2024-12-31' - Fetch data for specific period"
+	@echo "  coverage                        - Show data coverage for all symbols"
+	@echo "  status                          - Show current data status"
+	@echo ""
+
+fetch-recent:
+	@./scripts/fetch_recent_data.sh
+
+fetch-symbols:
+	@if [ -z "$(SYMBOLS)" ]; then \
+		echo "Usage: make -f Makefile.data fetch-symbols SYMBOLS='AAPL,MSFT,GOOGL'"; \
+		echo "Example: make -f Makefile.data fetch-symbols SYMBOLS='AAPL,MSFT,GOOGL' START='2024-01-01' END='2024-12-31'"; \
+	else \
+		./scripts/fetch_custom_data.sh "$(SYMBOLS)" "$(START)" "$(END)"; \
+	fi
+
+fetch-period:
+	@if [ -z "$(START)" ] || [ -z "$(END)" ]; then \
+		echo "Usage: make -f Makefile.data fetch-period START='2024-01-01' END='2024-12-31'"; \
+		echo "Example: make -f Makefile.data fetch-period START='2024-01-01' END='2024-12-31' SYMBOLS='AAPL,MSFT,GOOGL'"; \
+	else \
+		./scripts/fetch_custom_data.sh "$(SYMBOLS)" "$(START)" "$(END)"; \
+	fi
+
+coverage:
+	@./scripts/check_data_coverage.sh
+
+status:
+	@./scripts/show_data_status.sh 

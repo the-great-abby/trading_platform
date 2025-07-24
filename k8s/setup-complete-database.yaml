@@ -1,0 +1,356 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-complete-database
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: db-setup
+        image: postgres:15
+        command: ["psql"]
+        args: 
+        - "-h"
+        - "postgres-dev"
+        - "-U"
+        - "trading_user"
+        - "-d"
+        - "trading_bot"
+        - "-f"
+        - "/tmp/complete-setup.sql"
+        env:
+        - name: PGPASSWORD
+          value: "trading_pass"
+        volumeMounts:
+        - name: setup-script
+          mountPath: /tmp
+      volumes:
+      - name: setup-script
+        configMap:
+          name: complete-db-setup-script
+      restartPolicy: Never
+  backoffLimit: 3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: complete-db-setup-script
+  namespace: trading-system
+data:
+  complete-setup.sql: |
+    -- ===========================================
+    -- COMPLETE DATABASE SETUP
+    -- Based on Alembic migrations
+    -- ===========================================
+    
+    -- 1. BACKTEST TABLES
+    -- ===========================================
+    
+    -- backtest_runs table
+    CREATE TABLE IF NOT EXISTS backtest_runs (
+        id SERIAL PRIMARY KEY,
+        run_id VARCHAR(50) UNIQUE NOT NULL,
+        strategy_name VARCHAR(100) NOT NULL,
+        backtest_name VARCHAR(200),
+        symbols TEXT NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        initial_capital DOUBLE PRECISION NOT NULL,
+        final_capital DOUBLE PRECISION NOT NULL,
+        total_return DOUBLE PRECISION NOT NULL,
+        total_return_pct DOUBLE PRECISION NOT NULL,
+        max_drawdown_pct DOUBLE PRECISION NOT NULL,
+        sharpe_ratio DOUBLE PRECISION NOT NULL,
+        total_trades INTEGER NOT NULL,
+        winning_trades INTEGER NOT NULL,
+        losing_trades INTEGER NOT NULL,
+        win_rate DOUBLE PRECISION NOT NULL,
+        profit_factor DOUBLE PRECISION NOT NULL,
+        avg_win DOUBLE PRECISION NOT NULL,
+        avg_loss DOUBLE PRECISION NOT NULL,
+        database_only VARCHAR(5) NOT NULL,
+        data_provider VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
+    );
+    
+    -- backtest_trades table
+    CREATE TABLE IF NOT EXISTS backtest_trades (
+        id SERIAL PRIMARY KEY,
+        run_id VARCHAR(50) NOT NULL,
+        timestamp TIMESTAMP NOT NULL,
+        symbol VARCHAR(10) NOT NULL,
+        action VARCHAR(10) NOT NULL,
+        quantity INTEGER NOT NULL,
+        price DOUBLE PRECISION NOT NULL,
+        value DOUBLE PRECISION NOT NULL,
+        pnl DOUBLE PRECISION NOT NULL,
+        confidence DOUBLE PRECISION NOT NULL,
+        portfolio_value DOUBLE PRECISION NOT NULL,
+        cash DOUBLE PRECISION NOT NULL,
+        position_value DOUBLE PRECISION NOT NULL,
+        total_pnl DOUBLE PRECISION NOT NULL,
+        trade_pnl DOUBLE PRECISION NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- backtest_equity_curves table
+    CREATE TABLE IF NOT EXISTS backtest_equity_curves (
+        id SERIAL PRIMARY KEY,
+        run_id VARCHAR(50) NOT NULL,
+        date DATE NOT NULL,
+        portfolio_value DOUBLE PRECISION NOT NULL,
+        cash DOUBLE PRECISION NOT NULL,
+        positions_value DOUBLE PRECISION NOT NULL,
+        total_pnl DOUBLE PRECISION NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- 2. NEWS TABLES
+    -- ===========================================
+    
+    -- historical_news table
+    CREATE TABLE IF NOT EXISTS historical_news (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT,
+        summary TEXT,
+        source VARCHAR(100) NOT NULL,
+        url TEXT,
+        author VARCHAR(200),
+        published_at TIMESTAMP NOT NULL,
+        fetched_at TIMESTAMP,
+        sentiment_score DOUBLE PRECISION,
+        impact_score DOUBLE PRECISION,
+        confidence_score DOUBLE PRECISION,
+        event_type VARCHAR(50),
+        affected_symbols JSONB,
+        news_metadata JSONB,
+        provider_id VARCHAR(100),
+        ticker VARCHAR(10)
+    );
+    
+    -- news_cache table
+    CREATE TABLE IF NOT EXISTS news_cache (
+        symbol VARCHAR(10) NOT NULL,
+        source VARCHAR(100) NOT NULL,
+        earliest_date TIMESTAMP,
+        latest_date TIMESTAMP,
+        total_articles INTEGER,
+        last_updated TIMESTAMP,
+        PRIMARY KEY (symbol, source)
+    );
+    
+    -- 3. OPTIONS TABLES
+    -- ===========================================
+    
+    -- historical_options_snapshots table
+    CREATE TABLE IF NOT EXISTS historical_options_snapshots (
+        id BIGSERIAL PRIMARY KEY,
+        symbol VARCHAR(10) NOT NULL,
+        strike NUMERIC(10,2) NOT NULL,
+        expiration DATE NOT NULL,
+        option_type VARCHAR(4) NOT NULL,
+        delta NUMERIC(8,6),
+        gamma NUMERIC(8,6),
+        theta NUMERIC(8,6),
+        vega NUMERIC(8,6),
+        implied_volatility NUMERIC(8,6),
+        price NUMERIC(10,2),
+        volume INTEGER,
+        open_interest INTEGER,
+        snapshot_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- options_greeks_cache table
+    CREATE TABLE IF NOT EXISTS options_greeks_cache (
+        id BIGSERIAL PRIMARY KEY,
+        cache_key VARCHAR(255) UNIQUE NOT NULL,
+        symbol VARCHAR(10) NOT NULL,
+        strike NUMERIC(10,2) NOT NULL,
+        expiration DATE NOT NULL,
+        option_type VARCHAR(4) NOT NULL,
+        delta NUMERIC(8,6),
+        gamma NUMERIC(8,6),
+        theta NUMERIC(8,6),
+        vega NUMERIC(8,6),
+        implied_volatility NUMERIC(8,6),
+        price NUMERIC(10,2),
+        volume INTEGER,
+        open_interest INTEGER,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- options_contracts table
+    CREATE TABLE IF NOT EXISTS options_contracts (
+        id BIGSERIAL PRIMARY KEY,
+        symbol VARCHAR(10) NOT NULL,
+        strike NUMERIC(10,2) NOT NULL,
+        expiration DATE NOT NULL,
+        option_type VARCHAR(4) NOT NULL,
+        contract_id VARCHAR(50),
+        exercise_style VARCHAR(10),
+        shares_per_contract INTEGER,
+        is_active BOOLEAN DEFAULT TRUE NOT NULL,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- options_contracts_cache table
+    CREATE TABLE IF NOT EXISTS options_contracts_cache (
+        id SERIAL PRIMARY KEY,
+        symbol VARCHAR(10) NOT NULL,
+        expiration VARCHAR(50) NOT NULL,
+        strike DOUBLE PRECISION,
+        option_type VARCHAR(10),
+        price DOUBLE PRECISION,
+        volume INTEGER,
+        open_interest INTEGER,
+        delta DOUBLE PRECISION,
+        gamma DOUBLE PRECISION,
+        theta DOUBLE PRECISION,
+        vega DOUBLE PRECISION,
+        implied_volatility DOUBLE PRECISION,
+        cache_date DATE,
+        last_updated TIMESTAMP
+    );
+    
+    -- 4. TRADING TABLES
+    -- ===========================================
+    
+    -- trades table
+    CREATE TABLE IF NOT EXISTS trades (
+        id SERIAL PRIMARY KEY,
+        trade_id VARCHAR(50) UNIQUE NOT NULL,
+        symbol VARCHAR(10) NOT NULL,
+        action VARCHAR(10) NOT NULL,
+        quantity INTEGER NOT NULL,
+        price DOUBLE PRECISION NOT NULL,
+        timestamp TIMESTAMP NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        order_id VARCHAR(50),
+        account_id VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- orders table
+    CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        order_id VARCHAR(50) UNIQUE NOT NULL,
+        symbol VARCHAR(10) NOT NULL,
+        action VARCHAR(10) NOT NULL,
+        quantity INTEGER NOT NULL,
+        price DOUBLE PRECISION,
+        order_type VARCHAR(20) NOT NULL,
+        status VARCHAR(20) NOT NULL,
+        timestamp TIMESTAMP NOT NULL,
+        account_id VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- signals table
+    CREATE TABLE IF NOT EXISTS signals (
+        id SERIAL PRIMARY KEY,
+        signal_id VARCHAR(50) UNIQUE NOT NULL,
+        symbol VARCHAR(10) NOT NULL,
+        signal_type VARCHAR(20) NOT NULL,
+        direction VARCHAR(10) NOT NULL,
+        strength DOUBLE PRECISION,
+        timestamp TIMESTAMP NOT NULL,
+        strategy_name VARCHAR(100),
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- risk_metrics table
+    CREATE TABLE IF NOT EXISTS risk_metrics (
+        id SERIAL PRIMARY KEY,
+        account_id VARCHAR(50) NOT NULL,
+        timestamp TIMESTAMP NOT NULL,
+        portfolio_value DOUBLE PRECISION NOT NULL,
+        total_pnl DOUBLE PRECISION NOT NULL,
+        daily_pnl DOUBLE PRECISION NOT NULL,
+        max_drawdown DOUBLE PRECISION,
+        var_95 DOUBLE PRECISION,
+        sharpe_ratio DOUBLE PRECISION,
+        beta DOUBLE PRECISION,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- ===========================================
+    -- CREATE INDEXES FOR PERFORMANCE
+    -- ===========================================
+    
+    -- Backtest indexes
+    CREATE INDEX IF NOT EXISTS idx_backtest_runs_run_id ON backtest_runs (run_id);
+    CREATE INDEX IF NOT EXISTS idx_backtest_runs_strategy ON backtest_runs (strategy_name);
+    CREATE INDEX IF NOT EXISTS idx_backtest_runs_created_at ON backtest_runs (created_at);
+    CREATE INDEX IF NOT EXISTS idx_backtest_runs_date_range ON backtest_runs (start_date, end_date);
+    CREATE INDEX IF NOT EXISTS idx_backtest_runs_backtest_name ON backtest_runs (backtest_name);
+    
+    CREATE INDEX IF NOT EXISTS idx_backtest_trades_run_id ON backtest_trades (run_id);
+    CREATE INDEX IF NOT EXISTS idx_backtest_trades_symbol ON backtest_trades (symbol);
+    CREATE INDEX IF NOT EXISTS idx_backtest_trades_timestamp ON backtest_trades (timestamp);
+    CREATE INDEX IF NOT EXISTS idx_backtest_trades_action ON backtest_trades (action);
+    
+    CREATE INDEX IF NOT EXISTS idx_backtest_equity_curves_run_id ON backtest_equity_curves (run_id);
+    CREATE INDEX IF NOT EXISTS idx_backtest_equity_curves_date ON backtest_equity_curves (date);
+    
+    -- News indexes
+    CREATE INDEX IF NOT EXISTS idx_news_published_at ON historical_news (published_at);
+    CREATE INDEX IF NOT EXISTS idx_news_event_type ON historical_news (event_type);
+    CREATE INDEX IF NOT EXISTS idx_news_source ON historical_news (source);
+    CREATE INDEX IF NOT EXISTS idx_news_ticker ON historical_news (ticker);
+    CREATE INDEX IF NOT EXISTS idx_news_sentiment ON historical_news (sentiment_score);
+    CREATE INDEX IF NOT EXISTS idx_news_impact ON historical_news (impact_score);
+    
+    CREATE INDEX IF NOT EXISTS idx_news_cache_symbol ON news_cache (symbol);
+    CREATE INDEX IF NOT EXISTS idx_news_cache_source ON news_cache (source);
+    
+    -- Options indexes
+    CREATE INDEX IF NOT EXISTS idx_historical_options_symbol ON historical_options_snapshots (symbol);
+    CREATE INDEX IF NOT EXISTS idx_historical_options_snapshot_date ON historical_options_snapshots (snapshot_date);
+    CREATE INDEX IF NOT EXISTS idx_historical_options_expiration ON historical_options_snapshots (expiration);
+    CREATE INDEX IF NOT EXISTS idx_historical_options_symbol_date ON historical_options_snapshots (symbol, snapshot_date);
+    CREATE INDEX IF NOT EXISTS idx_historical_options_contract ON historical_options_snapshots (symbol, strike, expiration, option_type);
+    
+    CREATE INDEX IF NOT EXISTS idx_options_greeks_cache_key ON options_greeks_cache (cache_key);
+    CREATE INDEX IF NOT EXISTS idx_options_greeks_cache_symbol ON options_greeks_cache (symbol);
+    CREATE INDEX IF NOT EXISTS idx_options_greeks_cache_expires ON options_greeks_cache (expires_at);
+    
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_symbol ON options_contracts (symbol);
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_expiration ON options_contracts (expiration);
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_active ON options_contracts (is_active);
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_contract ON options_contracts (symbol, strike, expiration, option_type);
+    
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_cache_symbol ON options_contracts_cache (symbol);
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_cache_expiration ON options_contracts_cache (expiration);
+    CREATE INDEX IF NOT EXISTS idx_options_contracts_cache_date ON options_contracts_cache (cache_date);
+    
+    -- Trading indexes
+    CREATE INDEX IF NOT EXISTS idx_trades_trade_id ON trades (trade_id);
+    CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades (symbol);
+    CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades (timestamp);
+    CREATE INDEX IF NOT EXISTS idx_trades_order_id ON trades (order_id);
+    
+    CREATE INDEX IF NOT EXISTS idx_orders_order_id ON orders (order_id);
+    CREATE INDEX IF NOT EXISTS idx_orders_symbol ON orders (symbol);
+    CREATE INDEX IF NOT EXISTS idx_orders_timestamp ON orders (timestamp);
+    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
+    
+    CREATE INDEX IF NOT EXISTS idx_signals_signal_id ON signals (signal_id);
+    CREATE INDEX IF NOT EXISTS idx_signals_symbol ON signals (symbol);
+    CREATE INDEX IF NOT EXISTS idx_signals_timestamp ON signals (timestamp);
+    CREATE INDEX IF NOT EXISTS idx_signals_strategy ON signals (strategy_name);
+    
+    CREATE INDEX IF NOT EXISTS idx_risk_metrics_account_id ON risk_metrics (account_id);
+    CREATE INDEX IF NOT EXISTS idx_risk_metrics_timestamp ON risk_metrics (timestamp);
+    
+    -- Update alembic version
+    INSERT INTO alembic_version (version_num) VALUES ('20250723_add_missing_tables')
+    ON CONFLICT (version_num) DO UPDATE SET version_num = '20250723_add_missing_tables'; 

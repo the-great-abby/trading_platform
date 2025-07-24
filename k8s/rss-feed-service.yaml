@@ -75,7 +75,7 @@ spec:
   selector:
     app: rss-feed-service
   ports:
-  - port: 80
+  - port: 11004
     targetPort: 11004
     protocol: TCP
   type: ClusterIP 
