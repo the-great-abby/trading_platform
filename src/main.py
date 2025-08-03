@@ -8,8 +8,8 @@ import sys
 from loguru import logger
 
 from .core.trading_engine import TradingEngine, TradingMode
-from .strategies.sma_crossover import SMACrossoverStrategy
-from .strategies.rsi_strategy import RSIStrategy
+from .strategies.breakout.sma_crossover import SMACrossoverStrategy
+from .strategies.momentum.rsi_strategy import RSIStrategy
 from .utils.config import Config
 
 

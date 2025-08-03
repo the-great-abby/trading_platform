@@ -8,16 +8,35 @@ import os
 import sys
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import psycopg2
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+import time
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 # Add the src directory to the path
 sys.path.append(str(Path(__file__).parent / "src"))
 
 app = FastAPI(title="Backtest API", version="1.0.0")
+
+# Prometheus metrics
+backtest_jobs_total = Counter('backtest_jobs_total', 'Total backtest jobs', ['status'])
+backtest_jobs_completed = Counter('backtest_jobs_completed', 'Completed backtest jobs')
+backtest_jobs_failed = Counter('backtest_jobs_failed', 'Failed backtest jobs')
+backtest_duration_seconds = Histogram('backtest_duration_seconds', 'Backtest execution time in seconds')
+backtest_queue_depth = Gauge('backtest_queue_depth', 'Number of jobs in queue')
+
+# Strategy performance metrics
+strategy_win_rate = Gauge('strategy_win_rate', 'Strategy win rate', ['strategy'])
+strategy_sharpe_ratio = Gauge('strategy_sharpe_ratio', 'Strategy Sharpe ratio', ['strategy'])
+strategy_max_drawdown = Gauge('strategy_max_drawdown', 'Strategy maximum drawdown', ['strategy'])
+strategy_profit_factor = Gauge('strategy_profit_factor', 'Strategy profit factor', ['strategy'])
+
+# Service metrics
+backtest_requests_total = Counter('backtest_requests_total', 'Total backtest API requests', ['endpoint', 'status'])
+backtest_request_duration_seconds = Histogram('backtest_request_duration_seconds', 'Backtest API request duration')
 
 # Database connection
 def get_db_connection():
@@ -32,6 +51,7 @@ def get_db_connection():
 @app.get("/")
 async def root():
     """API root endpoint"""
+    backtest_requests_total.labels(endpoint="/", status="200").inc()
     return {
         "message": "Backtest Results API",
         "version": "1.0.0",
@@ -49,13 +69,31 @@ async def health_check():
     try:
         conn = get_db_connection()
         conn.close()
+        backtest_requests_total.labels(endpoint="/health", status="200").inc()
         return {"status": "healthy", "service": "backtest-api"}
     except Exception as e:
+        backtest_requests_total.labels(endpoint="/health", status="500").inc()
         return {"status": "unhealthy", "error": str(e)}
+
+@app.get("/ready")
+async def ready_check():
+    """Readiness check endpoint"""
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return {"status": "ready", "service": "backtest-api"}
+    except Exception as e:
+        return {"status": "not ready", "error": str(e)}
+
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint"""
+    return Response(generate_latest(), media_type="text/plain")
 
 @app.get("/api/v1/runs")
 async def list_runs(limit: int = 10):
     """List recent backtest runs"""
+    start_time = time.time()
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -84,13 +122,62 @@ async def list_runs(limit: int = 10):
         cursor.close()
         conn.close()
         
+        # Update metrics
+        backtest_requests_total.labels(endpoint="/api/v1/runs", status="200").inc()
+        backtest_request_duration_seconds.observe(time.time() - start_time)
+        
+        # Update strategy metrics from database
+        update_strategy_metrics_from_runs(runs)
+        
         return {"success": True, "data": runs}
     except Exception as e:
+        backtest_requests_total.labels(endpoint="/api/v1/runs", status="500").inc()
+        backtest_request_duration_seconds.observe(time.time() - start_time)
         return {"success": False, "data": [], "error": str(e)}
+
+def update_strategy_metrics_from_runs(runs):
+    """Update strategy performance metrics from backtest runs"""
+    strategy_stats = {}
+    
+    for run in runs:
+        strategy = run['strategy_name']
+        if strategy not in strategy_stats:
+            strategy_stats[strategy] = {
+                'win_rates': [],
+                'sharpe_ratios': [],
+                'max_drawdowns': [],
+                'profit_factors': []
+            }
+        
+        strategy_stats[strategy]['win_rates'].append(run['win_rate'])
+        strategy_stats[strategy]['sharpe_ratios'].append(run['sharpe_ratio'])
+        strategy_stats[strategy]['max_drawdowns'].append(run['max_drawdown_pct'])
+        # Calculate profit factor (simplified)
+        profit_factor = 1.0 + (run['total_return_pct'] / 100.0) if run['total_return_pct'] > 0 else 1.0
+        strategy_stats[strategy]['profit_factors'].append(profit_factor)
+    
+    # Update Prometheus metrics
+    for strategy, stats in strategy_stats.items():
+        if stats['win_rates']:
+            avg_win_rate = sum(stats['win_rates']) / len(stats['win_rates'])
+            strategy_win_rate.labels(strategy=strategy).set(avg_win_rate)
+        
+        if stats['sharpe_ratios']:
+            avg_sharpe = sum(stats['sharpe_ratios']) / len(stats['sharpe_ratios'])
+            strategy_sharpe_ratio.labels(strategy=strategy).set(avg_sharpe)
+        
+        if stats['max_drawdowns']:
+            avg_drawdown = sum(stats['max_drawdowns']) / len(stats['max_drawdowns'])
+            strategy_max_drawdown.labels(strategy=strategy).set(avg_drawdown)
+        
+        if stats['profit_factors']:
+            avg_profit_factor = sum(stats['profit_factors']) / len(stats['profit_factors'])
+            strategy_profit_factor.labels(strategy=strategy).set(avg_profit_factor)
 
 @app.get("/api/v1/compare")
 async def compare_strategies():
     """Compare performance of different strategies"""
+    start_time = time.time()
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -115,13 +202,20 @@ async def compare_strategies():
         cursor.close()
         conn.close()
         
+        # Update metrics
+        backtest_requests_total.labels(endpoint="/api/v1/compare", status="200").inc()
+        backtest_request_duration_seconds.observe(time.time() - start_time)
+        
         return {"success": True, "data": strategies}
     except Exception as e:
+        backtest_requests_total.labels(endpoint="/api/v1/compare", status="500").inc()
+        backtest_request_duration_seconds.observe(time.time() - start_time)
         return {"success": False, "data": [], "error": str(e)}
 
 @app.get("/api/v1/stats")
 async def get_stats():
     """Get overall statistics about backtest results"""
+    start_time = time.time()
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -147,15 +241,25 @@ async def get_stats():
         cursor.close()
         conn.close()
         
+        # Update job metrics
+        backtest_jobs_total.labels(status="completed").inc(stats["total_runs"])
+        backtest_jobs_completed.inc(stats["total_runs"])
+        
+        # Update metrics
+        backtest_requests_total.labels(endpoint="/api/v1/stats", status="200").inc()
+        backtest_request_duration_seconds.observe(time.time() - start_time)
+        
         return {"success": True, "data": stats}
     except Exception as e:
+        backtest_requests_total.labels(endpoint="/api/v1/stats", status="500").inc()
+        backtest_request_duration_seconds.observe(time.time() - start_time)
         return {"success": False, "data": {}, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
     
-    # Get port from environment or default to 10001
-    port = int(os.getenv("API_PORT", "10001"))
+    # Get port from environment or default to 11101
+    port = int(os.getenv("API_PORT", "11101"))
     
     print(f"🚀 Starting Backtest API Service on port {port}")
     print("This is ORION, Mission Control. Backtest API is now active!")

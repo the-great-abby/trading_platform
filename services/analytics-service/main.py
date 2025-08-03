@@ -10,12 +10,20 @@ import os
 import logging
 from datetime import datetime, timedelta
 import random
+import time
+from prometheus_client import generate_latest, Counter, Histogram, Gauge
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Analytics Service", version="1.0.0")
+
+# Prometheus metrics
+analytics_requests_total = Counter('analytics_requests_total', 'Total number of analytics requests')
+analytics_request_duration = Histogram('analytics_request_duration_seconds', 'Time spent on analytics requests')
+performance_analytics_total = Counter('performance_analytics_total', 'Total number of performance analytics requests')
+risk_analytics_total = Counter('risk_analytics_total', 'Total number of risk analytics requests')
 
 class AnalyticsRequest(BaseModel):
     start_date: str
@@ -47,6 +55,7 @@ async def get_status():
 @app.post("/analytics/performance", response_model=PerformanceMetrics)
 async def get_performance_analytics(request: AnalyticsRequest):
     """Get performance analytics"""
+    start_time = time.time()
     try:
         # Mock performance analytics
         performance = PerformanceMetrics(
@@ -56,6 +65,11 @@ async def get_performance_analytics(request: AnalyticsRequest):
             volatility=0.16,  # 16%
             win_rate=0.68  # 68%
         )
+        
+        # Update Prometheus metrics
+        analytics_requests_total.inc()
+        performance_analytics_total.inc()
+        analytics_request_duration.observe(time.time() - start_time)
         
         logger.info(f"Generated performance analytics for period {request.start_date} to {request.end_date}")
         
@@ -98,27 +112,27 @@ async def get_returns_analysis(period: str = "1m", symbol: Optional[str] = None)
 @app.get("/analytics/risk")
 async def get_risk_analysis(period: str = "1m"):
     """Get risk analysis"""
+    start_time = time.time()
     try:
         # Mock risk analysis
         risk_data = {
             "period": period,
-            "volatility": 0.16,
-            "var_95": 0.025,  # 2.5% Value at Risk (95%)
-            "var_99": 0.035,  # 3.5% Value at Risk (99%)
+            "var_95": 0.015,  # 1.5% Value at Risk (95%)
+            "var_99": 0.025,  # 2.5% Value at Risk (99%)
+            "sharpe_ratio": 1.2,
+            "sortino_ratio": 1.5,
             "max_drawdown": 0.08,
-            "current_drawdown": 0.02,
+            "volatility": 0.18,
             "beta": 1.1,
-            "alpha": 0.02,
-            "sharpe_ratio": 1.35,
-            "sortino_ratio": 1.8,
-            "calmar_ratio": 1.6,
-            "risk_metrics": {
-                "downside_deviation": 0.12,
-                "upside_capture": 0.95,
-                "downside_capture": 0.85,
-                "information_ratio": 0.8
-            }
+            "correlation": 0.85,
+            "downside_deviation": 0.12,
+            "calmar_ratio": 1.8
         }
+        
+        # Update Prometheus metrics
+        analytics_requests_total.inc()
+        risk_analytics_total.inc()
+        analytics_request_duration.observe(time.time() - start_time)
         
         return risk_data
     except Exception as e:
@@ -248,6 +262,12 @@ async def get_available_reports():
         logger.error(f"Failed to get available reports: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get available reports: {str(e)}")
 
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint"""
+    from fastapi.responses import Response
+    return Response(content=generate_latest(), media_type="text/plain")
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8007))
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)

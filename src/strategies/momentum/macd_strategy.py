@@ -20,7 +20,7 @@ class MACDStrategy(BaseStrategy):
                  signal_period: int = 9,
                  threshold: float = 0.001,
                  **kwargs):
-        super().__init__(name="MACD", **kwargs)
+        super().__init__(name="MACD", config=kwargs)
         self.fast_period = fast_period
         self.slow_period = slow_period
         self.signal_period = signal_period

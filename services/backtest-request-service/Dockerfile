@@ -1,8 +1,6 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-
-# Install system dependencies including kubectl
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
@@ -13,15 +11,17 @@ RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/s
     && chmod +x kubectl \
     && mv kubectl /usr/local/bin/
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY services/backtest-request-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY main.py .
+COPY services/backtest-request-service/main.py .
 
 # Expose port
 EXPOSE 8082
 
 # Run the application
-CMD ["python", "main.py"] 
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8082"] 

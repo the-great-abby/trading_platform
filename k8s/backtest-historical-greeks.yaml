@@ -12,7 +12,7 @@ spec:
         command: ["python", "run_historical_greeks_backtest.py"]
         env:
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
         - name: OLLAMA_URL
           value: "http://ollama-dev:11434"
         - name: OLLAMA_MODEL

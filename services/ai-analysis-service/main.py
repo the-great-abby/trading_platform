@@ -30,7 +30,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5
 DEFAULT_STOCKS = [
     "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX", 
     "AMD", "INTC", "CRM", "ORCL", "ADBE", "PYPL", "NKE", "DIS",
-    "JPM", "BAC", "WFC", "GS", "JNJ", "PFE", "UNH", "HD", "PG"
+    "JPM", "BAC", "WFC", "GS", "JNJ", "PFE", "UNH", "HD", "PG", "SMCI"
 ]
 
 class StockAnalysis(BaseModel):

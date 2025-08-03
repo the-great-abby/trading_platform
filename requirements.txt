@@ -58,6 +58,7 @@ seaborn==0.13.0
 # Async support
 aiohttp==3.8.2
 asyncio-mqtt==0.16.1
+aio_pika==9.3.0
 
 # Time handling
 python-dateutil==2.8.2

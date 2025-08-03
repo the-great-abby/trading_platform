@@ -48,8 +48,15 @@ spec:
                 secretKeyRef:
                   name: trading-secrets
                   key: iex-cloud-api-key
-            - name: OLLAMA_URL
-              value: "http://ollama:11434"
+            # Updated to use LLM Proxy instead of direct Ollama
+            - name: LLM_PROXY_URL
+              value: "http://llm-proxy:12001"
+            - name: ENABLE_LLM_ANALYSIS
+              value: "true"
+            - name: LLM_TIMEOUT
+              value: "30"
+            - name: LLM_MAX_RETRIES
+              value: "3"
             - name: LOG_LEVEL
               value: "INFO"
             - name: SYMBOLS
@@ -64,12 +71,6 @@ spec:
               value: "10"
             - name: MIN_IMPACT_THRESHOLD
               value: "0.3"
-            - name: ENABLE_LLM_ANALYSIS
-              value: "true"
-            - name: LLM_TIMEOUT
-              value: "30"
-            - name: LLM_MAX_RETRIES
-              value: "3"
             resources:
               requests:
                 memory: "512Mi"

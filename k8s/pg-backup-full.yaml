@@ -18,7 +18,7 @@ spec:
             cat /backup/backup_full.dump | base64
         env:
         - name: POSTGRES_HOST
-          value: "postgres-dev"
+          value: "timescaledb.trading-system.svc.cluster.local"
         - name: POSTGRES_DB
           value: "trading_bot"
         - name: POSTGRES_USER

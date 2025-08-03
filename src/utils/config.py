@@ -30,6 +30,9 @@ class Config:
     # Database Configuration
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///algo_trader.db")
     
+    # RabbitMQ Configuration
+    rabbitmq_url: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+    
     # Trading Configuration
     initial_capital: float = float(os.getenv("INITIAL_CAPITAL", "10000"))
     max_position_size: float = float(os.getenv("MAX_POSITION_SIZE", "0.1"))
@@ -52,6 +55,10 @@ class Config:
     # Symbol lists - use default_factory for mutable defaults
     symbols: Optional[List[str]] = field(default_factory=get_symbols)
     options_symbols: Optional[List[str]] = field(default_factory=get_options_symbols)
+    
+    def get(self, key: str, default=None):
+        """Get configuration value by key (for compatibility with dict-like access)"""
+        return getattr(self, key.lower(), default)
     
     def validate(self) -> bool:
         """Validate configuration"""

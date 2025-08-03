@@ -1,0 +1,288 @@
+# 🚀 Port Forwarding Management for Trading System
+# Maps all services to appropriate ports in the 11000-11999 range
+
+.PHONY: help start-all stop-all status check-all
+.PHONY: dashboards monitoring data-services trading-services ai-services
+.PHONY: start-dashboards start-monitoring start-data-services start-trading-services start-ai-services
+
+# Default target
+help:
+	@echo "🚀 Trading System Port Forwarding Management"
+	@echo ""
+	@echo "📋 Available Commands:"
+	@echo "  make start-all          - Start all port forwarding"
+	@echo "  make stop-all           - Stop all port forwarding"
+	@echo "  make status             - Show status of all port forwards"
+	@echo "  make check-all          - Health check all services"
+	@echo ""
+	@echo "📊 Service Categories:"
+	@echo "  make start-dashboards   - Start dashboard services only"
+	@echo "  make start-monitoring   - Start monitoring services only"
+	@echo "  make start-data-services - Start data processing services only"
+	@echo "  make start-trading-services - Start trading services only"
+	@echo "  make start-ai-services  - Start AI/ML services only"
+	@echo ""
+	@echo "🔧 Individual Services:"
+	@echo "  make start-grafana      - Start Grafana monitoring"
+	@echo "  make start-prometheus   - Start Prometheus metrics"
+	@echo "  make start-unified-analytics - Start Unified Analytics Dashboard"
+	@echo "  make start-unified-trading - Start Unified Trading Dashboard"
+	@echo "  make start-unified-news - Start Unified News Dashboard"
+	@echo "  make start-central-hub  - Start Central Hub Dashboard"
+	@echo "  make start-performance  - Start Performance Dashboard"
+	@echo "  make start-health       - Start Health Dashboard"
+	@echo "  make start-rss          - Start RSS Dashboard"
+	@echo "  make start-trading-ultra - Start Trading Ultra Service"
+	@echo "  make start-market-data  - Start Market Data Service"
+	@echo "  make start-backtest     - Start Backtest API"
+	@echo "  make start-ai-stock     - Start AI Stock Dashboard"
+	@echo "  make start-analytics    - Start Analytics Service"
+	@echo "  make start-data-pipeline - Start Data Pipeline"
+	@echo "  make start-ollama       - Start Ollama LLM"
+	@echo "  make start-llm-proxy    - Start LLM Proxy"
+	@echo "  make start-postgres     - Start PostgreSQL"
+	@echo "  make start-timescaledb  - Start TimescaleDB"
+	@echo "  make start-redis        - Start Redis"
+	@echo "  make start-rabbitmq     - Start RabbitMQ"
+	@echo ""
+
+# 🛑 Stop all port forwarding
+stop-all:
+	@echo "🛑 Stopping all port forwarding..."
+	@pkill -f "kubectl port-forward" || true
+	@echo "✅ All port forwarding stopped"
+
+# 📊 Status of all port forwards
+status:
+	@echo "📊 Port Forwarding Status:"
+	@echo "=========================="
+	@ps aux | grep "kubectl port-forward" | grep -v grep || echo "No active port forwards"
+
+# 🔍 Health check all services
+check-all:
+	@echo "🔍 Health Checking All Services..."
+	@echo "================================"
+	@echo "📊 Dashboards:"
+	@curl -s http://localhost:11080/health 2>/dev/null | grep -q "healthy" && echo "✅ Central Hub (11080)" || echo "❌ Central Hub (11080)"
+	@curl -s http://localhost:11000/health 2>/dev/null | grep -q "healthy" && echo "✅ Performance (11000)" || echo "❌ Performance (11000)"
+	@curl -s http://localhost:11002/health 2>/dev/null | grep -q "healthy" && echo "✅ Health (11002)" || echo "❌ Health (11002)"
+	@curl -s http://localhost:11003/health 2>/dev/null | grep -q "healthy" && echo "✅ RSS Dashboard (11003)" || echo "❌ RSS Dashboard (11003)"
+	@curl -s http://localhost:11115/health 2>/dev/null | grep -q "healthy" && echo "✅ Unified Analytics (11115)" || echo "❌ Unified Analytics (11115)"
+	@curl -s http://localhost:11114/health 2>/dev/null | grep -q "healthy" && echo "✅ Unified Trading (11114)" || echo "❌ Unified Trading (11114)"
+	@curl -s http://localhost:11113/health 2>/dev/null | grep -q "healthy" && echo "✅ Unified News (11113)" || echo "❌ Unified News (11113)"
+	@echo ""
+	@echo "🔧 Services:"
+	@curl -s http://localhost:11099/health 2>/dev/null | grep -q "healthy" && echo "✅ Trading Ultra (11099)" || echo "❌ Trading Ultra (11099)"
+	@curl -s http://localhost:11084/health 2>/dev/null | grep -q "healthy" && echo "✅ Market Data (11084)" || echo "❌ Market Data (11084)"
+	@curl -s http://localhost:11101/health 2>/dev/null | grep -q "healthy" && echo "✅ Backtest API (11101)" || echo "❌ Backtest API (11101)"
+	@curl -s http://localhost:11086/health 2>/dev/null | grep -q "healthy" && echo "✅ AI Stock (11086)" || echo "❌ AI Stock (11086)"
+	@echo ""
+	@echo "📈 Monitoring:"
+	@curl -s http://localhost:11102/ 2>/dev/null | grep -q "Grafana" && echo "✅ Grafana (11102)" || echo "❌ Grafana (11102)"
+	@curl -s http://localhost:11190/ 2>/dev/null | grep -q "Prometheus" && echo "✅ Prometheus (11190)" || echo "❌ Prometheus (11190)"
+
+# 🚀 Start all port forwarding
+start-all: stop-all
+	@echo "🚀 Starting all port forwarding..."
+	@echo "================================"
+	@$(MAKE) start-dashboards
+	@$(MAKE) start-monitoring
+	@$(MAKE) start-data-services
+	@$(MAKE) start-trading-services
+	@$(MAKE) start-ai-services
+	@echo ""
+	@echo "✅ All port forwarding started!"
+	@echo "📊 Check status with: make status"
+	@echo "🔍 Health check with: make check-all"
+
+# 📊 Dashboard Services (11000-11099)
+start-dashboards:
+	@echo "📊 Starting Dashboard Services..."
+	@kubectl port-forward -n trading-system service/central-hub-dashboard 11080:8000 &
+	@kubectl port-forward -n trading-system service/performance-dashboard 11000:8000 &
+	@kubectl port-forward -n trading-system service/health-dashboard 11002:8000 &
+	@kubectl port-forward -n trading-system service/rss-dashboard 11003:8080 &
+	@kubectl port-forward -n trading-system service/unified-analytics-dashboard 11115:80 &
+	@kubectl port-forward -n trading-system service/unified-trading-dashboard 11114:80 &
+	@kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
+	@kubectl port-forward -n trading-system service/ai-stock-dashboard 11086:8000 &
+	@echo "✅ Dashboard services started"
+
+# 📈 Monitoring Services (11190-11199)
+start-monitoring:
+	@echo "📈 Starting Monitoring Services..."
+	@kubectl port-forward -n trading-system service/grafana 11102:3000 &
+	@kubectl port-forward -n trading-system service/prometheus 11190:9090 &
+	@kubectl port-forward -n trading-system service/postgres-exporter 11191:9187 &
+	@kubectl port-forward -n trading-system service/rabbitmq-exporter 11192:9419 &
+	@kubectl port-forward -n trading-system service/node-exporter 11193:9100 &
+	@echo "✅ Monitoring services started"
+
+# 🔄 Data Processing Services (11100-11119)
+start-data-services:
+	@echo "🔄 Starting Data Processing Services..."
+	@kubectl port-forward -n trading-system service/market-data-service 11084:8000 &
+	@kubectl port-forward -n trading-system service/data-processing-service 11095:11095 &
+	@kubectl port-forward -n trading-system service/data-transformation-pipeline 11135:11135 &
+	@kubectl port-forward -n trading-system service/data-analysis-service 11136:11136 &
+	@kubectl port-forward -n trading-system service/backtest-api 11101:11101 &
+	@kubectl port-forward -n trading-system service/metrics-test-service 11100:11100 &
+	@kubectl port-forward -n trading-system service/infrastructure-metrics-collector 11103:11103 &
+	@echo "✅ Data processing services started"
+
+# 💼 Trading Services (11099-11109)
+start-trading-services:
+	@echo "💼 Starting Trading Services..."
+	@kubectl port-forward -n trading-system service/trading-ultra-service 11099:11099 &
+	@kubectl port-forward -n trading-system service/trading-service 11001:8000 &
+	@kubectl port-forward -n trading-system service/trading-dashboard-service 11001:8000 &
+	@kubectl port-forward -n trading-system service/portfolio-service 11005:8000 &
+	@kubectl port-forward -n trading-system service/order-service 11006:8000 &
+	@kubectl port-forward -n trading-system service/strategy-service 11007:8000 &
+	@kubectl port-forward -n trading-system service/risk-service 11008:8000 &
+	@kubectl port-forward -n trading-system service/public-api 11009:8000 &
+	@echo "✅ Trading services started"
+
+# 🤖 AI/ML Services (11120-11139)
+start-ai-services:
+	@echo "🤖 Starting AI/ML Services..."
+	@kubectl port-forward -n trading-system service/ollama 11120:11434 &
+	@kubectl port-forward -n trading-system service/llm-proxy 11121:8081 &
+	@kubectl port-forward -n trading-system service/analytics-service 11122:8000 &
+	@kubectl port-forward -n trading-system service/postgres-vector-storage 11123:8000 &
+	@kubectl port-forward -n trading-system service/report-viewer-service 11124:8084 &
+	@kubectl port-forward -n trading-system service/notification-service 11125:8007 &
+	@kubectl port-forward -n trading-system service/backtest-request-service 11126:8082 &
+	@echo "✅ AI/ML services started"
+
+# 🗄️ Database Services (11140-11149)
+start-databases:
+	@echo "🗄️ Starting Database Services..."
+	@kubectl port-forward -n trading-system service/timescaledb 11140:5432 &
+	@kubectl port-forward -n trading-system service/postgres-dev 11141:5432 &
+	@kubectl port-forward -n trading-system service/redis 11142:6379 &
+	@kubectl port-forward -n trading-system service/redis-dev 11143:6379 &
+	@kubectl port-forward -n trading-system service/rabbitmq 11144:5672 &
+	@echo "✅ Database services started"
+
+# 🔧 Individual Service Starters
+
+# Dashboards
+start-central-hub:
+	@kubectl port-forward -n trading-system service/central-hub-dashboard 11080:8000 &
+	@echo "✅ Central Hub Dashboard started on http://localhost:11080/"
+
+start-performance:
+	@kubectl port-forward -n trading-system service/performance-dashboard 11000:8000 &
+	@echo "✅ Performance Dashboard started on http://localhost:11000/dashboard"
+
+start-health:
+	@kubectl port-forward -n trading-system service/health-dashboard 11002:8000 &
+	@echo "✅ Health Dashboard started on http://localhost:11002/dashboard"
+
+start-rss:
+	@kubectl port-forward -n trading-system service/rss-dashboard 11003:8080 &
+	@echo "✅ RSS Dashboard started on http://localhost:11003/"
+
+start-unified-analytics:
+	@kubectl port-forward -n trading-system service/unified-analytics-dashboard 11115:80 &
+	@echo "✅ Unified Analytics Dashboard started on http://localhost:11115/"
+
+start-unified-trading:
+	@kubectl port-forward -n trading-system service/unified-trading-dashboard 11114:80 &
+	@echo "✅ Unified Trading Dashboard started on http://localhost:11114/"
+
+start-unified-news:
+	@kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
+	@echo "✅ Unified News Dashboard started on http://localhost:11113/"
+
+start-ai-stock:
+	@kubectl port-forward -n trading-system service/ai-stock-dashboard 11086:8000 &
+	@echo "✅ AI Stock Dashboard started on http://localhost:11086/"
+
+# Trading Services
+start-trading-ultra:
+	@kubectl port-forward -n trading-system service/trading-ultra-service 11099:11099 &
+	@echo "✅ Trading Ultra Service started on http://localhost:11099/"
+
+start-market-data:
+	@kubectl port-forward -n trading-system service/market-data-service 11084:8000 &
+	@echo "✅ Market Data Service started on http://localhost:11084/"
+
+start-backtest:
+	@kubectl port-forward -n trading-system service/backtest-api 11101:11101 &
+	@echo "✅ Backtest API started on http://localhost:11101/"
+
+# Monitoring
+start-grafana:
+	@kubectl port-forward -n trading-system service/grafana 11102:3000 &
+	@echo "✅ Grafana started on http://localhost:11102/"
+
+start-prometheus:
+	@kubectl port-forward -n trading-system service/prometheus 11190:9090 &
+	@echo "✅ Prometheus started on http://localhost:11190/"
+
+# AI/ML Services
+start-ollama:
+	@kubectl port-forward -n trading-system service/ollama 11120:11434 &
+	@echo "✅ Ollama started on http://localhost:11120/"
+
+start-llm-proxy:
+	@kubectl port-forward -n trading-system service/llm-proxy 11121:8081 &
+	@echo "✅ LLM Proxy started on http://localhost:11121/"
+
+start-analytics:
+	@kubectl port-forward -n trading-system service/analytics-service 11122:8000 &
+	@echo "✅ Analytics Service started on http://localhost:11122/"
+
+# Databases
+start-timescaledb:
+	@kubectl port-forward -n trading-system service/timescaledb 11140:5432 &
+	@echo "✅ TimescaleDB started on localhost:11140"
+
+start-postgres:
+	@kubectl port-forward -n trading-system service/postgres-dev 11141:5432 &
+	@echo "✅ PostgreSQL started on localhost:11141"
+
+start-redis:
+	@kubectl port-forward -n trading-system service/redis 11142:6379 &
+	@echo "✅ Redis started on localhost:11142"
+
+start-rabbitmq:
+	@kubectl port-forward -n trading-system service/rabbitmq 11144:5672 &
+	@echo "✅ RabbitMQ started on localhost:11144"
+
+# 📋 Service URL Summary
+urls:
+	@echo "🌐 Trading System Service URLs"
+	@echo "=============================="
+	@echo ""
+	@echo "📊 Dashboards:"
+	@echo "  Central Hub:        http://localhost:11080/"
+	@echo "  Performance:        http://localhost:11000/dashboard"
+	@echo "  Health:            http://localhost:11002/dashboard"
+	@echo "  RSS Dashboard:     http://localhost:11003/"
+	@echo "  Unified Analytics: http://localhost:11115/"
+	@echo "  Unified Trading:   http://localhost:11114/"
+	@echo "  Unified News:      http://localhost:11113/"
+	@echo "  AI Stock:          http://localhost:11086/"
+	@echo ""
+	@echo "💼 Trading Services:"
+	@echo "  Trading Ultra:     http://localhost:11099/"
+	@echo "  Market Data:       http://localhost:11084/"
+	@echo "  Backtest API:      http://localhost:11101/"
+	@echo ""
+	@echo "📈 Monitoring:"
+	@echo "  Grafana:           http://localhost:11102/"
+	@echo "  Prometheus:        http://localhost:11190/"
+	@echo ""
+	@echo "🤖 AI/ML Services:"
+	@echo "  Ollama:            http://localhost:11120/"
+	@echo "  LLM Proxy:         http://localhost:11121/"
+	@echo "  Analytics:         http://localhost:11122/"
+	@echo ""
+	@echo "🗄️ Databases:"
+	@echo "  TimescaleDB:       localhost:11140"
+	@echo "  PostgreSQL:        localhost:11141"
+	@echo "  Redis:             localhost:11142"
+	@echo "  RabbitMQ:          localhost:11144" 

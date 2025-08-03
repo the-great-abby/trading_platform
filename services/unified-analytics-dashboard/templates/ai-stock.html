@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 AI Stock Analysis Dashboard - Unified Analytics Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+        }
+        .result-card {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .status-buy { background: #d4edda; color: #155724; }
+        .status-sell { background: #f8d7da; color: #721c24; }
+        .status-hold { background: #fff3cd; color: #856404; }
+        .confidence-bar {
+            height: 20px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .report-jobs {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .job-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .job-pending { border-left-color: #ffc107; }
+        .job-processing { border-left-color: #17a2b8; }
+        .job-completed { border-left-color: #28a745; }
+        .job-failed { border-left-color: #dc3545; }
+        .notification-toggle {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .nav-tab {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .nav-tab.active {
+            background: rgba(255,255,255,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="header">
+                <h1><i class="fas fa-chart-line"></i> AI Stock Analysis Dashboard</h1>
+                <p class="mb-0">Powered by Real Market Data, News Feed, LLM Service & Vector Database</p>
+            </div>
+
+            <div class="container-fluid p-4">
+                <!-- Navigation Tabs -->
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showTab('analysis')">📊 Stock Analysis</button>
+                    <button class="nav-tab" onclick="showTab('reports')">📋 Report Jobs</button>
+                    <button class="nav-tab" onclick="showTab('symbols')">⭐ Popular Symbols</button>
+                </div>
+
+                <!-- Notification Setup -->
+                <div class="notification-toggle">
+                    <h5><i class="fas fa-bell"></i> Browser Notifications</h5>
+                    <p class="mb-2">Get notified when your reports are ready!</p>
+                    <button class="btn btn-primary" onclick="subscribeToNotifications()">
+                        <i class="fas fa-bell"></i> Enable Notifications
+                    </button>
+                    <span id="notification-status" class="ms-3"></span>
+                </div>
+
+                <!-- Analysis Tab -->
+                <div id="analysis-tab" class="tab-content">
+                    <!-- Analysis Form -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-search"></i> Stock Analysis</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="analysisForm" onsubmit="submitReportJob(event); return false;">
+                                        <div class="mb-3">
+                                            <label for="symbol" class="form-label">Stock Symbol</label>
+                                            <input type="text" class="form-control" id="symbol" placeholder="e.g., AAPL" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="price" class="form-label">Current Price</label>
+                                            <input type="number" class="form-control" id="price" step="0.01" placeholder="e.g., 150.25" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">Email (for notifications)</label>
+                                            <input type="email" class="form-control" id="email" placeholder="your@email.com">
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="includeNews" checked>
+                                                <label class="form-check-label" for="includeNews">
+                                                    Include News Sentiment
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="includeTechnical" checked>
+                                                <label class="form-check-label" for="includeTechnical">
+                                                    Include Technical Analysis
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="includeSentiment" checked>
+                                                <label class="form-check-label" for="includeSentiment">
+                                                    Include Sentiment Analysis
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-chart-line"></i> Submit Report Job
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-bar"></i> Quick Analysis Results</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="quickResults">
+                                        <p class="text-muted">Enter a stock symbol and price to get instant analysis.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div id="loading" class="loading">
+                        <div class="spinner"></div>
+                        <p class="mt-3">Analyzing stock data...</p>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="results" class="result-card" style="display: none;">
+                        <h4><i class="fas fa-chart-bar"></i> Analysis Results</h4>
+                        <div id="resultContent"></div>
+                    </div>
+                </div>
+
+                <!-- Reports Tab -->
+                <div id="reports-tab" class="tab-content" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-list"></i> Report Jobs</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="reportJobs">
+                                        <p class="text-muted">No report jobs yet. Submit a job to see it here.</p>
+                                    </div>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="refreshReportJobs()">
+                                        <i class="fas fa-sync"></i> Refresh Jobs
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-info-circle"></i> Report Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Report Retention:</strong><br>
+                                        <small class="text-muted">Reports are stored for 30 days</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Processing Time:</strong><br>
+                                        <small class="text-muted">2-5 minutes for comprehensive analysis</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Report Types:</strong><br>
+                                        <small class="text-muted">Technical, News Sentiment, AI Analysis</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Symbols Tab -->
+                <div id="symbols-tab" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-star"></i> Popular Symbols</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="popularSymbols" class="row">
+                                <!-- Popular symbols will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let notificationSubscription = null;
+        let reportJobs = [];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadPopularSymbols();
+            refreshReportJobs();
+            checkNotificationPermission();
+            
+            // Register Service Worker on page load
+            await registerServiceWorker();
+        });
+
+        // Tab navigation
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').style.display = 'block';
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Form submission for quick analysis
+        // document.getElementById('analysisForm').addEventListener('submit', async function(e) {
+        //     e.preventDefault();
+        //     await performQuickAnalysis();
+        // });
+
+        async function performQuickAnalysis() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const price = parseFloat(document.getElementById('price').value);
+            const includeNews = document.getElementById('includeNews').checked;
+            const includeTechnical = document.getElementById('includeTechnical').checked;
+            const includeSentiment = document.getElementById('includeSentiment').checked;
+
+            if (!symbol || !price) {
+                alert('Please enter both symbol and price');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        current_price: price,
+                        include_news: includeNews,
+                        include_technical: includeTechnical,
+                        include_sentiment: includeSentiment
+                    })
+                });
+
+                const result = await response.json();
+                displayResults(result);
+                displayQuickResults(result);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error performing analysis: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayQuickResults(result) {
+            const quickResults = document.getElementById('quickResults');
+            const confidence = result.confidence || 0;
+            const recommendation = result.recommendation || 'HOLD';
+            
+            quickResults.innerHTML = `
+                <div class="mb-3">
+                    <h6>${result.symbol} - $${result.current_price}</h6>
+                    <span class="status-badge status-${recommendation.toLowerCase()}">${recommendation}</span>
+                </div>
+                <div class="mb-3">
+                    <label>Confidence: ${confidence}/10</label>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${confidence * 10}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Risk Level:</strong> ${result.risk_level || 'MEDIUM'}
+                </div>
+                <div class="mb-3">
+                    <strong>Target Price:</strong> $${result.target_price || 'N/A'}<br>
+                    <strong>Stop Loss:</strong> $${result.stop_loss || 'N/A'}
+                </div>
+                <div class="small text-muted">
+                    Analysis completed in ${result.analysis_time || 0}s
+                </div>
+            `;
+        }
+
+        function displayResults(result) {
+            const resultContent = document.getElementById('resultContent');
+            const confidence = result.confidence || 0;
+            const recommendation = result.recommendation || 'HOLD';
+            
+            resultContent.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Recommendation</h5>
+                        <div class="mb-3">
+                            <span class="status-badge status-${recommendation.toLowerCase()}">${recommendation}</span>
+                        </div>
+                        <div class="mb-3">
+                            <label>Confidence: ${confidence}/10</label>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${confidence * 10}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Risk Level:</strong> ${result.risk_level || 'MEDIUM'}<br>
+                            <strong>Target Price:</strong> $${result.target_price || 'N/A'}<br>
+                            <strong>Stop Loss:</strong> $${result.stop_loss || 'N/A'}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Technical Indicators</h5>
+                        ${formatTechnicalIndicators(result.technical_indicators)}
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>AI Reasoning</h5>
+                        <p>${result.reasoning || 'No reasoning available.'}</p>
+                    </div>
+                </div>
+                ${result.news_sentiment ? `
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>News Sentiment</h5>
+                        ${formatNewsSentiment(result.news_sentiment)}
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function formatTechnicalIndicators(indicators) {
+            if (!indicators) return '<p class="text-muted">No technical data available.</p>';
+            
+            let html = '<div class="row">';
+            for (const [key, value] of Object.entries(indicators)) {
+                if (typeof value === 'number') {
+                    html += `
+                        <div class="col-md-6 mb-2">
+                            <strong>${key}:</strong> ${value.toFixed(2)}
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function formatNewsSentiment(sentiment) {
+            if (!sentiment) return '<p class="text-muted">No news data available.</p>';
+            
+            return `
+                <div class="mb-3">
+                    <strong>Overall Sentiment:</strong> ${sentiment.overall_sentiment || 'N/A'}<br>
+                    <strong>Sentiment Score:</strong> ${sentiment.sentiment_score || 'N/A'}<br>
+                    <strong>Confidence:</strong> ${sentiment.confidence || 'N/A'}
+                </div>
+            `;
+        }
+
+        async function submitReportJob(event) {
+            // Prevent default form submission
+            if (event) {
+                event.preventDefault();
+            }
+            
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const price = parseFloat(document.getElementById('price').value);
+            const email = document.getElementById('email').value;
+            const includeNews = document.getElementById('includeNews').checked;
+            const includeTechnical = document.getElementById('includeTechnical').checked;
+            const includeSentiment = document.getElementById('includeSentiment').checked;
+
+            if (!symbol || !price) {
+                alert('Please enter both symbol and price');
+                return;
+            }
+
+            // Show immediate feedback
+            const submitButton = document.querySelector('#analysisForm button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/reports/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        current_price: price,
+                        include_news: includeNews,
+                        include_technical: includeTechnical,
+                        include_sentiment: includeSentiment,
+                        user_email: email || null
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Show immediate success with job ID
+                    showReportSubmitted(result.job_id, symbol, price);
+                    refreshReportJobs();
+                    
+                    // Switch to reports tab to show progress
+                    showTab('reports');
+                } else {
+                    alert('Error submitting report job: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error submitting report job: ' + error.message);
+            } finally {
+                // Restore button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        }
+
+        function showReportSubmitted(jobId, symbol, price) {
+            // Create a success message with job ID
+            const message = `
+                <div class="alert alert-success" role="alert">
+                    <h6><i class="fas fa-check-circle"></i> Report Submitted Successfully!</h6>
+                    <p><strong>Job ID:</strong> <code>${jobId}</code></p>
+                    <p><strong>Symbol:</strong> ${symbol} at $${price}</p>
+                    <p><strong>Status:</strong> Processing (2-5 minutes)</p>
+                    <p><strong>You will be notified when ready.</strong></p>
+                </div>
+            `;
+            
+            // Show the message in the quick results area
+            document.getElementById('quickResults').innerHTML = message;
+        }
+
+        async function refreshReportJobs() {
+            try {
+                const response = await fetch('/api/reports');
+                const result = await response.json();
+                reportJobs = result.jobs || [];
+                displayReportJobs();
+            } catch (error) {
+                console.error('Error refreshing report jobs:', error);
+            }
+        }
+
+        function displayReportJobs() {
+            const container = document.getElementById('reportJobs');
+            
+            if (reportJobs.length === 0) {
+                container.innerHTML = '<p class="text-muted">No report jobs yet. Submit a job to see it here.</p>';
+                return;
+            }
+
+            let html = '';
+            reportJobs.forEach(job => {
+                const statusClass = `job-${job.status.toLowerCase()}`;
+                const statusText = job.status.charAt(0).toUpperCase() + job.status.slice(1);
+                const createdDate = new Date(job.created_at).toLocaleString();
+                
+                html += `
+                    <div class="job-item ${statusClass}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0"><strong>${job.symbol}</strong> - $${job.current_price}</h6>
+                                    <span class="badge bg-${getStatusColor(job.status)}">${statusText}</span>
+                                </div>
+                                <div class="small text-muted mb-2">
+                                    <strong>Job ID:</strong> <code>${job.job_id}</code><br>
+                                    <strong>Created:</strong> ${createdDate}
+                                </div>
+                                ${job.status === 'processing' ? `
+                                    <div class="progress mb-2" style="height: 4px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                             style="width: 75%"></div>
+                                    </div>
+                                    <small class="text-muted">Processing analysis...</small>
+                                ` : ''}
+                                ${job.status === 'completed' ? `
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewJobResult('${job.job_id}')">
+                                            <i class="fas fa-eye"></i> View Results
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="downloadReport('${job.job_id}')">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                ` : ''}
+                                ${job.status === 'failed' ? `
+                                    <div class="mt-2">
+                                        <small class="text-danger">Failed to process. Please try again.</small>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function getStatusColor(status) {
+            switch (status.toLowerCase()) {
+                case 'pending': return 'warning';
+                case 'processing': return 'info';
+                case 'completed': return 'success';
+                case 'failed': return 'danger';
+                default: return 'secondary';
+            }
+        }
+
+        async function loadPopularSymbols() {
+            try {
+                const response = await fetch('/api/symbols');
+                const result = await response.json();
+                const symbols = result.symbols || [];
+                
+                const container = document.getElementById('popularSymbols');
+                let html = '';
+                
+                symbols.forEach(symbol => {
+                    html += `
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h6>${symbol}</h6>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="selectSymbol('${symbol}')">
+                                        Analyze
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading popular symbols:', error);
+            }
+        }
+
+        function selectSymbol(symbol) {
+            // Populate the symbol field
+            document.getElementById('symbol').value = symbol;
+            
+            // Switch to analysis tab
+            showTab('analysis');
+            
+            // Focus on the price field for quick entry
+            document.getElementById('price').focus();
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Notification functions
+        async function checkNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = Notification.permission;
+                const statusElement = document.getElementById('notification-status');
+                
+                if (permission === 'granted') {
+                    statusElement.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Notifications enabled</span>';
+                } else if (permission === 'denied') {
+                    statusElement.innerHTML = '<span class="text-danger"><i class="fas fa-times"></i> Notifications blocked</span>';
+                } else {
+                    statusElement.innerHTML = '<span class="text-warning"><i class="fas fa-question"></i> Notifications not set</span>';
+                }
+            }
+        }
+
+        async function subscribeToNotifications() {
+            if (!('Notification' in window)) {
+                alert('This browser does not support notifications');
+                return;
+            }
+
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                await registerServiceWorker();
+                document.getElementById('notification-status').innerHTML = 
+                    '<span class="text-success"><i class="fas fa-check"></i> Notifications enabled</span>';
+            } else {
+                alert('Notification permission denied');
+            }
+        }
+
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker registered:', registration);
+                } catch (error) {
+                    console.error('Service Worker registration failed:', error);
+                }
+            }
+        }
+
+        async function viewJobResult(jobId) {
+            try {
+                const response = await fetch(`/api/reports/${jobId}/view`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Create a modal to display the report
+                    showReportModal(result);
+                } else {
+                    alert('Error viewing report: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error viewing report:', error);
+                alert('Error viewing report: ' + error.message);
+            }
+        }
+
+        async function downloadReport(jobId) {
+            try {
+                const response = await fetch(`/api/reports/${jobId}/download`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Create and download the JSON file
+                    const dataStr = JSON.stringify(result.report_data, null, 2);
+                    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = result.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Error downloading report: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error downloading report:', error);
+                alert('Error downloading report: ' + error.message);
+            }
+        }
+
+        function showReportModal(reportData) {
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="reportModalLabel">
+                                    <i class="fas fa-chart-line"></i> AI Analysis Report: ${reportData.symbol}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <strong>Symbol:</strong> ${reportData.symbol}<br>
+                                        <strong>Current Price:</strong> $${reportData.current_price}<br>
+                                        <strong>Analysis Date:</strong> ${new Date(reportData.completed_at).toLocaleString()}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Report ID:</strong> <code>${reportData.job_id}</code><br>
+                                        <strong>Status:</strong> <span class="badge bg-success">Completed</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion" id="reportAccordion">
+                                    ${generateReportSections(reportData.result)}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="downloadReport('${reportData.job_id}')">
+                                    <i class="fas fa-download"></i> Download Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('reportModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+            modal.show();
+        }
+
+        function generateReportSections(result) {
+            let sections = '';
+            
+            // AI Recommendation Section
+            if (result.recommendation) {
+                sections += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingRecommendation">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRecommendation">
+                                <i class="fas fa-robot"></i> AI Recommendation
+                            </button>
+                        </h2>
+                        <div id="collapseRecommendation" class="accordion-collapse collapse show" data-bs-parent="#reportAccordion">
+                            <div class="accordion-body">
+                                <div class="alert alert-info">
+                                    <strong>Recommendation:</strong> ${result.recommendation}<br>
+                                    <strong>Confidence:</strong> ${result.confidence || 'N/A'}%<br>
+                                    <strong>Risk Level:</strong> ${result.risk_level || 'N/A'}
+                                </div>
+                                <div class="mt-3">
+                                    <strong>Reasoning:</strong><br>
+                                    <p>${result.reasoning || 'No reasoning provided'}</p>
+                                </div>
+                                ${result.target_price ? `<div class="mt-2"><strong>Target Price:</strong> $${result.target_price}</div>` : ''}
+                                ${result.stop_loss ? `<div class="mt-2"><strong>Stop Loss:</strong> $${result.stop_loss}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Technical Analysis Section
+            if (result.technical_indicators) {
+                sections += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingTechnical">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTechnical">
+                                <i class="fas fa-chart-line"></i> Technical Analysis
+                            </button>
+                        </h2>
+                        <div id="collapseTechnical" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    ${generateTechnicalIndicators(result.technical_indicators)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Market Data Section
+            if (result.market_data) {
+                sections += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingMarket">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMarket">
+                                <i class="fas fa-chart-bar"></i> Market Data
+                            </button>
+                        </h2>
+                        <div id="collapseMarket" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    ${generateMarketData(result.market_data)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // News Sentiment Section
+            if (result.news_sentiment) {
+                sections += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingNews">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNews">
+                                <i class="fas fa-newspaper"></i> News Sentiment
+                            </button>
+                        </h2>
+                        <div id="collapseNews" class="accordion-collapse collapse" data-bs-parent="#reportAccordion">
+                            <div class="accordion-body">
+                                ${generateNewsSentiment(result.news_sentiment)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return sections;
+        }
+
+        function generateTechnicalIndicators(indicators) {
+            let html = '';
+            for (const [name, value] of Object.entries(indicators)) {
+                html += `
+                    <div class="col-md-6 mb-2">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">${name}</h6>
+                                <p class="card-text">${typeof value === 'number' ? value.toFixed(2) : value}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return html;
+        }
+
+        function generateMarketData(marketData) {
+            let html = '';
+            for (const [name, value] of Object.entries(marketData)) {
+                html += `
+                    <div class="col-md-6 mb-2">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">${name}</h6>
+                                <p class="card-text">${typeof value === 'number' ? value.toFixed(2) : value}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return html;
+        }
+
+        function generateNewsSentiment(sentiment) {
+            return `
+                <div class="alert alert-info">
+                    <strong>Overall Sentiment:</strong> ${sentiment.overall_sentiment || 'N/A'}<br>
+                    <strong>Sentiment Score:</strong> ${sentiment.sentiment_score || 'N/A'}<br>
+                    <strong>Articles Analyzed:</strong> ${sentiment.articles_analyzed || 'N/A'}
+                </div>
+                ${sentiment.recent_articles ? `
+                    <div class="mt-3">
+                        <strong>Recent Articles:</strong>
+                        <ul class="list-group mt-2">
+                            ${sentiment.recent_articles.map(article => `
+                                <li class="list-group-item">
+                                    <strong>${article.title}</strong><br>
+                                    <small class="text-muted">${article.published_at || 'Unknown date'}</small>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+        }
+    </script>
+</body>
+</html> 

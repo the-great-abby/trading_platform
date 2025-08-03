@@ -1,0 +1,253 @@
+# Testing Makefile
+# Comprehensive testing infrastructure for the trading system
+
+.PHONY: help test test-unit test-integration test-e2e test-coverage test-performance test-security test-clean test-setup test-teardown
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+help: ## Show this help message
+	@echo "$(BLUE)Trading System Testing Commands$(NC)"
+	@echo "$(YELLOW)================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Test Environment:$(NC)"
+	@echo "  test-setup          - Setup test environment"
+	@echo "  test-teardown       - Teardown test environment"
+	@echo "  test-clean          - Clean test data and containers"
+	@echo ""
+	@echo "$(GREEN)Test Execution:$(NC)"
+	@echo "  test                - Run all tests"
+	@echo "  test-unit           - Run unit tests only"
+	@echo "  test-integration    - Run integration tests only"
+	@echo "  test-e2e            - Run end-to-end tests only"
+	@echo "  test-coverage       - Run tests with coverage report"
+	@echo "  test-performance    - Run performance tests"
+	@echo "  test-security       - Run security tests"
+	@echo ""
+	@echo "$(GREEN)Service-Specific Tests:$(NC)"
+	@echo "  test-trading-engine - Test trading engine"
+	@echo "  test-strategies     - Test trading strategies"
+	@echo "  test-risk           - Test risk management"
+	@echo "  test-market-data    - Test market data services"
+	@echo "  test-llm            - Test LLM/AI services"
+	@echo "  test-api            - Test API endpoints"
+	@echo ""
+	@echo "$(GREEN)Test Utilities:$(NC)"
+	@echo "  test-lint           - Run linting checks"
+	@echo "  test-format         - Format test code"
+	@echo "  test-report         - Generate test reports"
+	@echo "  test-watch          - Watch for changes and run tests"
+
+# Test Environment Setup
+test-setup: ## Setup test environment
+	@echo "$(GREEN)Setting up test environment...$(NC)"
+	docker-compose -f docker-compose.test.yml up -d test-postgres test-redis test-rabbitmq
+	@echo "$(YELLOW)Waiting for test services to be ready...$(NC)"
+	@until docker-compose -f docker-compose.test.yml exec test-postgres pg_isready -U test_user -d trading_test; do sleep 2; done
+	@until docker-compose -f docker-compose.test.yml exec test-redis redis-cli ping; do sleep 2; done
+	@until docker-compose -f docker-compose.test.yml exec test-rabbitmq rabbitmq-diagnostics ping; do sleep 2; done
+	@echo "$(GREEN)Test environment ready!$(NC)"
+
+test-teardown: ## Teardown test environment
+	@echo "$(YELLOW)Stopping test environment...$(NC)"
+	docker-compose -f docker-compose.test.yml down
+	@echo "$(GREEN)Test environment stopped!$(NC)"
+
+test-clean: ## Clean test data and containers
+	@echo "$(YELLOW)Cleaning test environment...$(NC)"
+	docker-compose -f docker-compose.test.yml down -v
+	docker system prune -f
+	@echo "$(GREEN)Test environment cleaned!$(NC)"
+
+# Test Execution
+test: test-setup ## Run all tests
+	@echo "$(GREEN)Running all tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/ -v --tb=short
+	@echo "$(GREEN)All tests completed!$(NC)"
+
+test-fast: test-setup ## Run fast tests only (excludes problematic tests)
+	@echo "$(GREEN)Running fast tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest \
+		-v --tb=short \
+		--cov=src \
+		--cov-report=term-missing \
+		--cov-report=html:htmlcov \
+		--cov-report=xml \
+		--maxfail=10 \
+		-x \
+		--ignore=tests/skipped/ \
+		--ignore=tests/unit/test_market_data_provider.py \
+		--ignore=tests/unit/test_greeks_enhanced_strategy.py \
+		--ignore=tests/unit/test_social_media_sentiment_strategy.py \
+		--ignore=tests/unit/test_strategy_optimizer.py \
+		--ignore=tests/unit/test_space_station_monitor.py \
+		--ignore=tests/unit/test_options_data_service.py \
+		--ignore=tests/unit/test_bollinger_bands_strategy.py \
+		--ignore=tests/unit/test_enhanced_iron_condor_strategy.py \
+		--ignore=tests/unit/test_trading_api_client.py \
+		--ignore=tests/test_quick_wins.py \
+		--ignore=tests/unit/test_backtest_api.py \
+		tests/unit/
+	@echo "$(GREEN)Fast tests completed!$(NC)"
+
+test-unit: test-setup ## Run unit tests only
+	@echo "$(GREEN)Running unit tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/ -v --tb=short
+	@echo "$(GREEN)Unit tests completed!$(NC)"
+
+test-integration: test-setup ## Run integration tests only
+	@echo "$(GREEN)Running integration tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/integration/ -v --tb=short
+	@echo "$(GREEN)Integration tests completed!$(NC)"
+
+test-e2e: test-setup ## Run end-to-end tests only
+	@echo "$(GREEN)Running end-to-end tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/e2e/ -v --tb=short
+	@echo "$(GREEN)End-to-end tests completed!$(NC)"
+
+test-coverage: test-setup ## Run tests with coverage report
+	@echo "$(GREEN)Running tests with coverage...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/ -v --cov=src --cov-report=html --cov-report=term --cov-report=xml
+	@echo "$(GREEN)Coverage report generated in htmlcov/index.html$(NC)"
+
+test-performance: test-setup ## Run performance tests
+	@echo "$(GREEN)Running performance tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/performance/ -v --tb=short
+	@echo "$(GREEN)Performance tests completed!$(NC)"
+
+test-security: test-setup ## Run security tests
+	@echo "$(GREEN)Running security tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/security/ -v --tb=short
+	@echo "$(GREEN)Security tests completed!$(NC)"
+
+# Service-Specific Tests
+test-trading-engine: test-setup ## Test trading engine
+	@echo "$(GREEN)Testing trading engine...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_trading_engine.py -v --tb=short
+	@echo "$(GREEN)Trading engine tests completed!$(NC)"
+
+test-strategies: test-setup ## Test trading strategies
+	@echo "$(GREEN)Testing trading strategies...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_strategies.py -v --tb=short
+	@echo "$(GREEN)Strategy tests completed!$(NC)"
+
+test-risk: test-setup ## Test risk management
+	@echo "$(GREEN)Testing risk management...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_risk_manager.py -v --tb=short
+	@echo "$(GREEN)Risk management tests completed!$(NC)"
+
+test-market-data: test-setup ## Test market data services
+	@echo "$(GREEN)Testing market data services...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_market_data.py -v --tb=short
+	@echo "$(GREEN)Market data tests completed!$(NC)"
+
+test-llm: test-setup ## Test LLM/AI services
+	@echo "$(GREEN)Testing LLM/AI services...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_llm_service.py -v --tb=short
+	@echo "$(GREEN)LLM service tests completed!$(NC)"
+
+test-api: test-setup ## Test API endpoints
+	@echo "$(GREEN)Testing API endpoints...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_api.py -v --tb=short
+	@echo "$(GREEN)API tests completed!$(NC)"
+
+test-rabbitmq: test-setup ## Test RabbitMQ service
+	@echo "$(GREEN)Testing RabbitMQ service...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_rabbitmq_service.py -v --tb=short
+	@echo "$(GREEN)RabbitMQ tests completed!$(NC)"
+
+# Test Utilities
+test-lint: ## Run linting checks
+	@echo "$(GREEN)Running linting checks...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m flake8 src/ tests/ --max-line-length=120 --ignore=E501,W503
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m black --check src/ tests/
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m isort --check-only src/ tests/
+	@echo "$(GREEN)Linting checks completed!$(NC)"
+
+test-format: ## Format test code
+	@echo "$(GREEN)Formatting test code...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m black src/ tests/
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m isort src/ tests/
+	@echo "$(GREEN)Code formatting completed!$(NC)"
+
+test-report: ## Generate test reports
+	@echo "$(GREEN)Generating test reports...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/ --cov=src --cov-report=html --cov-report=term --cov-report=xml --junitxml=test-results.xml
+	@echo "$(GREEN)Test reports generated:$(NC)"
+	@echo "  - Coverage: htmlcov/index.html"
+	@echo "  - JUnit: test-results.xml"
+	@echo "  - Coverage XML: coverage.xml"
+
+test-watch: ## Watch for changes and run tests
+	@echo "$(GREEN)Watching for changes and running tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest-watch tests/ -- -v --tb=short
+
+# Test Data Management
+test-data-setup: ## Setup test data
+	@echo "$(GREEN)Setting up test data...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python scripts/setup_test_data.py
+	@echo "$(GREEN)Test data setup completed!$(NC)"
+
+test-data-clean: ## Clean test data
+	@echo "$(YELLOW)Cleaning test data...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python scripts/clean_test_data.py
+	@echo "$(GREEN)Test data cleaned!$(NC)"
+
+# Test Database Management
+test-db-migrate: ## Run database migrations for tests
+	@echo "$(GREEN)Running test database migrations...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m alembic upgrade head
+	@echo "$(GREEN)Test database migrations completed!$(NC)"
+
+test-db-reset: ## Reset test database
+	@echo "$(YELLOW)Resetting test database...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python scripts/reset_test_db.py
+	@echo "$(GREEN)Test database reset completed!$(NC)"
+
+# Test Monitoring
+test-status: ## Check test environment status
+	@echo "$(GREEN)Test Environment Status:$(NC)"
+	@echo "$(YELLOW)PostgreSQL:$(NC)"
+	docker-compose -f docker-compose.test.yml exec test-postgres pg_isready -U test_user -d trading_test || echo "$(RED)❌ Not ready$(NC)"
+	@echo "$(YELLOW)Redis:$(NC)"
+	docker-compose -f docker-compose.test.yml exec test-redis redis-cli ping || echo "$(RED)❌ Not ready$(NC)"
+	@echo "$(YELLOW)RabbitMQ:$(NC)"
+	docker-compose -f docker-compose.test.yml exec test-rabbitmq rabbitmq-diagnostics ping || echo "$(RED)❌ Not ready$(NC)"
+
+test-logs: ## Show test service logs
+	@echo "$(GREEN)Test Service Logs:$(NC)"
+	@echo "$(YELLOW)PostgreSQL:$(NC)"
+	docker-compose -f docker-compose.test.yml logs test-postgres --tail=10
+	@echo "$(YELLOW)Redis:$(NC)"
+	docker-compose -f docker-compose.test.yml logs test-redis --tail=10
+	@echo "$(YELLOW)RabbitMQ:$(NC)"
+	docker-compose -f docker-compose.test.yml logs test-rabbitmq --tail=10
+
+# Quick Test Commands
+test-quick: test-setup ## Run quick smoke tests
+	@echo "$(GREEN)Running quick smoke tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest tests/unit/test_quick_wins.py -v --tb=short
+	@echo "$(GREEN)Quick tests completed!$(NC)"
+
+test-failed: test-setup ## Run only failed tests
+	@echo "$(GREEN)Running failed tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest --lf -v --tb=short
+	@echo "$(GREEN)Failed tests completed!$(NC)"
+
+test-slow: test-setup ## Run only slow tests
+	@echo "$(GREEN)Running slow tests...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest -m slow -v --tb=short
+	@echo "$(GREEN)Slow tests completed!$(NC)"
+
+# Test Documentation
+test-docs: ## Generate test documentation
+	@echo "$(GREEN)Generating test documentation...$(NC)"
+	docker-compose -f docker-compose.test.yml run --rm test-trading-cli python -m pytest --collect-only --quiet > test_documentation.txt
+	@echo "$(GREEN)Test documentation generated: test_documentation.txt$(NC)"
+
+# Default target
+.DEFAULT_GOAL := help 

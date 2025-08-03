@@ -1,13 +1,14 @@
 # Centralized trading configuration
 
 import os
+import json
 from typing import Dict, Any
 
 SYMBOLS = [
     'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
     'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS',
     'V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO',
-    'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY'
+    'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'SMCI'
 ]
 
 OPTIONS_SYMBOLS = [
@@ -15,17 +16,29 @@ OPTIONS_SYMBOLS = [
     'SPY', 'QQQ', 'IWM', 'TLT', 'GLD', 'SLV', 'USO', 'UNG', 'XLE', 'XLF'
 ]
 
-# LLM Service Configuration
-LLM_SERVICE_CONFIG = {
-    'base_url': os.getenv('LLM_BASE_URL', 'http://llm-proxy:8081'),
-    'api_key': os.getenv('LLM_API_KEY', ''),
-    'timeout': int(os.getenv('LLM_TIMEOUT', '30')),
-    'max_retries': int(os.getenv('LLM_MAX_RETRIES', '3')),
-    'rate_limit_requests': int(os.getenv('LLM_RATE_LIMIT', '100')),
-    'rate_limit_window': int(os.getenv('LLM_RATE_LIMIT_WINDOW', '60')),
-    'cache_ttl': int(os.getenv('LLM_CACHE_TTL', '300')),
-    'health_check_interval': int(os.getenv('LLM_HEALTH_CHECK_INTERVAL', '60'))
-}
+# LLM Service Configuration - Read from LLM_SERVICE_CONFIG environment variable
+def get_llm_service_config() -> Dict[str, Any]:
+    """Get LLM service configuration from environment variable"""
+    llm_config_str = os.getenv('LLM_SERVICE_CONFIG')
+    if llm_config_str:
+        try:
+            return json.loads(llm_config_str)
+        except json.JSONDecodeError:
+            pass
+    
+    # Fallback to individual environment variables
+    return {
+        'base_url': os.getenv('LLM_BASE_URL', 'http://llm-proxy:11081'),
+        'api_key': os.getenv('LLM_API_KEY', ''),
+        'timeout': int(os.getenv('LLM_TIMEOUT', '30')),
+        'max_retries': int(os.getenv('LLM_MAX_RETRIES', '3')),
+        'rate_limit_requests': int(os.getenv('LLM_RATE_LIMIT', '100')),
+        'rate_limit_window': int(os.getenv('LLM_RATE_LIMIT_WINDOW', '60')),
+        'cache_ttl': int(os.getenv('LLM_CACHE_TTL', '300')),
+        'health_check_interval': int(os.getenv('LLM_HEALTH_CHECK_INTERVAL', '60'))
+    }
+
+LLM_SERVICE_CONFIG = get_llm_service_config()
 
 # Risk Management Configuration
 RISK_CONFIG = {

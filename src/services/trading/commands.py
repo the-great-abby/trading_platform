@@ -9,7 +9,6 @@ from decimal import Decimal
 from ...cqrs.base import Command
 
 
-@dataclass
 class PlaceOrderCommand(Command):
     """Command to place a new order"""
     symbol: str
@@ -23,14 +22,12 @@ class PlaceOrderCommand(Command):
     metadata: Optional[Dict[str, Any]] = None
 
 
-@dataclass
 class CancelOrderCommand(Command):
     """Command to cancel an existing order"""
     order_id: str
     reason: Optional[str] = None
 
 
-@dataclass
 class UpdateOrderCommand(Command):
     """Command to update an existing order"""
     order_id: str
@@ -40,7 +37,6 @@ class UpdateOrderCommand(Command):
     time_in_force: Optional[str] = None
 
 
-@dataclass
 class ExecuteStrategyCommand(Command):
     """Command to execute a trading strategy"""
     strategy_id: str
@@ -48,7 +44,6 @@ class ExecuteStrategyCommand(Command):
     parameters: Optional[Dict[str, Any]] = None
 
 
-@dataclass
 class UpdateStrategyCommand(Command):
     """Command to update a trading strategy"""
     strategy_id: str
@@ -57,7 +52,6 @@ class UpdateStrategyCommand(Command):
     is_active: Optional[bool] = None
 
 
-@dataclass
 class CreateStrategyCommand(Command):
     """Command to create a new trading strategy"""
     name: str

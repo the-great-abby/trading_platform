@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Stock Analysis Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-weight: 600;
+        }
+        .result-card {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .status-buy { background: #d4edda; color: #155724; }
+        .status-sell { background: #f8d7da; color: #721c24; }
+        .status-hold { background: #fff3cd; color: #856404; }
+        .confidence-bar {
+            height: 20px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #ff6b6b 0%, #feca57 50%, #48dbfb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .report-jobs {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .job-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .job-pending { border-left-color: #ffc107; }
+        .job-processing { border-left-color: #17a2b8; }
+        .job-completed { border-left-color: #28a745; }
+        .job-failed { border-left-color: #dc3545; }
+        .notification-toggle {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="header">
+                <h1><i class="fas fa-chart-line"></i> AI Stock Analysis Dashboard</h1>
+                <p class="mb-0">Powered by Real Market Data, News Feed, LLM Service & Vector Database</p>
+            </div>
+
+            <div class="container-fluid p-4">
+                <!-- Notification Setup -->
+                <div class="notification-toggle">
+                    <h5><i class="fas fa-bell"></i> Browser Notifications</h5>
+                    <p class="mb-2">Get notified when your reports are ready!</p>
+                    <button class="btn btn-primary" onclick="subscribeToNotifications()">
+                        <i class="fas fa-bell"></i> Enable Notifications
+                    </button>
+                    <span id="notification-status" class="ms-3"></span>
+                </div>
+
+                <!-- Analysis Form -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-search"></i> Stock Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="analysisForm">
+                                    <div class="mb-3">
+                                        <label for="symbol" class="form-label">Stock Symbol</label>
+                                        <input type="text" class="form-control" id="symbol" placeholder="e.g., AAPL" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="price" class="form-label">Current Price</label>
+                                        <input type="number" class="form-control" id="price" step="0.01" placeholder="e.g., 150.25" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email (for notifications)</label>
+                                        <input type="email" class="form-control" id="email" placeholder="your@email.com">
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeNews" checked>
+                                            <label class="form-check-label" for="includeNews">
+                                                Include News Sentiment
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeTechnical" checked>
+                                            <label class="form-check-label" for="includeTechnical">
+                                                Include Technical Analysis
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeSentiment" checked>
+                                            <label class="form-check-label" for="includeSentiment">
+                                                Include Sentiment Analysis
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-bolt"></i> Quick Analysis (2-5 seconds)
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="submitReportJob()">
+                                            <i class="fas fa-clock"></i> Submit Report Job (2-5 minutes)
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-list"></i> Report Jobs</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="reportJobs">
+                                    <p class="text-muted">No report jobs yet. Submit a job to see it here.</p>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm" onclick="refreshReportJobs()">
+                                    <i class="fas fa-sync"></i> Refresh Jobs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p class="mt-3">Analyzing stock data...</p>
+                </div>
+
+                <!-- Results -->
+                <div id="results" class="result-card" style="display: none;">
+                    <h4><i class="fas fa-chart-bar"></i> Analysis Results</h4>
+                    <div id="resultContent"></div>
+                </div>
+
+                <!-- Popular Symbols -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-star"></i> Popular Symbols</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="popularSymbols" class="row">
+                            <!-- Popular symbols will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let notificationSubscription = null;
+        let reportJobs = [];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadPopularSymbols();
+            refreshReportJobs();
+            checkNotificationPermission();
+            
+            // Register Service Worker on page load
+            await registerServiceWorker();
+        });
+
+        // Form submission for quick analysis
+        document.getElementById('analysisForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await performQuickAnalysis();
+        });
+
+        async function performQuickAnalysis() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const price = parseFloat(document.getElementById('price').value);
+            const includeNews = document.getElementById('includeNews').checked;
+            const includeTechnical = document.getElementById('includeTechnical').checked;
+            const includeSentiment = document.getElementById('includeSentiment').checked;
+
+            if (!symbol || !price) {
+                alert('Please enter both symbol and price');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        current_price: price,
+                        include_news: includeNews,
+                        include_technical: includeTechnical,
+                        include_sentiment: includeSentiment
+                    })
+                });
+
+                const result = await response.json();
+                displayResults(result);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error performing analysis: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function submitReportJob() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const price = parseFloat(document.getElementById('price').value);
+            const email = document.getElementById('email').value;
+            const includeNews = document.getElementById('includeNews').checked;
+            const includeTechnical = document.getElementById('includeTechnical').checked;
+            const includeSentiment = document.getElementById('includeSentiment').checked;
+
+            if (!symbol || !price) {
+                alert('Please enter both symbol and price');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reports/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        current_price: price,
+                        user_email: email || null,
+                        include_news: includeNews,
+                        include_technical: includeTechnical,
+                        include_sentiment: includeSentiment
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'submitted') {
+                    alert(`✅ Report job submitted!\n\nJob ID: ${result.job_id}\nSymbol: ${symbol}\nEstimated time: ${result.estimated_time}\n\nYou will be notified when it's ready.`);
+                    refreshReportJobs();
+                } else {
+                    alert('Error submitting report job: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error submitting report job: ' + error.message);
+            }
+        }
+
+        async function refreshReportJobs() {
+            try {
+                const response = await fetch('/api/reports');
+                const data = await response.json();
+                reportJobs = data.jobs;
+                displayReportJobs();
+            } catch (error) {
+                console.error('Error loading report jobs:', error);
+            }
+        }
+
+        function displayReportJobs() {
+            const container = document.getElementById('reportJobs');
+            
+            if (reportJobs.length === 0) {
+                container.innerHTML = '<p class="text-muted">No report jobs yet. Submit a job to see it here.</p>';
+                return;
+            }
+
+            let html = '';
+            reportJobs.forEach(job => {
+                const statusClass = `job-${job.status}`;
+                const statusIcon = getStatusIcon(job.status);
+                const statusColor = getStatusColor(job.status);
+                
+                html += `
+                    <div class="job-item ${statusClass}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${job.symbol}</strong> - $${job.current_price}
+                                <br>
+                                <small class="text-muted">Job ID: ${job.job_id.substring(0, 8)}...</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge ${statusColor}">${statusIcon} ${job.status}</span>
+                                <br>
+                                <small class="text-muted">${formatDate(job.created_at)}</small>
+                            </div>
+                        </div>
+                        ${job.completed_at ? `<small class="text-muted">Completed: ${formatDate(job.completed_at)}</small>` : ''}
+                        ${job.error ? `<div class="text-danger mt-2"><small>Error: ${job.error}</small></div>` : ''}
+                        ${(job.status === 'ready_with_ai' || job.status === 'ready_without_ai') ? `<button class="btn btn-sm btn-outline-primary mt-2" onclick="viewJobResult('${job.job_id}')">View Results</button>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function getStatusIcon(status) {
+            switch (status) {
+                case 'pending': return '⏳';
+                case 'processing': return '🔄';
+                case 'ready_without_ai': return '⚠️';
+                case 'ready_with_ai': return '✅';
+                case 'failed': return '❌';
+                default: return '❓';
+            }
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'pending': return 'bg-warning';
+                case 'processing': return 'bg-info';
+                case 'ready_without_ai': return 'bg-warning';
+                case 'ready_with_ai': return 'bg-success';
+                case 'failed': return 'bg-danger';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        async function viewJobResult(jobId) {
+            try {
+                const response = await fetch(`/api/reports/${jobId}`);
+                const job = await response.json();
+                
+                if (job.result) {
+                    displayResults(job.result);
+                } else {
+                    alert('No results available for this job');
+                }
+            } catch (error) {
+                console.error('Error loading job result:', error);
+                alert('Error loading job result: ' + error.message);
+            }
+        }
+
+        function displayResults(result) {
+            const container = document.getElementById('resultContent');
+            const confidence = result.confidence || 5;
+            const confidencePercent = (confidence / 10) * 100;
+
+            let statusClass = 'status-hold';
+            if (result.recommendation === 'BUY') statusClass = 'status-buy';
+            else if (result.recommendation === 'SELL') statusClass = 'status-sell';
+
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>${result.symbol} - $${result.current_price}</h5>
+                        <div class="mb-3">
+                            <span class="status-badge ${statusClass}">
+                                <i class="fas fa-${result.recommendation === 'BUY' ? 'arrow-up' : result.recommendation === 'SELL' ? 'arrow-down' : 'minus'}"></i>
+                                ${result.recommendation}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <label>Confidence: ${confidence}/10</label>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Risk Level:</strong> ${result.risk_level}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Target Price:</strong> $${result.target_price || 'N/A'}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Stop Loss:</strong> $${result.stop_loss || 'N/A'}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Reasoning:</h6>
+                        <p>${result.reasoning || 'No reasoning provided'}</p>
+                        <div class="mb-3">
+                            <strong>Analysis Time:</strong> ${result.analysis_time?.toFixed(2) || 'N/A'} seconds
+                        </div>
+                        <div class="mb-3">
+                            <strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}
+                        </div>
+                        ${result.ai_analysis_successful !== undefined ? `
+                            <div class="mb-3">
+                                <strong>AI Analysis:</strong> 
+                                <span class="badge ${result.ai_analysis_successful ? 'bg-success' : 'bg-warning'}">
+                                    ${result.ai_analysis_successful ? '✅ Successful' : '⚠️ Fallback Used'}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                ${result.technical_indicators && Object.keys(result.technical_indicators).length > 0 ? `
+                    <div class="mt-4">
+                        <h6>Technical Indicators:</h6>
+                        <div class="row">
+                            ${Object.entries(result.technical_indicators).map(([key, value]) => `
+                                <div class="col-md-3">
+                                    <strong>${key}:</strong> ${typeof value === 'object' ? JSON.stringify(value) : value}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                ${result.news_sentiment && Object.keys(result.news_sentiment).length > 0 ? `
+                    <div class="mt-4">
+                        <h6>News Sentiment:</h6>
+                        <div class="row">
+                            ${Object.entries(result.news_sentiment).map(([key, value]) => `
+                                <div class="col-md-3">
+                                    <strong>${key}:</strong> ${typeof value === 'object' ? JSON.stringify(value) : value}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        async function loadPopularSymbols() {
+            try {
+                const response = await fetch('/api/symbols');
+                const data = await response.json();
+                
+                const container = document.getElementById('popularSymbols');
+                let html = '';
+                
+                data.symbols.forEach(symbol => {
+                    html += `
+                        <div class="col-md-2 col-sm-4 col-6 mb-2">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="fillSymbol('${symbol.symbol}')">
+                                ${symbol.symbol}
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading popular symbols:', error);
+            }
+        }
+
+        function fillSymbol(symbol) {
+            document.getElementById('symbol').value = symbol;
+            // You could also fetch current price for the symbol
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Service Worker Registration
+        async function registerServiceWorker() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker registered successfully:', registration);
+                    return registration;
+                } else {
+                    console.log('Service Worker not supported');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Service Worker registration failed:', error);
+                return null;
+            }
+        }
+
+        // Browser Notification Functions
+        async function subscribeToNotifications() {
+            try {
+                // Check if service worker is supported
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    alert('Web Push Notifications are not supported in this browser');
+                    return;
+                }
+
+                // Request notification permission
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    alert('Notification permission denied');
+                    return;
+                }
+
+                // Get VAPID public key
+                const vapidResponse = await fetch('/api/notifications/vapid-public-key');
+                const vapidData = await vapidResponse.json();
+
+                if (!vapidData.public_key) {
+                    alert('VAPID public key not available');
+                    return;
+                }
+
+                // Convert base64 URL-safe string to Uint8Array
+                function urlBase64ToUint8Array(base64String) {
+                    try {
+                        console.log('Converting VAPID key:', base64String.substring(0, 20) + '...');
+                        
+                        // Remove any padding and convert URL-safe to standard base64
+                        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                        const base64 = (base64String + padding)
+                            .replace(/-/g, '+')
+                            .replace(/_/g, '/');
+
+                        console.log('Converted base64:', base64.substring(0, 20) + '...');
+
+                        const rawData = window.atob(base64);
+                        const outputArray = new Uint8Array(rawData.length);
+
+                        for (let i = 0; i < rawData.length; ++i) {
+                            outputArray[i] = rawData.charCodeAt(i);
+                        }
+                        
+                        console.log('VAPID key converted successfully, length:', outputArray.length);
+                        return outputArray;
+                    } catch (error) {
+                        console.error('Error converting VAPID key:', error);
+                        console.error('VAPID key that failed:', base64String);
+                        throw new Error(`Invalid VAPID key format: ${error.message}`);
+                    }
+                }
+
+                // Get existing service worker registration or register new one
+                let registration = await navigator.serviceWorker.getRegistration();
+                if (!registration) {
+                    registration = await registerServiceWorker();
+                }
+
+                if (!registration) {
+                    throw new Error('Failed to register Service Worker');
+                }
+
+                // Subscribe to push notifications
+                try {
+                    const applicationServerKey = urlBase64ToUint8Array(vapidData.public_key);
+                    console.log('VAPID key converted successfully, length:', applicationServerKey.length);
+                    
+                    notificationSubscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: applicationServerKey
+                    });
+
+                    console.log('Push subscription:', notificationSubscription);
+                    updateNotificationStatus('✅ Notifications enabled!');
+                } catch (subscriptionError) {
+                    console.error('Push subscription error:', subscriptionError);
+                    throw new Error(`Push subscription failed: ${subscriptionError.message}`);
+                }
+                
+            } catch (error) {
+                console.error('Error subscribing to notifications:', error);
+                alert('Error enabling notifications: ' + error.message);
+                updateNotificationStatus('❌ Failed to enable notifications');
+            }
+        }
+
+        function checkNotificationPermission() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    updateNotificationStatus('✅ Notifications enabled');
+                } else if (Notification.permission === 'denied') {
+                    updateNotificationStatus('❌ Notifications blocked');
+                } else {
+                    updateNotificationStatus('⚠️ Notifications not enabled');
+                }
+            } else {
+                updateNotificationStatus('❌ Notifications not supported');
+            }
+        }
+
+        function updateNotificationStatus(message) {
+            const statusElement = document.getElementById('notification-status');
+            if (statusElement) {
+                statusElement.textContent = message;
+            }
+        }
+
+        // Auto-refresh report jobs every 30 seconds
+        setInterval(refreshReportJobs, 30000);
+    </script>
+</body>
+</html> 

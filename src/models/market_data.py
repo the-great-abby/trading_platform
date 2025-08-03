@@ -7,8 +7,19 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from datetime import datetime, date
 from typing import Optional
+from dataclasses import dataclass
+from decimal import Decimal
 
 Base = declarative_base()
+
+
+@dataclass
+class MarketData:
+    """Simple market data structure for testing"""
+    symbol: str
+    price: Decimal
+    volume: int
+    timestamp: datetime
 
 
 class HistoricalPrice(Base):

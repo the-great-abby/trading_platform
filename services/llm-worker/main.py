@@ -11,11 +11,12 @@ import os
 import sys
 
 # Add the parent directory to the path to import from src
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append("/app/src")
 
 from src.services.llm_service.llm_client import LLMClient, LLMRequest, LLMTaskType
 from src.services.queue.rabbitmq_service import RabbitMQService
 from src.utils.trading_config import get_trading_config
+from src.utils.config import get_config
 
 # Configure logging
 logging.basicConfig(
@@ -41,9 +42,8 @@ class LLMWorker:
         )
         
         # RabbitMQ service
-        self.rabbitmq = RabbitMQService(
-            url=os.getenv('RABBITMQ_URL', 'amqp://localhost:5672')
-        )
+        config = get_config()
+        self.rabbitmq = RabbitMQService(config)
         
         # Worker state
         self.is_running = False
@@ -57,9 +57,6 @@ class LLMWorker:
         try:
             # Connect to RabbitMQ
             await self.rabbitmq.connect()
-            
-            # Declare queues
-            await self._setup_queues()
             
             # Start consuming messages
             self.is_running = True
@@ -84,21 +81,6 @@ class LLMWorker:
         await self.llm_client.disconnect()
         await self.rabbitmq.disconnect()
         logger.info("LLM Worker stopped")
-    
-    async def _setup_queues(self):
-        """Setup RabbitMQ queues"""
-        # Declare queues for different LLM tasks
-        await self.rabbitmq.declare_queue('llm.sentiment')
-        await self.rabbitmq.declare_queue('llm.signal')
-        await self.rabbitmq.declare_queue('llm.risk')
-        await self.rabbitmq.declare_queue('llm.market')
-        await self.rabbitmq.declare_queue('llm.custom')
-        
-        # Declare result queues
-        await self.rabbitmq.declare_queue('llm.results')
-        await self.rabbitmq.declare_queue('llm.errors')
-        
-        logger.info("LLM queues setup complete")
     
     async def _consume_sentiment_tasks(self):
         """Consume sentiment analysis tasks"""
@@ -132,7 +114,14 @@ class LLMWorker:
                     'metadata': data.get('metadata', {})
                 }
                 
-                await self.rabbitmq.publish('llm.results', result_data)
+                # Create job message for result
+                from src.services.queue.rabbitmq_service import JobMessage
+                job = JobMessage(
+                    job_id=f"result_{data.get('task_id', 'unknown')}",
+                    job_type='llm_result',
+                    payload=result_data
+                )
+                await self.rabbitmq.publish_job(job, 'llm.results')
                 self.processed_tasks += 1
                 
                 # Acknowledge message
@@ -143,7 +132,7 @@ class LLMWorker:
                 await self._handle_error(message, data.get('task_id', 'unknown'), str(e))
                 self.failed_tasks += 1
         
-        await self.rabbitmq.consume('llm.sentiment', callback)
+        await self.rabbitmq.consume_queue('sentiment_analysis_queue', callback)
     
     async def _consume_signal_tasks(self):
         """Consume trading signal tasks"""
@@ -185,7 +174,13 @@ class LLMWorker:
                     'metadata': data.get('metadata', {})
                 }
                 
-                await self.rabbitmq.publish('llm.results', result_data)
+                # Create job message for result
+                job = JobMessage(
+                    job_id=f"result_{data.get('task_id', 'unknown')}",
+                    job_type='llm_result',
+                    payload=result_data
+                )
+                await self.rabbitmq.publish_job(job, 'llm.results')
                 self.processed_tasks += 1
                 
                 # Acknowledge message
@@ -196,7 +191,7 @@ class LLMWorker:
                 await self._handle_error(message, data.get('task_id', 'unknown'), str(e))
                 self.failed_tasks += 1
         
-        await self.rabbitmq.consume('llm.signal', callback)
+        await self.rabbitmq.consume_queue('trading_signal_queue', callback)
     
     async def _consume_risk_tasks(self):
         """Consume risk assessment tasks"""
@@ -233,7 +228,13 @@ class LLMWorker:
                     'metadata': data.get('metadata', {})
                 }
                 
-                await self.rabbitmq.publish('llm.results', result_data)
+                # Create job message for result
+                job = JobMessage(
+                    job_id=f"result_{data.get('task_id', 'unknown')}",
+                    job_type='llm_result',
+                    payload=result_data
+                )
+                await self.rabbitmq.publish_job(job, 'llm.results')
                 self.processed_tasks += 1
                 
                 # Acknowledge message
@@ -244,7 +245,7 @@ class LLMWorker:
                 await self._handle_error(message, data.get('task_id', 'unknown'), str(e))
                 self.failed_tasks += 1
         
-        await self.rabbitmq.consume('llm.risk', callback)
+        await self.rabbitmq.consume_queue('risk_check_queue', callback)
     
     async def _consume_market_tasks(self):
         """Consume market analysis tasks"""
@@ -282,7 +283,13 @@ class LLMWorker:
                     'metadata': data.get('metadata', {})
                 }
                 
-                await self.rabbitmq.publish('llm.results', result_data)
+                # Create job message for result
+                job = JobMessage(
+                    job_id=f"result_{data.get('task_id', 'unknown')}",
+                    job_type='llm_result',
+                    payload=result_data
+                )
+                await self.rabbitmq.publish_job(job, 'llm.results')
                 self.processed_tasks += 1
                 
                 # Acknowledge message
@@ -293,7 +300,7 @@ class LLMWorker:
                 await self._handle_error(message, data.get('task_id', 'unknown'), str(e))
                 self.failed_tasks += 1
         
-        await self.rabbitmq.consume('llm.market', callback)
+        await self.rabbitmq.consume_queue('market_data_fetch_queue', callback)
     
     async def _consume_custom_tasks(self):
         """Consume custom LLM tasks"""
@@ -324,7 +331,13 @@ class LLMWorker:
                     'metadata': data.get('metadata', {})
                 }
                 
-                await self.rabbitmq.publish('llm.results', result_data)
+                # Create job message for result
+                job = JobMessage(
+                    job_id=f"result_{data.get('task_id', 'unknown')}",
+                    job_type='llm_result',
+                    payload=result_data
+                )
+                await self.rabbitmq.publish_job(job, 'llm.results')
                 self.processed_tasks += 1
                 
                 # Acknowledge message
@@ -335,7 +348,7 @@ class LLMWorker:
                 await self._handle_error(message, data.get('task_id', 'unknown'), str(e))
                 self.failed_tasks += 1
         
-        await self.rabbitmq.consume('llm.custom', callback)
+        await self.rabbitmq.consume_queue('notification_queue', callback)
     
     async def _handle_error(self, message, task_id: str, error: str):
         """Handle task processing errors"""
@@ -346,7 +359,14 @@ class LLMWorker:
                 'timestamp': asyncio.get_event_loop().time()
             }
             
-            await self.rabbitmq.publish('llm.errors', error_data)
+            # Create job message for error
+            from src.services.queue.rabbitmq_service import JobMessage
+            job = JobMessage(
+                job_id=f"error_{task_id}",
+                job_type='llm_error',
+                payload=error_data
+            )
+            await self.rabbitmq.publish_job(job, 'llm.errors')
             await message.ack()
             
         except Exception as e:

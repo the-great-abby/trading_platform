@@ -1,9 +1,9 @@
 """
 Ollama AI Service - Provides AI-powered market analysis and sentiment enhancement
+Now uses LLM proxy service with callback URL support
 """
 
 import asyncio
-import aiohttp
 import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
@@ -13,6 +13,8 @@ logger = get_trading_logger()
 
 import os
 from ...core.types import TradeSignal
+from ..llm_service.llm_client import LLMClient, LLMRequest, LLMResponse, LLMError, LLMTaskType, ProxyCallbackConfig
+from ..llm_service.service import LLMService
 
 
 @dataclass
@@ -28,96 +30,128 @@ class AIAnalysis:
 
 
 class OllamaService:
-    """Ollama AI service for enhanced market analysis"""
+    """Ollama AI service for enhanced market analysis using LLM proxy service"""
     
     def __init__(self, base_url: str = "", model: str = ""):
-        self.base_url = base_url or os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434")
+        # LLM proxy service configuration
+        self.proxy_base_url = base_url or os.environ.get("LLM_PROXY_BASE_URL", "http://localhost:12001")
         self.model = model or os.environ.get("OLLAMA_MODEL", "gemma3:1b")
-        self.session = None
+        
+        # Initialize LLM proxy client
+        self.llm_client = LLMClient(
+            base_url=self.proxy_base_url,
+            api_key=os.environ.get("LLM_PROXY_API_KEY"),
+            timeout=int(os.environ.get("LLM_PROXY_TIMEOUT", "30")),
+            max_retries=int(os.environ.get("LLM_PROXY_MAX_RETRIES", "3"))
+        )
+        
+        # Initialize LLM service for advanced operations
+        self.llm_service = LLMService()
+        
+        # Service state
+        self.is_initialized = False
         
     async def __aenter__(self):
-        timeout = aiohttp.ClientTimeout(total=float(os.environ.get("OLLAMA_TIMEOUT", "120.0")))
-        self.session = aiohttp.ClientSession(timeout=timeout)
+        await self.initialize()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
+        await self.cleanup()
+    
+    async def initialize(self):
+        """Initialize the service and verify connectivity"""
+        try:
+            logger.info(f"[OllamaService] 🔍 Initializing with LLM proxy at {self.proxy_base_url}")
+            
+            # Test connection to LLM proxy service
+            is_healthy = await self.llm_client.health_check()
+            if not is_healthy:
+                logger.warning(f"[OllamaService] ⚠️ LLM proxy service at {self.proxy_base_url} is not healthy")
+                return False
+            
+            self.is_initialized = True
+            logger.info(f"[OllamaService] ✅ Initialized successfully with LLM proxy")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[OllamaService] ❌ Initialization failed: {type(e).__name__}: {str(e)}")
+            return False
     
     async def verify_model_availability(self) -> Dict[str, Any]:
-        """Verify if the Ollama model is available and ready"""
+        """Verify if the model is available through LLM proxy service"""
         try:
             logger.info(f"[OllamaService] 🔍 Verifying model availability for: {self.model}")
-            if not self.session:
-                timeout = aiohttp.ClientTimeout(total=float(os.environ.get("OLLAMA_TIMEOUT", "120.0")))
-                self.session = aiohttp.ClientSession(timeout=timeout)
             
-            # Check if Ollama service is running
-            logger.info(f"[OllamaService] 📡 Checking Ollama service at {self.base_url}/api/tags")
-            async with self.session.get(f"{self.base_url}/api/tags", timeout=10) as response:
-                logger.info(f"[OllamaService] 📥 Tags response: status={response.status}")
+            if not self.is_initialized:
+                await self.initialize()
+            
+            # Test with a simple request to verify model availability
+            test_request = LLMRequest(
+                model=self.model,
+                messages=[{"role": "user", "content": "Test"}],
+                task_type=LLMTaskType.SENTIMENT_ANALYSIS,
+                max_tokens=10
+            )
+            
+            response = await self.llm_client.generate(test_request, use_cache=False)
+            
+            if isinstance(response, LLMResponse):
+                logger.info(f"[OllamaService] ✅ Model '{self.model}' is available through proxy")
+                return {
+                    'available': True,
+                    'proxy_healthy': True,
+                    'model_available': True,
+                    'target_model': self.model,
+                    'proxy_url': self.proxy_base_url
+                }
+            else:
+                logger.warning(f"[OllamaService] ⚠️ Model '{self.model}' not available: {response.error_message}")
+                return {
+                    'available': False,
+                    'proxy_healthy': True,
+                    'model_available': False,
+                    'error': response.error_message,
+                    'target_model': self.model
+                }
                 
-                if response.status == 200:
-                    models_data = await response.json()
-                    models = models_data.get('models', [])
-                    logger.info(f"[OllamaService] 📊 Found {len(models)} available models")
-                    
-                    # Check if our target model is available
-                    target_model = self.model
-                    # Check for exact match first, then fallback to startswith
-                    target_available = any(
-                        model.get('name', '') == target_model or 
-                        model.get('name', '').startswith(target_model.split(':')[0])
-                        for model in models
-                    )
-                    
-                    logger.info(f"[OllamaService] 🎯 Target model '{target_model}' available: {target_available}")
-                    if not target_available:
-                        logger.warning(f"[OllamaService] ⚠️ Available models: {[model.get('name', '') for model in models]}")
-                    
-                    return {
-                        'available': True,
-                        'total_models': len(models),
-                        'target_available': target_available,
-                        'target_model': target_model,
-                        'available_models': [model.get('name', '') for model in models]
-                    }
-                else:
-                    error_text = await response.text()
-                    logger.error(f"[OllamaService] ❌ Ollama service error: {response.status} - {error_text}")
-                    return {
-                        'available': False,
-                        'error': f"Ollama service returned status {response.status}: {error_text}"
-                    }
         except Exception as e:
-            logger.error(f"[OllamaService] ❌ Failed to connect to Ollama: {type(e).__name__}: {str(e)}")
+            logger.error(f"[OllamaService] ❌ Model verification failed: {type(e).__name__}: {str(e)}")
             return {
                 'available': False,
-                'error': f"Failed to connect to Ollama: {str(e)}"
+                'proxy_healthy': False,
+                'error': f"Failed to verify model: {str(e)}"
             }
     
     async def test_model_response(self) -> Dict[str, Any]:
-        """Test if the model can generate a response"""
+        """Test if the model can generate a response through proxy"""
         try:
             logger.info(f"[OllamaService] 🧪 Testing model response for: {self.model}")
-            test_prompt = "Respond with 'OK' if you can read this message."
-            logger.info(f"[OllamaService] 📝 Test prompt: '{test_prompt}'")
             
-            response = await self._call_ollama(test_prompt)
+            test_request = LLMRequest(
+                model=self.model,
+                messages=[{"role": "user", "content": "Respond with 'OK' if you can read this message."}],
+                task_type=LLMTaskType.SENTIMENT_ANALYSIS,
+                max_tokens=50
+            )
             
-            if response and len(response.strip()) > 0:
-                logger.info(f"[OllamaService] ✅ Model test successful: '{response.strip()}'")
+            response = await self.llm_client.generate(test_request, use_cache=False)
+            
+            if isinstance(response, LLMResponse):
+                logger.info(f"[OllamaService] ✅ Model test successful: '{response.content.strip()}'")
                 return {
                     'success': True,
                     'model_used': self.model,
-                    'response': response.strip()
+                    'response': response.content.strip(),
+                    'proxy_used': True,
+                    'response_time': response.response_time
                 }
             else:
-                logger.error(f"[OllamaService] ❌ Model test failed: Empty response")
+                logger.error(f"[OllamaService] ❌ Model test failed: {response.error_message}")
                 return {
                     'success': False,
-                    'error': 'Empty response from model'
+                    'error': response.error_message
                 }
+                
         except Exception as e:
             logger.error(f"[OllamaService] ❌ Model test failed: {type(e).__name__}: {str(e)}")
             return {
@@ -125,23 +159,44 @@ class OllamaService:
                 'error': f"Model test failed: {str(e)}"
             }
     
-    async def analyze_market_sentiment(self, news_events, technical_signals, market_data):
+    async def analyze_market_sentiment(self, news_events, technical_signals, market_data, 
+                                     proxy_callback: Optional[ProxyCallbackConfig] = None):
+        """Analyze market sentiment using LLM proxy service with optional callback URLs"""
         logger.info(f"[OllamaService] 🤖 Starting LLM analysis for {market_data.get('symbol', 'unknown')}...")
         logger.info(f"[OllamaService] Technical signals: {len(technical_signals)} | News events: {len(news_events)} | Market data keys: {list(market_data.keys())}")
+        
         prompt = self._build_analysis_prompt(news_events, technical_signals, market_data)
-        logger.info(f"[OllamaService] 📤 Sending prompt to Ollama (length: {len(prompt)} chars)...")
+        logger.info(f"[OllamaService] 📤 Sending prompt to LLM proxy (length: {len(prompt)} chars)...")
+        
         try:
-            response = await self._call_ollama(prompt)
-            logger.info(f"[OllamaService] 📥 Received response from Ollama (length: {len(response)} chars)")
-            analysis = self._parse_ai_response(response)
-            logger.info(f"[OllamaService] ✅ LLM analysis completed: Sentiment={getattr(analysis, 'sentiment_score', None)}, Confidence={getattr(analysis, 'confidence', None)}, Action={getattr(analysis, 'recommended_action', None)}")
-            return analysis
+            # Create LLM request with optional callback configuration
+            request = LLMRequest(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                task_type=LLMTaskType.MARKET_ANALYSIS,
+                temperature=0.3,
+                max_tokens=1000,
+                proxy_callback=proxy_callback
+            )
+            
+            response = await self.llm_client.generate(request)
+            
+            if isinstance(response, LLMResponse):
+                logger.info(f"[OllamaService] 📥 Received response from LLM proxy (length: {len(response.content)} chars)")
+                analysis = self._parse_ai_response(response.content)
+                logger.info(f"[OllamaService] ✅ LLM analysis completed: Sentiment={getattr(analysis, 'sentiment_score', None)}, Confidence={getattr(analysis, 'confidence', None)}, Action={getattr(analysis, 'recommended_action', None)}")
+                return analysis
+            else:
+                logger.error(f"[OllamaService] ❌ LLM proxy error: {response.error_message}")
+                return self._fallback_analysis()
+                
         except Exception as e:
             logger.error(f"[OllamaService] ❌ Error in AI analysis: {e}")
             return self._fallback_analysis()
     
-    async def enhance_news_sentiment(self, news_event: Dict[str, Any]) -> Dict[str, Any]:
-        """Enhance news sentiment analysis with AI"""
+    async def enhance_news_sentiment(self, news_event: Dict[str, Any], 
+                                   proxy_callback: Optional[ProxyCallbackConfig] = None) -> Dict[str, Any]:
+        """Enhance news sentiment analysis with AI using LLM proxy service"""
         
         prompt = f"""
         Analyze this financial news event and provide enhanced sentiment analysis:
@@ -170,9 +225,24 @@ class OllamaService:
         """
         
         try:
-            response = await self._call_ollama(prompt)
-            enhanced_data = json.loads(response)
-            return {**news_event, **enhanced_data}
+            request = LLMRequest(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                task_type=LLMTaskType.NEWS_ANALYSIS,
+                temperature=0.3,
+                max_tokens=500,
+                proxy_callback=proxy_callback
+            )
+            
+            response = await self.llm_client.generate(request)
+            
+            if isinstance(response, LLMResponse):
+                enhanced_data = json.loads(response.content)
+                return {**news_event, **enhanced_data}
+            else:
+                logger.error(f"Error enhancing news sentiment: {response.error_message}")
+                return news_event
+                
         except Exception as e:
             logger.error(f"Error enhancing news sentiment: {e}")
             return news_event
@@ -181,8 +251,9 @@ class OllamaService:
                                          symbol: str,
                                          technical_signals: List[Dict[str, Any]],
                                          news_sentiment: Dict[str, Any],
-                                         market_context: Dict[str, Any]) -> Optional[TradeSignal]:
-        """Generate multi-factor trading signal combining technical and fundamental analysis"""
+                                         market_context: Dict[str, Any],
+                                         proxy_callback: Optional[ProxyCallbackConfig] = None) -> Optional[TradeSignal]:
+        """Generate multi-factor trading signal using LLM proxy service"""
         
         prompt = f"""
         Generate a trading signal for {symbol} based on the following factors:
@@ -211,119 +282,46 @@ class OllamaService:
         """
         
         try:
-            response = await self._call_ollama(prompt)
-            signal_data = json.loads(response)
+            request = LLMRequest(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                task_type=LLMTaskType.SIGNAL_GENERATION,
+                temperature=0.3,
+                max_tokens=500,
+                proxy_callback=proxy_callback
+            )
             
-            if signal_data.get('action') in ['BUY', 'SELL']:
-                return TradeSignal(
-                    symbol=symbol,
-                    action=signal_data['action'],
-                    quantity=self._calculate_quantity(signal_data),
-                    price=market_context.get('current_price', 0),
-                    timestamp=datetime.now(),
-                    strategy="AI_MULTI_FACTOR",
-                    confidence=signal_data.get('confidence', 0.5),
-                    metadata={
-                        "reasoning": signal_data.get('reasoning', ''),
-                        "risk_level": signal_data.get('risk_level', 'medium'),
-                        "position_size": signal_data.get('position_size', '5%'),
-                        "stop_loss": signal_data.get('stop_loss', '2%'),
-                        "take_profit": signal_data.get('take_profit', '10%'),
-                        "ai_enhanced": True
-                    }
-                )
+            response = await self.llm_client.generate(request)
+            
+            if isinstance(response, LLMResponse):
+                signal_data = json.loads(response.content)
+                
+                if signal_data.get('action') in ['BUY', 'SELL']:
+                    return TradeSignal(
+                        symbol=symbol,
+                        action=signal_data['action'],
+                        quantity=self._calculate_quantity(signal_data),
+                        price=market_context.get('current_price', 0),
+                        timestamp=datetime.now(),
+                        strategy="AI_MULTI_FACTOR",
+                        confidence=signal_data.get('confidence', 0.5),
+                        metadata={
+                            "reasoning": signal_data.get('reasoning', ''),
+                            "risk_level": signal_data.get('risk_level', 'medium'),
+                            "position_size": signal_data.get('position_size', '5%'),
+                            "stop_loss": signal_data.get('stop_loss', '2%'),
+                            "take_profit": signal_data.get('take_profit', '10%'),
+                            "ai_enhanced": True,
+                            "proxy_used": True
+                        }
+                    )
+            else:
+                logger.error(f"Error generating multi-factor signal: {response.error_message}")
+                
         except Exception as e:
             logger.error(f"Error generating multi-factor signal: {e}")
         
         return None
-    
-    async def _call_ollama(self, prompt: str) -> str:
-        """Call Ollama API with exponential backoff retry"""
-        if not self.session:
-            timeout = aiohttp.ClientTimeout(total=float(os.environ.get("OLLAMA_TIMEOUT", "120.0")))
-            self.session = aiohttp.ClientSession(timeout=timeout)
-        
-        # Get timeout and retry settings from environment variables
-        timeout = float(os.environ.get("OLLAMA_TIMEOUT", "30.0"))
-        max_retries = int(os.environ.get("OLLAMA_MAX_RETRIES", "3"))
-        base_delay = float(os.environ.get("OLLAMA_BASE_DELAY", "10.0"))
-        max_delay = float(os.environ.get("OLLAMA_MAX_DELAY", "300.0"))
-        
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.3,
-                "top_p": 0.9
-            }
-        }
-        
-        for attempt in range(max_retries + 1):
-            start_time = datetime.now()
-            logger.info(f"[OllamaService] 📤 Making API call to {self.base_url}/api/generate (attempt {attempt + 1}/{max_retries + 1})")
-            logger.info(f"[OllamaService] 📊 Request details: model={self.model}, prompt_length={len(prompt)}, timeout={timeout}s")
-            logger.debug(f"[OllamaService] 📝 Full prompt: {prompt[:200]}{'...' if len(prompt) > 200 else ''}")
-            logger.debug(f"[OllamaService] 📦 Request payload: {json.dumps(payload, indent=2)}")
-            
-            try:
-                async with self.session.post(
-                    f"{self.base_url}/api/generate",
-                    json=payload,
-                    timeout=timeout
-                ) as response:
-                    response_time = (datetime.now() - start_time).total_seconds()
-                    logger.info(f"[OllamaService] 📥 Response received: status={response.status}, time={response_time:.2f}s")
-                    
-                    if response.status == 200:
-                        response_data = await response.json()
-                        response_text = response_data.get('response', '')
-                        logger.info(f"[OllamaService] ✅ Success: response_length={len(response_text)}")
-                        return response_text
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"[OllamaService] ❌ HTTP {response.status}: {error_text}")
-                        logger.error(f"[OllamaService] 📊 Response headers: {dict(response.headers)}")
-                        
-                        # Don't retry on client errors (4xx)
-                        if 400 <= response.status < 500:
-                            raise Exception(f"Ollama API client error: {response.status} - {error_text}")
-                        
-                        # Retry on server errors (5xx) and other errors
-                        if attempt < max_retries:
-                            delay = min(base_delay * (2 ** attempt), max_delay)
-                            logger.warning(f"[OllamaService] ⏳ Retrying in {delay:.1f}s due to server error...")
-                            await asyncio.sleep(delay)
-                            continue
-                        else:
-                            raise Exception(f"Ollama API error after {max_retries + 1} attempts: {response.status} - {error_text}")
-                        
-            except asyncio.TimeoutError:
-                response_time = (datetime.now() - start_time).total_seconds()
-                logger.error(f"[OllamaService] ⏰ Timeout after {response_time:.2f}s (limit: {timeout}s)")
-                
-                if attempt < max_retries:
-                    delay = min(base_delay * (2 ** attempt), max_delay)
-                    logger.warning(f"[OllamaService] ⏳ Retrying in {delay:.1f}s due to timeout...")
-                    await asyncio.sleep(delay)
-                    continue
-                else:
-                    raise Exception(f"Ollama API timeout after {max_retries + 1} attempts ({timeout} seconds each)")
-                    
-            except Exception as e:
-                response_time = (datetime.now() - start_time).total_seconds()
-                logger.error(f"[OllamaService] ❌ Exception after {response_time:.2f}s: {type(e).__name__}: {str(e)}")
-                
-                if attempt < max_retries:
-                    delay = min(base_delay * (2 ** attempt), max_delay)
-                    logger.warning(f"[OllamaService] ⏳ Retrying in {delay:.1f}s due to exception...")
-                    await asyncio.sleep(delay)
-                    continue
-                else:
-                    raise Exception(f"Ollama API call failed after {max_retries + 1} attempts: {str(e)}")
-        
-        # This should never be reached, but just in case
-        raise Exception(f"Ollama API call failed after {max_retries + 1} attempts")
     
     def _build_analysis_prompt(self, 
                               news_events: List[Dict[str, Any]], 
@@ -360,16 +358,32 @@ class OllamaService:
         """Parse AI response into structured format"""
         try:
             data = json.loads(response)
+            
+            # Validate and convert sentiment_score to float
+            sentiment_score = data.get('overall_sentiment', 0.0)
+            try:
+                sentiment_score = float(sentiment_score)
+            except (ValueError, TypeError):
+                sentiment_score = 0.0
+            
+            # Validate and convert confidence to float
+            confidence = data.get('confidence', 0.5)
+            try:
+                confidence = float(confidence)
+            except (ValueError, TypeError):
+                confidence = 0.5
+            
             return AIAnalysis(
-                sentiment_score=data.get('overall_sentiment', 0.0),
-                confidence=data.get('confidence', 0.5),
+                sentiment_score=sentiment_score,
+                confidence=confidence,
                 reasoning=data.get('reasoning', ''),
                 risk_assessment=data.get('risk_assessment', 'medium'),
                 market_impact=data.get('market_impact', 'neutral'),
                 recommended_action=data.get('recommended_action', ''),
                 metadata={
                     'key_factors': data.get('key_factors', []),
-                    'market_volatility': data.get('market_volatility', 'medium')
+                    'market_volatility': data.get('market_volatility', 'medium'),
+                    'proxy_used': True
                 }
             )
         except json.JSONDecodeError:
@@ -385,7 +399,7 @@ class OllamaService:
             risk_assessment="medium",
             market_impact="neutral",
             recommended_action="Hold positions, monitor market",
-            metadata={'fallback': True}
+            metadata={'fallback': True, 'proxy_used': True}
         )
     
     def _calculate_quantity(self, signal_data: Dict[str, Any]) -> float:
@@ -400,12 +414,14 @@ class OllamaService:
 
     async def cleanup(self):
         """Clean up resources"""
-        if self.session:
-            await self.session.close()
-            self.session = None
-            logger.info("[OllamaService] ✅ Session closed")
+        try:
+            if hasattr(self, 'llm_client'):
+                await self.llm_client.disconnect()
+            logger.info("[OllamaService] ✅ Cleanup completed")
+        except Exception as e:
+            logger.error(f"[OllamaService] ❌ Cleanup error: {e}")
     
     def __del__(self):
         """Destructor to ensure cleanup"""
-        if self.session and not self.session.closed:
-            logger.warning("[OllamaService] ⚠️ Session not properly closed in destructor") 
+        if hasattr(self, 'llm_client'):
+            logger.warning("[OllamaService] ⚠️ Service not properly cleaned up in destructor") 

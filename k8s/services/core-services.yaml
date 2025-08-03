@@ -30,7 +30,7 @@ spec:
               name: trading-secrets
               key: database-url
         - name: RABBITMQ_URL
-          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+          value: "amqp://trading:trading_pass@rabbitmq:5672/trading_vhost"
         - name: POLYGON_API_KEY
           valueFrom:
             secretKeyRef:
@@ -112,7 +112,7 @@ spec:
               name: trading-secrets
               key: polygon-api-key
         - name: RABBITMQ_URL
-          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+          value: "amqp://trading:trading_pass@rabbitmq:5672/trading_vhost"
         livenessProbe:
           httpGet:
             path: /health
@@ -177,7 +177,7 @@ spec:
               name: trading-secrets
               key: database-url
         - name: RABBITMQ_URL
-          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+          value: "amqp://trading:trading_pass@rabbitmq:5672/trading_vhost"
         - name: POLYGON_API_KEY
           valueFrom:
             secretKeyRef:
@@ -243,7 +243,7 @@ spec:
               name: trading-secrets
               key: database-url
         - name: RABBITMQ_URL
-          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+          value: "amqp://trading:trading_pass@rabbitmq:5672/trading_vhost"
         livenessProbe:
           httpGet:
             path: /health

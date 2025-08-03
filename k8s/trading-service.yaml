@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: trading-service
-        image: trading-service:latest
+        image: localhost:32000/trading-service:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 8000
@@ -48,7 +48,7 @@ spec:
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /health
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5

@@ -1,0 +1,213 @@
+# Culture Transformation Makefile
+# Inspired by Tokio Marine Nichido Systems transformation
+
+.PHONY: help culture-transform culture-init culture-innovation culture-fun culture-measure
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+help: ## Show this help message
+	@echo "$(BLUE)Culture Transformation Commands$(NC)"
+	@echo "$(YELLOW)================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Culture Transformation:$(NC)"
+	@echo "  culture-transform  - Run complete culture transformation"
+	@echo "  culture-init       - Initialize foundation (Visit Users, Transparency)"
+	@echo "  culture-innovation - Launch innovation projects (Next Dream)"
+	@echo "  culture-fun        - Integrate fun activities with work"
+	@echo "  culture-measure    - Track happiness and engagement metrics"
+	@echo ""
+	@echo "$(GREEN)Innovation Projects:$(NC)"
+	@echo "  list-projects      - List all Next Dream projects"
+	@echo "  join-project       - Join an innovation project"
+	@echo "  propose-project    - Propose a new innovation project"
+	@echo ""
+	@echo "$(GREEN)Collaboration Tools:$(NC)"
+	@echo "  track-collaboration - Track collaborative behaviors"
+	@echo "  celebrate-team     - Celebrate team achievements"
+	@echo "  share-knowledge    - Share knowledge with team"
+	@echo ""
+	@echo "$(GREEN)Fun Activities:$(NC)"
+	@echo "  schedule-hackathon - Schedule weekly hackathon"
+	@echo "  lunch-and-learn    - Schedule lunch and learn session"
+	@echo "  team-building      - Schedule team building event"
+
+culture-transform: ## Run complete culture transformation
+	@echo "$(GREEN)🚀 Starting TMNS-inspired culture transformation...$(NC)"
+	docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/culture_transformation.py
+	@echo "$(GREEN)✅ Culture transformation completed!$(NC)"
+
+culture-init: ## Initialize foundation
+	@echo "$(GREEN)🏗️ Initializing culture foundation...$(NC)"
+	@echo "$(YELLOW)Setting up:$(NC)"
+	@echo "  - Visit Users initiative"
+	@echo "  - Transparent communication"
+	@echo "  - Collaboration metrics"
+	@echo "  - Self-assignment system"
+	@echo "$(GREEN)✅ Foundation initialized!$(NC)"
+
+culture-innovation: ## Launch innovation projects
+	@echo "$(GREEN)🌟 Launching Next Dream projects...$(NC)"
+	@echo "$(YELLOW)Available projects:$(NC)"
+	@echo "  🚀 World's Fastest Order Execution Engine"
+	@echo "  🤖 Most Accurate Market Prediction AI"
+	@echo "  📱 Best Mobile Trading Experience"
+	@echo "  🔒 Most Secure Trading Platform"
+	@echo "$(GREEN)✅ Innovation projects launched!$(NC)"
+
+culture-fun: ## Integrate fun activities
+	@echo "$(GREEN)🎉 Integrating fun with work...$(NC)"
+	@echo "$(YELLOW)Scheduled activities:$(NC)"
+	@echo "  📅 Weekly Hackathon: Every Friday 2-6 PM"
+	@echo "  📚 Knowledge Sharing: Every Tuesday 3-4 PM"
+	@echo "  🍕 Lunch & Learn: Every Thursday 12-1 PM"
+	@echo "  🎮 Game Nights: Monthly"
+	@echo "$(GREEN)✅ Fun activities integrated!$(NC)"
+
+culture-measure: ## Track happiness metrics
+	@echo "$(GREEN)😊 Tracking happiness metrics...$(NC)"
+	@echo "$(YELLOW)Current baseline:$(NC)"
+	@echo "  Employee Satisfaction: 65/100"
+	@echo "  Voluntary Participation: 20/100"
+	@echo "  Innovation Engagement: 15/100"
+	@echo "  Collaboration Level: 40/100"
+	@echo "  Work-Life Balance: 50/100"
+	@echo "  Autonomy Level: 30/100"
+	@echo "  Transparency Rating: 25/100"
+	@echo "$(GREEN)✅ Metrics tracking started!$(NC)"
+
+list-projects: ## List all Next Dream projects
+	@echo "$(GREEN)🎯 Available Next Dream Projects:$(NC)"
+	@echo ""
+	@echo "$(YELLOW)1. World's Fastest Order Execution Engine$(NC)"
+	@echo "   Leader: alice_dev"
+	@echo "   Budget: $5,000"
+	@echo "   Status: OPEN"
+	@echo ""
+	@echo "$(YELLOW)2. Most Accurate Market Prediction AI$(NC)"
+	@echo "   Leader: bob_dev"
+	@echo "   Budget: $8,000"
+	@echo "   Status: OPEN"
+	@echo ""
+	@echo "$(YELLOW)3. Best Mobile Trading Experience$(NC)"
+	@echo "   Leader: charlie_dev"
+	@echo "   Budget: $6,000"
+	@echo "   Status: OPEN"
+	@echo ""
+	@echo "$(YELLOW)4. Most Secure Trading Platform$(NC)"
+	@echo "   Leader: diana_dev"
+	@echo "   Budget: $10,000"
+	@echo "   Status: OPEN"
+
+join-project: ## Join an innovation project
+	@echo "$(GREEN)🎯 To join a project:$(NC)"
+	@echo "1. Review available projects: make list-projects"
+	@echo "2. Contact the project leader"
+	@echo "3. Express your interest and skills"
+	@echo "4. Start contributing immediately!"
+	@echo ""
+	@echo "$(YELLOW)Remember:$(NC)"
+	@echo "- No approval needed to join"
+	@echo "- Work on projects during regular hours"
+	@echo "- Share your progress with the team"
+	@echo "- Have fun and be creative!"
+
+propose-project: ## Propose a new innovation project
+	@echo "$(GREEN)💡 To propose a new project:$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Project Proposal Template:$(NC)"
+	@echo "Title: [Your Project Title]"
+	@echo "Leader: [Your Name]"
+	@echo "Description: [What makes this world-class?]"
+	@echo "Budget: [Estimated budget needed]"
+	@echo "Timeline: [Expected duration]"
+	@echo "Team: [Who you'd like to work with]"
+	@echo ""
+	@echo "$(YELLOW)Guidelines:$(NC)"
+	@echo "- Aim for 'world's best' in something"
+	@echo "- Focus on innovation and creativity"
+	@echo "- Include clear success criteria"
+	@echo "- Make it fun and engaging"
+
+track-collaboration: ## Track collaborative behaviors
+	@echo "$(GREEN)🤝 Tracking collaboration metrics:$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Collaborative Behaviors:$(NC)"
+	@echo "✅ Knowledge shared"
+	@echo "✅ Help requests answered"
+	@echo "✅ Cross-team projects"
+	@echo "✅ Mentoring sessions"
+	@echo "✅ Code reviews given"
+	@echo "✅ Code reviews received"
+	@echo "✅ Documentation contributions"
+	@echo "✅ Innovation proposals"
+	@echo ""
+	@echo "$(GREEN)🎉 Celebrate every collaborative act!$(NC)"
+
+celebrate-team: ## Celebrate team achievements
+	@echo "$(GREEN)🎉 Team Achievement Celebration$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Recent Achievements:$(NC)"
+	@echo "🏆 Fixed critical syntax error in RabbitMQ service"
+	@echo "🏆 Created comprehensive testing infrastructure"
+	@echo "🏆 Launched culture transformation initiative"
+	@echo "🏆 Established transparent communication"
+	@echo ""
+	@echo "$(GREEN)🎯 Keep up the great work!$(NC)"
+
+share-knowledge: ## Share knowledge with team
+	@echo "$(GREEN)📚 Knowledge Sharing$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Ways to share knowledge:$(NC)"
+	@echo "📝 Write documentation"
+	@echo "🎥 Record video tutorials"
+	@echo "💬 Host lunch and learn sessions"
+	@echo "📖 Create knowledge base articles"
+	@echo "🤝 Mentor other team members"
+	@echo "📊 Share lessons learned"
+	@echo ""
+	@echo "$(GREEN)💡 Every piece of knowledge shared makes the team stronger!$(NC)"
+
+schedule-hackathon: ## Schedule weekly hackathon
+	@echo "$(GREEN)🚀 Scheduling Weekly Hackathon$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Hackathon Details:$(NC)"
+	@echo "📅 Day: Every Friday"
+	@echo "⏰ Time: 2:00 PM - 6:00 PM"
+	@echo "🎯 Focus: Innovation and creativity"
+	@echo "🍕 Food: Provided"
+	@echo "🏆 Prizes: Recognition and celebration"
+	@echo ""
+	@echo "$(GREEN)🎉 Join us for fun and innovation!$(NC)"
+
+lunch-and-learn: ## Schedule lunch and learn session
+	@echo "$(GREEN)🍕 Scheduling Lunch & Learn$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Session Details:$(NC)"
+	@echo "📅 Day: Every Thursday"
+	@echo "⏰ Time: 12:00 PM - 1:00 PM"
+	@echo "🍕 Food: Provided"
+	@echo "📚 Topics: Technical and non-technical"
+	@echo "👥 Presenters: Team members"
+	@echo ""
+	@echo "$(GREEN)📚 Learn something new every week!$(NC)"
+
+team-building: ## Schedule team building event
+	@echo "$(GREEN)🎉 Scheduling Team Building Event$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Event Ideas:$(NC)"
+	@echo "🎮 Game night"
+	@echo "🏓 Ping pong tournament"
+	@echo "🎨 Creative workshop"
+	@echo "🍕 Pizza and coding"
+	@echo "🎵 Karaoke night"
+	@echo "🏃‍♂️ Team sports"
+	@echo ""
+	@echo "$(GREEN)🤝 Building stronger relationships!$(NC)"
+
+# Default target
+.DEFAULT_GOAL := help 

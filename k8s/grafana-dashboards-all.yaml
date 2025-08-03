@@ -1,0 +1,1123 @@
+apiVersion: v1
+data:
+  ai-performance.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\": \"AI
+    Performance Dashboard\",\n    \"tags\": [\"ai\", \"llm\", \"performance\", \"trading\"],\n
+    \   \"style\": \"dark\",\n    \"timezone\": \"browser\",\n    \"panels\": [\n
+    \     {\n        \"id\": 1,\n        \"title\": \"LLM Request Rate\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"rate(llm_requests_total[5m])\",\n
+    \           \"legendFormat\": \"{{operation}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\":
+    2,\n        \"title\": \"LLM Response Time\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(llm_request_duration_seconds_sum[5m])
+    / rate(llm_request_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"{{operation}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"s\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    5},\n                {\"color\": \"red\", \"value\": 10}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 0}\n      },\n      {\n        \"id\": 3,\n        \"title\": \"LLM Success
+    Rate\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"rate(llm_successful_requests_total[5m]) / rate(llm_requests_total[5m])
+    * 100\",\n            \"legendFormat\": \"Success Rate %\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 90},\n                {\"color\":
+    \"green\", \"value\": 95}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 4,\n        \"title\": \"AI Signal Generation Rate\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"rate(ai_signals_generated_total[5m])\",\n
+    \           \"legendFormat\": \"AI Signals per Second\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"palette-classic\"},\n            \"unit\": \"reqps\"\n          }\n
+    \       },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 8}\n
+    \     },\n      {\n        \"id\": 5,\n        \"title\": \"AI Signal Accuracy\",\n
+    \       \"type\": \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"rate(ai_signals_correct_total[5m]) / rate(ai_signals_total[5m]) * 100\",\n            \"legendFormat\":
+    \"Signal Accuracy %\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    60},\n                {\"color\": \"green\", \"value\": 70}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\": 6,\n        \"title\":
+    \"AI Model Confidence\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"ai_signal_confidence_avg\",\n            \"legendFormat\":
+    \"Average Confidence\"\n          }\n        ],\n        \"fieldConfig\": {\n
+    \         \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"percent\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 70},\n                {\"color\": \"green\", \"value\":
+    80}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\":
+    7,\n        \"title\": \"LLM Cache Hit Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(llm_cache_hits_total[5m])
+    / (rate(llm_cache_hits_total[5m]) + rate(llm_cache_misses_total[5m])) * 100\",\n
+    \           \"legendFormat\": \"Cache Hit Rate %\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 50},\n                {\"color\":
+    \"green\", \"value\": 80}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n
+    \       \"id\": 8,\n        \"title\": \"AI P&L Contribution\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"ai_pnl_contribution\",\n
+    \           \"legendFormat\": \"AI P&L Contribution\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"currencyUSD\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"green\", \"value\": 0}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\": 9,\n        \"title\":
+    \"LLM Error Rate\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"rate(llm_failed_requests_total[5m])\",\n
+    \           \"legendFormat\": \"{{error_type}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"reqps\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"red\", \"value\": 0.1}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 32}\n      },\n      {\n
+    \       \"id\": 10,\n        \"title\": \"AI Signal Types\",\n        \"type\":
+    \"piechart\",\n        \"targets\": [\n          {\n            \"expr\": \"ai_signals_total\",\n
+    \           \"legendFormat\": \"{{signal_type}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"}\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 32}\n      },\n      {\n        \"id\": 11,\n        \"title\": \"LLM Model
+    Performance\",\n        \"type\": \"table\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"llm_model_accuracy\",\n            \"format\": \"table\",\n
+    \           \"instant\": true\n          }\n        ],\n        \"transformations\":
+    [\n          {\n            \"id\": \"organize\",\n            \"options\": {\n
+    \             \"excludeByName\": {\n                \"Time\": true,\n                \"__name__\":
+    true,\n                \"job\": true,\n                \"instance\": true\n              },\n
+    \             \"indexByName\": {},\n              \"renameByName\": {\n                \"model\":
+    \"Model\",\n                \"Value\": \"Accuracy\"\n              }\n            }\n
+    \         }\n        ],\n        \"fieldConfig\": {\n          \"defaults\": {\n
+    \           \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    70},\n                {\"color\": \"green\", \"value\": 80}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    24, \"x\": 0, \"y\": 40}\n      },\n      {\n        \"id\": 12,\n        \"title\":
+    \"AI Signal Processing Time\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"rate(ai_signal_processing_duration_seconds_sum[5m])
+    / rate(ai_signal_processing_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"Processing Time\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"s\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"red\", \"value\": 5}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0,
+    \"y\": 48}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n      \"to\":
+    \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+  api-test.json: "{\n  \"id\": null,\n  \"uid\": \"test-dashboard\",\n  \"title\":
+    \"API Test Dashboard\",\n  \"tags\": [\"test\"],\n  \"style\": \"dark\",\n  \"timezone\":
+    \"browser\",\n  \"panels\": [\n    {\n      \"id\": 1,\n      \"title\": \"Test
+    Panel\",\n      \"type\": \"stat\",\n      \"targets\": [\n        {\n          \"expr\":
+    \"up\",\n          \"legendFormat\": \"{{job}}\"\n        }\n      ],\n      \"fieldConfig\":
+    {\n        \"defaults\": {\n          \"color\": {\n            \"mode\": \"thresholds\"\n
+    \         },\n          \"thresholds\": {\n            \"steps\": [\n              {\"color\":
+    \"red\", \"value\": 0},\n              {\"color\": \"green\", \"value\": 1}\n
+    \           ]\n          }\n        }\n      },\n      \"gridPos\": {\"h\": 8,
+    \"w\": 12, \"x\": 0, \"y\": 0}\n    }\n  ],\n  \"time\": {\n    \"from\": \"now-1h\",\n
+    \   \"to\": \"now\"\n  },\n  \"refresh\": \"30s\"\n} "
+  backtest-performance.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"Backtest Performance Dashboard\",\n    \"tags\": [\"backtest\", \"performance\",
+    \"strategy\", \"testing\"],\n    \"style\": \"dark\",\n    \"timezone\": \"browser\",\n
+    \   \"panels\": [\n      {\n        \"id\": 1,\n        \"title\": \"Backtest
+    API Health\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"up{job=\\\"backtest-api\\\"}\",\n            \"legendFormat\":
+    \"{{instance}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\n              \"mode\": \"thresholds\"\n            },\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": 0},\n                {\"color\": \"green\", \"value\": 1}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\": 2,\n
+    \       \"title\": \"Backtest Requests\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(backtest_requests_total[5m])\",\n
+    \           \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 6, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Backtest Duration\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(backtest_duration_seconds_sum[5m])
+    / rate(backtest_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"s\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    30},\n                {\"color\": \"red\", \"value\": 60}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 18,
+    \"y\": 0}\n      },\n      {\n        \"id\": 4,\n        \"title\": \"Strategy
+    Performance\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"backtest_strategy_return_percentage\",\n            \"legendFormat\":
+    \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    0},\n                {\"color\": \"green\", \"value\": 5}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0,
+    \"y\": 8}\n      },\n      {\n        \"id\": 5,\n        \"title\": \"Backtest
+    Success Rate\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"rate(backtest_success_total[5m]) / rate(backtest_requests_total[5m])
+    * 100\",\n            \"legendFormat\": \"Success Rate %\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 80},\n                {\"color\":
+    \"green\", \"value\": 95}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 6, \"x\": 12, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 6,\n        \"title\": \"Memory Usage\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"process_resident_memory_bytes{job=\\\"backtest-api\\\"}
+    / 1024 / 1024\",\n            \"legendFormat\": \"Memory (MB)\"\n          }\n
+    \       ],\n        \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"bytes\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 512},\n                {\"color\":
+    \"red\", \"value\": 1024}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 18, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 7,\n        \"title\": \"Backtest Queue Size\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"backtest_queue_size\",\n
+    \           \"legendFormat\": \"Queue Size\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"short\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 10},\n                {\"color\": \"red\", \"value\": 50}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    8,\n        \"title\": \"Error Rate\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"rate(backtest_errors_total[5m])\",\n            \"legendFormat\":
+    \"{{error_type}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"reqps\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    0.1},\n                {\"color\": \"red\", \"value\": 1}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 16}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n      \"to\":
+    \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+  dashboard-provider.yaml: "apiVersion: 1\n\nproviders:\n  - name: 'Trading System
+    Dashboards'\n    orgId: 1\n    folder: 'Trading System'\n    type: file\n    disableDeletion:
+    false\n    updateIntervalSeconds: 30\n    allowUiUpdates: true\n    options:\n
+    \     path: /etc/grafana/provisioning/dashboards "
+  fixed-test.json: "{\n  \"id\": null,\n  \"title\": \"Fixed Test Dashboard\",\n  \"tags\":
+    [\"test\"],\n  \"style\": \"dark\",\n  \"timezone\": \"browser\",\n  \"panels\":
+    [\n    {\n      \"id\": 1,\n      \"title\": \"Test Panel\",\n      \"type\":
+    \"stat\",\n      \"targets\": [\n        {\n          \"expr\": \"up\",\n          \"legendFormat\":
+    \"{{job}}\"\n        }\n      ],\n      \"fieldConfig\": {\n        \"defaults\":
+    {\n          \"color\": {\n            \"mode\": \"thresholds\"\n          },\n
+    \         \"thresholds\": {\n            \"steps\": [\n              {\"color\":
+    \"red\", \"value\": 0},\n              {\"color\": \"green\", \"value\": 1}\n
+    \           ]\n          }\n        }\n      },\n      \"gridPos\": {\"h\": 8,
+    \"w\": 12, \"x\": 0, \"y\": 0}\n    }\n  ],\n  \"time\": {\n    \"from\": \"now-1h\",\n
+    \   \"to\": \"now\"\n  },\n  \"refresh\": \"5s\"\n} "
+  market-data.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\": \"Market
+    Data Dashboard\",\n    \"tags\": [\"market\", \"data\", \"feeds\", \"latency\"],\n
+    \   \"style\": \"dark\",\n    \"timezone\": \"browser\",\n    \"panels\": [\n
+    \     {\n        \"id\": 1,\n        \"title\": \"Market Data Latency\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"market_data_request_latency_seconds
+    * 1000\",\n            \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"ms\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 100},\n                {\"color\":
+    \"red\", \"value\": 500}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0}\n      },\n      {\n
+    \       \"id\": 2,\n        \"title\": \"Data Feed Health\",\n        \"type\":
+    \"stat\",\n        \"targets\": [\n          {\n            \"expr\": \"market_data_source_health\",\n
+    \           \"legendFormat\": \"{{data_source}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": 0},\n                {\"color\": \"green\", \"value\": 1}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Data Quality Score\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"market_data_quality_score
+    * 100\",\n            \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 80},\n                {\"color\":
+    \"green\", \"value\": 95}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 4,\n        \"title\": \"Market Data Requests\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"market_data_requests_total\",\n
+    \           \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"percent\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 8}\n      },\n      {\n        \"id\":
+    5,\n        \"title\": \"Data Update Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(market_data_requests_total[5m])\",\n
+    \           \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    6,\n        \"title\": \"Data Source Health\",\n        \"type\": \"stat\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"market_data_source_health\",\n
+    \           \"legendFormat\": \"Data Source Health\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": 0},\n                {\"color\":
+    \"green\", \"value\": 1}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16}\n      },\n      {\n
+    \       \"id\": 7,\n        \"title\": \"Cache Performance\",\n        \"type\":
+    \"piechart\",\n        \"targets\": [\n          {\n            \"expr\": \"market_data_cache_misses_total\",\n
+    \           \"legendFormat\": \"Cache Misses\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"}\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0,
+    \"y\": 24}\n      },\n      {\n        \"id\": 8,\n        \"title\": \"Data Processing\",\n
+    \       \"type\": \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"market_data_points_processed_total\",\n            \"legendFormat\": \"Data
+    Points Processed\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    0.1},\n                {\"color\": \"red\", \"value\": 0.5}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\": 9,\n        \"title\":
+    \"Data Errors\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"rate(market_data_errors_total[5m])\",\n            \"legendFormat\":
+    \"{{error_type}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"reqps\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"red\", \"value\":
+    0.1}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 32}\n      },\n      {\n        \"id\":
+    10,\n        \"title\": \"HTTP Requests\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"market_data_http_requests_total\",\n
+    \           \"legendFormat\": \"HTTP Requests\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"short\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 32}\n      },\n      {\n        \"id\":
+    11,\n        \"title\": \"Data Cache Hit Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(market_data_cache_hits_total[5m])
+    / (rate(market_data_cache_hits_total[5m]) + rate(market_data_cache_misses_total[5m]))
+    * 100\",\n            \"legendFormat\": \"Cache Hit Rate %\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 50},\n                {\"color\":
+    \"green\", \"value\": 80}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 40}\n      },\n      {\n
+    \       \"id\": 12,\n        \"title\": \"Data Quality Scores\",\n        \"type\":
+    \"table\",\n        \"targets\": [\n          {\n            \"expr\": \"market_data_quality_score\",\n
+    \           \"format\": \"table\",\n            \"instant\": true\n          }\n
+    \       ],\n        \"transformations\": [\n          {\n            \"id\": \"organize\",\n
+    \           \"options\": {\n              \"excludeByName\": {\n                \"Time\":
+    true,\n                \"__name__\": true,\n                \"job\": true,\n                \"instance\":
+    true\n              },\n              \"indexByName\": {},\n              \"renameByName\":
+    {\n                \"symbol\": \"Symbol\",\n                \"condition\": \"Condition\",\n
+    \               \"Value\": \"Value\"\n              }\n            }\n          }\n
+    \       ],\n        \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 1},\n                {\"color\": \"red\", \"value\": 2}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 24, \"x\": 0, \"y\": 48}\n      }\n    ],\n    \"time\": {\n
+    \     \"from\": \"now-1h\",\n      \"to\": \"now\"\n    },\n    \"refresh\": \"30s\"\n
+    \ }\n} "
+  minimal-test.json: "{\n  \"title\": \"Minimal Test Dashboard\",\n  \"panels\": [\n
+    \   {\n      \"title\": \"Test Panel\",\n      \"type\": \"stat\",\n      \"targets\":
+    [\n        {\n          \"expr\": \"up\"\n        }\n      ],\n      \"gridPos\":
+    {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 0\n
+    \     }\n    }\n  ]\n} "
+  order-execution.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"Order Execution Dashboard\",\n    \"tags\": [\"order\", \"execution\", \"latency\",
+    \"fill\", \"slippage\"],\n    \"style\": \"dark\",\n    \"timezone\": \"browser\",\n
+    \   \"panels\": [\n      {\n        \"id\": 1,\n        \"title\": \"Order Execution
+    Health\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"up{job=\\\"order-execution\\\"}\",\n            \"legendFormat\":
+    \"{{instance}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\n              \"mode\": \"thresholds\"\n            },\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": 0},\n                {\"color\": \"green\", \"value\": 1}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\": 2,\n
+    \       \"title\": \"Execution Latency\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(order_execution_latency_seconds_sum[5m])
+    / rate(order_execution_latency_seconds_count[5m]) * 1000\",\n            \"legendFormat\":
+    \"Avg Execution Time (ms)\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"ms\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 50},\n                {\"color\": \"red\", \"value\": 200}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 6, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Fill Rate\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"rate(order_fills_total[5m]) / rate(order_requests_total[5m])
+    * 100\",\n            \"legendFormat\": \"Fill Rate %\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 95},\n                {\"color\":
+    \"green\", \"value\": 99}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 18, \"y\": 0}\n      },\n      {\n
+    \       \"id\": 4,\n        \"title\": \"Slippage Analysis\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"order_slippage_bps\",\n
+    \           \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"bps\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 5},\n                {\"color\": \"red\", \"value\": 20}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8}\n      },\n      {\n        \"id\":
+    5,\n        \"title\": \"Order Rejection Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(order_rejections_total[5m])
+    / rate(order_requests_total[5m]) * 100\",\n            \"legendFormat\": \"Rejection
+    Rate %\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"red\", \"value\": 5}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 8}\n      },\n      {\n        \"id\": 6,\n        \"title\": \"Execution
+    Quality Score\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"order_execution_quality_score\",\n            \"legendFormat\":
+    \"Quality Score\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"short\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    7},\n                {\"color\": \"green\", \"value\": 9}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 6, \"x\": 18,
+    \"y\": 8}\n      },\n      {\n        \"id\": 7,\n        \"title\": \"Order Volume
+    by Venue\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"rate(order_volume_by_venue_total[5m])\",\n            \"legendFormat\":
+    \"{{venue}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"},\n            \"unit\":
+    \"short\"\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12,
+    \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\": 8,\n        \"title\":
+    \"Market Impact\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"order_market_impact_bps\",\n            \"legendFormat\":
+    \"{{symbol}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"bps\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    10},\n                {\"color\": \"red\", \"value\": 50}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 16}\n      },\n      {\n        \"id\": 9,\n        \"title\": \"Order
+    Size Distribution\",\n        \"type\": \"histogram\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"order_size_distribution_bucket\",\n            \"legendFormat\":
+    \"{{le}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"}\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n
+    \       \"id\": 10,\n        \"title\": \"Execution Errors\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"rate(order_execution_errors_total[5m])\",\n
+    \           \"legendFormat\": \"{{error_type}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"reqps\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 0.1},\n                {\"color\": \"red\", \"value\":
+    1}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\":
+    11,\n        \"title\": \"Order Queue Depth\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"order_queue_depth\",\n
+    \           \"legendFormat\": \"{{venue}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"short\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 100},\n                {\"color\": \"red\", \"value\":
+    500}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 32}\n      },\n      {\n        \"id\":
+    12,\n        \"title\": \"Execution Cost Analysis\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"order_execution_cost_bps\",\n
+    \           \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"bps\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 5},\n                {\"color\": \"red\", \"value\": 15}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 32}\n      },\n      {\n        \"id\":
+    13,\n        \"title\": \"Order Execution Summary\",\n        \"type\": \"table\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"order_execution_summary\",\n
+    \           \"format\": \"table\",\n            \"instant\": true\n          }\n
+    \       ],\n        \"transformations\": [\n          {\n            \"id\": \"organize\",\n
+    \           \"options\": {\n              \"excludeByName\": {\n                \"Time\":
+    true,\n                \"__name__\": true,\n                \"job\": true,\n                \"instance\":
+    true\n              },\n              \"indexByName\": {},\n              \"renameByName\":
+    {\n                \"symbol\": \"Symbol\",\n                \"venue\": \"Venue\",\n
+    \               \"avg_latency\": \"Avg Latency (ms)\",\n                \"fill_rate\":
+    \"Fill Rate %\",\n                \"avg_slippage\": \"Avg Slippage (bps)\",\n
+    \               \"execution_cost\": \"Execution Cost (bps)\"\n              }\n
+    \           }\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 1},\n                {\"color\":
+    \"red\", \"value\": 2}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 24, \"x\": 0, \"y\": 40}\n      }\n    ],\n
+    \   \"time\": {\n      \"from\": \"now-1h\",\n      \"to\": \"now\"\n    },\n
+    \   \"refresh\": \"30s\"\n  }\n} "
+  risk-management-enhanced.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"Risk Management Enhanced\",\n    \"tags\": [\"risk\", \"management\", \"var\",
+    \"trading\", \"safety\"],\n    \"style\": \"dark\",\n    \"timezone\": \"browser\",\n
+    \   \"panels\": [\n      {\n        \"id\": 1,\n        \"title\": \"Portfolio
+    VaR (Value at Risk)\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_portfolio_var_95\",\n            \"legendFormat\":
+    \"95% VaR\"\n          },\n          {\n            \"expr\": \"risk_portfolio_var_99\",\n
+    \           \"legendFormat\": \"99% VaR\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"currencyUSD\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 10000},\n                {\"color\": \"red\", \"value\":
+    50000}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\":
+    2,\n        \"title\": \"Position Concentration\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_position_concentration_percentage\",\n
+    \           \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"percent\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 10},\n                {\"color\": \"red\", \"value\": 20}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Drawdown Analysis\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_max_drawdown_percentage\",\n
+    \           \"legendFormat\": \"Max Drawdown\"\n          },\n          {\n            \"expr\":
+    \"risk_current_drawdown_percentage\",\n            \"legendFormat\": \"Current
+    Drawdown\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    10},\n                {\"color\": \"red\", \"value\": 20}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0,
+    \"y\": 8}\n      },\n      {\n        \"id\": 4,\n        \"title\": \"Risk Alerts\",\n
+    \       \"type\": \"stat\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"risk_alerts_total\",\n            \"legendFormat\": \"Active Alerts\"\n          }\n
+    \       ],\n        \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 1},\n                {\"color\": \"red\", \"value\": 5}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 12, \"y\": 8}\n      },\n      {\n        \"id\":
+    5,\n        \"title\": \"Volatility Analysis\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_portfolio_volatility\",\n
+    \           \"legendFormat\": \"Portfolio Volatility\"\n          },\n          {\n
+    \           \"expr\": \"risk_benchmark_volatility\",\n            \"legendFormat\":
+    \"Benchmark Volatility\"\n          }\n        ],\n        \"fieldConfig\": {\n
+    \         \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"percent\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 18, \"y\": 8}\n      },\n      {\n        \"id\":
+    6,\n        \"title\": \"Correlation Matrix\",\n        \"type\": \"heatmap\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_correlation_matrix\",\n
+    \           \"legendFormat\": \"{{asset1}} vs {{asset2}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": -1},\n                {\"color\":
+    \"yellow\", \"value\": 0},\n                {\"color\": \"green\", \"value\":
+    1}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    7,\n        \"title\": \"Risk-Adjusted Returns\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_sharpe_ratio\",\n
+    \           \"legendFormat\": \"Sharpe Ratio\"\n          },\n          {\n            \"expr\":
+    \"risk_sortino_ratio\",\n            \"legendFormat\": \"Sortino Ratio\"\n          }\n
+    \       ],\n        \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 1},\n                {\"color\": \"green\", \"value\":
+    2}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\":
+    8,\n        \"title\": \"Risk Limits Status\",\n        \"type\": \"table\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_limit_status\",\n
+    \           \"format\": \"table\",\n            \"instant\": true\n          }\n
+    \       ],\n        \"transformations\": [\n          {\n            \"id\": \"organize\",\n
+    \           \"options\": {\n              \"excludeByName\": {\n                \"Time\":
+    true,\n                \"__name__\": true,\n                \"job\": true,\n                \"instance\":
+    true\n              },\n              \"indexByName\": {},\n              \"renameByName\":
+    {\n                \"limit_type\": \"Limit Type\",\n                \"current_value\":
+    \"Current Value\",\n                \"limit_value\": \"Limit Value\",\n                \"status\":
+    \"Status\"\n              }\n            }\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"red\", \"value\": 2}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 24, \"x\": 0,
+    \"y\": 24}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n      \"to\":
+    \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+  risk-management.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"Risk Management Dashboard\",\n    \"tags\": [\"risk\", \"management\", \"trading\",
+    \"var\"],\n    \"style\": \"dark\",\n    \"timezone\": \"browser\",\n    \"panels\":
+    [\n      {\n        \"id\": 1,\n        \"title\": \"Value at Risk (VaR)\",\n
+    \       \"type\": \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"risk_var_95\",\n            \"legendFormat\": \"95% VaR\"\n          },\n          {\n
+    \           \"expr\": \"risk_var_99\",\n            \"legendFormat\": \"99% VaR\"\n
+    \         }\n        ],\n        \"fieldConfig\": {\n          \"defaults\": {\n
+    \           \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"currencyUSD\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    -1000},\n                {\"color\": \"red\", \"value\": -5000}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\": 2,\n        \"title\":
+    \"Maximum Drawdown\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_max_drawdown * 100\",\n            \"legendFormat\":
+    \"Max Drawdown %\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    -10},\n                {\"color\": \"red\", \"value\": -20}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 0}\n      },\n      {\n        \"id\": 3,\n        \"title\":
+    \"Position Concentration\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_position_concentration{symbol=~\\\".*\\\"}
+    * 100\",\n            \"legendFormat\": \"{{symbol}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 10},\n                {\"color\":
+    \"red\", \"value\": 20}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 4,\n        \"title\": \"Portfolio Beta\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"risk_portfolio_beta\",\n
+    \           \"legendFormat\": \"Portfolio Beta\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1.2},\n                {\"color\": \"red\", \"value\": 1.5}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 8}\n      },\n      {\n        \"id\": 5,\n        \"title\":
+    \"Daily Loss Limit\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_daily_loss\",\n            \"legendFormat\":
+    \"Daily Loss\"\n          },\n          {\n            \"expr\": \"risk_daily_loss_limit\",\n
+    \           \"legendFormat\": \"Daily Loss Limit\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"currencyUSD\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"red\", \"value\": -1000}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\": 6,\n        \"title\":
+    \"Risk-Adjusted Return\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_sharpe_ratio\",\n            \"legendFormat\":
+    \"Sharpe Ratio\"\n          },\n          {\n            \"expr\": \"risk_sortino_ratio\",\n
+    \           \"legendFormat\": \"Sortino Ratio\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"green\", \"value\": 1.5}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\": 7,\n        \"title\":
+    \"Position Limits\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"risk_position_count\",\n            \"legendFormat\":
+    \"Current Positions\"\n          },\n          {\n            \"expr\": \"risk_position_limit\",\n
+    \           \"legendFormat\": \"Position Limit\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"short\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 8},\n                {\"color\": \"red\", \"value\": 10}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n        \"id\":
+    8,\n        \"title\": \"Volatility\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_portfolio_volatility * 100\",\n            \"legendFormat\":
+    \"Portfolio Volatility %\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"percent\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 20},\n                {\"color\": \"red\", \"value\": 30}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\":
+    9,\n        \"title\": \"Risk Alerts\",\n        \"type\": \"table\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"risk_alerts_total\",\n            \"format\":
+    \"table\",\n            \"instant\": true\n          }\n        ],\n        \"transformations\":
+    [\n          {\n            \"id\": \"organize\",\n            \"options\": {\n
+    \             \"excludeByName\": {\n                \"Time\": true,\n                \"__name__\":
+    true,\n                \"job\": true,\n                \"instance\": true\n              },\n
+    \             \"indexByName\": {},\n              \"renameByName\": {\n                \"alert_type\":
+    \"Alert Type\",\n                \"severity\": \"Severity\",\n                \"Value\":
+    \"Count\"\n              }\n            }\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"red\", \"value\": 5}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0,
+    \"y\": 32}\n      },\n      {\n        \"id\": 10,\n        \"title\": \"Correlation
+    Matrix\",\n        \"type\": \"heatmap\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"risk_correlation_matrix\",\n            \"legendFormat\":
+    \"{{asset1}} vs {{asset2}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"short\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 32}\n      },\n      {\n        \"id\":
+    11,\n        \"title\": \"Stress Test Results\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"risk_stress_test_pnl\",\n
+    \           \"legendFormat\": \"Stress Test P&L\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"currencyUSD\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": null},\n                {\"color\":
+    \"green\", \"value\": 0}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 40}\n      },\n      {\n
+    \       \"id\": 12,\n        \"title\": \"Risk Budget Utilization\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"risk_budget_utilization
+    * 100\",\n            \"legendFormat\": \"Risk Budget %\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 80},\n                {\"color\":
+    \"red\", \"value\": 95}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 40}\n      }\n    ],\n
+    \   \"time\": {\n      \"from\": \"now-24h\",\n      \"to\": \"now\"\n    },\n
+    \   \"refresh\": \"30s\"\n  }\n} "
+  simple-test.json: "{\n  \"id\": null,\n  \"title\": \"Simple Test Dashboard\",\n
+    \ \"tags\": [\"test\"],\n  \"style\": \"dark\",\n  \"timezone\": \"browser\",\n
+    \ \"panels\": [\n    {\n      \"id\": 1,\n      \"title\": \"Test Panel\",\n      \"type\":
+    \"stat\",\n      \"targets\": [\n        {\n          \"expr\": \"up\",\n          \"legendFormat\":
+    \"{{job}}\"\n        }\n      ],\n      \"fieldConfig\": {\n        \"defaults\":
+    {\n          \"color\": {\n            \"mode\": \"thresholds\"\n          },\n
+    \         \"thresholds\": {\n            \"steps\": [\n              {\"color\":
+    \"red\", \"value\": 0},\n              {\"color\": \"green\", \"value\": 1}\n
+    \           ]\n          }\n        }\n      },\n      \"gridPos\": {\"h\": 8,
+    \"w\": 12, \"x\": 0, \"y\": 0}\n    }\n  ],\n  \"time\": {\n    \"from\": \"now-1h\",\n
+    \   \"to\": \"now\"\n  },\n  \"refresh\": \"30s\"\n} "
+  simple-working.json: "{\n  \"id\": null,\n  \"title\": \"Simple Working Dashboard\",\n
+    \ \"tags\": [\"test\"],\n  \"style\": \"dark\",\n  \"timezone\": \"browser\",\n
+    \ \"panels\": [\n    {\n      \"id\": 1,\n      \"title\": \"Test Panel\",\n      \"type\":
+    \"stat\",\n      \"targets\": [\n        {\n          \"expr\": \"up\",\n          \"legendFormat\":
+    \"{{job}}\"\n        }\n      ],\n      \"fieldConfig\": {\n        \"defaults\":
+    {\n          \"color\": {\n            \"mode\": \"thresholds\"\n          },\n
+    \         \"thresholds\": {\n            \"steps\": [\n              {\"color\":
+    \"red\", \"value\": 0},\n              {\"color\": \"green\", \"value\": 1}\n
+    \           ]\n          }\n        }\n      },\n      \"gridPos\": {\"h\": 8,
+    \"w\": 12, \"x\": 0, \"y\": 0}\n    }\n  ],\n  \"time\": {\n    \"from\": \"now-1h\",\n
+    \   \"to\": \"now\"\n  },\n  \"refresh\": \"5s\"\n} "
+  strategy-performance.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"Strategy Performance Dashboard\",\n    \"tags\": [\"trading\", \"strategy\",
+    \"performance\"],\n    \"style\": \"dark\",\n    \"timezone\": \"browser\",\n
+    \   \"panels\": [\n      {\n        \"id\": 1,\n        \"title\": \"Strategy
+    Win Rates\",\n        \"type\": \"bargraph\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"strategy_win_rate{strategy=~\\\".*\\\"} * 100\",\n            \"legendFormat\":
+    \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    50},\n                {\"color\": \"green\", \"value\": 60}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\": 2,\n        \"title\":
+    \"Strategy P&L\",\n        \"type\": \"bargraph\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"strategy_pnl_total{strategy=~\\\".*\\\"}\",\n            \"legendFormat\":
+    \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"currencyUSD\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"green\", \"value\":
+    0}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Strategy Sharpe Ratios\",\n        \"type\": \"bargraph\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"strategy_sharpe_ratio{strategy=~\\\".*\\\"}\",\n
+    \           \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"green\", \"value\": 1.5}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 0, \"y\": 8}\n      },\n      {\n        \"id\": 4,\n        \"title\":
+    \"Strategy Max Drawdown\",\n        \"type\": \"bargraph\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"strategy_max_drawdown{strategy=~\\\".*\\\"}
+    * 100\",\n            \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": -10},\n                {\"color\":
+    \"red\", \"value\": -20}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 5,\n        \"title\": \"Strategy Trade Counts\",\n        \"type\":
+    \"bargraph\",\n        \"targets\": [\n          {\n            \"expr\": \"strategy_trades_total{strategy=~\\\".*\\\"}\",\n
+    \           \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"short\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    6,\n        \"title\": \"Strategy Profit Factor\",\n        \"type\": \"bargraph\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"strategy_profit_factor{strategy=~\\\".*\\\"}\",\n
+    \           \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1.2},\n                {\"color\": \"green\", \"value\": 1.5}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\": 7,\n        \"title\":
+    \"Strategy P&L Over Time\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"strategy_pnl_total{strategy=~\\\".*\\\"}\",\n
+    \           \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"currencyUSD\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n        \"id\":
+    8,\n        \"title\": \"Strategy Signal Generation Rate\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"rate(strategy_signals_total{strategy=~\\\".*\\\"}[5m])\",\n
+    \           \"legendFormat\": \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\":
+    9,\n        \"title\": \"Strategy Performance Table\",\n        \"type\": \"table\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"strategy_pnl_total{strategy=~\\\".*\\\"}\",\n
+    \           \"format\": \"table\",\n            \"instant\": true\n          }\n
+    \       ],\n        \"transformations\": [\n          {\n            \"id\": \"organize\",\n
+    \           \"options\": {\n              \"excludeByName\": {\n                \"Time\":
+    true,\n                \"__name__\": true,\n                \"job\": true,\n                \"instance\":
+    true\n              },\n              \"indexByName\": {},\n              \"renameByName\":
+    {\n                \"strategy\": \"Strategy\",\n                \"Value\": \"P&L\"\n
+    \             }\n            }\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"currencyUSD\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": null},\n                {\"color\":
+    \"green\", \"value\": 0}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 24, \"x\": 0, \"y\": 32}\n      }\n    ],\n
+    \   \"time\": {\n      \"from\": \"now-24h\",\n      \"to\": \"now\"\n    },\n
+    \   \"refresh\": \"30s\"\n  }\n} "
+  system-infrastructure.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"System Infrastructure\",\n    \"tags\": [\"infrastructure\", \"system\", \"monitoring\"],\n
+    \   \"style\": \"dark\",\n    \"timezone\": \"browser\",\n    \"panels\": [\n
+    \     {\n        \"id\": 1,\n        \"title\": \"CPU Usage\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"100
+    - (avg by (instance) (irate(node_cpu_seconds_total{mode=\\\"idle\\\"}[5m])) *
+    100)\",\n            \"legendFormat\": \"{{instance}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 70},\n                {\"color\":
+    \"red\", \"value\": 85}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0}\n      },\n      {\n
+    \       \"id\": 2,\n        \"title\": \"Memory Usage\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"100 - ((node_memory_MemAvailable_bytes
+    / node_memory_MemTotal_bytes) * 100)\",\n            \"legendFormat\": \"{{instance}}\"\n
+    \         }\n        ],\n        \"fieldConfig\": {\n          \"defaults\": {\n
+    \           \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    80},\n                {\"color\": \"red\", \"value\": 90}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 0}\n      },\n      {\n        \"id\": 3,\n        \"title\": \"Disk Usage\",\n
+    \       \"type\": \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"100 - ((node_filesystem_avail_bytes{mountpoint=\\\"/\\\"} / node_filesystem_size_bytes{mountpoint=\\\"/\\\"})
+    * 100)\",\n            \"legendFormat\": \"{{instance}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 80},\n                {\"color\":
+    \"red\", \"value\": 90}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 4,\n        \"title\": \"Network I/O\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(node_network_receive_bytes_total[5m])\",\n
+    \           \"legendFormat\": \"{{instance}} - Receive\"\n          },\n          {\n
+    \           \"expr\": \"rate(node_network_transmit_bytes_total[5m])\",\n            \"legendFormat\":
+    \"{{instance}} - Transmit\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"Bps\"\n          }\n        },\n        \"gridPos\": {\"h\":
+    8, \"w\": 12, \"x\": 12, \"y\": 8}\n      },\n      {\n        \"id\": 5,\n        \"title\":
+    \"Service Health Status\",\n        \"type\": \"stat\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"up{job=\\\"trading-services\\\"}\",\n
+    \           \"legendFormat\": \"{{instance}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": 0},\n                {\"color\": \"green\", \"value\": 1}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    6,\n        \"title\": \"Service Response Times\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(http_request_duration_seconds_sum[5m])
+    / rate(http_request_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"{{instance}} - {{method}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"s\"\n          }\n        },\n        \"gridPos\": {\"h\":
+    8, \"w\": 12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\": 7,\n        \"title\":
+    \"HTTP Request Rate\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"rate(http_requests_total[5m])\",\n            \"legendFormat\":
+    \"{{instance}} - {{method}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n        \"id\":
+    8,\n        \"title\": \"Error Rate\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"rate(http_requests_total{status=~\\\"4..|5..\\\"}[5m])\",\n
+    \           \"legendFormat\": \"{{instance}} - {{status}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"reqps\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"red\", \"value\": 0.1}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\": 9,\n        \"title\":
+    \"Database Connections\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"pg_stat_database_numbackends\",\n            \"legendFormat\":
+    \"{{datname}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"},\n            \"unit\":
+    \"short\"\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12,
+    \"x\": 0, \"y\": 32}\n      },\n      {\n        \"id\": 10,\n        \"title\":
+    \"Redis Memory Usage\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"redis_memory_used_bytes\",\n            \"legendFormat\":
+    \"Redis Memory\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"},\n            \"unit\":
+    \"bytes\"\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12,
+    \"x\": 12, \"y\": 32}\n      },\n      {\n        \"id\": 11,\n        \"title\":
+    \"Kafka Consumer Lag\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"kafka_consumer_lag\",\n            \"legendFormat\":
+    \"{{topic}} - {{consumer_group}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"short\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 1000},\n                {\"color\": \"red\", \"value\":
+    10000}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 40}\n      },\n      {\n        \"id\":
+    12,\n        \"title\": \"System Load Average\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"node_load1\",\n            \"legendFormat\":
+    \"1min - {{instance}}\"\n          },\n          {\n            \"expr\": \"node_load5\",\n
+    \           \"legendFormat\": \"5min - {{instance}}\"\n          },\n          {\n
+    \           \"expr\": \"node_load15\",\n            \"legendFormat\": \"15min
+    - {{instance}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"}\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 40}\n      }\n    ],\n
+    \   \"time\": {\n      \"from\": \"now-1h\",\n      \"to\": \"now\"\n    },\n
+    \   \"refresh\": \"30s\"\n  }\n} "
+  test-dashboard.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\": \"Test
+    Dashboard\",\n    \"tags\": [\"test\"],\n    \"style\": \"dark\",\n    \"timezone\":
+    \"browser\",\n    \"panels\": [\n      {\n        \"id\": 1,\n        \"title\":
+    \"Test Panel\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"up\",\n            \"legendFormat\": \"{{job}}\"\n          }\n
+    \       ],\n        \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\n              \"mode\": \"thresholds\"\n            },\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    0},\n                {\"color\": \"green\", \"value\": 1}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0,
+    \"y\": 0}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n      \"to\":
+    \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+  trading-engine.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\": \"Trading
+    Engine Dashboard\",\n    \"tags\": [\"trading\", \"engine\", \"core\", \"performance\",
+    \"execution\"],\n    \"style\": \"dark\",\n    \"timezone\": \"browser\",\n    \"panels\":
+    [\n      {\n        \"id\": 1,\n        \"title\": \"Trading Engine Health\",\n
+    \       \"type\": \"stat\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"up{job=\\\"trading-engine\\\"}\",\n            \"legendFormat\": \"{{instance}}\"\n
+    \         }\n        ],\n        \"fieldConfig\": {\n          \"defaults\": {\n
+    \           \"color\": {\n              \"mode\": \"thresholds\"\n            },\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": 0},\n                {\"color\": \"green\", \"value\": 1}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\": 2,\n
+    \       \"title\": \"Order Processing Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(trading_orders_processed_total[5m])\",\n
+    \           \"legendFormat\": \"Orders/sec\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 6, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Order Processing Latency\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(trading_order_processing_duration_seconds_sum[5m])
+    / rate(trading_order_processing_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"Avg Processing Time\"\n          }\n        ],\n        \"fieldConfig\": {\n
+    \         \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"ms\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 100},\n                {\"color\": \"red\", \"value\":
+    500}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 18, \"y\": 0}\n      },\n      {\n        \"id\":
+    4,\n        \"title\": \"Strategy Execution Performance\",\n        \"type\":
+    \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\": \"rate(trading_strategy_execution_duration_seconds_sum[5m])
+    / rate(trading_strategy_execution_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"{{strategy}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"},\n            \"unit\":
+    \"ms\"\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\":
+    0, \"y\": 8}\n      },\n      {\n        \"id\": 5,\n        \"title\": \"Order
+    Queue Size\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"trading_order_queue_size\",\n            \"legendFormat\":
+    \"Queue Size\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"short\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    100},\n                {\"color\": \"red\", \"value\": 500}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 8}\n      },\n      {\n        \"id\": 6,\n        \"title\":
+    \"Order Success Rate\",\n        \"type\": \"stat\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"rate(trading_orders_successful_total[5m])
+    / rate(trading_orders_total[5m]) * 100\",\n            \"legendFormat\": \"Success
+    Rate %\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    95},\n                {\"color\": \"green\", \"value\": 99}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    6, \"x\": 18, \"y\": 8}\n      },\n      {\n        \"id\": 7,\n        \"title\":
+    \"Memory Usage\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"process_resident_memory_bytes{job=\\\"trading-engine\\\"}
+    / 1024 / 1024\",\n            \"legendFormat\": \"Memory (MB)\"\n          }\n
+    \       ],\n        \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"bytes\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 1024},\n                {\"color\":
+    \"red\", \"value\": 2048}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n
+    \       \"id\": 8,\n        \"title\": \"CPU Usage\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(process_cpu_seconds_total{job=\\\"trading-engine\\\"}[5m])
+    * 100\",\n            \"legendFormat\": \"CPU %\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"percent\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 70},\n                {\"color\": \"red\", \"value\": 90}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\":
+    9,\n        \"title\": \"Active Strategies\",\n        \"type\": \"stat\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"trading_active_strategies\",\n            \"legendFormat\":
+    \"Active Strategies\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"},\n            \"unit\":
+    \"short\"\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 6,
+    \"x\": 18, \"y\": 16}\n      },\n      {\n        \"id\": 10,\n        \"title\":
+    \"Order Types Distribution\",\n        \"type\": \"piechart\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"trading_orders_by_type_total\",\n            \"legendFormat\":
+    \"{{order_type}}\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"}\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n
+    \       \"id\": 11,\n        \"title\": \"Error Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(trading_errors_total[5m])\",\n
+    \           \"legendFormat\": \"{{error_type}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"reqps\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 0.1},\n                {\"color\": \"red\", \"value\":
+    1}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 24}\n      },\n      {\n        \"id\":
+    12,\n        \"title\": \"Position Updates\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(trading_position_updates_total[5m])\",\n
+    \           \"legendFormat\": \"Position Updates/sec\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"palette-classic\"},\n            \"unit\": \"reqps\"\n          }\n
+    \       },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 32}\n
+    \     },\n      {\n        \"id\": 13,\n        \"title\": \"Risk Check Performance\",\n
+    \       \"type\": \"timeseries\",\n        \"targets\": [\n          {\n            \"expr\":
+    \"rate(trading_risk_check_duration_seconds_sum[5m]) / rate(trading_risk_check_duration_seconds_count[5m])\",\n
+    \           \"legendFormat\": \"Risk Check Duration\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"ms\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 50},\n                {\"color\":
+    \"red\", \"value\": 200}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 32}\n      },\n      {\n
+    \       \"id\": 14,\n        \"title\": \"Engine Alerts\",\n        \"type\":
+    \"stat\",\n        \"targets\": [\n          {\n            \"expr\": \"trading_engine_alerts_total\",\n
+    \           \"legendFormat\": \"Active Alerts\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"red\", \"value\": 5}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 6, \"x\": 18,
+    \"y\": 32}\n      },\n      {\n        \"id\": 15,\n        \"title\": \"Strategy
+    Performance Summary\",\n        \"type\": \"table\",\n        \"targets\": [\n
+    \         {\n            \"expr\": \"trading_strategy_performance\",\n            \"format\":
+    \"table\",\n            \"instant\": true\n          }\n        ],\n        \"transformations\":
+    [\n          {\n            \"id\": \"organize\",\n            \"options\": {\n
+    \             \"excludeByName\": {\n                \"Time\": true,\n                \"__name__\":
+    true,\n                \"job\": true,\n                \"instance\": true\n              },\n
+    \             \"indexByName\": {},\n              \"renameByName\": {\n                \"strategy\":
+    \"Strategy\",\n                \"return_pct\": \"Return %\",\n                \"sharpe_ratio\":
+    \"Sharpe Ratio\",\n                \"max_drawdown\": \"Max Drawdown\",\n                \"win_rate\":
+    \"Win Rate\"\n              }\n            }\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"green\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    1},\n                {\"color\": \"red\", \"value\": 2}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 24, \"x\": 0,
+    \"y\": 40}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n      \"to\":
+    \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+  trading-system-overview.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"title\":
+    \"Trading System Overview\",\n    \"tags\": [\"trading\", \"overview\", \"system\"],\n
+    \   \"style\": \"dark\",\n    \"timezone\": \"browser\",\n    \"panels\": [\n
+    \     {\n        \"id\": 1,\n        \"title\": \"System Health Status\",\n        \"type\":
+    \"stat\",\n        \"targets\": [\n          {\n            \"expr\": \"up{job=\\\"trading-services\\\"}\",\n
+    \           \"legendFormat\": \"{{instance}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\n              \"mode\":
+    \"thresholds\"\n            },\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"red\", \"value\": 0},\n                {\"color\":
+    \"green\", \"value\": 1}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0}\n      },\n      {\n
+    \       \"id\": 2,\n        \"title\": \"Total Trades\",\n        \"type\": \"stat\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"trading_trades_total\",\n
+    \           \"legendFormat\": \"Total Trades\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"short\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 12, \"y\": 0}\n      },\n      {\n        \"id\":
+    3,\n        \"title\": \"Total P&L\",\n        \"type\": \"stat\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"trading_pnl_total\",\n            \"legendFormat\":
+    \"Total P&L\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"currencyUSD\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"green\", \"value\":
+    0}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 18, \"y\": 0}\n      },\n      {\n        \"id\":
+    4,\n        \"title\": \"Win Rate\",\n        \"type\": \"stat\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"rate(trading_winning_trades_total[5m])
+    / rate(trading_trades_total[5m]) * 100\",\n            \"legendFormat\": \"Win
+    Rate %\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"percent\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"yellow\", \"value\":
+    50},\n                {\"color\": \"green\", \"value\": 60}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    6, \"x\": 0, \"y\": 8}\n      },\n      {\n        \"id\": 5,\n        \"title\":
+    \"Active Positions\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"trading_active_positions\",\n            \"legendFormat\":
+    \"Active Positions\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"palette-classic\"},\n            \"unit\":
+    \"short\"\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 6,
+    \"x\": 6, \"y\": 8}\n      },\n      {\n        \"id\": 6,\n        \"title\":
+    \"Daily P&L\",\n        \"type\": \"stat\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"trading_daily_pnl\",\n            \"legendFormat\": \"Daily
+    P&L\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"unit\": \"currencyUSD\",\n
+    \           \"thresholds\": {\n              \"steps\": [\n                {\"color\":
+    \"red\", \"value\": null},\n                {\"color\": \"green\", \"value\":
+    0}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 6, \"x\": 12, \"y\": 8}\n      },\n      {\n        \"id\":
+    7,\n        \"title\": \"Sharpe Ratio\",\n        \"type\": \"stat\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"trading_sharpe_ratio\",\n            \"legendFormat\":
+    \"Sharpe Ratio\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"yellow\", \"value\": 1},\n                {\"color\":
+    \"green\", \"value\": 1.5}\n              ]\n            }\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 6, \"x\": 18, \"y\": 8}\n      },\n      {\n
+    \       \"id\": 8,\n        \"title\": \"P&L Over Time\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"trading_pnl_total\",\n
+    \           \"legendFormat\": \"Total P&L\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"currencyUSD\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    9,\n        \"title\": \"Trade Volume Over Time\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(trading_trades_total[5m])\",\n
+    \           \"legendFormat\": \"Trades per Second\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"palette-classic\"},\n            \"unit\": \"reqps\"\n          }\n
+    \       },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16}\n
+    \     },\n      {\n        \"id\": 10,\n        \"title\": \"Service Response
+    Times\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])\",\n
+    \           \"legendFormat\": \"{{instance}} - {{method}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"palette-classic\"},\n            \"unit\": \"s\"\n          }\n        },\n
+    \       \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n
+    \       \"id\": 11,\n        \"title\": \"Error Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(http_requests_total{status=~\\\"4..|5..\\\"}[5m])\",\n
+    \           \"legendFormat\": \"{{instance}} - {{status}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"thresholds\"},\n            \"unit\": \"reqps\",\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"green\", \"value\":
+    null},\n                {\"color\": \"red\", \"value\": 0.1}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 24}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n
+    \     \"to\": \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+  working-test.json: "{\n  \"annotations\": {\n    \"list\": []\n  },\n  \"editable\":
+    true,\n  \"fiscalYearStartMonth\": 0,\n  \"graphTooltip\": 0,\n  \"links\": [],\n
+    \ \"liveNow\": false,\n  \"panels\": [\n    {\n      \"datasource\": {\n        \"type\":
+    \"prometheus\",\n        \"uid\": \"PBFA97CFB590B2093\"\n      },\n      \"fieldConfig\":
+    {\n        \"defaults\": {\n          \"color\": {\n            \"mode\": \"thresholds\"\n
+    \         },\n          \"mappings\": [],\n          \"thresholds\": {\n            \"mode\":
+    \"absolute\",\n            \"steps\": [\n              {\n                \"color\":
+    \"green\",\n                \"value\": null\n              },\n              {\n
+    \               \"color\": \"red\",\n                \"value\": 80\n              }\n
+    \           ]\n          }\n        },\n        \"overrides\": []\n      },\n
+    \     \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 0,\n
+    \       \"y\": 0\n      },\n      \"id\": 1,\n      \"options\": {\n        \"colorMode\":
+    \"value\",\n        \"graphMode\": \"area\",\n        \"justifyMode\": \"auto\",\n
+    \       \"orientation\": \"auto\",\n        \"reduceOptions\": {\n          \"calcs\":
+    [\n            \"lastNotNull\"\n          ],\n          \"fields\": \"\",\n          \"values\":
+    false\n        },\n        \"textMode\": \"auto\"\n      },\n      \"pluginVersion\":
+    \"10.0.0\",\n      \"targets\": [\n        {\n          \"datasource\": {\n            \"type\":
+    \"prometheus\",\n            \"uid\": \"PBFA97CFB590B2093\"\n          },\n          \"expr\":
+    \"up\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Test
+    Panel\",\n      \"type\": \"stat\"\n    }\n  ],\n  \"refresh\": \"5s\",\n  \"schemaVersion\":
+    38,\n  \"style\": \"dark\",\n  \"tags\": [\"test\"],\n  \"templating\": {\n    \"list\":
+    []\n  },\n  \"time\": {\n    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  },\n
+    \ \"timepicker\": {},\n  \"timezone\": \"\",\n  \"title\": \"Working Test Dashboard\",\n
+    \ \"uid\": \"working-test\",\n  \"version\": 1,\n  \"weekStart\": \"\"\n} "
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2025-07-29T12:13:27Z"
+  name: grafana-dashboards-complete
+  namespace: trading-system
+  resourceVersion: "1677680"
+  uid: 21126c15-57e3-4986-ad6b-727707dd4717

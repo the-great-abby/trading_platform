@@ -1,3 +1,7 @@
+from prometheus_client import generate_latest, Counter, Histogram, Gauge
+import time
+from prometheus_client import generate_latest, Counter, Histogram, Gauge
+import time
 """
 User Service - Internal microservice for user management operations
 """
@@ -16,6 +20,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="User Service", version="1.0.0")
+# Prometheus metrics
+service_requests_total = Counter("service_requests_total", "Total number of service requests")
+service_request_duration = Histogram("service_request_duration_seconds", "Time spent on service requests")
+# Prometheus metrics
+service_requests_total = Counter("service_requests_total", "Total number of service requests")
+service_request_duration = Histogram("service_request_duration_seconds", "Time spent on service requests")
 
 class User(BaseModel):
     user_id: str
@@ -218,6 +228,14 @@ async def logout():
         logger.error(f"Logout failed: {e}")
         raise HTTPException(status_code=500, detail=f"Logout failed: {str(e)}")
 
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint"""
+    return generate_latest()
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint"""
+    return generate_latest()
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8008))
     uvicorn.run(app, host="0.0.0.0", port=port)

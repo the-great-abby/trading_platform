@@ -67,6 +67,6 @@ spec:
     app: postgres-dev
   ports:
   - protocol: TCP
-    port: 5432
+    port: 11300
     targetPort: 5432
   type: ClusterIP 

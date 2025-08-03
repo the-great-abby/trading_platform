@@ -98,8 +98,10 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    from datetime import datetime
     return {
         "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
         "trading_engine_running": trading_engine.is_running if trading_engine else False
     }
 

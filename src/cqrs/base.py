@@ -18,7 +18,6 @@ Q = TypeVar('Q', bound='Query')
 E = TypeVar('E', bound='Event')
 
 
-@dataclass
 class Command(BaseModel):
     """Base class for all commands"""
     command_id: UUID = None
@@ -26,11 +25,12 @@ class Command(BaseModel):
     user_id: Optional[str] = None
     correlation_id: Optional[UUID] = None
     
-    def __post_init__(self):
-        if self.command_id is None:
-            self.command_id = uuid4()
-        if self.timestamp is None:
-            self.timestamp = datetime.utcnow()
+    def __init__(self, **data):
+        if 'command_id' not in data or data['command_id'] is None:
+            data['command_id'] = uuid4()
+        if 'timestamp' not in data or data['timestamp'] is None:
+            data['timestamp'] = datetime.utcnow()
+        super().__init__(**data)
     
     class Config:
         json_encoders = {
@@ -39,18 +39,18 @@ class Command(BaseModel):
         }
 
 
-@dataclass
 class Query(BaseModel):
     """Base class for all queries"""
     query_id: UUID = None
     timestamp: datetime = None
     user_id: Optional[str] = None
     
-    def __post_init__(self):
-        if self.query_id is None:
-            self.query_id = uuid4()
-        if self.timestamp is None:
-            self.timestamp = datetime.utcnow()
+    def __init__(self, **data):
+        if 'query_id' not in data or data['query_id'] is None:
+            data['query_id'] = uuid4()
+        if 'timestamp' not in data or data['timestamp'] is None:
+            data['timestamp'] = datetime.utcnow()
+        super().__init__(**data)
     
     class Config:
         json_encoders = {
@@ -59,7 +59,6 @@ class Query(BaseModel):
         }
 
 
-@dataclass
 class Event(BaseModel):
     """Base class for all events"""
     event_id: UUID = None
@@ -68,11 +67,12 @@ class Event(BaseModel):
     aggregate_id: Optional[str] = None
     correlation_id: Optional[UUID] = None
     
-    def __post_init__(self):
-        if self.event_id is None:
-            self.event_id = uuid4()
-        if self.timestamp is None:
-            self.timestamp = datetime.utcnow()
+    def __init__(self, **data):
+        if 'event_id' not in data or data['event_id'] is None:
+            data['event_id'] = uuid4()
+        if 'timestamp' not in data or data['timestamp'] is None:
+            data['timestamp'] = datetime.utcnow()
+        super().__init__(**data)
     
     class Config:
         json_encoders = {

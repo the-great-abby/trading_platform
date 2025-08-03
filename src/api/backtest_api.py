@@ -8,7 +8,7 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, date
 import logging
 
-from services.database.backtest_results_service import BacktestResultsService
+from ..services.database.backtest_results_service import BacktestResultsService
 
 logger = logging.getLogger(__name__)
 

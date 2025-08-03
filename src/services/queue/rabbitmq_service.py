@@ -66,7 +66,14 @@ class RabbitMQService:
             'market_data_fetch': 'market_data_fetch_queue',
             'options_data_fetch': 'options_data_fetch_queue',
             'gap_fill': 'gap_fill_queue',
-            'cache_cleanup': 'cache_cleanup_queue'
+            'cache_cleanup': 'cache_cleanup_queue',
+            # LLM-specific queues
+            'llm_sentiment': 'llm.sentiment',
+            'llm_signal': 'llm.signal',
+            'llm_risk': 'llm.risk',
+            'llm_market': 'llm.market',
+            'llm_custom': 'llm.custom',
+            'llm_results': 'llm.results'
         }
         
         # Job handlers
@@ -94,14 +101,14 @@ class RabbitMQService:
             # Declare queues
             for queue_name in self.queues.values():
                 try:
-                queue = await self.channel.declare_queue(
-                    queue_name,
-                    durable=True,
-                    arguments={
-                        'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
-                        'x-max-priority': 10
-                    }
-                )
+                    queue = await self.channel.declare_queue(
+                        queue_name,
+                        durable=True,
+                        arguments={
+                            'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
+                            'x-max-priority': 10
+                        }
+                    )
                 except Exception as e:
                     # If queue already exists with different arguments, try to declare it passively
                     logger.warning(f"Failed to declare queue {queue_name} with arguments: {e}")
@@ -174,7 +181,7 @@ class RabbitMQService:
                 queue = await self.channel.declare_queue(queue_name, durable=True, passive=True)
             except Exception:
                 # If passive declaration fails, try active declaration
-            queue = await self.channel.declare_queue(queue_name, durable=True)
+                queue = await self.channel.declare_queue(queue_name, durable=True)
             
             logger.info(f"Starting to consume from queue: {queue_name}")
             

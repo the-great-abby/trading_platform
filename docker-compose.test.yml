@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # Test database
+  test-postgres:
+    image: postgres:15
+    container_name: test-postgres
+    environment:
+      POSTGRES_DB: trading_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    ports:
+      - "11301:5432"  # Use test port range
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d trading_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test Redis
+  test-redis:
+    image: redis:7-alpine
+    container_name: test-redis
+    ports:
+      - "11305:6379"  # Use test port range
+    volumes:
+      - test_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test RabbitMQ
+  test-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: test-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: test_user
+      RABBITMQ_DEFAULT_PASS: test_pass
+      RABBITMQ_DEFAULT_VHOST: /test
+    ports:
+      - "11306:5672"   # AMQP
+      - "11307:15672"  # Management
+    volumes:
+      - test_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test services
+  test-trading-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: test-trading-cli
+    volumes:
+      - .:/app
+      - ./test-data:/app/test-data
+    environment:
+      - ENVIRONMENT=test
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://test_user:test_pass@test-postgres:5432/trading_test
+      - REDIS_URL=redis://test-redis:6379/1
+      - RABBITMQ_HOST=test-rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=test_user
+      - RABBITMQ_PASS=test_pass
+      - RABBITMQ_VHOST=/test
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+      test-rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--cov=src", "--cov-report=html", "--cov-report=term"]
+
+  # Test API service
+  test-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: test-api
+    volumes:
+      - .:/app
+    environment:
+      - ENVIRONMENT=test
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://test_user:test_pass@test-postgres:5432/trading_test
+      - REDIS_URL=redis://test-redis:6379/1
+      - RABBITMQ_HOST=test-rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=test_user
+      - RABBITMQ_PASS=test_pass
+      - RABBITMQ_VHOST=/test
+    ports:
+      - "11308:8000"  # Test API port
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+      test-rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: ["python", "src/api/main.py"]
+
+  # Test market data service
+  test-market-data:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: test-market-data
+    volumes:
+      - .:/app
+    environment:
+      - ENVIRONMENT=test
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://test_user:test_pass@test-postgres:5432/trading_test
+      - REDIS_URL=redis://test-redis:6379/1
+      - RABBITMQ_HOST=test-rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=test_user
+      - RABBITMQ_PASS=test_pass
+      - RABBITMQ_VHOST=/test
+    ports:
+      - "11309:8001"  # Test market data port
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+      test-rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: ["python", "src/services/market_data/main.py"]
+
+volumes:
+  test_postgres_data:
+  test_redis_data:
+  test_rabbitmq_data:
+
+networks:
+  test-network:
+    driver: bridge 

@@ -11,8 +11,7 @@ from datetime import datetime
 from src.cqrs.base import CommandBus, QueryBus, EventBus
 from src.core.trading_engine import TradingEngine
 from src.strategies.base import BaseStrategy
-from src.strategies.sma_crossover import SMACrossoverStrategy
-from src.strategies.rsi_strategy import RSIStrategy
+from src.strategies.momentum.rsi_strategy import RSIStrategy
 from src.risk.risk_manager import RiskManager
 from src.utils.config import Config
 
@@ -29,12 +28,11 @@ def event_loop():
 def config():
     """Test configuration"""
     return Config(
-        PUBLIC_API_KEY="test_key",
-        PUBLIC_API_SECRET="test_secret",
-        PUBLIC_API_BASE_URL="https://api.test.com",
-        LOG_LEVEL="DEBUG",
-        DATABASE_URL="sqlite:///test.db",
-        REDIS_URL="redis://localhost:6379/1"
+        public_api_key="test_key",
+        public_api_secret="test_secret",
+        public_base_url="https://api.test.com",
+        log_level="DEBUG",
+        database_url="sqlite:///test.db"
     )
 
 
@@ -140,14 +138,7 @@ def trading_engine(config, command_bus, query_bus, event_bus, mock_market_data_p
     )
 
 
-@pytest.fixture
-def sma_crossover_strategy():
-    """SMA crossover strategy fixture"""
-    return SMACrossoverStrategy(
-        short_period=5,
-        long_period=10,
-        threshold=0.01
-    )
+
 
 
 @pytest.fixture
@@ -363,18 +354,6 @@ def pytest_collection_modifyitems(config, items):
 def pytest_html_report_title(report):
     """Set HTML report title"""
     report.title = "Trading Bot Test Report"
-
-
-def pytest_html_results_table_header(cells):
-    """Customize HTML results table header"""
-    cells.insert(2, html.th("Description"))
-    cells.pop()
-
-
-def pytest_html_results_table_row(report, cells):
-    """Customize HTML results table row"""
-    cells.insert(2, html.td(report.description))
-    cells.pop()
 
 
 @pytest.hookimpl(hookwrapper=True)

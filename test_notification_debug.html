@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Notification Debug Test</h1>
+    <p>This page will help debug the notification subscription issue step by step.</p>
+    
+    <button onclick="testNotificationSetup()">Test Notification Setup</button>
+    <button onclick="testVapidKey()">Test VAPID Key Only</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            logs.appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testVapidKey() {
+            log('Testing VAPID key fetch...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:11007/api/notifications/vapid-public-key');
+                log(`Response status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    log(`❌ VAPID key fetch failed: ${response.status} ${response.statusText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log(`✅ VAPID key received: ${data.public_key.substring(0, 20)}...`, 'success');
+                log(`Full key: ${data.public_key}`, 'info');
+                
+                // Test key conversion
+                try {
+                    const converted = urlBase64ToUint8Array(data.public_key);
+                    log(`✅ Key conversion successful, length: ${converted.length}`, 'success');
+                } catch (error) {
+                    log(`❌ Key conversion failed: ${error.message}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error fetching VAPID key: ${error.message}`, 'error');
+                log(`Error details: ${error}`, 'error');
+            }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            try {
+                log(`Converting VAPID key: ${base64String.substring(0, 20)}...`, 'info');
+                
+                // Remove any padding and convert URL-safe to standard base64
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/-/g, '+')
+                    .replace(/_/g, '/');
+
+                log(`Converted base64: ${base64.substring(0, 20)}...`, 'info');
+
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                
+                log(`VAPID key converted successfully, length: ${outputArray.length}`, 'success');
+                return outputArray;
+            } catch (error) {
+                log(`Error converting VAPID key: ${error.message}`, 'error');
+                log(`VAPID key that failed: ${base64String}`, 'error');
+                throw new Error(`Invalid VAPID key format: ${error.message}`);
+            }
+        }
+
+        async function testNotificationSetup() {
+            log('Starting comprehensive notification setup test...', 'info');
+            
+            // Step 1: Check if service worker is supported
+            if (!('serviceWorker' in navigator)) {
+                log('❌ Service Worker not supported', 'error');
+                return;
+            }
+            log('✅ Service Worker supported', 'success');
+
+            // Step 2: Check if notifications are supported
+            if (!('Notification' in window)) {
+                log('❌ Notifications not supported', 'error');
+                return;
+            }
+            log('✅ Notifications supported', 'success');
+
+            // Step 3: Check current permission
+            log(`Current notification permission: ${Notification.permission}`, 'info');
+
+            // Step 4: Request permission
+            try {
+                const permission = await Notification.requestPermission();
+                log(`✅ Permission result: ${permission}`, 'success');
+                
+                if (permission !== 'granted') {
+                    log('❌ Permission denied', 'error');
+                    return;
+                }
+            } catch (error) {
+                log(`❌ Error requesting permission: ${error.message}`, 'error');
+                return;
+            }
+
+                                    // Step 5: Register service worker
+                        try {
+                            log('Registering service worker...', 'info');
+                            const registration = await navigator.serviceWorker.register('/sw.js');
+                            log('✅ Service worker registered', 'success');
+                
+                // Wait for service worker to be ready
+                await navigator.serviceWorker.ready;
+                log('✅ Service worker ready', 'success');
+                
+            } catch (error) {
+                log(`❌ Error registering service worker: ${error.message}`, 'error');
+                log(`Error details: ${error}`, 'error');
+                return;
+            }
+
+            // Step 6: Get VAPID public key
+            try {
+                log('Fetching VAPID public key...', 'info');
+                const response = await fetch('http://localhost:11007/api/notifications/vapid-public-key');
+                
+                if (!response.ok) {
+                    log(`❌ VAPID key fetch failed: ${response.status} ${response.statusText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log(`✅ VAPID key received: ${data.public_key.substring(0, 20)}...`, 'success');
+                
+            } catch (error) {
+                log(`❌ Error fetching VAPID key: ${error.message}`, 'error');
+                log(`Error details: ${error}`, 'error');
+                return;
+            }
+
+            // Step 7: Subscribe to push notifications
+            try {
+                log('Subscribing to push notifications...', 'info');
+                const registration = await navigator.serviceWorker.ready;
+                
+                                            const vapidResponse = await fetch('http://localhost:11007/api/notifications/vapid-public-key');
+                const vapidData = await vapidResponse.json();
+                
+                const applicationServerKey = urlBase64ToUint8Array(vapidData.public_key);
+                
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                });
+                
+                log('✅ Push subscription successful', 'success');
+                log(`Subscription endpoint: ${subscription.endpoint.substring(0, 50)}...`, 'info');
+                
+            } catch (error) {
+                log(`❌ Error subscribing to push: ${error.message}`, 'error');
+                log(`Error details: ${error}`, 'error');
+                return;
+            }
+
+            log('🎉 All notification tests passed!', 'success');
+        }
+    </script>
+</body>
+</html> 

@@ -20,19 +20,24 @@ spec:
         image: localhost:32000/backtest-api:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 10001
+        - containerPort: 11101
         env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: read-url
+        - name: DB_HOST
+          value: "timescaledb.trading-system.svc.cluster.local"
+        - name: DB_NAME
+          value: "trading_bot"
+        - name: DB_USER
+          value: "trading_user"
+        - name: DB_PASSWORD
+          value: "trading_pass"
+        - name: DB_PORT
+          value: "5432"
         - name: LOG_LEVEL
           value: "INFO"
         - name: ENVIRONMENT
           value: "production"
         - name: API_PORT
-          value: "10001"
+          value: "11101"
         resources:
           requests:
             memory: "256Mi"
@@ -43,7 +48,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 10001
+            port: 11101
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -51,7 +56,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: 10001
+            port: 11101
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
@@ -69,7 +74,7 @@ spec:
     app: backtest-api
   ports:
   - protocol: TCP
-    port: 10001
-    targetPort: 10001
+    port: 11101
+    targetPort: 11101
     name: http
   type: ClusterIP 

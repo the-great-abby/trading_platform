@@ -21,7 +21,7 @@ spec:
       - name: market-data-worker
         image: localhost:32000/market-data-worker:latest
         ports:
-        - containerPort: 8080
+        - containerPort: 11108
         env:
         - name: POLYGON_API_KEY
           valueFrom:
@@ -83,8 +83,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8080
-    targetPort: 8080
+  - port: 11108
+    targetPort: 11108
     protocol: TCP
     name: http
   selector:

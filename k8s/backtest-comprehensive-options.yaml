@@ -21,7 +21,7 @@ spec:
         command: ["python", "run_comprehensive_options_backtest.py"]
         env:
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
         - name: POLYGON_API_KEY
           valueFrom:
             secretKeyRef:

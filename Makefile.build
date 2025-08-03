@@ -1,0 +1,339 @@
+# Trading System Build Makefile
+# Templated build and deployment commands for all services
+
+# =====================================================================
+# CONFIGURATION
+# =====================================================================
+
+# Registry configuration
+REGISTRY := localhost:32000
+NAMESPACE := trading-system
+
+# Service configurations
+SERVICES := trading-service market-data-service strategy-service portfolio-service risk-service \
+           analytics-service backtest-api llm-service llm-worker notification-service \
+           order-service performance-dashboard user-service command-api query-api \
+           public-api signal-management-service central-hub-dashboard health-dashboard \
+           gateway unified-trading-dashboard unified-analytics-dashboard unified-news-dashboard
+
+# Port configurations (external ports)
+PORTS := 11101 11102 11103 11104 11105 11106 11107 11108 11109 11110 \
+         11111 11112 11113 11114 11115 11116 11117 11118 11119 11120 \
+         11121 11122 11123 11124 11125 11126 11127 11128 11129 11130
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+# =====================================================================
+# MAIN TARGETS
+# =====================================================================
+
+.PHONY: help build-all build-service build-and-push build-and-deploy deploy-all deploy-service restart-all restart-service port-forward-all port-forward-service status-all logs-service metrics-service quick-build test-metrics cleanup build-trading build-dashboards build-apis
+
+help: ## Show this help message
+	@echo "$(BLUE)Trading System Build Commands$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Service Build Commands:$(NC)"
+	@echo "  build-all          - Build all services"
+	@echo "  build-service      - Build specific service (usage: make build-service SERVICE=service-name)"
+	@echo "  build-and-push     - Build and push specific service"
+	@echo "  build-and-deploy   - Build, push, and deploy specific service"
+	@echo ""
+	@echo "$(GREEN)Deployment Commands:$(NC)"
+	@echo "  deploy-all         - Deploy all services"
+	@echo "  deploy-service     - Deploy specific service"
+	@echo "  restart-all        - Restart all deployments"
+	@echo "  restart-service    - Restart specific service"
+	@echo ""
+	@echo "$(GREEN)Port Forwarding:$(NC)"
+	@echo "  port-forward-all   - Start port forwarding for all services"
+	@echo "  port-forward-service - Port forward specific service"
+	@echo ""
+	@echo "$(GREEN)Monitoring:$(NC)"
+	@echo "  status-all         - Show status of all services"
+	@echo "  logs-service       - Show logs for specific service"
+	@echo "  metrics-service    - Test metrics endpoint for service"
+	@echo ""
+	@echo "$(GREEN)Quick Commands:$(NC)"
+	@echo "  quick-build        - Quick build for development (build, push, restart)"
+	@echo "  test-metrics       - Test all metrics endpoints"
+	@echo "  cleanup            - Clean up port forwarding"
+	@echo ""
+	@echo "$(GREEN)Service Groups:$(NC)"
+	@echo "  build-trading      - Build trading-related services"
+	@echo "  build-dashboards   - Build dashboard services"
+	@echo "  build-apis         - Build API services"
+	@echo ""
+	@echo "$(GREEN)Examples:$(NC)"
+	@echo "  make build-service SERVICE=trading-service"
+	@echo "  make build-and-deploy SERVICE=market-data-service"
+	@echo "  make restart-service SERVICE=llm-worker"
+	@echo "  make port-forward-service SERVICE=trading-service PORT=11101"
+	@echo "  make metrics-service SERVICE=market-data-service PORT=11109"
+
+# =====================================================================
+# BUILD COMMANDS
+# =====================================================================
+
+build-all: ## Build all services
+	@echo "$(GREEN)🔨 Building all services...$(NC)"
+	@for service in $(SERVICES); do \
+		echo "$(YELLOW)Building $$service...$(NC)"; \
+		if [ -f "services/$$service/Dockerfile" ]; then \
+			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			echo "$(GREEN)✅ $$service built successfully!$(NC)"; \
+		else \
+			echo "$(RED)❌ Error: Dockerfile not found for $$service$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)✅ All services built successfully!$(NC)"
+
+build-service: ## Build specific service (usage: make build-service SERVICE=service-name)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make build-service SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🔨 Building $(SERVICE)...$(NC)"
+	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
+		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		echo "$(GREEN)✅ $(SERVICE) built successfully!$(NC)"; \
+	else \
+		echo "$(RED)❌ Error: Dockerfile not found for $(SERVICE)$(NC)"; \
+		exit 1; \
+	fi
+
+build-and-push: ## Build and push specific service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make build-and-push SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🔨 Building and pushing $(SERVICE)...$(NC)"
+	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
+		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		docker push $(REGISTRY)/$(SERVICE):latest; \
+		echo "$(GREEN)✅ $(SERVICE) built and pushed successfully!$(NC)"; \
+	else \
+		echo "$(RED)❌ Error: Dockerfile not found for $(SERVICE)$(NC)"; \
+		exit 1; \
+	fi
+
+build-and-deploy: ## Build, push, and deploy specific service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make build-and-deploy SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🚀 Building, pushing, and deploying $(SERVICE)...$(NC)"
+	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
+		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		docker push $(REGISTRY)/$(SERVICE):latest; \
+		kubectl rollout restart deployment/$(SERVICE) -n $(NAMESPACE); \
+		kubectl wait --for=condition=available --timeout=60s deployment/$(SERVICE) -n $(NAMESPACE); \
+		echo "$(GREEN)✅ $(SERVICE) deployed successfully!$(NC)"; \
+	else \
+		echo "$(RED)❌ Error: Dockerfile not found for $(SERVICE)$(NC)"; \
+		exit 1; \
+	fi
+
+# =====================================================================
+# DEPLOYMENT COMMANDS
+# =====================================================================
+
+deploy-all: ## Deploy all services
+	@echo "$(GREEN)🚀 Deploying all services...$(NC)"
+	@for service in $(SERVICES); do \
+		echo "$(YELLOW)Deploying $$service...$(NC)"; \
+		kubectl apply -f k8s/$$service.yaml -n $(NAMESPACE) 2>/dev/null || echo "No deployment file for $$service"; \
+	done
+	@echo "$(GREEN)✅ All services deployed!$(NC)"
+
+deploy-service: ## Deploy specific service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make deploy-service SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🚀 Deploying $(SERVICE)...$(NC)"
+	@if [ -f "k8s/$(SERVICE).yaml" ]; then \
+		kubectl apply -f k8s/$(SERVICE).yaml -n $(NAMESPACE); \
+		echo "$(GREEN)✅ $(SERVICE) deployed!$(NC)"; \
+	else \
+		echo "$(RED)❌ Error: Deployment file not found for $(SERVICE)$(NC)"; \
+		exit 1; \
+	fi
+
+restart-all: ## Restart all deployments
+	@echo "$(GREEN)🔄 Restarting all deployments...$(NC)"
+	@for service in $(SERVICES); do \
+		echo "$(YELLOW)Restarting $$service...$(NC)"; \
+		kubectl rollout restart deployment/$$service -n $(NAMESPACE) 2>/dev/null || echo "No deployment for $$service"; \
+	done
+	@echo "$(GREEN)✅ All deployments restarted!$(NC)"
+
+restart-service: ## Restart specific service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make restart-service SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🔄 Restarting $(SERVICE)...$(NC)"
+	@kubectl rollout restart deployment/$(SERVICE) -n $(NAMESPACE)
+	@kubectl wait --for=condition=available --timeout=60s deployment/$(SERVICE) -n $(NAMESPACE)
+	@echo "$(GREEN)✅ $(SERVICE) restarted successfully!$(NC)"
+
+# =====================================================================
+# PORT FORWARDING COMMANDS
+# =====================================================================
+
+port-forward-all: ## Start port forwarding for all services
+	@echo "$(GREEN)🔌 Starting port forwarding for all services...$(NC)"
+	@echo "$(YELLOW)Note: This will start many port-forward processes$(NC)"
+	@echo "$(YELLOW)Use 'pkill -f kubectl' to stop all port forwarding$(NC)"
+	@for i in {1..$(words $(SERVICES))}; do \
+		service=$$(word $$i,$(SERVICES)); \
+		port=$$(word $$i,$(PORTS)); \
+		echo "$(YELLOW)Port forwarding $$service on port $$port...$(NC)"; \
+		kubectl port-forward -n $(NAMESPACE) service/$$service $$port:80 & \
+	done
+	@echo "$(GREEN)✅ Port forwarding started for all services!$(NC)"
+
+port-forward-service: ## Port forward specific service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make port-forward-service SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@if [ -z "$(PORT)" ]; then \
+		echo "$(RED)❌ Error: PORT parameter required$(NC)"; \
+		echo "Usage: make port-forward-service SERVICE=service-name PORT=11101"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🔌 Port forwarding $(SERVICE) on port $(PORT)...$(NC)"
+	@kubectl port-forward -n $(NAMESPACE) service/$(SERVICE) $(PORT):80 &
+	@echo "$(GREEN)✅ Port forwarding started for $(SERVICE) on port $(PORT)!$(NC)"
+
+# =====================================================================
+# MONITORING COMMANDS
+# =====================================================================
+
+status-all: ## Show status of all services
+	@echo "$(GREEN)📊 Service Status:$(NC)"
+	@kubectl get pods -n $(NAMESPACE) -o wide
+	@echo ""
+	@echo "$(GREEN)📈 Service Summary:$(NC)"
+	@echo "Total pods: $$(kubectl get pods -n $(NAMESPACE) --no-headers | wc -l)"
+	@echo "Running: $$(kubectl get pods -n $(NAMESPACE) --no-headers | grep Running | wc -l)"
+	@echo "Pending: $$(kubectl get pods -n $(NAMESPACE) --no-headers | grep Pending | wc -l)"
+	@echo "Failed: $$(kubectl get pods -n $(NAMESPACE) --no-headers | grep -E "(Failed|Error|CrashLoopBackOff)" | wc -l)"
+
+logs-service: ## Show logs for specific service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make logs-service SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)📋 Logs for $(SERVICE):$(NC)"
+	@kubectl logs -n $(NAMESPACE) deployment/$(SERVICE) --tail=20
+
+metrics-service: ## Test metrics endpoint for service
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make metrics-service SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@if [ -z "$(PORT)" ]; then \
+		echo "$(RED)❌ Error: PORT parameter required$(NC)"; \
+		echo "Usage: make metrics-service SERVICE=service-name PORT=11101"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)📊 Testing metrics for $(SERVICE) on port $(PORT)...$(NC)"
+	@curl -s http://localhost:$(PORT)/metrics | head -10
+
+# =====================================================================
+# QUICK COMMANDS FOR COMMON SCENARIOS
+# =====================================================================
+
+quick-build: ## Quick build for development (build, push, restart)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "Usage: make quick-build SERVICE=service-name"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)⚡ Quick build for $(SERVICE)...$(NC)"
+	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
+		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		docker push $(REGISTRY)/$(SERVICE):latest; \
+		kubectl rollout restart deployment/$(SERVICE) -n $(NAMESPACE); \
+		kubectl wait --for=condition=available --timeout=60s deployment/$(SERVICE) -n $(NAMESPACE); \
+		echo "$(GREEN)✅ Quick build completed for $(SERVICE)!$(NC)"; \
+	else \
+		echo "$(RED)❌ Error: Dockerfile not found for $(SERVICE)$(NC)"; \
+		exit 1; \
+	fi
+
+test-metrics: ## Test all metrics endpoints
+	@echo "$(GREEN)📊 Testing all metrics endpoints...$(NC)"
+	@for i in {1..$(words $(SERVICES))}; do \
+		service=$$(word $$i,$(SERVICES)); \
+		port=$$(word $$i,$(PORTS)); \
+		echo "$(YELLOW)Testing $$service on port $$port...$(NC)"; \
+		curl -s http://localhost:$$port/metrics >/dev/null 2>&1 && echo "$(GREEN)✅ $$service metrics OK$(NC)" || echo "$(RED)❌ $$service metrics failed$(NC)"; \
+	done
+
+cleanup: ## Clean up port forwarding and temporary files
+	@echo "$(GREEN)🧹 Cleaning up...$(NC)"
+	@pkill -f "kubectl port-forward" 2>/dev/null || true
+	@echo "$(GREEN)✅ Cleanup completed!$(NC)"
+
+# =====================================================================
+# SERVICE-SPECIFIC COMMANDS
+# =====================================================================
+
+build-trading: ## Build trading-related services
+	@echo "$(GREEN)🔨 Building trading services...$(NC)"
+	@for service in trading-service market-data-service strategy-service portfolio-service risk-service; do \
+		echo "$(YELLOW)Building $$service...$(NC)"; \
+		if [ -f "services/$$service/Dockerfile" ]; then \
+			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			echo "$(GREEN)✅ $$service built!$(NC)"; \
+		else \
+			echo "$(RED)❌ Dockerfile not found for $$service$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)✅ Trading services built!$(NC)"
+
+build-dashboards: ## Build dashboard services
+	@echo "$(GREEN)🔨 Building dashboard services...$(NC)"
+	@for service in unified-trading-dashboard unified-analytics-dashboard unified-news-dashboard health-dashboard; do \
+		echo "$(YELLOW)Building $$service...$(NC)"; \
+		if [ -f "services/$$service/Dockerfile" ]; then \
+			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			echo "$(GREEN)✅ $$service built!$(NC)"; \
+		else \
+			echo "$(RED)❌ Dockerfile not found for $$service$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)✅ Dashboard services built!$(NC)"
+
+build-apis: ## Build API services
+	@echo "$(GREEN)🔨 Building API services...$(NC)"
+	@for service in backtest-api command-api query-api public-api; do \
+		echo "$(YELLOW)Building $$service...$(NC)"; \
+		if [ -f "services/$$service/Dockerfile" ]; then \
+			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			echo "$(GREEN)✅ $$service built!$(NC)"; \
+		else \
+			echo "$(RED)❌ Dockerfile not found for $$service$(NC)"; \
+		fi; \
+	done
+	@echo "$(GREEN)✅ API services built!$(NC)"
+
+# Default target
+.DEFAULT_GOAL := help 

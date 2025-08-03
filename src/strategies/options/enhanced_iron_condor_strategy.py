@@ -360,6 +360,24 @@ class EnhancedIronCondorStrategy(BaseStrategy):
             'dte': strikes['dte']
         }
     
+    def calculate_max_risk(self, strikes: Dict[str, float]) -> float:
+        """Calculate maximum risk for Iron Condor position"""
+        put_spread_width = strikes['put_spread_width']
+        call_spread_width = strikes['call_spread_width']
+        
+        # Max risk is the width of the wider spread
+        max_risk = max(put_spread_width, call_spread_width)
+        return max_risk
+    
+    def calculate_max_profit(self, strikes: Dict[str, float]) -> float:
+        """Calculate maximum profit for Iron Condor position"""
+        put_spread_width = strikes['put_spread_width']
+        call_spread_width = strikes['call_spread_width']
+        
+        # Max profit is the width of the narrower spread
+        max_profit = min(put_spread_width, call_spread_width)
+        return max_profit
+    
     def check_market_conditions(self, data: pd.DataFrame, options_chain: List[OptionContract]) -> bool:
         """Check if market conditions are suitable for Iron Condor using cached data"""
         

@@ -195,23 +195,37 @@ class LLMClient:
         try:
             await self.connect()
             
-            # Check proxy root endpoint
-            async with self.session.get(f"{self.base_url}/") as response:
-                if response.status == 200:
-                    self.is_healthy = True
-                    logger.debug("LLM proxy health check passed")
-                else:
-                    self.is_healthy = False
-                    logger.warning(f"LLM proxy health check failed: {response.status}")
-            
-            # Check OpenAPI spec if available
+            # Check proxy health endpoint first
             try:
-                async with self.session.get(f"{self.base_url}/openapi.json") as response:
+                logger.debug(f"Attempting health check to {self.base_url}/health")
+                async with self.session.get(f"{self.base_url}/health", timeout=5) as response:
                     if response.status == 200:
-                        openapi_data = await response.json()
-                        logger.debug(f"LLM proxy OpenAPI spec available: {openapi_data.get('info', {}).get('title', 'Unknown')}")
+                        self.is_healthy = True
+                        logger.debug("LLM proxy health check passed")
+                        self.last_health_check = current_time
+                        return True
+                    else:
+                        self.is_healthy = False
+                        logger.warning(f"LLM proxy health check failed: {response.status}")
             except Exception as e:
-                logger.debug(f"OpenAPI spec not available: {e}")
+                logger.debug(f"Health endpoint failed, trying root endpoint: {e}")
+                logger.debug(f"Exception type: {type(e).__name__}")
+                logger.debug(f"Exception details: {str(e)}")
+            
+            # Fallback to root endpoint
+            try:
+                async with self.session.get(f"{self.base_url}/", timeout=10) as response:
+                    if response.status == 200:
+                        self.is_healthy = True
+                        logger.debug("LLM proxy root endpoint check passed")
+                    else:
+                        self.is_healthy = False
+                        logger.warning(f"LLM proxy root endpoint check failed: {response.status}")
+            except Exception as e:
+                self.is_healthy = False
+                logger.error(f"LLM proxy health check error: {e}")
+                self.last_health_check = current_time
+                return False
             
             self.last_health_check = current_time
             return self.is_healthy
@@ -219,6 +233,8 @@ class LLMClient:
         except Exception as e:
             self.is_healthy = False
             logger.error(f"LLM proxy health check error: {e}")
+            logger.error(f"Base URL: {self.base_url}")
+            logger.error(f"Session state: {self.session}")
             return False
     
     async def _rate_limit_check(self) -> bool:

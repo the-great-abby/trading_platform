@@ -10,7 +10,6 @@ from decimal import Decimal
 from ...cqrs.base import Event
 
 
-@dataclass
 class OrderPlacedEvent(Event):
     """Event when an order is placed"""
     order_id: str
@@ -25,7 +24,6 @@ class OrderPlacedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class OrderCancelledEvent(Event):
     """Event when an order is cancelled"""
     order_id: str
@@ -33,7 +31,6 @@ class OrderCancelledEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class OrderUpdatedEvent(Event):
     """Event when an order is updated"""
     order_id: str
@@ -44,7 +41,6 @@ class OrderUpdatedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class OrderFilledEvent(Event):
     """Event when an order is filled"""
     order_id: str
@@ -57,7 +53,6 @@ class OrderFilledEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class OrderRejectedEvent(Event):
     """Event when an order is rejected"""
     order_id: str
@@ -65,7 +60,6 @@ class OrderRejectedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class StrategyCreatedEvent(Event):
     """Event when a strategy is created"""
     strategy_id: str
@@ -78,7 +72,6 @@ class StrategyCreatedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class StrategyUpdatedEvent(Event):
     """Event when a strategy is updated"""
     strategy_id: str
@@ -88,7 +81,6 @@ class StrategyUpdatedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class StrategyExecutedEvent(Event):
     """Event when a strategy is executed"""
     strategy_id: str
@@ -98,7 +90,6 @@ class StrategyExecutedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class SignalGeneratedEvent(Event):
     """Event when a trading signal is generated"""
     signal_id: str
@@ -112,7 +103,6 @@ class SignalGeneratedEvent(Event):
     user_id: str = None
 
 
-@dataclass
 class TradeExecutedEvent(Event):
     """Event when a trade is executed"""
     trade_id: str

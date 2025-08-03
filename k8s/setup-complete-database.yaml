@@ -12,7 +12,7 @@ spec:
         command: ["psql"]
         args: 
         - "-h"
-        - "postgres-dev"
+        - "timescaledb.trading-system.svc.cluster.local"
         - "-U"
         - "trading_user"
         - "-d"
@@ -20,6 +20,8 @@ spec:
         - "-f"
         - "/tmp/complete-setup.sql"
         env:
+        - name: POSTGRES_HOST
+          value: "timescaledb.trading-system.svc.cluster.local"
         - name: PGPASSWORD
           value: "trading_pass"
         volumeMounts:

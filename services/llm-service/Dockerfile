@@ -7,16 +7,20 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY services/llm-service/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy shared src code
+COPY src /app/src
+
+# Set PYTHONPATH to include /app and /app/src
+ENV PYTHONPATH="/app:/app/src"
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app \

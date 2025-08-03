@@ -28,7 +28,7 @@ app = FastAPI(title="RSS Feed Service", version="2.0.0")
 
 # Configuration
 STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:80")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost")
 
 # Initialize news data service
@@ -534,18 +534,20 @@ async def get_feed_data(feed_type: str = "daily", symbol: str = None):
                 "timestamp": datetime.now().isoformat()
             }
         
-        # Convert to format expected by dashboard
+        # Convert recommendations to RSS items for dashboard compatibility
+        rss_items = recommendations_service.recommendations_to_rss_items(recommendations)
+        
+        # Convert RSS items to format expected by dashboard
         feed_data = []
-        for rec in recommendations:
+        for item in rss_items:
             feed_item = {
-                "symbol": rec.get("symbol"),
-                "overall_recommendation": rec.get("overall_recommendation", "HOLD"),
-                "confidence": rec.get("confidence", 0.0),
-                "current_price": rec.get("current_price", 0.0),
-                "target_price": rec.get("target_price", 0.0),
-                "reasoning": rec.get("reasoning", ""),
-                "risk_level": rec.get("risk_level", "Medium"),
-                "news_context": rec.get("news_context", {})
+                "title": item.title,
+                "description": item.description,
+                "link": item.link,
+                "guid": item.guid,
+                "pub_date": item.pub_date.isoformat() if item.pub_date else datetime.now().isoformat(),
+                "category": item.category,
+                "author": item.author
             }
             feed_data.append(feed_item)
         

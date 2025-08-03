@@ -511,12 +511,8 @@ async def dashboard_home():
                     throw new Error(data.error);
                 }
                 
-                // Update feed content
-                if (currentFeedType === 'api') {
-                    displayApiData(data);
-                } else {
-                    displayRssData(data);
-                }
+                // Update feed content - all feed types use JSON API format
+                displayApiData(data);
                 
                 // Update status
                 statusIndicator.style.background = '#28a745';
@@ -585,8 +581,14 @@ async def dashboard_home():
             const feedInfo = document.getElementById('feedInfo');
             const stats = document.getElementById('stats');
             
-            // Update header
-            feedTitle.textContent = 'JSON API Data';
+            // Update header based on feed type
+            if (currentFeedType === 'symbol') {
+                feedTitle.textContent = `Symbol Specific: ${currentSymbol}`;
+            } else if (currentFeedType === 'daily') {
+                feedTitle.textContent = 'Daily Trading Recommendations';
+            } else {
+                feedTitle.textContent = 'JSON API Data';
+            }
             feedInfo.textContent = `${data.recommendations ? data.recommendations.length : 0} recommendations`;
             
             if (!data.recommendations || data.recommendations.length === 0) {
@@ -601,22 +603,44 @@ async def dashboard_home():
             // Generate HTML
             let html = '';
             data.recommendations.forEach(rec => {
-                const action = rec.overall_recommendation ? rec.overall_recommendation.toLowerCase() : 'hold';
-                if (action === 'buy') buyCount++;
-                else if (action === 'sell') sellCount++;
-                else holdCount++;
-                
-                html += `
-                    <div class="feed-item ${action}">
-                        <div class="item-title">${rec.symbol} - ${rec.overall_recommendation} (${(rec.confidence * 100).toFixed(1)}% confidence)</div>
-                        <div class="item-meta">
-                            <span>💰 $${rec.current_price || 0}</span>
-                            <span>🎯 $${rec.target_price || 0}</span>
-                            <span>⚠️ ${rec.risk_level || 'Unknown'}</span>
+                // Handle both RSS item format and raw recommendation format
+                if (rec.title) {
+                    // RSS item format
+                    const category = rec.category ? rec.category.toLowerCase() : 'hold';
+                    if (category === 'buy') buyCount++;
+                    else if (category === 'sell') sellCount++;
+                    else holdCount++;
+                    
+                    html += `
+                        <div class="feed-item ${category}">
+                            <div class="item-title">${rec.title || 'No title'}</div>
+                            <div class="item-meta">
+                                <span>📅 ${rec.pub_date || 'No date'}</span>
+                                <span>🏷️ ${rec.category || 'No category'}</span>
+                            </div>
+                            <div class="item-description">${rec.description || 'No description'}</div>
+                            ${rec.link ? `<a href="${rec.link}" class="item-link" target="_blank">View Details →</a>` : ''}
                         </div>
-                        <div class="item-description">${rec.reasoning || 'No reasoning provided'}</div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // Raw recommendation format
+                    const action = rec.overall_recommendation ? rec.overall_recommendation.toLowerCase() : 'hold';
+                    if (action === 'buy') buyCount++;
+                    else if (action === 'sell') sellCount++;
+                    else holdCount++;
+                    
+                    html += `
+                        <div class="feed-item ${action}">
+                            <div class="item-title">${rec.symbol} - ${rec.overall_recommendation} (${(rec.confidence * 100).toFixed(1)}% confidence)</div>
+                            <div class="item-meta">
+                                <span>💰 $${rec.current_price || 0}</span>
+                                <span>🎯 $${rec.target_price || 0}</span>
+                                <span>⚠️ ${rec.risk_level || 'Unknown'}</span>
+                            </div>
+                            <div class="item-description">${rec.reasoning || 'No reasoning provided'}</div>
+                        </div>
+                    `;
+                }
             });
             
             feedContent.innerHTML = html;

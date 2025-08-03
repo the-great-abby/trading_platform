@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-llm-queues
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: queue-creator
+        image: localhost:32000/trading-system:latest
+        command: ["python", "-c"]
+        args:
+        - |
+          import asyncio
+          import aio_pika
+          import os
+          
+          async def create_queues():
+              rabbitmq_url = os.getenv('RABBITMQ_URL', 'amqp://guest:guest@rabbitmq:5672/')
+              connection = await aio_pika.connect_robust(rabbitmq_url)
+              channel = await connection.channel()
+              
+              queues = ['llm.sentiment', 'llm.signal', 'llm.risk', 'llm.market', 'llm.custom', 'llm.results', 'llm.errors', 'llm.callbacks']
+              
+              for queue_name in queues:
+                  try:
+                      await channel.declare_queue(queue_name, durable=True)
+                      print(f"Created queue: {queue_name}")
+                  except Exception as e:
+                      print(f"Failed to create queue {queue_name}: {e}")
+              
+              await connection.close()
+              print("LLM queues created successfully")
+          
+          asyncio.run(create_queues())
+        env:
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: rabbitmq-url
+        - name: PYTHONPATH
+          value: "/app/src"
+      restartPolicy: Never
+  backoffLimit: 3 

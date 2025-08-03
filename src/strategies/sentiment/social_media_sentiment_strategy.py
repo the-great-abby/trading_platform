@@ -14,9 +14,9 @@ import re
 from textblob import TextBlob
 import asyncio
 
-from .base import BaseStrategy
-from ..core.types import TradeSignal
-from ..utils.enhanced_logging import get_trading_logger
+from ..base import BaseStrategy
+from ...core.types import TradeSignal
+from ...utils.enhanced_logging import get_trading_logger
 
 logger = get_trading_logger()
 
@@ -197,7 +197,7 @@ class SocialMediaSentimentStrategy(BaseStrategy):
         # Calculate sentiment score
         sentiment_data = self.calculate_sentiment_score(symbol)
         
-        sentiment = sentiment_data['sentiment']
+        sentiment = sentiment_data['overall_sentiment']
         confidence = sentiment_data['confidence']
         volume = sentiment_data['volume']
         
@@ -260,7 +260,7 @@ class SocialMediaSentimentStrategy(BaseStrategy):
         
         return {
             'symbol': symbol,
-            'sentiment_score': sentiment_data['sentiment'],
+            'sentiment_score': sentiment_data['overall_sentiment'],
             'confidence': sentiment_data['confidence'],
             'volume': sentiment_data['volume'],
             'recent_posts': len(social_data),

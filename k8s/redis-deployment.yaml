@@ -59,7 +59,7 @@ spec:
     app: redis-dev
   ports:
   - protocol: TCP
-    port: 6379
+    port: 11304
     targetPort: 6379
     name: redis
   type: ClusterIP 

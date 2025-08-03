@@ -1,0 +1,88 @@
+apiVersion: v1
+data:
+  dashboard-provider.yaml: "apiVersion: 1\n\nproviders:\n  - name: 'Trading System
+    Dashboards'\n    orgId: 1\n    folder: 'Trading System'\n    type: file\n    disableDeletion:
+    false\n    updateIntervalSeconds: 30\n    allowUiUpdates: true\n    options:\n
+    \     path: /etc/grafana/provisioning/dashboards "
+  market-data-dashboard-fixed.json: "{\n  \"dashboard\": {\n    \"id\": null,\n    \"uid\":
+    \"market-data-dashboard\",\n    \"title\": \"Market Data Dashboard (Fixed)\",\n
+    \   \"tags\": [\"market-data\", \"trading\"],\n    \"style\": \"dark\",\n    \"timezone\":
+    \"browser\",\n    \"panels\": [\n      {\n        \"id\": 1,\n        \"title\":
+    \"Market Data HTTP Requests\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"market_data_http_requests_total\",\n            \"legendFormat\":
+    \"{{endpoint}} - {{status}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"short\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0}\n      },\n      {\n        \"id\":
+    2,\n        \"title\": \"Market Data Request Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(market_data_http_requests_total[5m])\",\n
+    \           \"legendFormat\": \"{{endpoint}} - {{status}}\"\n          }\n        ],\n
+    \       \"fieldConfig\": {\n          \"defaults\": {\n            \"color\":
+    {\"mode\": \"palette-classic\"},\n            \"unit\": \"reqps\"\n          }\n
+    \       },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0}\n
+    \     },\n      {\n        \"id\": 3,\n        \"title\": \"Market Data Response
+    Time\",\n        \"type\": \"timeseries\",\n        \"targets\": [\n          {\n
+    \           \"expr\": \"rate(market_data_http_request_duration_seconds_sum[5m])
+    / rate(market_data_http_request_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"{{endpoint}} - {{status}}\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"s\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 1},\n                {\"color\": \"red\", \"value\": 5}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8}\n      },\n      {\n        \"id\":
+    4,\n        \"title\": \"Market Data Service Health\",\n        \"type\": \"stat\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"up{job=\\\"trading-services\\\",
+    instance=~\\\".*market-data.*\\\"}\",\n            \"legendFormat\": \"{{instance}}\"\n
+    \         }\n        ],\n        \"fieldConfig\": {\n          \"defaults\": {\n
+    \           \"color\": {\"mode\": \"thresholds\"},\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    0},\n                {\"color\": \"green\", \"value\": 1}\n              ]\n            }\n
+    \         }\n        },\n        \"gridPos\": {\"h\": 8, \"w\": 12, \"x\": 12,
+    \"y\": 8}\n      },\n      {\n        \"id\": 5,\n        \"title\": \"Market
+    Data Request Duration Percentiles\",\n        \"type\": \"timeseries\",\n        \"targets\":
+    [\n          {\n            \"expr\": \"histogram_quantile(0.95, rate(market_data_http_request_duration_seconds_bucket[5m]))\",\n
+    \           \"legendFormat\": \"95th Percentile\"\n          },\n          {\n
+    \           \"expr\": \"histogram_quantile(0.99, rate(market_data_http_request_duration_seconds_bucket[5m]))\",\n
+    \           \"legendFormat\": \"99th Percentile\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"s\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 2},\n                {\"color\": \"red\", \"value\": 5}\n
+    \             ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16}\n      },\n      {\n        \"id\":
+    6,\n        \"title\": \"Market Data Error Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(market_data_http_requests_total{status=~\\\".*[45].*\\\"}[5m])\",\n
+    \           \"legendFormat\": \"Error Rate\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"thresholds\"},\n
+    \           \"unit\": \"reqps\",\n            \"thresholds\": {\n              \"steps\":
+    [\n                {\"color\": \"green\", \"value\": null},\n                {\"color\":
+    \"yellow\", \"value\": 0.1},\n                {\"color\": \"red\", \"value\":
+    1}\n              ]\n            }\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16}\n      },\n      {\n        \"id\":
+    7,\n        \"title\": \"Market Data Success Rate\",\n        \"type\": \"timeseries\",\n
+    \       \"targets\": [\n          {\n            \"expr\": \"rate(market_data_http_requests_total{status=~\\\".*[23].*\\\"}[5m])\",\n
+    \           \"legendFormat\": \"Success Rate\"\n          }\n        ],\n        \"fieldConfig\":
+    {\n          \"defaults\": {\n            \"color\": {\"mode\": \"palette-classic\"},\n
+    \           \"unit\": \"reqps\"\n          }\n        },\n        \"gridPos\":
+    {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24}\n      },\n      {\n        \"id\":
+    8,\n        \"title\": \"Market Data Performance Summary\",\n        \"type\":
+    \"stat\",\n        \"targets\": [\n          {\n            \"expr\": \"market_data_http_requests_total\",\n
+    \           \"legendFormat\": \"Total Requests\"\n          },\n          {\n
+    \           \"expr\": \"rate(market_data_http_requests_total[5m])\",\n            \"legendFormat\":
+    \"Request Rate\"\n          },\n          {\n            \"expr\": \"rate(market_data_http_request_duration_seconds_sum[5m])
+    / rate(market_data_http_request_duration_seconds_count[5m])\",\n            \"legendFormat\":
+    \"Avg Response Time\"\n          },\n          {\n            \"expr\": \"up{job=\\\"trading-services\\\",
+    instance=~\\\".*market-data.*\\\"}\",\n            \"legendFormat\": \"Service
+    Health\"\n          }\n        ],\n        \"fieldConfig\": {\n          \"defaults\":
+    {\n            \"color\": {\"mode\": \"thresholds\"},\n            \"thresholds\":
+    {\n              \"steps\": [\n                {\"color\": \"red\", \"value\":
+    null},\n                {\"color\": \"green\", \"value\": 0}\n              ]\n
+    \           }\n          }\n        },\n        \"gridPos\": {\"h\": 8, \"w\":
+    12, \"x\": 12, \"y\": 24}\n      }\n    ],\n    \"time\": {\n      \"from\": \"now-1h\",\n
+    \     \"to\": \"now\"\n    },\n    \"refresh\": \"30s\"\n  }\n} "
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: grafana-dashboards-fixed-v2
+  namespace: trading-system

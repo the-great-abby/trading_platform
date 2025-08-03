@@ -195,14 +195,41 @@ RESPONSE:
             if json_match:
                 evaluation_data = json.loads(json_match.group())
             else:
-                # Fallback parsing
-                evaluation_data = {
-                    'approved': 'approved' in response.lower(),
-                    'confidence': 0.5,
-                    'reason': response,
-                    'risk_level': 'medium',
-                    'expected_return': 'neutral'
-                }
+                # Try to parse key-value pairs format
+                evaluation_data = {}
+                lines = response.strip().split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        key = key.strip().lower()
+                        value = value.strip()
+                        
+                        if key == 'confidence':
+                            try:
+                                evaluation_data['confidence'] = float(value)
+                            except ValueError:
+                                evaluation_data['confidence'] = 0.5
+                        elif key == 'approved':
+                            evaluation_data['approved'] = value.lower() in ['yes', 'true', 'approved']
+                        elif key in ['reason', 'reasoning']:
+                            evaluation_data['reason'] = value
+                        elif key == 'risk_level':
+                            evaluation_data['risk_level'] = value
+                        elif key == 'expected_return':
+                            evaluation_data['expected_return'] = value
+                
+                # Set defaults for missing fields
+                if 'approved' not in evaluation_data:
+                    evaluation_data['approved'] = True
+                if 'confidence' not in evaluation_data:
+                    evaluation_data['confidence'] = 0.5
+                if 'reason' not in evaluation_data:
+                    evaluation_data['reason'] = f"Fallback parsing used for malformed response: {response}"
+                if 'risk_level' not in evaluation_data:
+                    evaluation_data['risk_level'] = 'medium'
+                if 'expected_return' not in evaluation_data:
+                    evaluation_data['expected_return'] = 'neutral'
             
             return {
                 'approved': evaluation_data.get('approved', True),
@@ -227,8 +254,10 @@ RESPONSE:
         
         # Find the evaluation for this signal
         for evaluation in self.evaluations:
+            # Convert timestamp to string for comparison
+            timestamp_str = evaluation['signal'].timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')
             if (evaluation['signal'].symbol == signal_id.split('_')[0] and 
-                evaluation['signal'].timestamp == signal_id.split('_')[1]):
+                timestamp_str == signal_id.split('_')[1]):
                 
                 # Update statistics
                 self.performance_stats['total_signals'] += 1

@@ -1,0 +1,18 @@
+---
+description: Status updates and workflow management
+globs: Makefile*, scripts/*.py, docker-compose*.yml
+---
+
+## Use Simple Makefile for Status Updates
+
+**Pattern**: When checking project status, progress, or getting quick updates
+**Message**: Use `make -f Makefile.simple status` for quick project status updates instead of manual checks
+**Severity**: suggestion
+**Examples**:
+- ✅ Use: `make -f Makefile.simple status` to check current project state
+- ✅ Use: `make -f Makefile.simple sync` for quick team sync
+- ✅ Use: `make -f Makefile.simple critical` to identify testing priorities
+- ❌ Avoid: Manual file checking or running individual scripts directly
+- ❌ Avoid: `docker-compose` commands for status when simple makefile exists
+
+**Rationale**: The simple makefile provides standardized, container-safe commands that encapsulate our workflow preferences and ensure consistent status reporting across sessions. 

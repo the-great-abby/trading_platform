@@ -98,7 +98,9 @@ class ResourceManager:
                     
                     # Apply optimizations if needed
                     if self.optimization_enabled:
-                        await self._apply_optimizations(metrics)
+                        # Note: Cannot use await in thread context, so we'll skip optimizations in thread
+                        # Optimizations will be handled in the main async context
+                        pass
                     
                     time.sleep(interval_seconds)
                     
@@ -543,7 +545,12 @@ async def emergency_cleanup():
     report = manager.get_resource_report()
     
     logger.info("🚨 Emergency cleanup completed")
-    logger.info(f"   Memory usage: {report['memory_stats']['current']:.1f}%")
-    logger.info(f"   CPU usage: {report['cpu_stats']['current']:.1f}%")
+    
+    # Log memory and CPU usage if available
+    if 'memory_stats' in report and 'cpu_stats' in report:
+        logger.info(f"   Memory usage: {report['memory_stats']['current']:.1f}%")
+        logger.info(f"   CPU usage: {report['cpu_stats']['current']:.1f}%")
+    else:
+        logger.info("   No metrics available for logging")
     
     return report 

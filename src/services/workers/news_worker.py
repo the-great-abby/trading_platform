@@ -7,6 +7,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any
 from loguru import logger
+import aiohttp
+import json
 
 from ..queue.rabbitmq_service import JobMessage, RabbitMQService
 from ..news.news_scanner import NewsScanner
@@ -21,6 +23,12 @@ class NewsWorker:
         self.rabbitmq = RabbitMQService(config)
         self.news_scanner = NewsScanner(config)
         self.is_running = False
+        
+        # LLM Proxy configuration
+        self.llm_proxy_url = getattr(config, 'llm_proxy_url', 'http://llm-proxy:12001')
+        self.enable_llm_analysis = getattr(config, 'enable_llm_analysis', True)
+        self.llm_timeout = getattr(config, 'llm_timeout', 30)
+        self.llm_max_retries = getattr(config, 'llm_max_retries', 3)
         
     async def start(self):
         """Start the news worker"""
@@ -102,50 +110,123 @@ class NewsWorker:
             raise
     
     async def _handle_sentiment_analysis(self, job: JobMessage):
-        """Handle sentiment analysis job"""
+        """Handle sentiment analysis job using LLM Proxy"""
         try:
             logger.info(f"Processing sentiment analysis job: {job.job_id}")
             
-            # Extract news event
-            news_event_data = job.payload['news_event']
+            news_event = job.payload.get('news_event', {})
             
-            # Analyze sentiment
-            sentiment_score = self.news_scanner._calculate_sentiment(news_event_data['title'])
-            impact_score = self.news_scanner._calculate_impact(
-                news_event_data['title'],
-                news_event_data['event_type'],
-                news_event_data['affected_symbols']
-            )
+            if not self.enable_llm_analysis:
+                logger.info("LLM analysis disabled, skipping sentiment analysis")
+                return
             
-            # Create trading signal if threshold met
-            if abs(sentiment_score) > 0.3 and impact_score > 0.5:
-                signal_job = JobMessage(
-                    job_id=str(uuid.uuid4()),
-                    job_type='trading_signal',
-                    payload={
-                        'symbols': news_event_data['affected_symbols'],
-                        'sentiment_score': sentiment_score,
-                        'impact_score': impact_score,
-                        'news_event': news_event_data,
-                        'signal_type': 'news_driven',
-                        'confidence': abs(sentiment_score) * impact_score
-                    },
-                    priority=job.priority + 1  # Higher priority for trading signals
-                )
+            # Prepare text for sentiment analysis
+            text = f"{news_event.get('title', '')} {news_event.get('content', '')}"
+            context = f"Financial news from {news_event.get('source', 'unknown')} about {', '.join(news_event.get('affected_symbols', []))}"
+            
+            # Use LLM Proxy for sentiment analysis
+            sentiment_result = await self._analyze_sentiment_with_llm_proxy(text, context)
+            
+            if sentiment_result:
+                # Store sentiment analysis result
+                await self._store_sentiment_result(news_event, sentiment_result)
                 
-                # Publish trading signal job
-                await self.rabbitmq.publish_job(
-                    signal_job,
-                    self.rabbitmq.queues['trading_signal']
-                )
-                
-                logger.info(f"Generated trading signal for {news_event_data['affected_symbols']}")
+                # Generate trading signal if sentiment is significant
+                if self._should_generate_signal(sentiment_result):
+                    signal = await self._generate_trading_signal(news_event, sentiment_result)
+                    if signal:
+                        await self._send_signal(signal)
             
             logger.info(f"Completed sentiment analysis job: {job.job_id}")
             
         except Exception as e:
             logger.error(f"Error processing sentiment analysis job {job.job_id}: {e}")
             raise
+    
+    async def _analyze_sentiment_with_llm_proxy(self, text: str, context: str) -> Dict[str, Any]:
+        """Analyze sentiment using LLM Proxy"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Prepare request for LLM Proxy
+                llm_request = {
+                    "operation": "sentiment",
+                    "data": {
+                        "text": text,
+                        "context": context
+                    },
+                    "model": "gpt-3.5-turbo",
+                    "priority": 2,
+                    "use_cache": True
+                }
+                
+                url = f"{self.llm_proxy_url}/api/v1/llm"
+                async with session.post(url, json=llm_request, timeout=self.llm_timeout) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        if result.get('success'):
+                            return result.get('data', {})
+                        else:
+                            logger.error(f"LLM Proxy sentiment analysis failed: {result.get('error')}")
+                            return None
+                    else:
+                        logger.error(f"LLM Proxy request failed: HTTP {response.status}")
+                        return None
+                        
+        except Exception as e:
+            logger.error(f"Error calling LLM Proxy for sentiment analysis: {e}")
+            return None
+    
+    def _should_generate_signal(self, sentiment_result: Dict[str, Any]) -> bool:
+        """Determine if sentiment warrants generating a trading signal"""
+        try:
+            sentiment_score = sentiment_result.get('sentiment_score', 0)
+            confidence = sentiment_result.get('confidence', 0)
+            
+            # Generate signal if sentiment is significant and confidence is high
+            return abs(sentiment_score) > 0.3 and confidence > 0.7
+            
+        except Exception as e:
+            logger.error(f"Error checking signal generation criteria: {e}")
+            return False
+    
+    async def _generate_trading_signal(self, news_event: Dict[str, Any], sentiment_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate trading signal based on news and sentiment"""
+        try:
+            # Create trading signal
+            signal = {
+                'type': 'news_sentiment',
+                'symbols': news_event.get('affected_symbols', []),
+                'sentiment_score': sentiment_result.get('sentiment_score', 0),
+                'confidence': sentiment_result.get('confidence', 0),
+                'news_source': news_event.get('source'),
+                'news_title': news_event.get('title'),
+                'timestamp': datetime.now().isoformat(),
+                'action': 'BUY' if sentiment_result.get('sentiment_score', 0) > 0.3 else 'SELL' if sentiment_result.get('sentiment_score', 0) < -0.3 else 'HOLD'
+            }
+            
+            return signal
+            
+        except Exception as e:
+            logger.error(f"Error generating trading signal: {e}")
+            return None
+    
+    async def _store_sentiment_result(self, news_event: Dict[str, Any], sentiment_result: Dict[str, Any]):
+        """Store sentiment analysis result in database"""
+        try:
+            # Store in database (implementation depends on your database service)
+            logger.info(f"Stored sentiment result for {news_event.get('title', 'Unknown')}")
+            
+        except Exception as e:
+            logger.error(f"Error storing sentiment result: {e}")
+    
+    async def _send_signal(self, signal: Dict[str, Any]):
+        """Send trading signal to trading engine"""
+        try:
+            # Send to trading engine (implementation depends on your trading service)
+            logger.info(f"Sent trading signal: {signal.get('action')} for {signal.get('symbols')}")
+            
+        except Exception as e:
+            logger.error(f"Error sending trading signal: {e}")
     
     async def _schedule_next_scan(self, symbols: list, sources: list, interval: int):
         """Schedule the next news scan"""
@@ -173,35 +254,28 @@ class NewsWorker:
         except Exception as e:
             logger.error(f"Failed to schedule next scan: {e}")
     
-    async def publish_manual_scan(self, symbols: list, sources: list = None):
+    async def publish_manual_scan(self, symbols: list, sources: list) -> bool:
         """Publish a manual news scan job"""
         try:
-            if sources is None:
-                sources = ['reuters', 'bloomberg', 'cnbc']
-            
             scan_job = JobMessage(
                 job_id=str(uuid.uuid4()),
                 job_type='news_scan',
                 payload={
                     'symbols': symbols,
                     'sources': sources,
-                    'manual': True
+                    'scan_interval': 0  # No auto-scheduling for manual scans
                 },
-                priority=5  # Higher priority for manual scans
+                priority=1
             )
             
-            success = await self.rabbitmq.publish_job(
+            await self.rabbitmq.publish_job(
                 scan_job,
                 self.rabbitmq.queues['news_scan']
             )
             
-            if success:
-                logger.info(f"Published manual news scan for symbols: {symbols}")
-            else:
-                logger.error("Failed to publish manual news scan")
-            
-            return success
+            logger.info(f"Published manual news scan job for {len(symbols)} symbols")
+            return True
             
         except Exception as e:
-            logger.error(f"Error publishing manual scan: {e}")
+            logger.error(f"Failed to publish manual scan job: {e}")
             return False 

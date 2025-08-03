@@ -4,7 +4,7 @@ Backtest Request Service - Web interface for submitting backtest requests
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -14,12 +14,21 @@ import json
 import subprocess
 from datetime import datetime, timedelta
 import httpx
+import time
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Backtest Request Service", version="1.0.0")
+
+# Prometheus metrics
+strategy_requests_total = Counter('strategy_requests_total', 'Total strategy requests', ['strategy', 'status'])
+strategy_request_duration_seconds = Histogram('strategy_request_duration_seconds', 'Strategy request duration')
+backtest_jobs_created = Counter('backtest_jobs_created', 'Backtest jobs created', ['strategy'])
+backtest_jobs_failed = Counter('backtest_jobs_failed', 'Backtest jobs failed', ['strategy'])
+backtest_queue_depth = Gauge('backtest_queue_depth', 'Number of jobs in queue')
 
 # Configuration
 KUBERNETES_NAMESPACE = os.getenv("KUBERNETES_NAMESPACE", "trading-system")
@@ -42,6 +51,11 @@ class BacktestRequest(BaseModel):
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "backtest-request-service"}
+
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint"""
+    return Response(generate_latest(), media_type="text/plain")
 
 @app.get("/", response_class=HTMLResponse)
 async def backtest_form():
@@ -742,6 +756,7 @@ async def backtest_form():
 @app.post("/api/submit-backtest")
 async def submit_backtest(request: BacktestRequest):
     """Submit a backtest request"""
+    start_time = time.time()
     try:
         logger.info(f"Received backtest request: {request}")
         
@@ -753,15 +768,34 @@ async def submit_backtest(request: BacktestRequest):
         job_created = await create_backtest_job(request, job_name)
         
         if job_created:
+            # Update metrics for successful job creation
+            for strategy in request.strategies:
+                strategy_requests_total.labels(strategy=strategy, status="success").inc()
+                backtest_jobs_created.labels(strategy=strategy).inc()
+            
+            strategy_request_duration_seconds.observe(time.time() - start_time)
+            
             return {
                 "success": True,
                 "job_id": job_name,
                 "message": "Backtest job created successfully"
             }
         else:
+            # Update metrics for failed job creation
+            for strategy in request.strategies:
+                strategy_requests_total.labels(strategy=strategy, status="failed").inc()
+                backtest_jobs_failed.labels(strategy=strategy).inc()
+            
+            strategy_request_duration_seconds.observe(time.time() - start_time)
             raise HTTPException(status_code=500, detail="Failed to create backtest job")
             
     except Exception as e:
+        # Update metrics for error
+        for strategy in request.strategies:
+            strategy_requests_total.labels(strategy=strategy, status="error").inc()
+            backtest_jobs_failed.labels(strategy=strategy).inc()
+        
+        strategy_request_duration_seconds.observe(time.time() - start_time)
         logger.error(f"Error submitting backtest: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -498,6 +498,10 @@ class PolygonProvider(MarketDataProvider):
                 logger.warning(f"[Polygon] Response content: {data}")
                 return None
             
+            # Debug: Log first few results
+            logger.info(f"[Polygon] First 3 results: {results[:3]}")
+            logger.info(f"[Polygon] Full response data: {data}")
+            
             # Convert to DataFrame
             df = pd.DataFrame(results)
             df['t'] = pd.to_datetime(df['t'], unit='ms')

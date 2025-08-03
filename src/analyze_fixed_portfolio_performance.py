@@ -14,9 +14,9 @@ import os
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from services.database.backtest_results_service import BacktestResultsService
-from utils.config import get_config
-from utils.enhanced_logging import get_trading_logger
+from src.services.database.backtest_results_service import BacktestResultsService
+from src.utils.config import get_config
+from src.utils.enhanced_logging import get_trading_logger
 
 logger = get_trading_logger()
 

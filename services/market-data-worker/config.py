@@ -12,7 +12,7 @@ class WorkerConfig:
     """Configuration for the market data worker"""
     
     # RabbitMQ settings
-    rabbitmq_url: str = "amqp://guest:guest@rabbitmq-service:5672/"
+    rabbitmq_url: str = "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
     
     # Data fetching settings
     update_interval_minutes: int = 15
@@ -23,8 +23,8 @@ class WorkerConfig:
     polygon_api_key: str = ""
     rate_limit_delay: float = 1.0  # seconds between requests
     
-    # Database settings
-    database_url: str = ""
+    # Database settings - Use Kubernetes service name
+    database_url: str = "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
     
     # Logging
     log_level: str = "INFO"

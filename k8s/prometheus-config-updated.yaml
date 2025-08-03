@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: trading-system
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      
+      # Infrastructure metrics collector (real infrastructure data)
+      - job_name: 'infrastructure-metrics'
+        static_configs:
+          - targets:
+              - 'infrastructure-metrics-collector:11103'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Test metrics service (working)
+      - job_name: 'metrics-test-service'
+        static_configs:
+          - targets:
+              - 'metrics-test-service:11100'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Services that actually exist and have metrics
+      - job_name: 'llm-services'
+        static_configs:
+          - targets:
+              - 'llm-service:8000'
+              - 'llm-worker:8000'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Health dashboard
+      - job_name: 'health-dashboard'
+        static_configs:
+          - targets:
+              - 'health-dashboard:8000'
+        metrics_path: '/api/metrics'
+        scrape_interval: 30s
+      
+      # Strategy service (if it has metrics)
+      - job_name: 'strategy-service'
+        static_configs:
+          - targets:
+              - 'strategy-service:80'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Market data service (if it has metrics)
+      - job_name: 'market-data-service'
+        static_configs:
+          - targets:
+              - 'market-data-service:80'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Portfolio service (if it has metrics)
+      - job_name: 'portfolio-service'
+        static_configs:
+          - targets:
+              - 'portfolio-service:80'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Order service (if it has metrics)
+      - job_name: 'order-service'
+        static_configs:
+          - targets:
+              - 'order-service:80'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Risk service (if it has metrics)
+      - job_name: 'risk-service'
+        static_configs:
+          - targets:
+              - 'risk-service:80'
+        metrics_path: '/metrics'
+        scrape_interval: 30s 

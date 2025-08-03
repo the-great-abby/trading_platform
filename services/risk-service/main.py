@@ -9,12 +9,20 @@ from typing import Dict, Any, List, Optional
 import os
 import logging
 import math
+from prometheus_client import generate_latest, Counter, Histogram, Gauge
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Risk Service", version="1.0.0")
+
+# Prometheus metrics
+risk_assessments_total = Counter('risk_assessments_total', 'Total number of risk assessments')
+risk_assessment_duration = Histogram('risk_assessment_duration_seconds', 'Time spent on risk assessments')
+portfolio_risk_score = Gauge('portfolio_risk_score', 'Current portfolio risk score')
+position_risk_checks = Counter('position_risk_checks_total', 'Total number of position risk checks')
 
 class RiskAssessmentRequest(BaseModel):
     portfolio_value: float
@@ -50,6 +58,7 @@ async def get_status():
 @app.post("/risk/assess-portfolio", response_model=RiskAssessmentResponse)
 async def assess_portfolio_risk(request: RiskAssessmentRequest):
     """Assess overall portfolio risk"""
+    start_time = time.time()
     try:
         # Calculate basic risk metrics
         total_position_value = sum(pos.get('value', 0) for pos in request.positions)
@@ -75,6 +84,11 @@ async def assess_portfolio_risk(request: RiskAssessmentRequest):
             max(0, leverage - 1) * 30 +
             max(0, 0.1 - cash_ratio) * 20
         ))
+        
+        # Update Prometheus metrics
+        risk_assessments_total.inc()
+        risk_assessment_duration.observe(time.time() - start_time)
+        portfolio_risk_score.set(risk_score)
         
         # Recommendations
         max_position_size = portfolio_value * 0.05  # 5% max per position
@@ -104,6 +118,9 @@ async def check_position_risk(request: PositionRiskRequest):
     try:
         position_value = request.quantity * request.price
         position_ratio = position_value / request.portfolio_value if request.portfolio_value > 0 else 0
+        
+        # Update Prometheus metrics
+        position_risk_checks.inc()
         
         # Risk limits
         max_position_ratio = 0.05  # 5% max per position
@@ -153,6 +170,12 @@ async def get_risk_metrics():
         "beta": 1.1
     }
 
+@app.get("/metrics")
+async def get_metrics():
+    """Prometheus metrics endpoint"""
+    from fastapi.responses import Response
+    return Response(content=generate_latest(), media_type="text/plain")
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8003))
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)

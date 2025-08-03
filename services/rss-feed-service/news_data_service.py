@@ -23,7 +23,7 @@ Base = declarative_base()
 class HistoricalNews(Base):
     """Historical news events storage model"""
     
-    __tablename__ = 'historical_news'
+    __tablename__ = 'news_historical'
     
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -82,7 +82,7 @@ class NewsDataService:
     """Service for managing news data"""
     
     def __init__(self, database_url: Optional[str] = None):
-        self.database_url = database_url or os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot")
+        self.database_url = database_url or os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
         self.polygon_api_key = os.getenv("POLYGON_API_KEY")
         self.engine = None
         self.SessionLocal = None

@@ -7,6 +7,7 @@ Ideal for high volatility expectations and earnings events.
 
 import pandas as pd
 import numpy as np
+import random
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime, timedelta
 import logging
@@ -155,7 +156,12 @@ class StraddleStrategy(BaseStrategy):
             return 0.0
         
         # Calculate average IV
-        avg_iv = np.mean([opt.implied_volatility for opt in options_chain if opt.implied_volatility > 0])
+        valid_ivs = [opt.implied_volatility for opt in options_chain if opt.implied_volatility is not None and opt.implied_volatility > 0]
+        
+        if not valid_ivs:
+            return 0.0
+        
+        avg_iv = np.mean(valid_ivs)
         
         # Compare with historical volatility (simplified)
         historical_vol = 0.25  # Simplified historical volatility

@@ -2,27 +2,91 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
-
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-
+  
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+          - 'node-exporter:9100'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+  
+  # RabbitMQ Exporter for queue metrics
+  - job_name: 'rabbitmq-exporter'
+    static_configs:
+      - targets:
+          - 'rabbitmq-exporter:9419'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+  
+  # Infrastructure metrics collector (real infrastructure data)
+  - job_name: 'infrastructure-metrics'
+    static_configs:
+      - targets:
+          - 'infrastructure-metrics-collector:11103'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+  
+  # Test metrics service (working)
+  - job_name: 'metrics-test-service'
+    static_configs:
+      - targets:
+          - 'metrics-test-service:11100'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+  
+  # Trading services metrics
   - job_name: 'trading-services'
     static_configs:
-      - targets: 
-        - 'api-gateway:8000'
-        - 'trading-service:8000'
-        - 'market-data-service:8000'
-        - 'portfolio-service:8000'
-        - 'risk-service:8000'
-        - 'strategy-service:8000'
-        - 'order-service:8000'
-        - 'analytics-service:8000'
-        - 'user-service:8000'
-        - 'public-api:8000'
+      - targets:
+          - 'trading-service:80'
+          - 'market-data-service:80'
+          - 'portfolio-service:80'
+          - 'risk-service:80'
+          - 'strategy-service:80'
+          - 'order-service:80'
+          - 'analytics-service:80'
+          - 'user-service:80'
+          - 'public-api:80'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+  
+  # AI and LLM services metrics
+  - job_name: 'ai-llm-services'
+    static_configs:
+      - targets:
+          - 'llm-service:11109'
+          - 'llm-worker:80'
+          - 'ai-analysis-service:11085'
+          - 'ai-stock-dashboard:80'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+  
+  # Backtest services metrics
+  - job_name: 'backtest-services'
+    static_configs:
+      - targets:
+          - 'backtest-api:10001'
+          - 'backtest-request-service:80'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+  
+  # LLM Proxy metrics (host system)
+  - job_name: 'llm-proxy'
+    static_configs:
+      - targets:
+          - 'host.docker.internal:12001'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+  
+  # PostgreSQL metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
     metrics_path: '/metrics'
     scrape_interval: 30s 

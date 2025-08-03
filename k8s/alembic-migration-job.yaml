@@ -1,39 +1,24 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: alembic-migration
+  name: alembic-migration-job
   namespace: trading-system
 spec:
   template:
     spec:
-      serviceAccountName: trading-service-account
       containers:
       - name: alembic-migration
         image: localhost:32000/strategy-service:latest
-        command: ["python", "-m", "alembic", "upgrade", "head"]
-        workingDir: /app
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "🔧 Running Alembic migrations..."
+          cd /app
+          export DATABASE_URL="postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          alembic upgrade head
+          echo "✅ Migrations completed!"
         env:
         - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: trading-secrets
-              key: database-url
-        - name: LOG_LEVEL
-          value: "INFO"
-        volumeMounts:
-        - name: alembic-config
-          mountPath: /app/alembic.ini
-          subPath: alembic.ini
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "200m"
-      volumes:
-      - name: alembic-config
-        configMap:
-          name: alembic-config
-      restartPolicy: Never
-  backoffLimit: 3 
+          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+      restartPolicy: Never 

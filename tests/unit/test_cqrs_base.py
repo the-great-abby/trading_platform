@@ -32,7 +32,7 @@ class TestCommand:
     def test_command_json_serialization(self):
         """Test command JSON serialization"""
         cmd = Command(user_id="user123")
-        cmd_dict = cmd.dict()
+        cmd_dict = cmd.model_dump()
         
         assert "command_id" in cmd_dict
         assert "timestamp" in cmd_dict
