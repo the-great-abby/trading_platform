@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Entry Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 16px;
+        }
+        input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        button {
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+        }
+        .success {
+            background: rgba(40, 167, 69, 0.3);
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            background: rgba(220, 53, 69, 0.3);
+            border-left: 4px solid #dc3545;
+        }
+        .orders-list {
+            margin-top: 30px;
+        }
+        .order-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-pending { background: #ffc107; }
+        .status-filled { background: #28a745; }
+        .status-cancelled { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Order Entry Test</h1>
+        <p>Test the order entry functionality for the unified dashboard system</p>
+        
+        <form id="orderForm">
+            <div class="form-group">
+                <label for="symbol">Symbol *</label>
+                <input type="text" id="symbol" placeholder="AAPL" value="AAPL" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="side">Side *</label>
+                <select id="side" required>
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="quantity">Quantity *</label>
+                <input type="number" id="quantity" placeholder="100" value="100" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="price">Price</label>
+                <input type="number" id="price" placeholder="150.00" step="0.01" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label for="orderType">Order Type *</label>
+                <select id="orderType" required>
+                    <option value="MARKET">Market</option>
+                    <option value="LIMIT">Limit</option>
+                    <option value="STOP">Stop</option>
+                    <option value="STOP_LIMIT">Stop Limit</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="timeInForce">Time in Force</label>
+                <select id="timeInForce">
+                    <option value="DAY">Day</option>
+                    <option value="GTC">Good Till Cancelled</option>
+                    <option value="IOC">Immediate or Cancel</option>
+                    <option value="FOK">Fill or Kill</option>
+                </select>
+            </div>
+            
+            <button type="submit">Submit Order</button>
+            <button type="button" onclick="previewOrder()">Preview Order</button>
+            <button type="button" onclick="getMarketPrice()">Get Market Price</button>
+            <button type="button" onclick="clearForm()">Clear Form</button>
+            <button type="button" onclick="loadOrders()">Load Orders</button>
+        </form>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <div class="orders-list">
+            <h2>📊 Recent Orders</h2>
+            <div id="ordersList">
+                <p>Click "Load Orders" to see recent orders</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('orderForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await submitOrder();
+        });
+        
+        async function submitOrder() {
+            const orderData = getOrderData();
+            if (!orderData) return;
+            
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResult('success', `Order submitted successfully! Order ID: ${result.order_id || 'N/A'}`);
+                    clearForm();
+                    loadOrders();
+                } else {
+                    showResult('error', `Order submission failed: ${result.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showResult('error', `Order submission failed: ${error.message}`);
+            }
+        }
+        
+        function previewOrder() {
+            const orderData = getOrderData();
+            if (!orderData) return;
+            
+            const preview = `
+                <h3>Order Preview:</h3>
+                <p><strong>Symbol:</strong> ${orderData.symbol}</p>
+                <p><strong>Side:</strong> ${orderData.side}</p>
+                <p><strong>Quantity:</strong> ${orderData.quantity}</p>
+                <p><strong>Price:</strong> ${orderData.price || 'Market'}</p>
+                <p><strong>Order Type:</strong> ${orderData.order_type}</p>
+                <p><strong>Time in Force:</strong> ${orderData.time_in_force || 'DAY'}</p>
+            `;
+            
+            showResult('success', preview);
+        }
+        
+        async function getMarketPrice() {
+            const symbol = document.getElementById('symbol').value;
+            if (!symbol) {
+                showResult('error', 'Please enter a symbol first');
+                return;
+            }
+            
+            // Mock market price
+            const mockPrice = (Math.random() * 200 + 50).toFixed(2);
+            document.getElementById('price').value = mockPrice;
+            showResult('success', `Market price for ${symbol}: $${mockPrice}`);
+        }
+        
+        function clearForm() {
+            document.getElementById('symbol').value = 'AAPL';
+            document.getElementById('side').value = 'BUY';
+            document.getElementById('quantity').value = '100';
+            document.getElementById('price').value = '';
+            document.getElementById('orderType').value = 'MARKET';
+            document.getElementById('timeInForce').value = 'DAY';
+            document.getElementById('result').style.display = 'none';
+        }
+        
+        async function loadOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                const data = await response.json();
+                
+                const container = document.getElementById('ordersList');
+                if (data.error) {
+                    container.innerHTML = `<p class="error">Error loading orders: ${data.error}</p>`;
+                    return;
+                }
+                
+                const orders = data.orders || [];
+                if (orders.length === 0) {
+                    container.innerHTML = '<p>No orders found</p>';
+                    return;
+                }
+                
+                const ordersHtml = orders.map(order => `
+                    <div class="order-item">
+                        <div>
+                            <strong>${order.symbol}</strong> - ${order.side} ${order.quantity}
+                            <br>
+                            <small>${order.order_type} @ ${order.price || 'Market'}</small>
+                        </div>
+                        <div>
+                            <span class="status-indicator status-${order.status || 'pending'}"></span>
+                            ${order.status || 'unknown'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = ordersHtml;
+            } catch (error) {
+                document.getElementById('ordersList').innerHTML = 
+                    `<p class="error">Error loading orders: ${error.message}</p>`;
+            }
+        }
+        
+        function getOrderData() {
+            const symbol = document.getElementById('symbol').value.trim();
+            const side = document.getElementById('side').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const price = parseFloat(document.getElementById('price').value) || null;
+            const orderType = document.getElementById('orderType').value;
+            const timeInForce = document.getElementById('timeInForce').value;
+            
+            if (!symbol || !quantity || quantity <= 0) {
+                showResult('error', 'Please fill in all required fields with valid values');
+                return null;
+            }
+            
+            if (orderType === 'LIMIT' && !price) {
+                showResult('error', 'Price is required for limit orders');
+                return null;
+            }
+            
+            return {
+                symbol: symbol.toUpperCase(),
+                side: side,
+                quantity: quantity,
+                price: price,
+                order_type: orderType,
+                time_in_force: timeInForce
+            };
+        }
+        
+        function showResult(type, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

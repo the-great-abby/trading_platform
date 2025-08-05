@@ -11,6 +11,31 @@
 - **Use Makefile targets** instead of direct kubectl commands
 - **Centralize configuration** in `src/utils/trading_config.py`
 
+## Port Mapping Management
+- **Follow port mapping standards** defined in `.cursor/rules/port-mapping.mdc`
+- **Update PORT_MAP.md** whenever port forwarding changes are made
+- **Use 11000-11999 range** for external ports to avoid conflicts
+- **Test port forwards** after making changes
+- **Document all active port forwards** with status indicators
+
+### Port Mapping Workflow
+1. **Before making changes**: Check current active port forwards
+   ```bash
+   ps aux | grep "kubectl port-forward" | grep -v grep
+   ```
+
+2. **After making changes**: Update PORT_MAP.md with:
+   - Current active port forwards
+   - Service status (✅ Active, ❌ Not Forwarded, ⏸️ LoadBalancer)
+   - Last updated timestamp
+
+3. **Test changes**: Verify port forwards are working
+   ```bash
+   curl -s http://localhost:<port>/health
+   ```
+
+4. **Document changes**: Update relevant documentation
+
 ## Code Quality
 - **Write clear, descriptive names** for variables, functions, and classes
 - **Follow single responsibility principle** - keep functions focused

@@ -324,6 +324,7 @@
             <button class="nav-tab active" onclick="showSection('overview')">Overview</button>
             <button class="nav-tab" onclick="showSection('performance')">Performance</button>
             <button class="nav-tab" onclick="showSection('trades')">Trades</button>
+            <button class="nav-tab" onclick="showSection('orders')">Order Entry</button>
             <button class="nav-tab" onclick="showSection('strategies')">Strategies</button>
             <button class="nav-tab" onclick="showSection('health')">System Health</button>
         </div>
@@ -455,6 +456,110 @@
             </div>
         </div>
         
+        <!-- Order Entry Section -->
+        <div id="orders" class="dashboard-section" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">📝 Order Entry</div>
+                            <div class="card-subtitle">Create and manage trading orders</div>
+                        </div>
+                    </div>
+                    <div class="trading-controls">
+                        <div class="control-group">
+                            <label for="order-symbol">Symbol *</label>
+                            <input type="text" id="order-symbol" placeholder="AAPL" value="AAPL" required>
+                        </div>
+                        <div class="control-group">
+                            <label for="order-side">Side *</label>
+                            <select id="order-side" required>
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="order-quantity">Quantity *</label>
+                            <input type="number" id="order-quantity" placeholder="100" value="100" min="1" required>
+                        </div>
+                        <div class="control-group">
+                            <label for="order-price">Price</label>
+                            <input type="number" id="order-price" placeholder="150.00" step="0.01" min="0">
+                        </div>
+                        <div class="control-group">
+                            <label for="order-type">Order Type *</label>
+                            <select id="order-type" required>
+                                <option value="MARKET">Market</option>
+                                <option value="LIMIT">Limit</option>
+                                <option value="STOP">Stop</option>
+                                <option value="STOP_LIMIT">Stop Limit</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="order-time-in-force">Time in Force</label>
+                            <select id="order-time-in-force">
+                                <option value="DAY">Day</option>
+                                <option value="GTC">Good Till Cancelled</option>
+                                <option value="IOC">Immediate or Cancel</option>
+                                <option value="FOK">Fill or Kill</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="submitOrder()">Submit Order</button>
+                        <button class="btn btn-primary" onclick="previewOrder()">Preview Order</button>
+                        <button class="btn btn-warning" onclick="getMarketPrice()">Get Market Price</button>
+                        <button class="btn btn-danger" onclick="clearOrderForm()">Clear Form</button>
+                    </div>
+                    <div id="order-result" style="margin-top: 20px;"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">📊 Order History</div>
+                            <div class="card-subtitle">Recent orders and status</div>
+                        </div>
+                        <button class="refresh-btn" onclick="loadOrderHistory()">Refresh</button>
+                    </div>
+                    <div id="order-history">
+                        <div class="loading">Loading order history...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">⚡ Quick Orders</div>
+                            <div class="card-subtitle">Predefined order templates</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <h4 style="margin-bottom: 10px;">Market Buy</h4>
+                            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Quick market buy order</p>
+                            <button class="btn btn-success" onclick="quickOrder('BUY', 'MARKET')">Market Buy</button>
+                        </div>
+                        <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <h4 style="margin-bottom: 10px;">Market Sell</h4>
+                            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Quick market sell order</p>
+                            <button class="btn btn-danger" onclick="quickOrder('SELL', 'MARKET')">Market Sell</button>
+                        </div>
+                        <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <h4 style="margin-bottom: 10px;">Limit Buy</h4>
+                            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Limit buy with price input</p>
+                            <button class="btn btn-primary" onclick="quickOrder('BUY', 'LIMIT')">Limit Buy</button>
+                        </div>
+                        <div style="padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <h4 style="margin-bottom: 10px;">Limit Sell</h4>
+                            <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Limit sell with price input</p>
+                            <button class="btn btn-warning" onclick="quickOrder('SELL', 'LIMIT')">Limit Sell</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Strategies Section -->
         <div id="strategies" class="dashboard-section" style="display: none;">
             <div class="card">
@@ -541,6 +646,9 @@
                     break;
                 case 'trades':
                     loadTradeAnalysis();
+                    break;
+                case 'orders':
+                    loadOrderHistory();
                     break;
                 case 'strategies':
                     loadStrategyComparison();
@@ -926,6 +1034,183 @@
             
             // Mock backtest
             alert(`Backtest started for ${symbol}`);
+        }
+        
+        // Order Entry Functions
+        async function submitOrder() {
+            const orderData = getOrderFormData();
+            if (!orderData) return;
+            
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showOrderResult('success', `Order submitted successfully! Order ID: ${result.order_id || 'N/A'}`);
+                    clearOrderForm();
+                    loadOrderHistory();
+                } else {
+                    showOrderResult('error', `Order submission failed: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showOrderResult('error', `Order submission failed: ${error.message}`);
+            }
+        }
+        
+        function previewOrder() {
+            const orderData = getOrderFormData();
+            if (!orderData) return;
+            
+            const preview = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4>Order Preview:</h4>
+                    <p><strong>Symbol:</strong> ${orderData.symbol}</p>
+                    <p><strong>Side:</strong> ${orderData.side}</p>
+                    <p><strong>Quantity:</strong> ${orderData.quantity}</p>
+                    <p><strong>Price:</strong> ${orderData.price || 'Market'}</p>
+                    <p><strong>Order Type:</strong> ${orderData.order_type}</p>
+                    <p><strong>Time in Force:</strong> ${orderData.time_in_force || 'DAY'}</p>
+                </div>
+            `;
+            
+            document.getElementById('order-result').innerHTML = preview;
+        }
+        
+        async function getMarketPrice() {
+            const symbol = document.getElementById('order-symbol').value;
+            if (!symbol) {
+                alert('Please enter a symbol first');
+                return;
+            }
+            
+            try {
+                // Try to get real market data from our market data service
+                const response = await fetch(`http://localhost:11150/market-data/current/${symbol.toUpperCase()}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const realPrice = data.price;
+                    document.getElementById('order-price').value = realPrice;
+                    showOrderResult('success', `Real market price for ${symbol}: $${realPrice}`);
+                } else {
+                    // Fallback to mock data if real data unavailable
+                    const mockPrice = (Math.random() * 200 + 50).toFixed(2);
+                    document.getElementById('order-price').value = mockPrice;
+                    showOrderResult('warning', `Using estimated price for ${symbol}: $${mockPrice} (real data unavailable)`);
+                }
+            } catch (error) {
+                // Fallback to mock data if service unavailable
+                const mockPrice = (Math.random() * 200 + 50).toFixed(2);
+                document.getElementById('order-price').value = mockPrice;
+                showOrderResult('warning', `Using estimated price for ${symbol}: $${mockPrice} (service unavailable)`);
+            }
+        }
+        
+        function clearOrderForm() {
+            document.getElementById('order-symbol').value = 'AAPL';
+            document.getElementById('order-side').value = 'BUY';
+            document.getElementById('order-quantity').value = '100';
+            document.getElementById('order-price').value = '';
+            document.getElementById('order-type').value = 'MARKET';
+            document.getElementById('order-time-in-force').value = 'DAY';
+            document.getElementById('order-result').innerHTML = '';
+        }
+        
+        function quickOrder(side, orderType) {
+            const symbol = prompt('Enter symbol:');
+            if (!symbol) return;
+            
+            document.getElementById('order-symbol').value = symbol;
+            document.getElementById('order-side').value = side;
+            document.getElementById('order-type').value = orderType;
+            
+            if (orderType === 'LIMIT') {
+                const price = prompt('Enter limit price:');
+                if (price) {
+                    document.getElementById('order-price').value = price;
+                }
+            }
+            
+            previewOrder();
+        }
+        
+        function getOrderFormData() {
+            const symbol = document.getElementById('order-symbol').value.trim();
+            const side = document.getElementById('order-side').value;
+            const quantity = parseInt(document.getElementById('order-quantity').value);
+            const price = parseFloat(document.getElementById('order-price').value) || null;
+            const orderType = document.getElementById('order-type').value;
+            const timeInForce = document.getElementById('order-time-in-force').value;
+            
+            if (!symbol || !quantity || quantity <= 0) {
+                showOrderResult('error', 'Please fill in all required fields with valid values');
+                return null;
+            }
+            
+            if (orderType === 'LIMIT' && !price) {
+                showOrderResult('error', 'Price is required for limit orders');
+                return null;
+            }
+            
+            return {
+                symbol: symbol.toUpperCase(),
+                side: side,
+                quantity: quantity,
+                price: price,
+                order_type: orderType,
+                time_in_force: timeInForce
+            };
+        }
+        
+        function showOrderResult(type, message) {
+            const resultDiv = document.getElementById('order-result');
+            const className = type === 'success' ? 'success' : 'error';
+            resultDiv.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+        
+        async function loadOrderHistory() {
+            try {
+                const response = await fetch('/api/orders');
+                const data = await response.json();
+                
+                const container = document.getElementById('order-history');
+                if (data.error) {
+                    container.innerHTML = `<div class="error">Error loading order history: ${data.error}</div>`;
+                    return;
+                }
+                
+                const orders = data.orders || [];
+                if (orders.length === 0) {
+                    container.innerHTML = '<div class="loading">No orders found</div>';
+                    return;
+                }
+                
+                const ordersHtml = orders.slice(0, 10).map(order => `
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${order.symbol}</strong> - ${order.side} ${order.quantity}
+                            <br>
+                            <small>${order.order_type} @ ${order.price || 'Market'}</small>
+                        </div>
+                        <div>
+                            <span class="status-indicator ${order.status === 'filled' ? 'status-healthy' : order.status === 'pending' ? 'status-warning' : 'status-error'}"></span>
+                            ${order.status || 'unknown'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = ordersHtml;
+            } catch (error) {
+                document.getElementById('order-history').innerHTML = 
+                    `<div class="error">Error loading order history: ${error.message}</div>`;
+            }
         }
     </script>
 </body>

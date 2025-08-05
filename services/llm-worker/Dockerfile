@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src /app/src
 
 # Copy llm-worker application code
-COPY services/llm-worker/main.py .
+COPY services/llm-worker/main_new.py ./main.py
 
 # Set PYTHONPATH to include /app and /app/src
 ENV PYTHONPATH="/app:/app/src"

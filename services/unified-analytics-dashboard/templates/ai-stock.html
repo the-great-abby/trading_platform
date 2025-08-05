@@ -342,8 +342,11 @@
             // Show selected tab
             document.getElementById(tabName + '-tab').style.display = 'block';
             
-            // Add active class to clicked tab
-            event.target.classList.add('active');
+            // Add active class to the tab button
+            const tabButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+            if (tabButton) {
+                tabButton.classList.add('active');
+            }
         }
 
         // Form submission for quick analysis
@@ -453,7 +456,9 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <h5>AI Reasoning</h5>
-                        <p>${result.reasoning || 'No reasoning available.'}</p>
+                        <div class="reasoning-content" style="white-space: pre-wrap; word-wrap: break-word; max-height: none; overflow: visible;">
+                            ${result.reasoning || 'No reasoning available.'}
+                        </div>
                     </div>
                 </div>
                 ${result.news_sentiment ? `
@@ -518,6 +523,10 @@
 
             // Show immediate feedback
             const submitButton = document.querySelector('#analysisForm button[type="submit"]');
+            if (!submitButton) {
+                console.error('Submit button not found');
+                return;
+            }
             const originalText = submitButton.innerHTML;
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
             submitButton.disabled = true;
@@ -863,7 +872,9 @@
                                 </div>
                                 <div class="mt-3">
                                     <strong>Reasoning:</strong><br>
-                                    <p>${result.reasoning || 'No reasoning provided'}</p>
+                                    <div class="reasoning-content" style="white-space: pre-wrap; word-wrap: break-word; max-height: none; overflow: visible;">
+                                        ${result.reasoning || 'No reasoning provided'}
+                                    </div>
                                 </div>
                                 ${result.target_price ? `<div class="mt-2"><strong>Target Price:</strong> $${result.target_price}</div>` : ''}
                                 ${result.stop_loss ? `<div class="mt-2"><strong>Stop Loss:</strong> $${result.stop_loss}</div>` : ''}
@@ -937,12 +948,25 @@
         function generateTechnicalIndicators(indicators) {
             let html = '';
             for (const [name, value] of Object.entries(indicators)) {
+                let displayValue = '';
+                if (typeof value === 'number') {
+                    displayValue = value.toFixed(2);
+                } else if (typeof value === 'object' && value !== null) {
+                    if (name === 'macd') {
+                        displayValue = `Value: ${value.value?.toFixed(3) || 'N/A'}, Signal: ${value.signal?.toFixed(3) || 'N/A'}, Histogram: ${value.histogram?.toFixed(3) || 'N/A'}`;
+                    } else {
+                        displayValue = JSON.stringify(value, null, 2);
+                    }
+                } else {
+                    displayValue = String(value);
+                }
+                
                 html += `
                     <div class="col-md-6 mb-2">
                         <div class="card">
                             <div class="card-body">
-                                <h6 class="card-title">${name}</h6>
-                                <p class="card-text">${typeof value === 'number' ? value.toFixed(2) : value}</p>
+                                <h6 class="card-title">${name.toUpperCase()}</h6>
+                                <p class="card-text">${displayValue}</p>
                             </div>
                         </div>
                     </div>
@@ -954,12 +978,26 @@
         function generateMarketData(marketData) {
             let html = '';
             for (const [name, value] of Object.entries(marketData)) {
+                let displayValue = '';
+                if (typeof value === 'number') {
+                    displayValue = value.toFixed(2);
+                } else if (typeof value === 'object' && value !== null) {
+                    if (name === 'technical_indicators') {
+                        // Skip nested technical indicators as they're handled separately
+                        continue;
+                    } else {
+                        displayValue = JSON.stringify(value, null, 2);
+                    }
+                } else {
+                    displayValue = String(value);
+                }
+                
                 html += `
                     <div class="col-md-6 mb-2">
                         <div class="card">
                             <div class="card-body">
-                                <h6 class="card-title">${name}</h6>
-                                <p class="card-text">${typeof value === 'number' ? value.toFixed(2) : value}</p>
+                                <h6 class="card-title">${name.replace(/_/g, ' ').toUpperCase()}</h6>
+                                <p class="card-text">${displayValue}</p>
                             </div>
                         </div>
                     </div>
@@ -971,23 +1009,23 @@
         function generateNewsSentiment(sentiment) {
             return `
                 <div class="alert alert-info">
-                    <strong>Overall Sentiment:</strong> ${sentiment.overall_sentiment || 'N/A'}<br>
+                    <strong>Overall Sentiment:</strong> ${sentiment.sentiment || 'N/A'}<br>
                     <strong>Sentiment Score:</strong> ${sentiment.sentiment_score || 'N/A'}<br>
-                    <strong>Articles Analyzed:</strong> ${sentiment.articles_analyzed || 'N/A'}
+                    <strong>Articles Analyzed:</strong> ${sentiment.news_items ? sentiment.news_items.length : 0}
                 </div>
-                ${sentiment.recent_articles ? `
+                ${sentiment.news_items && sentiment.news_items.length > 0 ? `
                     <div class="mt-3">
                         <strong>Recent Articles:</strong>
                         <ul class="list-group mt-2">
-                            ${sentiment.recent_articles.map(article => `
+                            ${sentiment.news_items.map(article => `
                                 <li class="list-group-item">
-                                    <strong>${article.title}</strong><br>
-                                    <small class="text-muted">${article.published_at || 'Unknown date'}</small>
+                                    <strong>${article.title || 'No title'}</strong><br>
+                                    <small class="text-muted">${article.published_at || article.date || 'Unknown date'}</small>
                                 </li>
                             `).join('')}
                         </ul>
                     </div>
-                ` : ''}
+                ` : '<p class="text-muted">No recent articles available</p>'}
             `;
         }
     </script>

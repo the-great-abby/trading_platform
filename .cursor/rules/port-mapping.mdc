@@ -1,0 +1,77 @@
+description:
+globs:
+alwaysApply: false
+---
+# Port Mapping Management Rule
+
+## Overview
+This rule ensures that the PORT_MAP.md file is kept up to date whenever port forwarding changes are made to the trading system.
+
+## When to Update
+- After starting new port forwards with `kubectl port-forward`
+- After stopping port forwards with `pkill -f "kubectl port-forward"`
+- After changing service configurations that affect port mappings
+- After deploying new services that need port forwarding
+
+## Update Process
+1. **Check Current Active Port Forwards**
+   ```bash
+   ps aux | grep "kubectl port-forward" | grep -v grep
+   ```
+
+2. **Update PORT_MAP.md**
+   - Update the "Currently Active Port Forwards" section
+   - Update the status columns (✅ Active, ❌ Not Forwarded, ⏸️ LoadBalancer)
+   - Update the "Last Updated" timestamp
+   - Add any new services that were port-forwarded
+
+3. **Update PORT_FORWARDING_GUIDE.md**
+   - If new port ranges or service categories are added
+   - If the port mapping strategy changes
+
+## Port Mapping Standards
+- **External Ports**: Use 11000-11999 range to avoid conflicts
+- **Internal Ports**: Use the actual service ports
+- **Status Indicators**:
+  - ✅ Active: Currently port-forwarded and accessible
+  - ⏸️ LoadBalancer: Using LoadBalancer instead of port-forward
+  - ❌ Not Forwarded: Available but not currently port-forwarded
+
+## Required Updates
+When making port forwarding changes:
+1. Update PORT_MAP.md with current active forwards
+2. Update the "Last Updated" timestamp
+3. Test the new port forwards
+4. Update any relevant documentation
+
+## Commands to Remember
+```bash
+# Check active port forwards
+ps aux | grep "kubectl port-forward" | grep -v grep
+
+# Stop all port forwards
+pkill -f "kubectl port-forward"
+
+# Start specific service
+kubectl port-forward -n trading-system service/<service-name> <external-port>:<internal-port> &
+
+# Test port forward
+curl -s http://localhost:<port>/health
+```
+
+## File Locations
+- Main port map: `PORT_MAP.md`
+- Port forwarding guide: `PORT_FORWARDING_GUIDE.md`
+- This rule: `.cursor/rules/port-mapping.mdc`
+
+## Example Update
+When adding a new port forward:
+1. Run: `kubectl port-forward -n trading-system service/market-data-service 11084:11084 &`
+2. Update PORT_MAP.md:
+   - Add to "Currently Active Port Forwards" table
+   - Change status from "❌ Not Forwarded" to "✅ Active"
+   - Update timestamp
+3. Test: `curl -s http://localhost:11084/health`
+
+This ensures the port mapping documentation stays synchronized with the actual running services.
+

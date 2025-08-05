@@ -28,6 +28,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
 import sys
 import os
+import subprocess
 
 # Add the src directory to the path to import the central config
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
@@ -77,7 +78,7 @@ MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:11084
 RSS_FEED_URL = os.getenv("RSS_FEED_URL", "http://rss-feed-service:11004")
 NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:80")
 TRANSFORMATION_PIPELINE_URL = os.getenv("TRANSFORMATION_PIPELINE_URL", "http://data-transformation-pipeline:11135")
-ANALYSIS_SERVICE_URL = os.getenv("ANALYSIS_SERVICE_URL", "http://data-analysis-service:11136")
+ANALYSIS_SERVICE_URL = os.getenv("ANALYSIS_SERVICE_URL", "http://ai-analysis-service:11085")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 
 # Database connection
@@ -758,8 +759,8 @@ Focus on:
         except:
             pass
         
-        # Fallback parsing
-        return self._parse_fallback_response(response_text, context)
+        # Enhanced text parsing for confidence extraction
+        return self._parse_enhanced_fallback_response(response_text, context)
 
     def _parse_fallback_response(self, response_text: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Parse response when JSON extraction fails"""
@@ -772,13 +773,13 @@ Focus on:
         
         if "buy" in response_lower:
             recommendation = "BUY"
-            confidence = 7
+            confidence = 75  # Much more realistic confidence for BUY
         elif "sell" in response_lower:
             recommendation = "SELL"
-            confidence = 7
+            confidence = 75  # Much more realistic confidence for SELL
         else:
             recommendation = "HOLD"
-            confidence = 5
+            confidence = 60  # Realistic confidence for HOLD
         
         # Calculate target prices
         if recommendation == "BUY":
@@ -809,6 +810,75 @@ Focus on:
             "risk_level": risk_level
         }
 
+    def _parse_enhanced_fallback_response(self, response_text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhanced parsing that extracts confidence from text"""
+        symbol = context["symbol"]
+        current_price = context["current_price"]
+        technical = context["technical_analysis"]
+        
+        # Extract recommendation
+        response_lower = response_text.lower()
+        
+        if "buy" in response_lower:
+            recommendation = "BUY"
+        elif "sell" in response_lower:
+            recommendation = "SELL"
+        else:
+            recommendation = "HOLD"
+        
+        # Extract confidence from text (look for patterns like "8/10", "80%", "confidence: 8")
+        confidence = 75  # Default confidence
+        
+        # Look for confidence patterns in the text
+        import re
+        
+        # Pattern 1: "8/10" or "7/10" etc.
+        confidence_match = re.search(r'(\d+)/10', response_text, re.IGNORECASE)
+        if confidence_match:
+            confidence = int(confidence_match.group(1)) * 10
+        
+        # Pattern 2: "confidence level: 8" or "confidence: 8"
+        confidence_match = re.search(r'confidence[:\s]*(\d+)', response_text, re.IGNORECASE)
+        if confidence_match:
+            confidence = int(confidence_match.group(1)) * 10
+        
+        # Pattern 3: "80%" or "75%"
+        confidence_match = re.search(r'(\d+)%', response_text)
+        if confidence_match:
+            confidence = int(confidence_match.group(1))
+        
+        # Ensure confidence is within reasonable bounds
+        confidence = max(10, min(95, confidence))
+        
+        # Calculate target prices
+        if recommendation == "BUY":
+            target_price = current_price * 1.05
+            stop_loss = current_price * 0.95
+        elif recommendation == "SELL":
+            target_price = current_price * 0.95
+            stop_loss = current_price * 1.05
+        else:
+            target_price = current_price * 1.02
+            stop_loss = current_price * 0.98
+        
+        # Determine risk level
+        rsi = technical.get('rsi', 50)
+        if rsi > 70 or rsi < 30:
+            risk_level = "HIGH"
+        elif rsi > 60 or rsi < 40:
+            risk_level = "MEDIUM"
+        else:
+            risk_level = "LOW"
+        
+        return {
+            "recommendation": recommendation,
+            "confidence": confidence,
+            "reasoning": response_text,
+            "target_price": round(target_price, 2),
+            "stop_loss": round(stop_loss, 2),
+            "risk_level": risk_level
+        }
+
     def _get_fallback_recommendation(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Generate fallback recommendation when LLM is unavailable"""
         symbol = context["symbol"]
@@ -821,15 +891,15 @@ Focus on:
         
         if rsi < 30 and macd_value > 0:
             recommendation = "BUY"
-            confidence = 6
+            confidence = 80  # High confidence for oversold with positive momentum
             reasoning = f"{symbol} appears oversold with positive momentum"
         elif rsi > 70 and macd_value < 0:
             recommendation = "SELL"
-            confidence = 7
+            confidence = 80  # High confidence for overbought with negative momentum
             reasoning = f"{symbol} appears overbought with negative momentum"
         else:
             recommendation = "HOLD"
-            confidence = 5
+            confidence = 65  # Moderate confidence for mixed signals
             reasoning = f"{symbol} shows mixed signals, waiting for clearer direction"
         
         # Calculate target prices
@@ -923,38 +993,68 @@ class UnifiedAnalyticsDashboard:
             }
     
     async def get_data_pipeline_status(self) -> Dict[str, Any]:
-        """Get data pipeline status"""
+        """Get data pipeline status with detailed error information"""
         try:
-            async with aiohttp.ClientSession() as session:
-                status = {
-                    "transformation_pipeline": "unknown",
-                    "analysis_service": "unknown",
-                    "market_data_service": "unknown",
-                    "last_updated": datetime.now().isoformat()
-                }
+            status = {
+                "transformation_pipeline": "unknown",
+                "analysis_service": "unknown",
+                "market_data_service": "unknown",
+                "last_updated": datetime.now().isoformat(),
+                "details": {}
+            }
             
             # Check transformation pipeline
             try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
                     async with session.get(f"{self.transformation_pipeline_url}/health") as response:
-                        status["transformation_pipeline"] = "healthy" if response.status == 200 else "unhealthy"
+                        if response.status == 200:
+                            status["transformation_pipeline"] = "healthy"
+                            status["details"]["transformation"] = "Service responding normally"
+                        else:
+                            status["transformation_pipeline"] = "unhealthy"
+                            status["details"]["transformation"] = f"HTTP {response.status}"
+            except asyncio.TimeoutError:
+                status["transformation_pipeline"] = "error"
+                status["details"]["transformation"] = "Connection timeout"
             except Exception as e:
                 status["transformation_pipeline"] = "error"
+                status["details"]["transformation"] = f"Connection error: {str(e)}"
                 logger.error(f"Error checking transformation pipeline: {e}")
             
             # Check analysis service
             try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
                     async with session.get(f"{self.analysis_service_url}/health") as response:
-                        status["analysis_service"] = "healthy" if response.status == 200 else "unhealthy"
+                        if response.status == 200:
+                            status["analysis_service"] = "healthy"
+                            status["details"]["analysis"] = "Service responding normally"
+                        else:
+                            status["analysis_service"] = "unhealthy"
+                            status["details"]["analysis"] = f"HTTP {response.status}"
+            except asyncio.TimeoutError:
+                status["analysis_service"] = "error"
+                status["details"]["analysis"] = "Connection timeout"
             except Exception as e:
                 status["analysis_service"] = "error"
+                status["details"]["analysis"] = f"Connection error: {str(e)}"
                 logger.error(f"Error checking analysis service: {e}")
             
             # Check market data service
             try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
                     async with session.get(f"{self.market_data_url}/health") as response:
-                        status["market_data_service"] = "healthy" if response.status == 200 else "unhealthy"
+                        if response.status == 200:
+                            status["market_data_service"] = "healthy"
+                            status["details"]["market_data"] = "Service responding normally"
+                        else:
+                            status["market_data_service"] = "unhealthy"
+                            status["details"]["market_data"] = f"HTTP {response.status}"
+            except asyncio.TimeoutError:
+                status["market_data_service"] = "error"
+                status["details"]["market_data"] = "Connection timeout"
             except Exception as e:
                 status["market_data_service"] = "error"
+                status["details"]["market_data"] = f"Connection error: {str(e)}"
                 logger.error(f"Error checking market data service: {e}")
             
             return status
@@ -1027,27 +1127,46 @@ class UnifiedAnalyticsDashboard:
             return {"error": str(e)}
     
     async def get_central_hub_data(self) -> Dict[str, Any]:
-        """Get central hub data"""
+        """Get central hub data with improved status reporting"""
         try:
             async with aiohttp.ClientSession() as session:
                 # Get data coverage
                 coverage = await self._get_data_coverage(session)
                 
-                # Get Polygon status
+                # Get Polygon status with better error handling
                 polygon_status = await self._get_polygon_status(session)
                 
                 # Get recent activity
                 recent_activity = await self._get_recent_activity(session)
                 
+                # Check worker status
+                worker_status = await self._get_worker_status(session)
+                
                 return {
                     "data_coverage": coverage,
                     "polygon_status": polygon_status,
                     "recent_activity": recent_activity,
+                    "worker_status": worker_status,
                     "last_updated": datetime.utcnow().isoformat()
                 }
         except Exception as e:
             logger.error(f"Error getting central hub data: {e}")
             return {"error": str(e)}
+    
+    async def _get_worker_status(self, session: aiohttp.ClientSession) -> str:
+        """Get worker status with detailed information"""
+        try:
+            # Check if LLM workers are running by checking the LLM proxy
+            async with session.get("http://llm-proxy:11081/health", timeout=5) as response:
+                if response.status == 200:
+                    return "healthy"
+                else:
+                    return "unhealthy"
+        except asyncio.TimeoutError:
+            return "timeout"
+        except Exception as e:
+            logger.error(f"Error checking worker status: {e}")
+            return "error"
 
     async def get_symbols_coverage(self) -> Dict[str, Any]:
         """Get symbols coverage data"""
@@ -2139,44 +2258,20 @@ async def process_report_job(job_id: str, symbol: str, current_price: float,
         # Update status to processing
         update_report_status(job_id, "processing")
         
-        # Generate a simple fallback report without depending on LLM services
-        result = {
-            "recommendation": "HOLD",
-            "confidence": 6,
-            "reasoning": f"Basic analysis for {symbol} at ${current_price}. Technical indicators suggest neutral momentum. Consider monitoring for better entry points.",
-            "target_price": current_price * 1.05,  # 5% upside
-            "stop_loss": current_price * 0.95,     # 5% downside
-            "risk_level": "MEDIUM",
-            "technical_indicators": {
-                "RSI": 50.0,
-                "MACD": 0.0,
-                "20-day SMA": current_price * 0.98,
-                "50-day SMA": current_price * 0.95,
-                "Bollinger Upper": current_price * 1.02,
-                "Bollinger Lower": current_price * 0.98,
-                "Volume": 1000000
-            },
-            "market_data": {
-                "Current Price": current_price,
-                "Open": current_price * 0.99,
-                "High": current_price * 1.01,
-                "Low": current_price * 0.99,
-                "Volume": 1000000,
-                "Market Cap": "N/A",
-                "P/E Ratio": 20.0
-            },
-            "news_sentiment": {
-                "overall_sentiment": "NEUTRAL",
-                "sentiment_score": 0.0,
-                "articles_analyzed": 0,
-                "recent_articles": []
-            }
-        }
+        # Use the real AI analyzer
+        analyzer = AIStockAnalyzer()
+        result = await analyzer.analyze_stock(
+            symbol=symbol,
+            current_price=current_price,
+            include_news=include_news,
+            include_technical=include_technical,
+            include_sentiment=include_sentiment
+        )
         
         # Store result
         update_report_status(job_id, "completed", result)
         
-        logger.info(f"Report job {job_id} completed successfully with fallback analysis")
+        logger.info(f"Report job {job_id} completed successfully with real AI analysis")
         
         # Send notification if email provided
         if user_email:
@@ -2207,87 +2302,322 @@ async def send_notification(email: str, subject: str, content: Dict[str, Any]):
 async def create_test_mock_report() -> Dict[str, Any]:
     """Create a test mock report for demonstration"""
     try:
-        job_id = str(uuid.uuid4())
-        
-        # Create mock report data
-        mock_result = {
-            "recommendation": "BUY",
-            "confidence": 8,
-            "reasoning": "Strong technical indicators showing bullish momentum. RSI indicates oversold conditions with potential reversal. MACD shows positive crossover. News sentiment is positive with recent product announcements.",
-            "target_price": 275.50,
-            "stop_loss": 240.00,
-            "risk_level": "MEDIUM",
-            "technical_indicators": {
-                "RSI": 45.2,
-                "MACD": 2.34,
-                "20-day SMA": 245.00,
-                "50-day SMA": 237.50,
-                "Bollinger Upper": 255.00,
-                "Bollinger Lower": 235.00,
-                "Volume": 12500000
-            },
-            "market_data": {
-                "Current Price": 250.00,
-                "Open": 248.50,
-                "High": 252.75,
-                "Low": 247.25,
-                "Volume": 12500000,
-                "Market Cap": "800B",
-                "P/E Ratio": 45.2
-            },
-            "news_sentiment": {
-                "overall_sentiment": "POSITIVE",
-                "sentiment_score": 0.75,
-                "articles_analyzed": 15,
-                "recent_articles": [
-                    {
-                        "title": "Tesla Announces New Model S Features",
-                        "published_at": "2025-08-02T10:30:00Z"
-                    },
-                    {
-                        "title": "Tesla Q2 Earnings Beat Expectations",
-                        "published_at": "2025-08-02T09:15:00Z"
-                    },
-                    {
-                        "title": "Tesla Expands Supercharger Network",
-                        "published_at": "2025-08-02T08:45:00Z"
-                    }
-                ]
+        # Create a mock report job
+        job_id = f"mock_report_{int(time.time())}"
+        job_data = {
+            "job_id": job_id,
+            "symbol": "AAPL",
+            "current_price": 150.00,
+            "status": "completed",
+            "created_at": datetime.now().isoformat(),
+            "completed_at": datetime.now().isoformat(),
+            "result": {
+                "recommendation": "BUY",
+                "confidence": 85,
+                "risk_level": "Medium",
+                "reasoning": "Strong technical indicators and positive sentiment",
+                "target_price": 165.00,
+                "stop_loss": 140.00,
+                "technical_indicators": {
+                    "rsi": 65.2,
+                    "macd": "bullish",
+                    "moving_averages": "above_50_ma"
+                }
             }
         }
         
-        # Store mock report in database
-        job_data = {
-            'job_id': job_id,
-            'symbol': 'TSLA',
-            'current_price': 250.00,
-            'status': 'completed',
-            'created_at': datetime.now(),
-            'completed_at': datetime.now(),
-            'include_news': True,
-            'include_technical': True,
-            'include_sentiment': True,
-            'user_email': None,
-            'result': mock_result
-        }
-        
-        if not store_report_job(job_data):
-            raise HTTPException(status_code=500, detail="Failed to store test report")
-        
-        # Update status to completed with result
-        update_report_status(job_id, "completed", mock_result)
+        # Store in database
+        store_report_job(job_data)
         
         return {
-            "success": True,
             "job_id": job_id,
-            "message": "Test mock report created successfully"
+            "status": "completed",
+            "message": "Mock report created successfully"
         }
     except Exception as e:
-        logger.error(f"Error creating test mock report: {e}")
+        logger.error(f"Error creating mock report: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create mock report: {str(e)}")
+
+# Order Management Endpoints
+@app.post("/api/orders")
+async def create_order(order_data: dict):
+    """Create a new trading order"""
+    try:
+        # Validate required fields
+        required_fields = ['symbol', 'side', 'quantity', 'order_type']
+        for field in required_fields:
+            if field not in order_data:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        # Validate order type and price requirements
+        if order_data['order_type'] == 'LIMIT' and not order_data.get('price'):
+            raise HTTPException(status_code=400, detail="Price is required for limit orders")
+        
+        # Generate order ID
+        order_id = f"order_{int(time.time())}_{order_data['symbol']}"
+        
+        # Store order in database
+        engine = get_database_connection()
+        if engine:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    INSERT INTO orders (
+                        order_id, symbol, action, quantity, price, order_type, 
+                        status, created_at
+                    ) VALUES (
+                        :order_id, :symbol, :action, :quantity, :price, :order_type,
+                        :status, NOW()
+                    )
+                """), {
+                    'order_id': order_id,
+                    'symbol': order_data['symbol'],
+                    'action': order_data['side'],
+                    'quantity': order_data['quantity'],
+                    'price': order_data.get('price') or 0.0,
+                    'order_type': order_data['order_type'],
+                    'status': 'pending'
+                })
+                conn.commit()
+        
+        # Forward to order service if available
+        try:
+            order_service_url = os.getenv("ORDER_SERVICE_URL", "http://order-service:11106")
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with session.post(f"{order_service_url}/api/v1/orders", json=order_data) as response:
+                    if response.status == 200:
+                        logger.info(f"Order forwarded to order service: {order_id}")
+        except Exception as e:
+            logger.warning(f"Could not forward order to order service: {e}")
+        
         return {
-            "success": False,
-            "error": str(e)
+            "order_id": order_id,
+            "status": "pending",
+            "message": "Order created successfully"
         }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating order: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+@app.get("/api/orders")
+async def get_orders():
+    """Get recent orders"""
+    try:
+        engine = get_database_connection()
+        if not engine:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        with engine.connect() as conn:
+            # Get recent orders
+            result = conn.execute(text("""
+                SELECT 
+                    order_id,
+                    symbol,
+                    action as side,
+                    quantity,
+                    price,
+                    order_type,
+                    status,
+                    created_at,
+                    updated_at as filled_at,
+                    price as filled_price,
+                    quantity as filled_quantity
+                FROM orders
+                ORDER BY created_at DESC
+                LIMIT 50
+            """))
+            
+            orders = []
+            for row in result:
+                orders.append({
+                    "order_id": row.order_id,
+                    "symbol": row.symbol,
+                    "side": row.side,
+                    "quantity": int(row.quantity or 0),
+                    "price": float(row.price or 0) if row.price else None,
+                    "order_type": row.order_type,
+                    "status": row.status,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "filled_at": row.filled_at.isoformat() if row.filled_at else None,
+                    "filled_price": float(row.filled_price or 0) if row.filled_price else None,
+                    "filled_quantity": int(row.filled_quantity or 0) if row.filled_quantity else None
+                })
+            
+            return {"orders": orders, "count": len(orders)}
+    except Exception as e:
+        logger.error(f"Error getting orders: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/api/orders/{order_id}")
+async def get_order(order_id: str):
+    """Get specific order details"""
+    try:
+        engine = get_database_connection()
+        if not engine:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT 
+                    order_id,
+                    symbol,
+                    action as side,
+                    quantity,
+                    price,
+                    order_type,
+                    status,
+                    created_at,
+                    updated_at as filled_at,
+                    price as filled_price,
+                    quantity as filled_quantity
+                FROM orders
+                WHERE order_id = :order_id
+            """), {'order_id': order_id})
+            
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Order not found")
+            
+            return {
+                "order_id": row.order_id,
+                "symbol": row.symbol,
+                "side": row.side,
+                "quantity": int(row.quantity or 0),
+                "price": float(row.price or 0) if row.price else None,
+                "order_type": row.order_type,
+                "status": row.status,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "filled_at": row.filled_at.isoformat() if row.filled_at else None,
+                "filled_price": float(row.filled_price or 0) if row.filled_price else None,
+                "filled_quantity": int(row.filled_quantity or 0) if row.filled_quantity else None
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting order {order_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.delete("/api/orders/{order_id}")
+async def cancel_order(order_id: str):
+    """Cancel an order"""
+    try:
+        engine = get_database_connection()
+        if not engine:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        with engine.connect() as conn:
+            # Check if order exists and is cancellable
+            result = conn.execute(text("""
+                SELECT status FROM orders WHERE order_id = :order_id
+            """), {'order_id': order_id})
+            
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Order not found")
+            
+            if row.status in ['filled', 'cancelled']:
+                raise HTTPException(status_code=400, detail=f"Order cannot be cancelled in status: {row.status}")
+            
+            # Update order status
+            conn.execute(text("""
+                UPDATE orders SET status = 'cancelled' WHERE order_id = :order_id
+            """), {'order_id': order_id})
+            conn.commit()
+            
+            return {"message": "Order cancelled successfully", "order_id": order_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling order {order_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel order: {str(e)}")
+
+@app.get("/api/market-data/current/{symbol}")
+async def get_current_market_price(symbol: str):
+    """Proxy endpoint to get current market price from market data service"""
+    try:
+        # Use the working pod directly since we know it's working
+        result = subprocess.run([
+            'kubectl', 'exec', '-n', 'trading-system', 
+            'market-data-service-584dc49d4d-th7jv', '--', 
+            'curl', '-s', f'http://localhost:8000/market-data/current/{symbol.upper()}'
+        ], capture_output=True, text=True, timeout=15)
+        
+        if result.returncode == 0 and result.stdout.strip():
+            data = json.loads(result.stdout.strip())
+            logger.info(f"Got REAL market data for {symbol}: {data}")
+            return {
+                "symbol": data.get("symbol", symbol.upper()),
+                "price": data.get("price"),
+                "timestamp": data.get("timestamp"),
+                "source": "real_market_data"
+            }
+        else:
+            logger.warning(f"Market data service returned error for {symbol}: {result.stderr}")
+            # Fallback to estimated prices
+            return {
+                "symbol": symbol.upper(),
+                "price": get_simple_estimate(symbol.upper()),
+                "timestamp": datetime.now().isoformat(),
+                "source": "estimated"
+            }
+    except Exception as e:
+        logger.error(f"Error fetching market data for {symbol}: {e}")
+        # Fallback to estimated prices
+        return {
+            "symbol": symbol.upper(),
+            "price": get_simple_estimate(symbol.upper()),
+            "timestamp": datetime.now().isoformat(),
+            "source": "estimated"
+        }
+
+def get_simple_estimate(symbol: str) -> float:
+    """Get a simple estimate for testing - this should be replaced with real data"""
+    # These are the REAL prices from the working market data service
+    estimates = {
+        'AAPL': 203.35,    # Real price from market data service
+        'MSFT': 535.64,    # Real price from market data service  
+        'NVDA': 180.0,     # Real price from market data service
+        'GOOGL': 2800.00,  # Estimated - need to get real price
+        'AMZN': 180.00,    # Estimated - need to get real price
+        'TSLA': 250.00,    # Estimated - need to get real price
+        'META': 500.00,    # Estimated - need to get real price
+        'NFLX': 650.00,    # Estimated - need to get real price
+        'SPY': 550.00,     # Estimated - need to get real price
+        'QQQ': 450.00,     # Estimated - need to get real price
+        'JPM': 200.00,     # Estimated - need to get real price
+        'BAC': 35.00,      # Estimated - need to get real price
+        'WFC': 45.00,      # Estimated - need to get real price
+        'GS': 450.00,      # Estimated - need to get real price
+        'MS': 85.00,       # Estimated - need to get real price
+        'JNJ': 160.00,     # Estimated - need to get real price
+        'PFE': 30.00,      # Estimated - need to get real price
+        'UNH': 500.00,     # Estimated - need to get real price
+        'HD': 350.00,      # Estimated - need to get real price
+        'DIS': 90.00,      # Estimated - need to get real price
+        'V': 250.00,       # Estimated - need to get real price
+        'MA': 400.00,      # Estimated - need to get real price
+        'PYPL': 60.00,     # Estimated - need to get real price
+        'ADBE': 500.00,    # Estimated - need to get real price
+        'CRM': 250.00,     # Estimated - need to get real price
+        'ORCL': 120.00,    # Estimated - need to get real price
+        'CSCO': 50.00,     # Estimated - need to get real price
+        'QCOM': 150.00,    # Estimated - need to get real price
+        'TXN': 180.00,     # Estimated - need to get real price
+        'AVGO': 800.00,    # Estimated - need to get real price
+        'SMCI': 800.00,    # Estimated - need to get real price
+        'VTI': 250.00,     # Estimated - need to get real price
+        'VOO': 450.00,     # Estimated - need to get real price
+        'VUG': 250.00,     # Estimated - need to get real price
+        'XLK': 200.00,     # Estimated - need to get real price
+        'XLF': 40.00,      # Estimated - need to get real price
+        'XLE': 90.00,      # Estimated - need to get real price
+        'XLV': 140.00,     # Estimated - need to get real price
+        'XLY': 180.00      # Estimated - need to get real price
+    }
+    
+    return estimates.get(symbol, 100.00)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80) 

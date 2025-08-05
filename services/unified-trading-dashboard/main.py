@@ -22,6 +22,7 @@ import redis
 import sqlalchemy
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -544,6 +545,203 @@ async def get_active_positions():
     except Exception as e:
         logger.error(f"Error getting active positions: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# Order Management Endpoints
+@app.post("/api/orders")
+async def create_order(order_data: dict):
+    """Create a new trading order"""
+    try:
+        # Validate required fields
+        required_fields = ['symbol', 'side', 'quantity', 'order_type']
+        for field in required_fields:
+            if field not in order_data:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        # Validate order type and price requirements
+        if order_data['order_type'] == 'LIMIT' and not order_data.get('price'):
+            raise HTTPException(status_code=400, detail="Price is required for limit orders")
+        
+        # Generate order ID
+        order_id = f"order_{int(time.time())}_{order_data['symbol']}"
+        
+        # Store order in database
+        engine = get_database_connection()
+        if engine:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    INSERT INTO orders (
+                        order_id, timestamp, symbol, action, quantity, price, order_type, 
+                        status, created_at
+                    ) VALUES (
+                        :order_id, NOW(), :symbol, :action, :quantity, :price, :order_type,
+                        :status, NOW()
+                    )
+                """), {
+                    'order_id': order_id,
+                    'symbol': order_data['symbol'],
+                    'action': order_data['side'],
+                    'quantity': order_data['quantity'],
+                    'price': order_data.get('price') or 0.0,
+                    'order_type': order_data['order_type'],
+                    'status': 'pending'
+                })
+                conn.commit()
+        
+        # Forward to order service if available
+        try:
+            order_service_url = os.getenv("ORDER_SERVICE_URL", "http://order-service:11106")
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(f"{order_service_url}/api/v1/orders", json=order_data)
+                if response.status_code == 200:
+                    logger.info(f"Order forwarded to order service: {order_id}")
+        except Exception as e:
+            logger.warning(f"Could not forward order to order service: {e}")
+        
+        return {
+            "order_id": order_id,
+            "status": "pending",
+            "message": "Order created successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating order: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+@app.get("/api/orders")
+async def get_orders():
+    """Get recent orders"""
+    try:
+        engine = get_database_connection()
+        if not engine:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        with engine.connect() as conn:
+            # Get recent orders
+            result = conn.execute(text("""
+                SELECT 
+                    order_id,
+                    symbol,
+                    action as side,
+                    quantity,
+                    price,
+                    order_type,
+                    status,
+                    created_at,
+                    updated_at as filled_at,
+                    price as filled_price,
+                    quantity as filled_quantity
+                FROM orders
+                ORDER BY created_at DESC
+                LIMIT 50
+            """))
+            
+            orders = []
+            for row in result:
+                orders.append({
+                    "order_id": row.order_id,
+                    "symbol": row.symbol,
+                    "side": row.side,
+                    "quantity": int(row.quantity or 0),
+                    "price": float(row.price or 0) if row.price else None,
+                    "order_type": row.order_type,
+                    "time_in_force": "DAY",  # Default since column doesn't exist
+                    "status": row.status,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "filled_at": row.filled_at.isoformat() if row.filled_at else None,
+                    "filled_price": float(row.filled_price or 0) if row.filled_price else None,
+                    "filled_quantity": int(row.filled_quantity or 0) if row.filled_quantity else None
+                })
+            
+            return {"orders": orders, "count": len(orders)}
+    except Exception as e:
+        logger.error(f"Error getting orders: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/api/orders/{order_id}")
+async def get_order(order_id: str):
+    """Get specific order details"""
+    try:
+        engine = get_database_connection()
+        if not engine:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT 
+                    order_id,
+                    symbol,
+                    action as side,
+                    quantity,
+                    price,
+                    order_type,
+                    status,
+                    created_at,
+                    updated_at as filled_at,
+                    price as filled_price,
+                    quantity as filled_quantity
+                FROM orders
+                WHERE order_id = :order_id
+            """), {'order_id': order_id})
+            
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Order not found")
+            
+            return {
+                "order_id": row.order_id,
+                "symbol": row.symbol,
+                "side": row.side,
+                "quantity": int(row.quantity or 0),
+                "price": float(row.price or 0) if row.price else None,
+                "order_type": row.order_type,
+                "time_in_force": row.time_in_force,
+                "status": row.status,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "filled_at": row.filled_at.isoformat() if row.filled_at else None,
+                "filled_price": float(row.filled_price or 0) if row.filled_price else None,
+                "filled_quantity": int(row.filled_quantity or 0) if row.filled_quantity else None
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting order {order_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.delete("/api/orders/{order_id}")
+async def cancel_order(order_id: str):
+    """Cancel an order"""
+    try:
+        engine = get_database_connection()
+        if not engine:
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        with engine.connect() as conn:
+            # Check if order exists and is cancellable
+            result = conn.execute(text("""
+                SELECT status FROM orders WHERE order_id = :order_id
+            """), {'order_id': order_id})
+            
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Order not found")
+            
+            if row.status in ['filled', 'cancelled']:
+                raise HTTPException(status_code=400, detail=f"Order cannot be cancelled in status: {row.status}")
+            
+            # Update order status
+            conn.execute(text("""
+                UPDATE orders SET status = 'cancelled' WHERE order_id = :order_id
+            """), {'order_id': order_id})
+            conn.commit()
+            
+            return {"message": "Order cancelled successfully", "order_id": order_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling order {order_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel order: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80) 

@@ -103,6 +103,7 @@ make monitor-demo-api
 - [📖 Complete Guide](docs/MONITOR_API_GUIDE.md) - Detailed architecture and setup
 - [⚡ Quick Reference](docs/QUICK_REFERENCE.md) - One-page cheat sheet  
 - [✅ Setup Checklist](docs/MONITOR_API_CHECKLIST.md) - Step-by-step checklist
+- [🎯 Unified Dashboards](docs/UNIFIED_DASHBOARDS_GUIDE.md) - Unified dashboard management system
 
 ### Architecture
 ```
@@ -117,6 +118,7 @@ Monitor    ←→ localhost:10001 ←→ backtest-api ←→ PostgreSQL
 | `Makefile.new` | Main Mission Control | `make -f Makefile.new <target>` |
 | `Makefile.backtest` | Orbital Backtesting | `make -f Makefile.backtest <target>` |
 | `Makefile.kubernetes` | Space Station deployment | `make -f Makefile.kubernetes <target>` |
+| `Makefile.trading-platform` | Unified Dashboard Management | `make -f Makefile.trading-platform <target>` |
 | `Makefile.docker` | Development environment | `make -f Makefile.docker <target>` |
 | `Makefile.database` | Data management | `make -f Makefile.database <target>` |
 
@@ -224,6 +226,20 @@ make -f Makefile.kubernetes kube-rabbitmq     # Deploy RabbitMQ
 make -f Makefile.kubernetes kube-workers      # Deploy workers
 make -f Makefile.kubernetes kube-clean        # Clean up resources
 ```
+
+### Unified Dashboard Management (`Makefile.trading-platform`)
+```bash
+make -f Makefile.trading-platform help                    # Show trading platform help
+make -f Makefile.trading-platform start-unified-dashboards    # Start unified dashboard services
+make -f Makefile.trading-platform stop-unified-dashboards     # Stop unified dashboard services
+make -f Makefile.trading-platform restart-unified-dashboards  # Restart unified dashboard services
+make -f Makefile.trading-platform unified-dashboards          # Set up port forwarding for unified dashboards
+```
+
+**Unified Dashboard URLs:**
+- **Analytics Dashboard**: http://localhost:11141 (consolidates AI stock, central hub, data pipeline)
+- **News Dashboard**: http://localhost:11142 (consolidates RSS dashboard and feed service)
+- **Trading Dashboard**: http://localhost:11143 (consolidates trading, performance, health dashboards)
 
 ### Development Environment (`Makefile.docker`)
 ```bash

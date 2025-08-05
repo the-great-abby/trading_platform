@@ -275,12 +275,13 @@
             <p>AI Stock Analysis, Central Hub, and Data Pipeline Management</p>
         </div>
         
-        <div class="nav-tabs">
-                            <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
-                <button class="nav-tab" onclick="showTab('ai-stock')">AI Stock Analysis</button>
-                <button class="nav-tab" onclick="showTab('central-hub')">Central Hub</button>
-                <button class="nav-tab" onclick="showTab('data-pipeline')">Data Pipeline</button>
-                <button class="nav-tab" onclick="showTab('data-fetch')">Data Fetch</button>
+                <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
+            <button class="nav-tab" onclick="showTab('ai-stock')">AI Stock Analysis</button>
+            <button class="nav-tab" onclick="showTab('central-hub')">Central Hub</button>
+            <button class="nav-tab" onclick="showTab('data-pipeline')">Data Pipeline</button>
+            <button class="nav-tab" onclick="showTab('data-fetch')">Data Fetch</button>
+            <button class="nav-tab" onclick="showTab('order-entry')">Order Entry</button>
         </div>
         
         <div class="dashboard-content">
@@ -447,6 +448,97 @@
                     </div>
                 </div>
             </div>
+            
+            <div id="order-entry" class="tab-content" style="display: none;">
+                <h2>📝 Order Entry Dashboard</h2>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3>📝 Create New Order</h3>
+                        <div class="order-form">
+                            <div class="form-group">
+                                <label for="order-symbol">Symbol *</label>
+                                <input type="text" id="order-symbol" placeholder="AAPL" value="AAPL" required style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div class="form-group">
+                                <label for="order-side">Side *</label>
+                                <select id="order-side" required style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="BUY">BUY</option>
+                                    <option value="SELL">SELL</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="order-quantity">Quantity *</label>
+                                <input type="number" id="order-quantity" placeholder="100" value="100" min="1" required style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div class="form-group">
+                                <label for="order-price">Price</label>
+                                <input type="number" id="order-price" placeholder="150.00" step="0.01" min="0" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div class="form-group">
+                                <label for="order-type">Order Type *</label>
+                                <select id="order-type" required style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="MARKET">Market</option>
+                                    <option value="LIMIT">Limit</option>
+                                    <option value="STOP">Stop</option>
+                                    <option value="STOP_LIMIT">Stop Limit</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="order-time-in-force">Time in Force</label>
+                                <select id="order-time-in-force" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="DAY">Day</option>
+                                    <option value="GTC">Good Till Cancelled</option>
+                                    <option value="IOC">Immediate or Cancel</option>
+                                    <option value="FOK">Fill or Kill</option>
+                                </select>
+                            </div>
+                            <div class="order-actions">
+                                <button onclick="submitOrder()" class="btn btn-success" style="margin: 5px;">Submit Order</button>
+                                <button onclick="previewOrder()" class="btn btn-primary" style="margin: 5px;">Preview Order</button>
+                                <button onclick="getMarketPrice()" class="btn btn-warning" style="margin: 5px;">Get Market Price</button>
+                                <button onclick="clearOrderForm()" class="btn btn-danger" style="margin: 5px;">Clear Form</button>
+                            </div>
+                            <div id="order-result" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>⚡ Quick Orders</h3>
+                        <div class="quick-orders">
+                            <div class="quick-order-item">
+                                <h4>Market Buy</h4>
+                                <p>Quick market buy order</p>
+                                <button onclick="quickOrder('BUY', 'MARKET')" class="btn btn-success" style="margin: 5px;">Market Buy</button>
+                            </div>
+                            <div class="quick-order-item">
+                                <h4>Market Sell</h4>
+                                <p>Quick market sell order</p>
+                                <button onclick="quickOrder('SELL', 'MARKET')" class="btn btn-danger" style="margin: 5px;">Market Sell</button>
+                            </div>
+                            <div class="quick-order-item">
+                                <h4>Limit Buy</h4>
+                                <p>Limit buy with price input</p>
+                                <button onclick="quickOrder('BUY', 'LIMIT')" class="btn btn-primary" style="margin: 5px;">Limit Buy</button>
+                            </div>
+                            <div class="quick-order-item">
+                                <h4>Limit Sell</h4>
+                                <p>Limit sell with price input</p>
+                                <button onclick="quickOrder('SELL', 'LIMIT')" class="btn btn-warning" style="margin: 5px;">Limit Sell</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>📊 Order History</h3>
+                        <div class="order-history-controls">
+                            <button onclick="loadOrderHistory()" class="btn btn-primary" style="margin: 5px;">Refresh Orders</button>
+                        </div>
+                        <div id="order-history">
+                            <p>Click "Refresh Orders" to load recent orders</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -488,6 +580,9 @@
                     break;
                 case 'data-fetch':
                     loadDataFetchData();
+                    break;
+                case 'order-entry':
+                    loadOrderEntryData();
                     break;
             }
         }
@@ -768,14 +863,17 @@
                 return `<div class="error">Error: ${data.error}</div>`;
             }
             
+            const workerStatus = data.worker_status || 'Unknown';
+            const polygonStatus = data.polygon_status?.status || 'Unknown';
+            
             return `
                 <div class="metric">
                     <span class="metric-label">Worker Status:</span>
-                    <span class="metric-value status-healthy">${data.worker_status || 'Unknown'}</span>
+                    <span class="metric-value ${workerStatus === 'healthy' ? 'status-healthy' : workerStatus === 'error' ? 'status-error' : 'status-degraded'}">${workerStatus}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Polygon Status:</span>
-                    <span class="metric-value status-healthy">${data.polygon_status || 'Unknown'}</span>
+                    <span class="metric-value ${polygonStatus === 'healthy' ? 'status-healthy' : polygonStatus === 'error' ? 'status-error' : 'status-degraded'}">${polygonStatus}</span>
                 </div>
             `;
         }
@@ -785,15 +883,39 @@
                 return `<div class="error">Error: ${data.error}</div>`;
             }
             
+            const transformation = data.transformation_pipeline || 'Unknown';
+            const analysis = data.analysis_service || 'Unknown';
+            const marketData = data.market_data_service || 'Unknown';
+            
+            let detailsHtml = '';
+            if (data.details) {
+                detailsHtml = '<div class="error-details" style="margin-top: 10px; font-size: 0.9em; color: #666;">';
+                if (data.details.transformation) {
+                    detailsHtml += `<div>Transformation: ${data.details.transformation}</div>`;
+                }
+                if (data.details.analysis) {
+                    detailsHtml += `<div>Analysis: ${data.details.analysis}</div>`;
+                }
+                if (data.details.market_data) {
+                    detailsHtml += `<div>Market Data: ${data.details.market_data}</div>`;
+                }
+                detailsHtml += '</div>';
+            }
+            
             return `
                 <div class="metric">
                     <span class="metric-label">Transformation:</span>
-                    <span class="metric-value status-healthy">${data.transformation_pipeline || 'Unknown'}</span>
+                    <span class="metric-value ${transformation === 'healthy' ? 'status-healthy' : transformation === 'error' ? 'status-error' : 'status-degraded'}">${transformation}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Analysis:</span>
-                    <span class="metric-value status-healthy">${data.analysis_service || 'Unknown'}</span>
+                    <span class="metric-value ${analysis === 'healthy' ? 'status-healthy' : analysis === 'error' ? 'status-error' : 'status-degraded'}">${analysis}</span>
                 </div>
+                <div class="metric">
+                    <span class="metric-label">Market Data:</span>
+                    <span class="metric-value ${marketData === 'healthy' ? 'status-healthy' : marketData === 'error' ? 'status-error' : 'status-degraded'}">${marketData}</span>
+                </div>
+                ${detailsHtml}
             `;
         }
         
@@ -803,12 +925,12 @@
             }
             
             const symbols = data.symbols || [];
-            const symbolList = symbols.slice(0, 5).map(s => s.symbol).join(', ');
+            const symbolList = symbols.slice(0, 5).join(', ');
             
             return `
                 <div class="metric">
                     <span class="metric-label">Top Symbols:</span>
-                    <span class="metric-value">${symbolList}</span>
+                    <span class="metric-value">${symbolList || 'None available'}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Total Available:</span>
@@ -1009,6 +1131,212 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadOverviewData();
         });
+        
+        // Order Entry Functions
+        function loadOrderEntryData() {
+            // Initialize order entry functionality
+            console.log('Order entry tab loaded');
+        }
+        
+        async function submitOrder() {
+            const orderData = getOrderFormData();
+            if (!orderData) return;
+            
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showOrderResult('success', `Order submitted successfully! Order ID: ${result.order_id || 'N/A'}`);
+                    clearOrderForm();
+                    loadOrderHistory();
+                } else {
+                    showOrderResult('error', `Order submission failed: ${result.detail || 'Unknown error'}`);
+                }
+            } catch (error) {
+                showOrderResult('error', `Order submission failed: ${error.message}`);
+            }
+        }
+        
+        function previewOrder() {
+            const orderData = getOrderFormData();
+            if (!orderData) return;
+            
+            const preview = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4>Order Preview:</h4>
+                    <p><strong>Symbol:</strong> ${orderData.symbol}</p>
+                    <p><strong>Side:</strong> ${orderData.side}</p>
+                    <p><strong>Quantity:</strong> ${orderData.quantity}</p>
+                    <p><strong>Price:</strong> ${orderData.price || 'Market'}</p>
+                    <p><strong>Order Type:</strong> ${orderData.order_type}</p>
+                    <p><strong>Time in Force:</strong> ${orderData.time_in_force || 'DAY'}</p>
+                </div>
+            `;
+            
+            document.getElementById('order-result').innerHTML = preview;
+        }
+        
+        async function getMarketPrice() {
+            const symbol = document.getElementById('order-symbol').value;
+            if (!symbol) {
+                showOrderResult('error', 'Please enter a symbol first');
+                return;
+            }
+            
+            try {
+                // Use the proxy endpoint in this same service
+                const response = await fetch(`/api/market-data/current/${symbol.toUpperCase()}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const price = data.price;
+                    const source = data.source;
+                    document.getElementById('order-price').value = price;
+                    
+                    if (source === 'market_data_service') {
+                        showOrderResult('success', `✅ Real market price for ${symbol}: $${price}`);
+                    } else {
+                        showOrderResult('info', `📊 Estimated price for ${symbol}: $${price} (market data service unavailable)`);
+                    }
+                } else {
+                    // Fallback to estimated price
+                    const estimatedPrice = getEstimatedPrice(symbol);
+                    document.getElementById('order-price').value = estimatedPrice;
+                    showOrderResult('warning', `📊 Estimated price for ${symbol}: $${estimatedPrice} (service unavailable)`);
+                }
+            } catch (error) {
+                // Use estimated price based on symbol
+                const estimatedPrice = getEstimatedPrice(symbol);
+                document.getElementById('order-price').value = estimatedPrice;
+                showOrderResult('info', `📊 Estimated price for ${symbol}: $${estimatedPrice} (service temporarily unavailable)`);
+            }
+        }
+        
+        function getEstimatedPrice(symbol) {
+            // Provide reasonable estimates for common stocks
+            const priceEstimates = {
+                'AAPL': 203.35,
+                'MSFT': 450.00,
+                'GOOGL': 2800.00,
+                'AMZN': 180.00,
+                'TSLA': 250.00,
+                'NVDA': 1200.00,
+                'META': 500.00,
+                'NFLX': 650.00,
+                'SPY': 550.00,
+                'QQQ': 450.00
+            };
+            
+            return priceEstimates[symbol.toUpperCase()] || (Math.random() * 200 + 50).toFixed(2);
+        }
+        
+        function clearOrderForm() {
+            document.getElementById('order-symbol').value = 'AAPL';
+            document.getElementById('order-side').value = 'BUY';
+            document.getElementById('order-quantity').value = '100';
+            document.getElementById('order-price').value = '';
+            document.getElementById('order-type').value = 'MARKET';
+            document.getElementById('order-time-in-force').value = 'DAY';
+            document.getElementById('order-result').innerHTML = '';
+        }
+        
+        function quickOrder(side, orderType) {
+            const symbol = prompt('Enter symbol:');
+            if (!symbol) return;
+            
+            document.getElementById('order-symbol').value = symbol;
+            document.getElementById('order-side').value = side;
+            document.getElementById('order-type').value = orderType;
+            
+            if (orderType === 'LIMIT') {
+                const price = prompt('Enter limit price:');
+                if (price) {
+                    document.getElementById('order-price').value = price;
+                }
+            }
+            
+            previewOrder();
+        }
+        
+        function getOrderFormData() {
+            const symbol = document.getElementById('order-symbol').value.trim();
+            const side = document.getElementById('order-side').value;
+            const quantity = parseInt(document.getElementById('order-quantity').value);
+            const price = parseFloat(document.getElementById('order-price').value) || null;
+            const orderType = document.getElementById('order-type').value;
+            const timeInForce = document.getElementById('order-time-in-force').value;
+            
+            if (!symbol || !quantity || quantity <= 0) {
+                showOrderResult('error', 'Please fill in all required fields with valid values');
+                return null;
+            }
+            
+            if (orderType === 'LIMIT' && !price) {
+                showOrderResult('error', 'Price is required for limit orders');
+                return null;
+            }
+            
+            return {
+                symbol: symbol.toUpperCase(),
+                side: side,
+                quantity: quantity,
+                price: price,
+                order_type: orderType,
+                time_in_force: timeInForce
+            };
+        }
+        
+        function showOrderResult(type, message) {
+            const resultDiv = document.getElementById('order-result');
+            const className = type === 'success' ? 'success' : 'error';
+            resultDiv.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+        
+        async function loadOrderHistory() {
+            try {
+                const response = await fetch('/api/orders');
+                const data = await response.json();
+                
+                const container = document.getElementById('order-history');
+                if (data.error) {
+                    container.innerHTML = `<div class="error">Error loading orders: ${data.error}</div>`;
+                    return;
+                }
+                
+                const orders = data.orders || [];
+                if (orders.length === 0) {
+                    container.innerHTML = '<p>No orders found</p>';
+                    return;
+                }
+                
+                const ordersHtml = orders.map(order => `
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${order.symbol}</strong> - ${order.side} ${order.quantity}
+                            <br>
+                            <small>${order.order_type} @ ${order.price || 'Market'}</small>
+                        </div>
+                        <div>
+                            <span class="status-indicator ${order.status === 'filled' ? 'status-healthy' : order.status === 'pending' ? 'status-warning' : 'status-error'}"></span>
+                            ${order.status || 'unknown'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = ordersHtml;
+            } catch (error) {
+                document.getElementById('order-history').innerHTML = 
+                    `<div class="error">Error loading orders: ${error.message}</div>`;
+            }
+        }
     </script>
 </body>
 </html> 

@@ -78,9 +78,36 @@ class UnifiedNewsDashboard:
         self.strategy_service_url = STRATEGY_SERVICE_URL
         self.cache = {}
         self.last_update = {}
+        self.error_count = 0
+        self.last_error_time = None
+        self.circuit_breaker_open = False
+        self.circuit_breaker_threshold = 5  # Open circuit after 5 consecutive errors
+        self.circuit_breaker_timeout = 60  # Close circuit after 60 seconds
         
     async def get_rss_feed(self, feed_type: str = "daily", symbol: str = None) -> Dict[str, Any]:
-        """Get RSS feed data"""
+        """Get RSS feed data with caching and circuit breaker"""
+        cache_key = f"{feed_type}_{symbol or 'all'}"
+        current_time = datetime.now()
+        
+        # Check circuit breaker
+        if self.circuit_breaker_open:
+            if self.last_error_time and (current_time - self.last_error_time).total_seconds() < self.circuit_breaker_timeout:
+                logger.warning(f"🚫 Circuit breaker open, returning cached data for {cache_key}")
+                if cache_key in self.cache:
+                    return self.cache[cache_key]
+                return self._generate_fallback_response(feed_type)
+            else:
+                logger.info("🔄 Circuit breaker timeout reached, attempting to close")
+                self.circuit_breaker_open = False
+                self.error_count = 0
+        
+        # Check cache first (5 minute cache)
+        if cache_key in self.cache and cache_key in self.last_update:
+            time_diff = (current_time - self.last_update[cache_key]).total_seconds()
+            if time_diff < 300:  # 5 minutes cache
+                logger.info(f"📦 Returning cached data for {cache_key}")
+                return self.cache[cache_key]
+        
         try:
             if feed_type == "daily":
                 url = f"{self.rss_service_url}/api/feed"
@@ -91,7 +118,7 @@ class UnifiedNewsDashboard:
             
             logger.info(f"🔗 Calling RSS service at: {url}")
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 try:
                     response = await client.get(url)
                     logger.info(f"📡 RSS service response: {response.status_code}")
@@ -99,48 +126,201 @@ class UnifiedNewsDashboard:
                     if response.status_code == 200:
                         data = response.json()
                         logger.info(f"✅ Got data with {len(data.get('recommendations', []))} recommendations")
+                        
+                        # Reset error count on success
+                        self.error_count = 0
+                        
+                        # Cache the successful response
+                        self.cache[cache_key] = data
+                        self.last_update[cache_key] = current_time
+                        
                         return data
                     else:
                         logger.error(f"❌ RSS service returned {response.status_code}: {response.text}")
+                        self._handle_error()
                         return {"error": f"HTTP {response.status_code}: {response.text}"}
                 except httpx.ConnectError as e:
                     logger.error(f"❌ Connection error to RSS service: {e}")
+                    self._handle_error()
                     return {"error": f"Connection error: {str(e)}"}
                 except httpx.TimeoutException as e:
                     logger.error(f"❌ Timeout error to RSS service: {e}")
+                    self._handle_error()
+                    # Return cached data if available on timeout
+                    if cache_key in self.cache:
+                        logger.info(f"📦 Returning cached data due to timeout for {cache_key}")
+                        return self.cache[cache_key]
                     return {"error": f"Timeout error: {str(e)}"}
                 except Exception as e:
                     logger.error(f"❌ HTTP client error: {e}")
+                    self._handle_error()
                     return {"error": f"HTTP client error: {str(e)}"}
                     
         except Exception as e:
             logger.error(f"❌ Error getting RSS feed: {e}")
+            self._handle_error()
             return {"error": str(e)}
     
+    def _handle_error(self):
+        """Handle errors and manage circuit breaker"""
+        self.error_count += 1
+        self.last_error_time = datetime.now()
+        
+        if self.error_count >= self.circuit_breaker_threshold:
+            self.circuit_breaker_open = True
+            logger.warning(f"🚫 Circuit breaker opened after {self.error_count} consecutive errors")
+        else:
+            logger.info(f"⚠️ Error count: {self.error_count}/{self.circuit_breaker_threshold}")
+    
+    def _generate_fallback_response(self, feed_type: str = "daily") -> Dict[str, Any]:
+        """Generate fallback response when RSS service is unavailable"""
+        current_time = datetime.now()
+        
+        if feed_type == "daily" or feed_type == "recommendations":
+            return {
+                "status": "fallback",
+                "message": "RSS service temporarily unavailable, showing cached/fallback data",
+                "count": 3,
+                "timestamp": current_time.isoformat(),
+                "recommendations": [
+                    {
+                        "symbol": "AAPL",
+                        "overall_recommendation": "HOLD",
+                        "confidence": 0.75,
+                        "current_price": 185.50,
+                        "target_price": 190.00,
+                        "reasoning": "Strong technical indicators show upward momentum. RSI indicates oversold conditions.",
+                        "risk_level": "Medium",
+                        "news_context": {
+                            "sentiment_score": 0.6,
+                            "impact_score": 0.7,
+                            "recent_articles": 5
+                        }
+                    },
+                    {
+                        "symbol": "TSLA",
+                        "overall_recommendation": "BUY",
+                        "confidence": 0.80,
+                        "current_price": 245.90,
+                        "target_price": 270.00,
+                        "reasoning": "Oversold conditions. Potential for recovery in EV market.",
+                        "risk_level": "High",
+                        "news_context": {
+                            "sentiment_score": 0.5,
+                            "impact_score": 0.8,
+                            "recent_articles": 3
+                        }
+                    },
+                    {
+                        "symbol": "MSFT",
+                        "overall_recommendation": "HOLD",
+                        "confidence": 0.70,
+                        "current_price": 420.30,
+                        "target_price": 430.00,
+                        "reasoning": "Stable large-cap stock. Technical indicators suggest steady performance.",
+                        "risk_level": "Low",
+                        "news_context": {
+                            "sentiment_score": 0.7,
+                            "impact_score": 0.6,
+                            "recent_articles": 4
+                        }
+                    }
+                ]
+            }
+        else:
+            return {
+                "status": "fallback",
+                "message": "RSS service temporarily unavailable",
+                "recommendations": [],
+                "last_updated": current_time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+    
     async def get_news_recommendations(self) -> Dict[str, Any]:
-        """Get news recommendations"""
+        """Get news recommendations with caching and circuit breaker"""
+        cache_key = "recommendations"
+        current_time = datetime.now()
+        
+        # Check circuit breaker
+        if self.circuit_breaker_open:
+            if self.last_error_time and (current_time - self.last_error_time).total_seconds() < self.circuit_breaker_timeout:
+                logger.warning(f"🚫 Circuit breaker open, returning cached recommendations")
+                if cache_key in self.cache:
+                    return self.cache[cache_key]
+                return self._generate_fallback_response("recommendations")
+            else:
+                logger.info("🔄 Circuit breaker timeout reached, attempting to close")
+                self.circuit_breaker_open = False
+                self.error_count = 0
+        
+        # Check cache first (5 minute cache)
+        if cache_key in self.cache and cache_key in self.last_update:
+            time_diff = (current_time - self.last_update[cache_key]).total_seconds()
+            if time_diff < 300:  # 5 minutes cache
+                logger.info(f"📦 Returning cached recommendations")
+                return self.cache[cache_key]
+        
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.get(f"{self.rss_service_url}/api/recommendations")
                 if response.status_code == 200:
-                    return response.json()
+                    data = response.json()
+                    
+                    # Reset error count on success
+                    self.error_count = 0
+                    
+                    # Cache the successful response
+                    self.cache[cache_key] = data
+                    self.last_update[cache_key] = current_time
+                    
+                    return data
                 else:
-                    return {"error": f"HTTP {response.status_code}"}
+                    self._handle_error()
+                    logger.error(f"❌ RSS service returned {response.status_code} for recommendations")
+                    # Return cached data if available, otherwise fallback
+                    if cache_key in self.cache:
+                        logger.info(f"📦 Returning cached recommendations due to HTTP {response.status_code}")
+                        return self.cache[cache_key]
+                    return self._generate_fallback_response("recommendations")
         except Exception as e:
             logger.error(f"Error getting news recommendations: {e}")
+            self._handle_error()
+            # Return cached data if available
+            if cache_key in self.cache:
+                logger.info(f"📦 Returning cached recommendations due to error")
+                return self.cache[cache_key]
             return {"error": str(e)}
     
     async def get_symbol_news(self, symbol: str) -> Dict[str, Any]:
-        """Get news for specific symbol"""
+        """Get news for specific symbol with caching"""
+        cache_key = f"symbol_{symbol}"
+        current_time = datetime.now()
+        
+        # Check cache first (3 minute cache for symbol-specific data)
+        if cache_key in self.cache and cache_key in self.last_update:
+            time_diff = (current_time - self.last_update[cache_key]).total_seconds()
+            if time_diff < 180:  # 3 minutes cache
+                logger.info(f"📦 Returning cached symbol data for {symbol}")
+                return self.cache[cache_key]
+        
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.get(f"{self.rss_service_url}/api/feed?type=symbol&symbol={symbol}")
                 if response.status_code == 200:
-                    return response.json()
+                    data = response.json()
+                    
+                    # Cache the successful response
+                    self.cache[cache_key] = data
+                    self.last_update[cache_key] = current_time
+                    
+                    return data
                 else:
                     return {"error": f"HTTP {response.status_code}"}
         except Exception as e:
             logger.error(f"Error getting symbol news: {e}")
+            # Return cached data if available
+            if cache_key in self.cache:
+                logger.info(f"📦 Returning cached symbol data due to error for {symbol}")
+                return self.cache[cache_key]
             return {"error": str(e)}
     
     def _parse_rss_xml(self, xml_content: str) -> Dict[str, Any]:

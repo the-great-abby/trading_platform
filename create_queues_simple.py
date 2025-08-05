@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Script to create LLM queues in RabbitMQ
+Simple script to create LLM queues in RabbitMQ
 """
 
 import asyncio
 import aio_pika
 import logging
-import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,8 +13,8 @@ logger = logging.getLogger(__name__)
 async def create_llm_queues():
     """Create LLM queues in RabbitMQ"""
     try:
-        # Use the correct RabbitMQ URL with trading user and vhost
-        rabbitmq_url = os.getenv('RABBITMQ_URL', 'amqp://trading:trading_pass@localhost:5672/trading_vhost')
+        # Use the correct RabbitMQ URL with trading user
+        rabbitmq_url = 'amqp://trading:trading_pass@localhost:15672/trading_vhost'
         
         logger.info(f"Connecting to RabbitMQ at {rabbitmq_url}")
         

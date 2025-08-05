@@ -50,6 +50,12 @@ help: ## Show this help message
 	@echo "  $(BLUE)start-platform$(NC)     - Start entire platform"
 	@echo "  $(BLUE)stop-platform$(NC)      - Stop entire platform"
 	@echo "  $(BLUE)restart-platform$(NC)   - Restart entire platform"
+	@echo ""
+	@echo "$(GREEN)Unified Dashboard Management:$(NC)"
+	@echo "  $(BLUE)start-unified-dashboards$(NC)     - Start unified dashboard services"
+	@echo "  $(BLUE)stop-unified-dashboards$(NC)      - Stop unified dashboard services"
+	@echo "  $(BLUE)restart-unified-dashboards$(NC)   - Restart unified dashboard services"
+	@echo "  $(BLUE)unified-dashboards$(NC)           - Set up port forwarding for unified dashboards"
 
 # =============================================================================
 # BUILD COMMANDS
@@ -327,6 +333,33 @@ port-forward: ## Set up port forwarding for local development
 	@echo "  Gateway: http://localhost:11005"
 	@echo "  Dashboard: http://localhost:11001"
 	@echo "  Analytics: http://localhost:11006"
+
+unified-dashboards: ## Set up port forwarding for unified dashboards
+	@echo "$(GREEN)Setting up unified dashboard port forwarding...$(NC)"
+	kubectl port-forward -n $(NAMESPACE) service/unified-analytics-dashboard 11141:80 &
+	kubectl port-forward -n $(NAMESPACE) service/unified-news-dashboard 11142:80 &
+	kubectl port-forward -n $(NAMESPACE) service/unified-trading-dashboard 11143:80 &
+	@echo "$(GREEN)Unified dashboard port forwarding active:$(NC)"
+	@echo "  Analytics Dashboard: http://localhost:11141"
+	@echo "  News Dashboard: http://localhost:11142"
+	@echo "  Trading Dashboard: http://localhost:11143"
+
+start-unified-dashboards: ## Start unified dashboard services
+	@echo "$(GREEN)Starting unified dashboard services...$(NC)"
+	kubectl scale deployment --replicas=1 -n $(NAMESPACE) unified-analytics-dashboard
+	kubectl scale deployment --replicas=1 -n $(NAMESPACE) unified-news-dashboard
+	kubectl scale deployment --replicas=1 -n $(NAMESPACE) unified-trading-dashboard
+	@echo "$(GREEN)Unified dashboard services started!$(NC)"
+
+stop-unified-dashboards: ## Stop unified dashboard services
+	@echo "$(YELLOW)Stopping unified dashboard services...$(NC)"
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) unified-analytics-dashboard
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) unified-news-dashboard
+	kubectl scale deployment --replicas=0 -n $(NAMESPACE) unified-trading-dashboard
+	@echo "$(YELLOW)Unified dashboard services stopped!$(NC)"
+
+restart-unified-dashboards: stop-unified-dashboards start-unified-dashboards ## Restart unified dashboard services
+	@echo "$(GREEN)Unified dashboard services restarted!$(NC)"
 
 health-check: ## Check platform health
 	@echo "$(GREEN)Checking platform health...$(NC)"

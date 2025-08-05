@@ -25,7 +25,7 @@ spec:
         - name: VECTOR_STORAGE_URL
           value: "http://postgres-vector-storage:80"
         - name: LLM_PROXY_URL
-          value: "http://llm-proxy:11109"
+          value: "http://llm-proxy:11081"
         - name: BACKTEST_API_URL
           value: "http://backtest-api:11101"
         - name: MARKET_DATA_URL
