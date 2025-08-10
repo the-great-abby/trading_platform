@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="AI Query Interface", version="1.0.0")
 
 # Configuration
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://llm-proxy:12001")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://host.docker.internal:12001")
 VECTOR_DB_URL = os.getenv("VECTOR_DB_URL", "http://vector-database-service:8000")
 DECISION_ENGINE_URL = os.getenv("DECISION_ENGINE_URL", "http://ai-decision-engine:8000")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8002")
@@ -221,18 +221,26 @@ class AIQueryProcessor:
         
         try:
             async with aiohttp.ClientSession() as session:
+                # Use high priority endpoint for query responses
                 llm_request = {
-                    "prompt": prompt,
-                    "max_tokens": 1000,
+                    "messages": [
+                        {"role": "system", "content": "You are an expert financial advisor and market analyst."},
+                        {"role": "user", "content": prompt}
+                    ],
                     "temperature": 0.3,
-                    "task_type": "query_response"
+                    "max_tokens": 1000,
+                    "model": "gpt-3.5-turbo"
                 }
                 
-                url = f"{LLM_PROXY_URL}/api/chat"
+                # Use high priority endpoint
+                url = f"{LLM_PROXY_URL}/api/high-priority/chat"
                 async with session.post(url, json=llm_request) as response:
                     if response.status == 200:
                         result = await response.json()
-                        return self._parse_query_response(result.get("response", ""), context)
+                        if result.get("success") and result.get("data"):
+                            return self._parse_query_response(result["data"]["content"], context)
+                        else:
+                            return self._parse_query_response(result.get("response", ""), context)
                     else:
                         logger.error(f"LLM service error: {response.status}")
                         return self._get_fallback_response(context)

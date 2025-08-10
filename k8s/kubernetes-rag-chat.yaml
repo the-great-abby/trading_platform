@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-rag-chat
+  namespace: trading-system
+  labels:
+    app: kubernetes-rag-chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubernetes-rag-chat
+  template:
+    metadata:
+      labels:
+        app: kubernetes-rag-chat
+    spec:
+      containers:
+      - name: kubernetes-rag-chat
+        image: localhost:32000/kubernetes-rag-chat:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: LLM_PROXY_URL
+          value: "http://host.docker.internal:12001"
+        - name: VECTOR_STORAGE_URL
+          value: "http://postgres-vector-storage:11006"
+        - name: K8S_DOCS_PATH
+          value: "/app/docs"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-rag-chat
+  namespace: trading-system
+  labels:
+    app: kubernetes-rag-chat
+spec:
+  selector:
+    app: kubernetes-rag-chat
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP

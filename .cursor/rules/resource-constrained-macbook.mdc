@@ -1,0 +1,121 @@
+# Resource-Constrained MacBook Air Rule
+
+## Overview
+This rule ensures optimal deployment for resource-constrained MacBook Air environments by limiting resource usage and pod counts.
+
+## 🖥️ **MacBook Air Resource Constraints**
+- **CPU**: Limited cores, avoid overcommitment
+- **Memory**: 8-16GB total, must be conservative
+- **Storage**: SSD space is precious
+- **Docker Desktop**: Limited resources allocated
+
+## 📋 **Deployment Guidelines**
+
+### **Pod Count Rule**
+- **Maximum**: 1 replica per service
+- **Exception**: Only critical services that need high availability
+- **Rationale**: MacBook Air has limited CPU/memory resources
+
+### **Resource Limits**
+- **CPU Requests**: 50m-200m per pod
+- **CPU Limits**: 100m-500m per pod  
+- **Memory Requests**: 64Mi-256Mi per pod
+- **Memory Limits**: 128Mi-512Mi per pod
+
+### **Resource Optimization**
+- **Database Services**: Higher limits (TimescaleDB, Redis)
+- **Application Services**: Lower limits (APIs, dashboards)
+- **Worker Services**: Minimal limits (background jobs)
+
+## 🚫 **What NOT to Do**
+- ❌ Set replicas > 1 for non-critical services
+- ❌ Use high CPU/memory limits (>500m CPU, >512Mi memory)
+- ❌ Deploy unnecessary services
+- ❌ Overcommit resources
+
+## ✅ **What TO Do**
+- ✅ Use replicas: 1 for most services
+- ✅ Set conservative resource limits
+- ✅ Monitor resource usage with `kubectl top pods`
+- ✅ Clean up unused services regularly
+- ✅ Use resource quotas if needed
+
+## 🔧 **Implementation**
+
+### **Standard Resource Template**
+```yaml
+spec:
+  replicas: 1  # Always 1 for MacBook Air
+  template:
+    spec:
+      containers:
+      - name: service-name
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+```
+
+### **Database Resource Template**
+```yaml
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: database-name
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+```
+
+## 📊 **Resource Monitoring**
+
+### **Check Current Usage**
+```bash
+# Check pod resource usage
+kubectl top pods -n trading-system
+
+# Check node resource usage  
+kubectl describe nodes | grep -A 10 "Allocated resources"
+
+# Check if pods are pending due to resources
+kubectl get pods -n trading-system | grep Pending
+```
+
+### **Resource Cleanup**
+```bash
+# Remove unused services
+kubectl delete deployment <unused-service> -n trading-system
+
+# Scale down if needed
+kubectl scale deployment <service> --replicas=1 -n trading-system
+```
+
+## 🎯 **Priority Services (Keep Running)**
+1. **TimescaleDB** - Primary database
+2. **Redis** - Caching
+3. **RabbitMQ** - Message queue
+4. **Prometheus** - Monitoring
+5. **Grafana** - Dashboards
+6. **Trading Engine** - Core trading logic
+7. **Market Data Service** - Data feeds
+
+## 🗑️ **Optional Services (Can Remove)**
+- Multiple dashboard services (keep only essential)
+- Redundant monitoring services
+- Development-only services
+- Test services
+
+This rule ensures yer MacBook Air stays fast and responsive while running the trading system! ⚓
+description:
+globs:
+alwaysApply: false
+---

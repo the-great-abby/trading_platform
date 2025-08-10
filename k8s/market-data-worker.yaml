@@ -21,7 +21,7 @@ spec:
       - name: market-data-worker
         image: localhost:32000/market-data-worker:latest
         ports:
-        - containerPort: 11108
+        - containerPort: 8080
         env:
         - name: POLYGON_API_KEY
           valueFrom:
@@ -34,7 +34,7 @@ spec:
               name: trading-secrets
               key: database-url
         - name: RABBITMQ_URL
-          value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
+          value: "amqp://trading:trading_pass@rabbitmq-service:11302/trading_vhost"
         - name: MARKET_DATA_UPDATE_INTERVAL
           value: "15"
         - name: MARKET_DATA_GAP_FILL_DAYS
@@ -83,8 +83,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 11108
-    targetPort: 11108
+  - port: 8080
+    targetPort: 8080
     protocol: TCP
     name: http
   selector:

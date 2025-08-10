@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Strategy Test</title>
+</head>
+<body>
+    <h1>Strategy Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testStrategies() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test the API endpoint
+                console.log('Testing API endpoint...');
+                const response = await fetch('http://localhost:11115/api/strategies/');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API Response:', data);
+                    
+                    // Check for new strategies
+                    const newStrategies = ['RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy'];
+                    let found = [];
+                    
+                    if (data.categories && data.categories.advanced) {
+                        for (const strategy of newStrategies) {
+                            if (data.categories.advanced.strategies.includes(strategy)) {
+                                found.push(strategy);
+                            }
+                        }
+                    }
+                    
+                    if (found.length > 0) {
+                        results.innerHTML = `<h2>✅ SUCCESS!</h2><p>Found ${found.length} new strategies: ${found.join(', ')}</p>`;
+                    } else {
+                        results.innerHTML = '<h2>❌ FAILURE</h2><p>New strategies not found in API response</p>';
+                    }
+                } else {
+                    results.innerHTML = `<h2>❌ API Error</h2><p>Status: ${response.status}</p>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<h2>❌ Connection Error</h2><p>${error.message}</p>`;
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = testStrategies;
+    </script>
+</body>
+</html> 

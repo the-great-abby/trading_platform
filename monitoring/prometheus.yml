@@ -5,7 +5,7 @@ global:
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:11190']
   
   # Node Exporter for system metrics
   - job_name: 'node-exporter'
@@ -38,6 +38,14 @@ scrape_configs:
           - 'metrics-test-service:11100'
     metrics_path: '/metrics'
     scrape_interval: 30s
+  
+  # Real Trading Engine with metrics (PRIORITY)
+  - job_name: 'trading-engine-real'
+    static_configs:
+      - targets:
+          - 'trading-engine:11080'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
   
   # Trading services metrics
   - job_name: 'trading-services'

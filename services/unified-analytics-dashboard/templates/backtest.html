@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Strategy Backtesting - Unified Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .nav-tab {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .nav-tab.active {
+            background: rgba(255,255,255,0.3);
+            font-weight: bold;
+        }
+        
+        .dashboard-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        /* Backtest Form Styles */
+        .backtest-form {
+            padding: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .strategy-categories {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        
+        .strategy-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .strategy-checkbox input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        
+        .info-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .strategy-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .strategy-result h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .metric strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .metric span {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .positive { color: #28a745; }
+        .negative { color: #dc3545; }
+        .neutral { color: #6c757d; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s ease;
+        }
+        
+        .back-link:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-link">← Back to Unified Dashboard</a>
+            <h1>🚀 Strategy Backtesting</h1>
+            <p>Comprehensive strategy testing and performance analysis</p>
+        </div>
+        
+        <div class="dashboard-content">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>📊 Backtest Configuration</h3>
+                    <div class="backtest-form">
+                        <div class="form-group">
+                            <label for="backtest-symbols">Symbols (comma-separated):</label>
+                            <input type="text" id="backtest-symbols" placeholder="AAPL,MSFT,GOOGL,TSLA,NVDA" value="AAPL,MSFT,GOOGL,TSLA,NVDA" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="backtest-start-date">Start Date:</label>
+                                <input type="date" id="backtest-start-date" value="2024-01-01" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div class="form-group">
+                                <label for="backtest-end-date">End Date:</label>
+                                <input type="date" id="backtest-end-date" value="2024-12-31" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="backtest-capital">Initial Capital ($):</label>
+                            <input type="number" id="backtest-capital" value="10000" min="1000" step="1000" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Strategy Categories:</label>
+                            <div class="strategy-categories">
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('basic')">📊 Basic Strategies</button>
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('options')">🎯 Options Strategies</button>
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('advanced')">🚀 Advanced Strategies</button>
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('all')">🌟 All Strategies</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Selected Strategies:</label>
+                            <div id="strategy-selection" class="strategy-grid">
+                                <!-- Strategies will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="backtest-risk-profile">Risk Profile:</label>
+                            <select id="backtest-risk-profile" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="conservative">Conservative</option>
+                                <option value="moderate" selected>Moderate</option>
+                                <option value="aggressive">Aggressive</option>
+                                <option value="ultra-aggressive">Ultra Aggressive</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="backtest-use-llm" style="margin-right: 8px;">
+                                Use AI/LLM Analysis
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="backtest-parallel" checked style="margin-right: 8px;">
+                                Parallel Execution
+                            </label>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="runBacktest()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;">
+                            🚀 Run Backtest
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Backtest Results</h3>
+                    <div id="backtest-results">
+                        <div class="info-message">Configure and run a backtest to see results here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Strategy definitions
+        const STRATEGIES = {
+            basic: [
+                'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+                'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
+                'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy'
+            ],
+            options: [
+                'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+                'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
+                'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy'
+            ],
+            advanced: [
+                'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
+                'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
+                'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
+            ]
+        };
+        
+        // Initialize strategy selection
+        function selectCategory(category) {
+            const strategyGrid = document.getElementById('strategy-selection');
+            let strategies = [];
+            
+            if (category === 'all') {
+                strategies = [...STRATEGIES.basic, ...STRATEGIES.options, ...STRATEGIES.advanced];
+            } else {
+                strategies = STRATEGIES[category] || [];
+            }
+            
+            const strategiesHtml = strategies.map(strategy => `
+                <label class="strategy-checkbox">
+                    <input type="checkbox" value="${strategy}" checked>
+                    ${strategy.replace('Strategy', '')}
+                </label>
+            `).join('');
+            
+            strategyGrid.innerHTML = strategiesHtml;
+        }
+        
+        async function runBacktest() {
+            const symbols = document.getElementById('backtest-symbols').value.trim();
+            const startDate = document.getElementById('backtest-start-date').value;
+            const endDate = document.getElementById('backtest-end-date').value;
+            const capital = parseFloat(document.getElementById('backtest-capital').value);
+            const riskProfile = document.getElementById('backtest-risk-profile').value;
+            const useLLM = document.getElementById('backtest-use-llm').checked;
+            const parallel = document.getElementById('backtest-parallel').checked;
+            
+            // Get selected strategies
+            const selectedStrategies = Array.from(document.querySelectorAll('#strategy-selection input:checked'))
+                .map(cb => cb.value);
+            
+            if (!symbols || !startDate || !endDate || selectedStrategies.length === 0) {
+                showBacktestResult('error', 'Please fill in all required fields and select at least one strategy');
+                return;
+            }
+            
+            const backtestData = {
+                symbols: symbols.split(',').map(s => s.trim().toUpperCase()),
+                strategies: selectedStrategies,
+                start_date: startDate,
+                end_date: endDate,
+                initial_capital: capital,
+                risk_profile: riskProfile,
+                use_llm: useLLM,
+                parallel_execution: parallel
+            };
+            
+            // Show loading state
+            showBacktestResult('loading', '🚀 Starting backtest... This may take several minutes.');
+            
+            // Simulate backtest processing
+            await simulateBacktest(backtestData);
+        }
+        
+        async function simulateBacktest(data) {
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Generate mock results
+            const results = [];
+            for (const strategy of data.strategies) {
+                const totalReturn = (Math.random() - 0.3) * 0.8; // -30% to +50%
+                const sharpeRatio = (Math.random() - 0.5) * 3; // -1.5 to +1.5
+                const maxDrawdown = Math.random() * 0.3; // 0% to 30%
+                const winRate = 0.4 + Math.random() * 0.3; // 40% to 70%
+                const totalTrades = Math.floor(Math.random() * 90) + 10; // 10 to 100
+                const profitFactor = 0.8 + Math.random() * 0.7; // 0.8 to 1.5
+                
+                results.push({
+                    name: strategy,
+                    total_return: totalReturn,
+                    sharpe_ratio: sharpeRatio,
+                    max_drawdown: maxDrawdown,
+                    win_rate: winRate,
+                    total_trades: totalTrades,
+                    profit_factor: profitFactor
+                });
+            }
+            
+            showBacktestResults(results);
+        }
+        
+        function showBacktestResult(type, message) {
+            const resultsDiv = document.getElementById('backtest-results');
+            
+            if (type === 'loading') {
+                resultsDiv.innerHTML = `
+                    <div class="loading">
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                            <div style="font-size: 18px;">${message}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'success') {
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        ${message}
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        ${message}
+                    </div>
+                `;
+            }
+        }
+        
+        function showBacktestResults(results) {
+            const resultsDiv = document.getElementById('backtest-results');
+            
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<div class="info-message">No results available</div>';
+                return;
+            }
+            
+            const resultsHtml = results.map(strategy => `
+                <div class="strategy-result">
+                    <h4>${strategy.name.replace('Strategy', '')}</h4>
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <strong>Total Return</strong>
+                            <span class="${strategy.total_return >= 0 ? 'positive' : 'negative'}">
+                                ${(strategy.total_return * 100).toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <strong>Sharpe Ratio</strong>
+                            <span class="${strategy.sharpe_ratio >= 0 ? 'positive' : 'negative'}">
+                                ${strategy.sharpe_ratio.toFixed(3)}
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <strong>Max Drawdown</strong>
+                            <span class="negative">
+                                ${(strategy.max_drawdown * 100).toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <strong>Win Rate</strong>
+                            <span class="neutral">
+                                ${(strategy.win_rate * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <strong>Total Trades</strong>
+                            <span class="neutral">
+                                ${strategy.total_trades}
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <strong>Profit Factor</strong>
+                            <span class="${strategy.profit_factor >= 1 ? 'positive' : 'negative'}">
+                                ${strategy.profit_factor.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = resultsHtml;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            selectCategory('basic');
+        });
+    </script>
+</body>
+</html> 

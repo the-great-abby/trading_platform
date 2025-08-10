@@ -71,6 +71,32 @@ def update_provider_health_failure():
     update_data_source_health("alpha_vantage", False)
     update_data_source_health("iex_cloud", False)
 
+def get_latest_price_from_db(symbol: str) -> Optional[float]:
+    """Get the latest price from the database cache"""
+    try:
+        # Get the most recent data from the database
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=7)  # Get last 7 days to ensure we have recent data
+        
+        logger.info(f"🔍 DEBUG: {symbol} - Checking database for recent data from {start_date} to {end_date}")
+        
+        # Try to get data from Polygon first (our primary source)
+        data = db_service.get_historical_data(symbol, start_date, end_date, provider="polygon", interval="1d")
+        
+        if data is not None and not data.empty:
+            # Get the most recent close price
+            latest_price = data['Close'].iloc[-1]
+            latest_date = data.index[-1]  # The index is the date
+            logger.info(f"✅ DEBUG: {symbol} - Found latest price from database: {latest_price} (date: {latest_date})")
+            return float(latest_price)
+        else:
+            logger.warning(f"⚠️ DEBUG: {symbol} - No recent data found in database")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ DEBUG: {symbol} - Error getting price from database: {e}")
+        return None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -79,6 +105,9 @@ app = FastAPI(title="Market Data Service", version="1.0.0")
 
 # Initialize the market data manager with Polygon as primary provider
 market_data_manager = get_market_data_manager()
+
+# Initialize the database service for cache access
+db_service = MarketDataService()
 
 # Mock cache for demonstration
 cache = {}
@@ -264,32 +293,98 @@ async def get_historical_data(request: MarketDataRequest):
 @app.get("/market-data/current/{symbol}")
 async def get_current_price(symbol: str):
     """Get current price for a symbol"""
+    logger.info(f"🔍 DEBUG: {symbol} - ENHANCED VERSION - Starting get_current_price")
     start_time = time.time()
     
     try:
-        logger.info(f"Fetching current price for {symbol}")
+        logger.info(f"🔍 DEBUG: Starting price fetch for {symbol}")
         
-        # Check cache first
+        # First, try to get price from database cache
+        logger.info(f"🔍 DEBUG: {symbol} - Checking database cache first")
+        db_price = get_latest_price_from_db(symbol)
+        
+        if db_price is not None:
+            record_cache_hit(symbol, "current")
+            logger.info(f"✅ DEBUG: {symbol} - Using database cache: {db_price}")
+            
+            # Mark Polygon as healthy since we got data from database
+            update_data_source_health("polygon", True)
+            
+            # Record metrics
+            duration = time.time() - start_time
+            record_data_request(symbol, "current", "success", duration)
+            record_data_points_processed(symbol, "current", 1)
+            
+            # Get additional data for comprehensive response even for cached data
+            logger.info(f"🔍 DEBUG: {symbol} - Starting additional data calculation for cached data")
+            volume = 0
+            change_percent = 0.0
+            market_cap = "N/A"
+            
+            try:
+                # Try to get recent historical data to calculate change and volume
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=5)
+                
+                # Use the market data manager to get historical data
+                historical_data = market_data_manager.get_historical_data(
+                    symbol, 
+                    start_date.strftime("%Y-%m-%d"), 
+                    end_date.strftime("%Y-%m-%d"), 
+                    "1d"
+                )
+                
+                if historical_data is not None and not historical_data.empty and len(historical_data) >= 2:
+                    # Calculate change percent from last 2 days
+                    current_price = db_price
+                    previous_price = float(historical_data['Close'].iloc[-2])
+                    change_percent = ((current_price - previous_price) / previous_price) * 100
+                    
+                    # Get volume from most recent data
+                    volume = int(historical_data['Volume'].iloc[-1]) if 'Volume' in historical_data.columns else 0
+                    
+                    logger.info(f"✅ DEBUG: {symbol} - Calculated change: {change_percent:.2f}%, volume: {volume:,}")
+            except Exception as e:
+                logger.warning(f"⚠️ DEBUG: {symbol} - Could not get additional data: {e}")
+            
+            return {
+                "symbol": symbol,
+                "price": db_price,
+                "volume": volume,
+                "change_percent": round(change_percent, 2),
+                "market_cap": market_cap,
+                "timestamp": datetime.now().isoformat(),
+                "source": "database_cache"
+            }
+        
+        # If no database cache, check in-memory cache
         cache_key = f"{symbol}_current"
         if cache_key in cache:
             record_cache_hit(symbol, "current")
             price_data = cache[cache_key]
+            logger.info(f"🔍 DEBUG: {symbol} - Using in-memory cache: {price_data}")
             # For cached data, mark both providers as healthy
             update_data_source_health("polygon", True)
             update_data_source_health("yahoo_finance", True)
         else:
             record_cache_miss(symbol, "current")
+            logger.info(f"🔍 DEBUG: {symbol} - Cache miss, fetching from providers")
             
             # Get current price from market data manager (Polygon primary, Yahoo Finance fallback)
+            logger.info(f"🔍 DEBUG: {symbol} - Calling market_data_manager.get_live_price()")
             price_data = market_data_manager.get_live_price(symbol)
+            logger.info(f"🔍 DEBUG: {symbol} - market_data_manager returned: {price_data}")
             
             # Cache the result for 1 minute
             cache[cache_key] = price_data
+            logger.info(f"🔍 DEBUG: {symbol} - Cached result: {price_data}")
         
         if price_data is None:
-            logger.warning(f"No current price data for {symbol}")
+            logger.warning(f"❌ DEBUG: {symbol} - No current price data (None returned)")
             record_data_error("no_price_data", symbol)
             raise HTTPException(status_code=404, detail=f"No price data available for {symbol}")
+        
+        logger.info(f"✅ DEBUG: {symbol} - Final price data: {price_data} (type: {type(price_data)})")
         
         # Record metrics
         duration = time.time() - start_time
@@ -301,10 +396,46 @@ async def get_current_price(symbol: str):
         # since the fallback system worked and we got data
         update_provider_health_success(["PolygonProvider"], duration)
         
+        # Get additional data for comprehensive response
+        logger.info(f"🔍 DEBUG: {symbol} - Starting additional data calculation")
+        volume = 0
+        change_percent = 0.0
+        market_cap = "N/A"
+        
+        try:
+            # Try to get recent historical data to calculate change and volume
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=5)
+            
+            # Use the market data manager to get historical data
+            historical_data = market_data_manager.get_historical_data(
+                symbol, 
+                start_date.strftime("%Y-%m-%d"), 
+                end_date.strftime("%Y-%m-%d"), 
+                "1d"
+            )
+            
+            if historical_data is not None and not historical_data.empty and len(historical_data) >= 2:
+                # Calculate change percent from last 2 days
+                current_price = price_data
+                previous_price = float(historical_data['Close'].iloc[-2])
+                change_percent = ((current_price - previous_price) / previous_price) * 100
+                
+                # Get volume from most recent data
+                volume = int(historical_data['Volume'].iloc[-1]) if 'Volume' in historical_data.columns else 0
+                
+                logger.info(f"✅ DEBUG: {symbol} - Calculated change: {change_percent:.2f}%, volume: {volume:,}")
+        except Exception as e:
+            logger.warning(f"⚠️ DEBUG: {symbol} - Could not get additional data: {e}")
+        
         return {
             "symbol": symbol,
             "price": price_data,
-            "timestamp": datetime.now().isoformat()
+            "volume": volume,
+            "change_percent": round(change_percent, 2),
+            "market_cap": market_cap,
+            "timestamp": datetime.now().isoformat(),
+            "source": "api_providers"
         }
         
     except Exception as e:
@@ -315,7 +446,7 @@ async def get_current_price(symbol: str):
         # Mark providers as unhealthy if request failed
         update_provider_health_failure()
         
-        logger.error(f"Error fetching current price for {symbol}: {e}")
+        logger.error(f"❌ DEBUG: {symbol} - Error fetching current price: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching price: {str(e)}")
 
 @app.get("/market-data/symbols")

@@ -9,97 +9,68 @@
 | AI Analysis Service | 11085 | 11085 | ✅ Active | http://localhost:11085/ |
 | LLM Proxy | 11081 | 11081 | ✅ Active | http://localhost:11081/ |
 | LLM Service | 11109 | 11109 | ✅ Active | http://localhost:11109/ |
+| Market Data Service | 11084 | 11084 | ✅ Active | http://localhost:11084/ |
 
 ## 🎯 Service Categories
 
-### **📊 Dashboard Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| Unified Analytics Dashboard | 80 | 11141 | ✅ Active | http://localhost:11141/ |
-| Unified Trading Dashboard | 80 | - | ⏸️ LoadBalancer | http://localhost:32193/ |
-| Unified News Dashboard | 80 | - | ⏸️ LoadBalancer | http://localhost:31531/ |
-| Central Hub Dashboard | 80 | - | ⏸️ LoadBalancer | http://localhost:32250/ |
-| AI Stock Dashboard | 80 | - | ❌ Not Forwarded | - |
-| Performance Dashboard | 80 | - | ❌ Not Forwarded | - |
-| Health Dashboard | 80 | - | ❌ Not Forwarded | - |
-| RSS Dashboard | 80 | - | ❌ Not Forwarded | - |
-| Data Pipeline Dashboard | 11137 | - | ❌ Not Forwarded | - |
+### **�� Dashboard Services (11000-11099)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| Central Hub | 11080 | http://localhost:11080/ | ❌ Not Forwarded | Main navigation hub |
+| Performance | 11000 | http://localhost:11000/dashboard | ❌ Not Forwarded | Performance analytics |
+| Health | 11002 | http://localhost:11002/dashboard | ❌ Not Forwarded | System health monitoring |
+| RSS Dashboard | 11003 | http://localhost:11003/ | ❌ Not Forwarded | RSS feed viewer |
+| AI Stock | 11086 | http://localhost:11086/ | ❌ Not Forwarded | AI stock analysis |
 
-### **🤖 AI/ML Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| AI Analysis Service | 11085 | 11085 | ✅ Active | http://localhost:11085/ |
-| LLM Proxy | 11081 | 11081 | ✅ Active | http://localhost:11081/ |
-| LLM Service | 11109 | 11109 | ✅ Active | http://localhost:11109/ |
-| Ollama | 11434 | - | ❌ Not Forwarded | - |
-| Analytics Service | 8006 | - | ❌ Not Forwarded | - |
-| Postgres Vector Storage | 80 | - | ❌ Not Forwarded | - |
-| Report Viewer Service | 80 | - | ❌ Not Forwarded | - |
+### **📈 Unified Dashboards (11110-11119)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| Unified Analytics | 11141 | http://localhost:11141/ | ✅ Active | **Main analytics dashboard with enhanced status tracking** |
+| Unified Trading | 11114 | http://localhost:11114/ | ❌ Not Forwarded | Trading interface |
+| Unified News | 11113 | http://localhost:11113/ | ❌ Not Forwarded | News dashboard |
 
-### **📈 Data Processing Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| Market Data Service | 11084 | - | ❌ Not Forwarded | - |
-| Data Processing Service | 11095 | - | ❌ Not Forwarded | - |
-| Data Transformation Pipeline | 11135 | - | ❌ Not Forwarded | - |
-| Data Analysis Service | 11136 | - | ❌ Not Forwarded | - |
-| Metrics Test Service | 11100 | - | ❌ Not Forwarded | - |
-| Market Data Worker | 11108 | - | ❌ Not Forwarded | - |
+### **💼 Trading Services (11099-11109)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| Trading Ultra | 11099 | http://localhost:11099/ | ❌ Not Forwarded | All-in-one trading service |
+| Market Data | 11084 | http://localhost:11084/ | ✅ Active | Market data service |
+| Backtest API | 11101 | http://localhost:11101/ | ❌ Not Forwarded | Backtesting service |
 
-### **💼 Trading Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| Trading Ultra Service | 80 | - | ❌ Not Forwarded | - |
-| Trading Core Service | 11090 | - | ❌ Not Forwarded | - |
-| Trading Dashboard Service | 11129 | - | ❌ Not Forwarded | - |
-| Trading Service | 80 | - | ❌ Not Forwarded | - |
-| Trading Gateway | 80 | - | ⏸️ LoadBalancer | http://localhost:30430/ |
-| Backtest API | 11101 | - | ❌ Not Forwarded | - |
-| Backtest Request Service | 80 | - | ❌ Not Forwarded | - |
+### **📈 Monitoring Services (11190-11199)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| Grafana | 11102 | http://localhost:11102/ | ❌ Not Forwarded | Monitoring dashboards |
+| Prometheus | 11190 | http://localhost:11190/ | ❌ Not Forwarded | Metrics collection |
+| Postgres Exporter | 11191 | localhost:11191 | ❌ Not Forwarded | Database metrics |
+| RabbitMQ Exporter | 11192 | localhost:11192 | ❌ Not Forwarded | Message queue metrics |
+| Node Exporter | 11193 | localhost:11193 | ❌ Not Forwarded | System metrics |
 
-### **📊 Monitoring Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| Grafana | 3000 | - | ❌ Not Forwarded | - |
-| Prometheus | 9090 | - | ❌ Not Forwarded | - |
-| Postgres Exporter | 9187 | - | ❌ Not Forwarded | - |
-| RabbitMQ Exporter | 9419 | - | ❌ Not Forwarded | - |
-| Node Exporter | 9100 | - | ❌ Not Forwarded | - |
-| Infrastructure Metrics Collector | 11103 | - | ❌ Not Forwarded | - |
+### **🔄 Data Processing Services (11100-11119)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| Data Processing | 11095 | localhost:11095 | ❌ Not Forwarded | Data processing pipeline |
+| Data Transformation | 11135 | localhost:11135 | ❌ Not Forwarded | Data transformation |
+| Data Analysis | 11136 | localhost:11136 | ❌ Not Forwarded | Data analysis service |
+| Metrics Test | 11100 | localhost:11100 | ❌ Not Forwarded | Metrics testing |
 
-### **🗄️ Database Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| TimescaleDB | 5432 | - | ❌ Not Forwarded | - |
-| PostgreSQL | 5432 | - | ❌ Not Forwarded | - |
-| PostgreSQL Dev | 5432 | - | ❌ Not Forwarded | - |
-| PostgreSQL Service | 5432 | - | ❌ Not Forwarded | - |
-| Redis | 6379 | - | ❌ Not Forwarded | - |
-| Redis Dev | 11304 | - | ❌ Not Forwarded | - |
-| Redis Service | 6379 | - | ❌ Not Forwarded | - |
-| RabbitMQ | 5672,15672 | - | ❌ Not Forwarded | - |
-| RabbitMQ Service | 11302,11303 | - | ❌ Not Forwarded | - |
+### **🤖 AI/ML Services (11120-11139)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| Ollama | 11120 | http://localhost:11120/ | ❌ Not Forwarded | LLM service |
+| LLM Proxy | 11121 | http://localhost:11121/ | ❌ Not Forwarded | LLM proxy service |
+| Analytics Service | 11122 | http://localhost:11122/ | ❌ Not Forwarded | Analytics API |
+| Postgres Vector | 11123 | http://localhost:11123/ | ❌ Not Forwarded | Vector storage |
+| Report Viewer | 11124 | http://localhost:11124/ | ❌ Not Forwarded | Report viewing |
+| Notification | 11125 | localhost:11125 | ❌ Not Forwarded | Notification service |
 
-### **📰 News & RSS Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| RSS Feed Service | 11004 | - | ❌ Not Forwarded | - |
-
-### **🔧 Management Services**
-| Service | Internal Port | External Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| Notification Service | 8007 | - | ❌ Not Forwarded | - |
-| Order Management Service | 11123 | - | ❌ Not Forwarded | - |
-| Order Service | 80 | - | ❌ Not Forwarded | - |
-| Portfolio Service | 80 | - | ❌ Not Forwarded | - |
-| Risk Management Service | 11124 | - | ❌ Not Forwarded | - |
-| Risk Service | 80 | - | ❌ Not Forwarded | - |
-| Signal Management Service | 11125 | - | ❌ Not Forwarded | - |
-| Strategy Management Service | 11126 | - | ❌ Not Forwarded | - |
-| Strategy Performance Monitor | 11127 | - | ❌ Not Forwarded | - |
-| Strategy Service | 80 | - | ❌ Not Forwarded | - |
-| Compliance Service | 11120 | - | ❌ Not Forwarded | - |
-| Public API | 80 | - | ❌ Not Forwarded | - |
+### **🗄️ Database Services (11140-11149)**
+| Service | Port | URL | Status | Description |
+|---------|------|-----|--------|-------------|
+| TimescaleDB | 11140 | localhost:11140 | ❌ Not Forwarded | Time-series database |
+| PostgreSQL | 11141 | localhost:11141 | ❌ Not Forwarded | Legacy database |
+| Redis | 11142 | localhost:11142 | ❌ Not Forwarded | Cache database |
+| Redis Dev | 11143 | localhost:11143 | ❌ Not Forwarded | Development cache |
+| RabbitMQ | 11144 | localhost:11144 | ❌ Not Forwarded | Message queue |
 
 ## 🚀 Quick Commands
 
@@ -149,6 +120,28 @@ After any port forwarding changes:
 3. Test the new port forwards
 4. Update the PORT_FORWARDING_GUIDE.md if needed
 
+## 🆕 Enhanced Dashboard Features
+
+The **Unified Analytics Dashboard** now includes:
+
+### **Enhanced Central Hub Status:**
+- **Worker Queue Status**: Shows active queues, consumers, and pending messages
+- **Real-time Activity**: Tracks worker processing, market data, and pipeline activity
+- **Data Coverage**: Shows actual symbols and coverage statistics
+- **Polygon Status**: Detailed status with data source information
+
+### **Worker Queue Information:**
+- **Active Queues**: 8 LLM worker queues (llm.sentiment, llm.signal, etc.)
+- **Active Consumers**: 10 total consumers across all queues
+- **Pending Messages**: Real-time message count
+- **Queue States**: Running status for each queue
+
+### **Recent Activity Tracking:**
+- **Worker Activity**: LLM worker processing status
+- **Market Data**: Real-time market data service status
+- **Processing**: Data transformation pipeline activity
+- **Error Reporting**: Detailed error messages and status
+
 ---
 
-*This document is automatically updated when port forwarding changes are made.* 
+*This document is automatically updated when port forwarding changes are made.*

@@ -23,7 +23,7 @@ spec:
         - containerPort: 8081
         env:
         - name: LLM_SERVICE_URL
-          value: "http://ollama:11434"
+          value: "http://host.docker.internal:11434"
         resources:
           requests:
             memory: "128Mi"

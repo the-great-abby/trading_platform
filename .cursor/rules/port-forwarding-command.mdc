@@ -1,0 +1,139 @@
+description: Automatic port forwarding management based on user commands
+globs: []
+alwaysApply: true
+---
+# Port Forwarding Command Rule
+
+## Overview
+This rule automatically checks and restarts port forwarding when the user uses specific command phrases. It ensures the trading system dashboards are always accessible.
+
+## Trigger Phrases
+When the user says any of these phrases, automatically check and restart port forwarding:
+- "Shields are down!"
+- "Forward the ports!"
+- "Ports are down!"
+- "Check the ports!"
+- "Restart port forwarding!"
+- "Port forwarding failed!"
+
+## Automatic Grafana Update Actions
+When Grafana dashboards are updated or Grafana is restarted, automatically restart port forwarding:
+
+1. **After Grafana ConfigMap Updates**
+   - When `kubectl apply -f monitoring/grafana-dashboards-configmap.yaml` is run
+   - When `kubectl rollout restart deployment/grafana` is run
+   - Automatically restart Grafana port forward after 5 seconds
+
+2. **After Dashboard Updates**
+   - When any Grafana dashboard is modified
+   - When Grafana deployment is restarted
+   - Ensure port forwarding is restored
+
+## Automatic Port Forwarding Restart
+After any Grafana-related operations, automatically:
+```bash
+# Wait for Grafana to restart
+sleep 5
+
+# Restart Grafana port forward
+pkill -f "kubectl port-forward.*grafana"
+kubectl port-forward service/grafana 11044:3000 -n trading-system &
+
+# Test Grafana health
+sleep 2
+curl -s http://localhost:11044/api/health
+```
+
+## Automatic Actions
+When triggered, perform these steps in order:
+
+1. **Check Current Port Forwards**
+   ```bash
+   ps aux | grep "kubectl port-forward" | grep -v grep
+   ```
+
+2. **Stop All Existing Port Forwards**
+   ```bash
+   pkill -f "kubectl port-forward"
+   ```
+
+3. **Wait for Cleanup**
+   ```bash
+   sleep 2
+   ```
+
+4. **Check Port Availability**
+   ```bash
+   lsof -i :11113 && lsof -i :11114 && lsof -i :11115 && lsof -i :11044
+   ```
+
+5. **Restart Essential Port Forwards**
+   ```bash
+   # Unified Analytics Dashboard
+   kubectl port-forward service/unified-analytics-dashboard 11114:80 -n trading-system &
+   
+   # Unified Trading Dashboard  
+   kubectl port-forward service/unified-trading-dashboard 11115:80 -n trading-system &
+   
+   # Unified News Dashboard
+   kubectl port-forward service/unified-news-dashboard 11113:80 -n trading-system &
+   
+   # Grafana Monitoring Dashboard
+   kubectl port-forward service/grafana 11044:3000 -n trading-system &
+   ```
+
+6. **Wait for Startup**
+   ```bash
+   sleep 3
+   ```
+
+7. **Test All Ports**
+   ```bash
+   curl -s http://localhost:11113/health
+   curl -s http://localhost:11114/health  
+   curl -s http://localhost:11115/health
+   curl -s http://localhost:11044/api/health
+   ```
+
+8. **Report Status**
+   - Show which ports are working
+   - List any failed ports
+   - Provide URLs for working dashboards
+
+## Dashboard URLs
+- **Unified Analytics Dashboard**: http://localhost:11114/
+- **Unified Trading Dashboard**: http://localhost:11115/
+- **Unified News Dashboard**: http://localhost:11113/
+- **Grafana Monitoring Dashboard**: http://localhost:11044/
+
+## Error Handling
+- If a port is already in use, kill existing processes first
+- If a service is not running, report which service needs to be started
+- If health checks fail, provide troubleshooting steps
+
+## Success Message
+When all ports are working:
+```
+✅ All shields are up! Port forwarding restored:
+- Analytics Dashboard: http://localhost:11114/ ✅
+- Trading Dashboard: http://localhost:11115/ ✅  
+- News Dashboard: http://localhost:11113/ ✅
+- Grafana Monitoring: http://localhost:11044/ ✅
+
+🔄 Automatic Updates: Port forwarding will be automatically restarted after Grafana updates
+```
+
+## Failure Message
+When some ports fail:
+```
+⚠️ Some shields are still down:
+- Working: [list working ports]
+- Failed: [list failed ports]
+- Troubleshooting: [next steps]
+```
+
+This rule ensures the trading system is always accessible with a simple command phrase.
+description:
+globs:
+alwaysApply: false
+---

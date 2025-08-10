@@ -228,23 +228,27 @@ class YahooFinanceService:
         Returns:
             Current price or None if failed
         """
+        logger.info(f"🔍 DEBUG: YahooFinanceService.get_live_price({symbol}) - Starting")
+        
         try:
             # Get recent data (last 2 days to ensure we have current data)
             end_date = datetime.now().strftime("%Y-%m-%d")
             start_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
             
+            logger.info(f"🔍 DEBUG: {symbol} - Getting historical data from {start_date} to {end_date}")
             data = self.get_historical_data(symbol, start_date, end_date, "1d")
             
             if data is not None and not data.empty:
                 # Get the most recent close price
                 latest_price = data['Close'].iloc[-1]
+                logger.info(f"✅ DEBUG: {symbol} - Found latest close price: {latest_price}")
                 return float(latest_price)
             else:
-                logger.warning(f"No price data available for {symbol}")
+                logger.warning(f"⚠️ DEBUG: {symbol} - No price data available from Yahoo Finance")
                 return None
                 
         except Exception as e:
-            logger.error(f"Error getting live price for {symbol}: {str(e)}")
+            logger.error(f"❌ DEBUG: {symbol} - Error getting live price from Yahoo Finance: {str(e)}")
             return None
     
     def get_multiple_symbols(self, symbols: List[str], start_date: str, end_date: str, interval: str = "1d") -> Dict[str, pd.DataFrame]:

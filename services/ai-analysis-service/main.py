@@ -172,22 +172,29 @@ Focus on:
 
     try:
         async with aiohttp.ClientSession() as session:
-            # Call LLM proxy service
+            # Call LLM proxy service with normal priority (background analysis)
             llm_request = {
-                "prompt": prompt,
-                "max_tokens": 500,
+                "messages": [
+                    {"role": "system", "content": "You are an expert stock analyst and trading advisor."},
+                    {"role": "user", "content": prompt}
+                ],
                 "temperature": 0.3,
-                "task_type": "stock_analysis"
+                "max_tokens": 500,
+                "model": "gpt-3.5-turbo"
             }
             
-            url = f"{LLM_PROXY_URL}/api/chat"
+            # Use normal priority endpoint for background analysis
+            url = f"{LLM_PROXY_URL}/api/v1/llm"
             async with session.post(url, json=llm_request) as response:
                 if response.status == 200:
                     result = await response.json()
                     # Parse LLM response
                     try:
-                        # Extract JSON from LLM response
-                        response_text = result.get("response", "")
+                        if result.get("success") and result.get("data"):
+                            response_text = result["data"]["content"]
+                        else:
+                            response_text = result.get("response", "")
+                        
                         # Find JSON in the response
                         start_idx = response_text.find('{')
                         end_idx = response_text.rfind('}') + 1

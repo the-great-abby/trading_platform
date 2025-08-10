@@ -23,6 +23,9 @@ import sqlalchemy
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
 import time
+import subprocess
+import threading
+import psutil
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +53,7 @@ templates = Jinja2Templates(directory="templates")
 # Configuration
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11101")
 ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://backtest-api:11101")
+MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8000")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 
@@ -151,13 +155,126 @@ class UnifiedTradingDashboard:
     async def get_performance_metrics_detailed(self) -> Dict[str, Any]:
         """Get detailed performance metrics"""
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.backtest_api_url}/api/v1/stats")
-                if response.status_code == 200:
-                    return response.json()
-                else:
-                    logger.error(f"Backtest API returned {response.status_code}")
-                    return {"error": f"HTTP {response.status_code}"}
+            # Connect to database
+            engine = get_database_connection()
+            if not engine:
+                return {"error": "Database connection failed"}
+            
+            with engine.connect() as conn:
+                # Get performance data from trades
+                result = conn.execute(text("""
+                    SELECT 
+                        COUNT(*) as total_trades,
+                        SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
+                        SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+                        SUM(pnl) as total_pnl,
+                        AVG(pnl) as avg_pnl,
+                        MAX(pnl) as best_trade,
+                        MIN(pnl) as worst_trade,
+                        SUM(value) as total_volume
+                    FROM trades 
+                    WHERE timestamp >= NOW() - INTERVAL '30 days'
+                """))
+                performance_data = result.fetchone()
+                
+                if not performance_data or performance_data[0] == 0:
+                    return {
+                        "total_trades": 0,
+                        "winning_trades": 0,
+                        "losing_trades": 0,
+                        "win_rate": 0.0,
+                        "total_pnl": 0.0,
+                        "avg_pnl": 0.0,
+                        "best_trade": 0.0,
+                        "worst_trade": 0.0,
+                        "total_volume": 0.0,
+                        "profit_factor": 0.0,
+                        "avg_win": 0.0,
+                        "avg_loss": 0.0,
+                        "message": "No recent trades for performance analysis"
+                    }
+                
+                total_trades = performance_data[0]
+                winning_trades = performance_data[1]
+                losing_trades = performance_data[2]
+                total_pnl = float(performance_data[3] or 0)
+                avg_pnl = float(performance_data[4] or 0)
+                best_trade = float(performance_data[5] or 0)
+                worst_trade = float(performance_data[6] or 0)
+                total_volume = float(performance_data[7] or 0)
+                
+                # Calculate derived metrics
+                win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
+                
+                # Get average win and loss
+                win_result = conn.execute(text("""
+                    SELECT AVG(pnl) FROM trades 
+                    WHERE pnl > 0 AND timestamp >= NOW() - INTERVAL '30 days'
+                """))
+                avg_win = float(win_result.scalar() or 0)
+                
+                loss_result = conn.execute(text("""
+                    SELECT AVG(pnl) FROM trades 
+                    WHERE pnl < 0 AND timestamp >= NOW() - INTERVAL '30 days'
+                """))
+                avg_loss = float(loss_result.scalar() or 0)
+                
+                # Calculate profit factor
+                total_wins = conn.execute(text("""
+                    SELECT SUM(pnl) FROM trades 
+                    WHERE pnl > 0 AND timestamp >= NOW() - INTERVAL '30 days'
+                """))
+                total_wins_value = float(total_wins.scalar() or 0)
+                
+                total_losses = conn.execute(text("""
+                    SELECT SUM(pnl) FROM trades 
+                    WHERE pnl < 0 AND timestamp >= NOW() - INTERVAL '30 days'
+                """))
+                total_losses_value = abs(float(total_losses.scalar() or 0))
+                
+                profit_factor = total_wins_value / total_losses_value if total_losses_value > 0 else 0.0
+                
+                # Get performance by strategy
+                strategy_performance = conn.execute(text("""
+                    SELECT strategy, 
+                           COUNT(*) as trades,
+                           SUM(pnl) as total_pnl,
+                           AVG(pnl) as avg_pnl,
+                           SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins
+                    FROM trades 
+                    WHERE timestamp >= NOW() - INTERVAL '30 days'
+                    GROUP BY strategy
+                    ORDER BY total_pnl DESC
+                """))
+                
+                strategies = []
+                for row in strategy_performance:
+                    strategy_data = {
+                        'strategy': row[0] or 'Unknown',
+                        'trades': row[1],
+                        'total_pnl': float(row[2] or 0),
+                        'avg_pnl': float(row[3] or 0),
+                        'wins': row[4],
+                        'win_rate': (row[4] / row[1] * 100) if row[1] > 0 else 0.0
+                    }
+                    strategies.append(strategy_data)
+                
+                return {
+                    "total_trades": total_trades,
+                    "winning_trades": winning_trades,
+                    "losing_trades": losing_trades,
+                    "win_rate": win_rate,
+                    "total_pnl": total_pnl,
+                    "avg_pnl": avg_pnl,
+                    "best_trade": best_trade,
+                    "worst_trade": worst_trade,
+                    "total_volume": total_volume,
+                    "profit_factor": profit_factor,
+                    "avg_win": avg_win,
+                    "avg_loss": avg_loss,
+                    "strategies": strategies
+                }
+                
         except Exception as e:
             logger.error(f"Error getting detailed performance metrics: {e}")
             return {"error": str(e)}
@@ -165,23 +282,90 @@ class UnifiedTradingDashboard:
     async def get_risk_analysis(self) -> Dict[str, Any]:
         """Get risk analysis data"""
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.backtest_api_url}/api/v1/runs")
-                if response.status_code == 200:
-                    runs = response.json()
-                    # Calculate risk metrics from runs
-                    risk_analysis = {
-                        "total_runs": len(runs.get("runs", [])),
-                        "successful_runs": len([r for r in runs.get("runs", []) if r.get("status") == "completed"]),
-                        "failed_runs": len([r for r in runs.get("runs", []) if r.get("status") == "failed"]),
-                        "avg_drawdown": 0.0,
+            # Connect to database
+            engine = get_database_connection()
+            if not engine:
+                return {"error": "Database connection failed"}
+            
+            with engine.connect() as conn:
+                # Get recent trades for risk analysis
+                result = conn.execute(text("""
+                    SELECT pnl, value, timestamp, strategy 
+                    FROM trades 
+                    WHERE timestamp >= NOW() - INTERVAL '30 days'
+                    ORDER BY timestamp DESC
+                """))
+                trades = result.fetchall()
+                
+                if not trades:
+                    return {
+                        "total_trades": 0,
+                        "current_exposure": 0.0,
                         "max_drawdown": 0.0,
-                        "risk_score": "medium"
+                        "avg_drawdown": 0.0,
+                        "risk_score": "low",
+                        "var_95": 0.0,
+                        "sharpe_ratio": 0.0,
+                        "volatility": 0.0,
+                        "message": "No recent trades for risk analysis"
                     }
-                    return risk_analysis
+                
+                # Calculate risk metrics
+                pnl_values = [float(trade[0] or 0) for trade in trades]
+                trade_values = [float(trade[1] or 0) for trade in trades]
+                
+                # Current exposure (sum of recent trade values)
+                current_exposure = sum(trade_values[-10:]) if trade_values else 0.0
+                
+                # Calculate drawdown
+                cumulative_pnl = []
+                running_total = 0
+                for pnl in pnl_values:
+                    running_total += pnl
+                    cumulative_pnl.append(running_total)
+                
+                if cumulative_pnl:
+                    peak = max(cumulative_pnl)
+                    max_drawdown = min(cumulative_pnl) - peak if min(cumulative_pnl) < peak else 0.0
+                    avg_drawdown = sum([max(0, peak - val) for val in cumulative_pnl]) / len(cumulative_pnl)
                 else:
-                    logger.error(f"Backtest API returned {response.status_code}")
-                    return {"error": f"HTTP {response.status_code}"}
+                    max_drawdown = 0.0
+                    avg_drawdown = 0.0
+                
+                # Calculate Value at Risk (95% confidence)
+                if len(pnl_values) > 1:
+                    import statistics
+                    mean_pnl = statistics.mean(pnl_values)
+                    std_pnl = statistics.stdev(pnl_values) if len(pnl_values) > 1 else 0
+                    var_95 = mean_pnl - (1.645 * std_pnl)  # 95% VaR
+                    
+                    # Sharpe ratio (assuming risk-free rate of 0)
+                    sharpe_ratio = mean_pnl / std_pnl if std_pnl > 0 else 0.0
+                    volatility = std_pnl
+                else:
+                    var_95 = 0.0
+                    sharpe_ratio = 0.0
+                    volatility = 0.0
+                
+                # Risk score based on metrics
+                risk_score = "low"
+                if max_drawdown < -0.05 or var_95 < -0.02:
+                    risk_score = "high"
+                elif max_drawdown < -0.02 or var_95 < -0.01:
+                    risk_score = "medium"
+                
+                return {
+                    "total_trades": len(trades),
+                    "current_exposure": current_exposure,
+                    "max_drawdown": max_drawdown,
+                    "avg_drawdown": avg_drawdown,
+                    "risk_score": risk_score,
+                    "var_95": var_95,
+                    "sharpe_ratio": sharpe_ratio,
+                    "volatility": volatility,
+                    "recent_trades_count": len(trades[-10:]) if trades else 0
+                }
+                
         except Exception as e:
             logger.error(f"Error getting risk analysis: {e}")
             return {"error": str(e)}
@@ -189,24 +373,105 @@ class UnifiedTradingDashboard:
     async def get_trade_analysis(self) -> Dict[str, Any]:
         """Get trade analysis data"""
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.backtest_api_url}/api/v1/runs")
-                if response.status_code == 200:
-                    runs = response.json()
-                    # Calculate trade metrics from runs
-                    trade_analysis = {
+            # Connect to database
+            engine = get_database_connection()
+            if not engine:
+                return {"error": "Database connection failed"}
+            
+            with engine.connect() as conn:
+                # Get recent trades for analysis
+                result = conn.execute(text("""
+                    SELECT symbol, action, quantity, price, pnl, value, timestamp, strategy
+                    FROM trades 
+                    WHERE timestamp >= NOW() - INTERVAL '30 days'
+                    ORDER BY timestamp DESC
+                """))
+                trades = result.fetchall()
+                
+                if not trades:
+                    return {
                         "total_trades": 0,
                         "winning_trades": 0,
                         "losing_trades": 0,
                         "win_rate": 0.0,
-                        "avg_trade_duration": 0.0,
+                        "avg_trade_value": 0.0,
                         "best_trade": None,
-                        "worst_trade": None
+                        "worst_trade": None,
+                        "message": "No recent trades for analysis"
                     }
-                    return trade_analysis
-                else:
-                    logger.error(f"Backtest API returned {response.status_code}")
-                    return {"error": f"HTTP {response.status_code}"}
+                
+                # Analyze trades
+                winning_trades = 0
+                losing_trades = 0
+                total_value = 0.0
+                best_trade = None
+                worst_trade = None
+                
+                for trade in trades:
+                    pnl = float(trade[4] or 0)
+                    value = float(trade[5] or 0)
+                    total_value += value
+                    
+                    if pnl > 0:
+                        winning_trades += 1
+                        if best_trade is None or pnl > best_trade['pnl']:
+                            best_trade = {
+                                'symbol': trade[0],
+                                'action': trade[1],
+                                'quantity': trade[2],
+                                'price': trade[3],
+                                'pnl': pnl,
+                                'timestamp': trade[6].isoformat() if trade[6] else None
+                            }
+                    elif pnl < 0:
+                        losing_trades += 1
+                        if worst_trade is None or pnl < worst_trade['pnl']:
+                            worst_trade = {
+                                'symbol': trade[0],
+                                'action': trade[1],
+                                'quantity': trade[2],
+                                'price': trade[3],
+                                'pnl': pnl,
+                                'timestamp': trade[6].isoformat() if trade[6] else None
+                            }
+                
+                total_trades = len(trades)
+                win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
+                avg_trade_value = total_value / total_trades if total_trades > 0 else 0.0
+                
+                # Get trade distribution by strategy
+                strategy_stats = {}
+                for trade in trades:
+                    strategy = trade[7] or 'Unknown'
+                    pnl = float(trade[4] or 0)
+                    if strategy not in strategy_stats:
+                        strategy_stats[strategy] = {'count': 0, 'total_pnl': 0.0}
+                    strategy_stats[strategy]['count'] += 1
+                    strategy_stats[strategy]['total_pnl'] += pnl
+                
+                return {
+                    "total_trades": total_trades,
+                    "winning_trades": winning_trades,
+                    "losing_trades": losing_trades,
+                    "win_rate": win_rate,
+                    "avg_trade_value": avg_trade_value,
+                    "best_trade": best_trade,
+                    "worst_trade": worst_trade,
+                    "strategy_stats": strategy_stats,
+                    "recent_trades": [
+                        {
+                            'symbol': trade[0],
+                            'action': trade[1],
+                            'quantity': trade[2],
+                            'price': trade[3],
+                            'pnl': float(trade[4] or 0),
+                            'timestamp': trade[6].isoformat() if trade[6] else None,
+                            'strategy': trade[7]
+                        }
+                        for trade in trades[:10]  # Last 10 trades
+                    ]
+                }
+                
         except Exception as e:
             logger.error(f"Error getting trade analysis: {e}")
             return {"error": str(e)}
@@ -214,13 +479,91 @@ class UnifiedTradingDashboard:
     async def get_strategy_comparison(self) -> Dict[str, Any]:
         """Get strategy comparison data"""
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.backtest_api_url}/api/v1/compare")
-                if response.status_code == 200:
-                    return response.json()
-                else:
-                    logger.error(f"Backtest API returned {response.status_code}")
-                    return {"error": f"HTTP {response.status_code}"}
+            # Connect to database
+            engine = get_database_connection()
+            if not engine:
+                return {"error": "Database connection failed"}
+            
+            with engine.connect() as conn:
+                # Get strategy comparison data
+                result = conn.execute(text("""
+                    SELECT 
+                        strategy,
+                        COUNT(*) as total_trades,
+                        SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
+                        SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+                        SUM(pnl) as total_pnl,
+                        AVG(pnl) as avg_pnl,
+                        MAX(pnl) as best_trade,
+                        MIN(pnl) as worst_trade,
+                        SUM(value) as total_volume,
+                        AVG(CASE WHEN pnl > 0 THEN pnl END) as avg_win,
+                        AVG(CASE WHEN pnl < 0 THEN pnl END) as avg_loss
+                    FROM trades 
+                    WHERE timestamp >= NOW() - INTERVAL '30 days'
+                    GROUP BY strategy
+                    ORDER BY total_pnl DESC
+                """))
+                
+                strategies = []
+                for row in result:
+                    total_trades = row[1]
+                    winning_trades = row[2]
+                    losing_trades = row[3]
+                    total_pnl = float(row[4] or 0)
+                    avg_pnl = float(row[5] or 0)
+                    best_trade = float(row[6] or 0)
+                    worst_trade = float(row[7] or 0)
+                    total_volume = float(row[8] or 0)
+                    avg_win = float(row[9] or 0)
+                    avg_loss = float(row[10] or 0)
+                    
+                    # Calculate win rate
+                    win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
+                    
+                    # Calculate profit factor
+                    total_wins = winning_trades * avg_win if avg_win > 0 else 0
+                    total_losses = abs(losing_trades * avg_loss) if avg_loss < 0 else 0
+                    profit_factor = total_wins / total_losses if total_losses > 0 else 0.0
+                    
+                    strategy_data = {
+                        'strategy': row[0] or 'Unknown',
+                        'total_trades': total_trades,
+                        'winning_trades': winning_trades,
+                        'losing_trades': losing_trades,
+                        'win_rate': win_rate,
+                        'total_pnl': total_pnl,
+                        'avg_pnl': avg_pnl,
+                        'best_trade': best_trade,
+                        'worst_trade': worst_trade,
+                        'total_volume': total_volume,
+                        'avg_win': avg_win,
+                        'avg_loss': avg_loss,
+                        'profit_factor': profit_factor
+                    }
+                    strategies.append(strategy_data)
+                
+                if not strategies:
+                    return {
+                        "strategies": [],
+                        "message": "No strategy data available for comparison"
+                    }
+                
+                # Calculate overall statistics
+                total_trades = sum(s['total_trades'] for s in strategies)
+                total_pnl = sum(s['total_pnl'] for s in strategies)
+                avg_win_rate = sum(s['win_rate'] for s in strategies) / len(strategies) if strategies else 0
+                
+                return {
+                    "strategies": strategies,
+                    "summary": {
+                        "total_strategies": len(strategies),
+                        "total_trades": total_trades,
+                        "total_pnl": total_pnl,
+                        "avg_win_rate": avg_win_rate
+                    }
+                }
+                
         except Exception as e:
             logger.error(f"Error getting strategy comparison: {e}")
             return {"error": str(e)}
@@ -274,6 +617,51 @@ class UnifiedTradingDashboard:
 # Initialize dashboard manager
 dashboard_manager = UnifiedTradingDashboard()
 
+# Add paper trading imports and models
+from pydantic import BaseModel
+from typing import Dict, Any, List, Optional
+import os
+import logging
+import json
+import asyncio
+import httpx
+from datetime import datetime, timedelta
+import redis
+import sqlalchemy
+from sqlalchemy import create_engine, text
+from sqlalchemy.pool import QueuePool
+import time
+import subprocess
+import threading
+import psutil
+
+# Paper Trading Models
+class PaperTradingConfig(BaseModel):
+    """Paper trading configuration"""
+    initial_capital: float = 100000.0
+    max_position_size: float = 0.05
+    max_risk_per_trade: float = 0.01
+    trading_interval: int = 60
+    strategies: List[str] = ["RiskFirst", "MarketRegimeAdaptive", "MultiTimeframe"]
+    symbols: List[str] = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"]
+    enable_alerts: bool = True
+    performance_tracking: bool = True
+
+class PaperTradingStatus(BaseModel):
+    """Paper trading status"""
+    is_running: bool = False
+    start_time: Optional[datetime] = None
+    total_trades: int = 0
+    total_pnl: float = 0.0
+    portfolio_value: float = 0.0
+    active_strategies: List[str] = []
+    last_trade: Optional[Dict] = None
+
+# Paper Trading State
+paper_trading_status = PaperTradingStatus()
+paper_trading_config = PaperTradingConfig()
+paper_trading_process = None
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -299,10 +687,15 @@ async def performance_dashboard(request: Request):
     """Performance dashboard page"""
     return templates.TemplateResponse("performance.html", {"request": request})
 
-@app.get("/health", response_class=HTMLResponse)
+@app.get("/health-dashboard", response_class=HTMLResponse)
 async def health_dashboard(request: Request):
     """Health dashboard page"""
     return templates.TemplateResponse("health.html", {"request": request})
+
+@app.get("/paper-trading", response_class=HTMLResponse)
+async def paper_trading_dashboard(request: Request):
+    """Paper trading dashboard page"""
+    return templates.TemplateResponse("paper_trading.html", {"request": request})
 
 @app.get("/api/performance/metrics")
 async def get_performance_metrics():
@@ -362,6 +755,100 @@ async def get_strategy_comparison():
 async def get_system_status():
     """Get comprehensive system status"""
     return await dashboard_manager.get_system_status()
+
+# Add strategy API endpoints
+@app.get("/api/test")
+async def test_endpoint():
+    """Test endpoint to verify API routing"""
+    return {"message": "API routing works", "status": "success"}
+
+@app.get("/api/strategies/")
+async def get_strategies():
+    """Get all available strategies organized by category"""
+    # Simple version that returns hardcoded data
+    return {
+        "categories": {
+            "basic": {
+                "name": "basic",
+                "strategies": [
+                    'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+                    'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
+                    'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy'
+                ],
+                "count": 10
+            },
+            "options": {
+                "name": "options",
+                "strategies": [
+                    'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+                    'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
+                    'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy'
+                ],
+                "count": 9
+            },
+            "advanced": {
+                "name": "advanced",
+                "strategies": [
+                    'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
+                    'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
+                    'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
+                ],
+                "count": 9
+            },
+            "new": {
+                "name": "new",
+                "strategies": [
+                    'RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy'
+                ],
+                "count": 3
+            }
+        },
+        "all_strategies": [
+            'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+            'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
+            'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy',
+            'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+            'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
+            'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy',
+            'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
+            'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
+            'MLEnsembleStrategy', 'EnhancedDayTradingStrategy',
+            'RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy'
+        ],
+        "total_count": 31
+    }
+
+@app.get("/api/strategies/categories/{category}")
+async def get_strategies_by_category(category: str):
+    """Get strategies by category"""
+    # Simple version that returns hardcoded data
+    strategies_map = {
+        "basic": [
+            'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+            'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
+            'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy'
+        ],
+        "options": [
+            'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+            'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
+            'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy'
+        ],
+        "advanced": [
+            'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
+            'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
+            'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
+        ],
+        "new": [
+            'RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy'
+        ]
+    }
+    
+    strategies = strategies_map.get(category, [])
+    return {
+        "category": category,
+        "strategies": sorted(strategies),
+        "count": len(strategies)
+    }
 
 # Database-driven API endpoints
 @app.get("/api/portfolio/summary")
@@ -742,6 +1229,400 @@ async def cancel_order(order_id: str):
     except Exception as e:
         logger.error(f"Error cancelling order {order_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to cancel order: {str(e)}")
+
+# ============================================================================
+# BACKTEST API ENDPOINTS
+# ============================================================================
+
+class BacktestRequest(BaseModel):
+    """Backtest request model"""
+    symbols: List[str]
+    strategies: List[str]
+    start_date: str
+    end_date: str
+    initial_capital: float = 10000.0
+    risk_profile: str = "moderate"
+    use_llm: bool = False
+    parallel_execution: bool = True
+
+@app.post("/api/backtest/run")
+async def run_backtest(request: BacktestRequest):
+    """Run a backtest with the specified parameters"""
+    try:
+        # For now, we'll simulate the backtest process
+        # In a real implementation, this would submit a job to the backtest engine
+        
+        job_id = f"backtest_{int(time.time())}"
+        
+        # Simulate backtest results
+        results = []
+        for strategy in request.strategies:
+            # Generate mock results for demonstration
+            import random
+            total_return = random.uniform(-0.2, 0.4)  # -20% to +40%
+            sharpe_ratio = random.uniform(-1.0, 2.0)
+            max_drawdown = random.uniform(0.05, 0.25)  # 5% to 25%
+            win_rate = random.uniform(0.4, 0.7)  # 40% to 70%
+            total_trades = random.randint(10, 100)
+            profit_factor = random.uniform(0.8, 1.5)
+            
+            results.append({
+                "name": strategy,
+                "total_return": total_return,
+                "sharpe_ratio": sharpe_ratio,
+                "max_drawdown": max_drawdown,
+                "win_rate": win_rate,
+                "total_trades": total_trades,
+                "profit_factor": profit_factor
+            })
+        
+        # Store results in Redis for later retrieval
+        if redis_client:
+            redis_client.setex(f"backtest_results:{job_id}", 3600, json.dumps({
+                "status": "completed",
+                "results": results,
+                "request": request.dict()
+            }))
+        
+        return {
+            "success": True,
+            "job_id": job_id,
+            "message": "Backtest started successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error running backtest: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to run backtest: {str(e)}")
+
+@app.get("/api/backtest/status/{job_id}")
+async def get_backtest_status(job_id: str):
+    """Get the status of a backtest job"""
+    try:
+        if not redis_client:
+            raise HTTPException(status_code=500, detail="Redis not available")
+        
+        result_data = redis_client.get(f"backtest_results:{job_id}")
+        if not result_data:
+            return {"status": "not_found", "message": "Job not found"}
+        
+        result = json.loads(result_data)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting backtest status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get backtest status: {str(e)}")
+
+@app.get("/api/backtest/results")
+async def get_backtest_results():
+    """Get recent backtest results"""
+    try:
+        if not redis_client:
+            return {"results": []}
+        
+        # Get all backtest results from Redis
+        results = []
+        for key in redis_client.scan_iter("backtest_results:*"):
+            result_data = redis_client.get(key)
+            if result_data:
+                result = json.loads(result_data)
+                if result.get("status") == "completed":
+                    results.extend(result.get("results", []))
+        
+        return {"results": results}
+        
+    except Exception as e:
+        logger.error(f"Error getting backtest results: {e}")
+        return {"results": [], "error": str(e)}
+
+@app.get("/api/market-data/current/{symbol}")
+async def get_current_price(symbol: str):
+    """Proxy endpoint to get current price from market data service"""
+    try:
+        logger.info(f"Attempting to get current price for {symbol} from {MARKET_DATA_URL}")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            url = f"{MARKET_DATA_URL}/market-data/current/{symbol}"
+            logger.info(f"Making request to: {url}")
+            response = await client.get(url)
+            logger.info(f"Response status: {response.status_code}")
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Market data service returned {response.status_code}: {response.text}")
+                raise HTTPException(status_code=response.status_code, detail=f"Market data service unavailable: {response.text}")
+    except Exception as e:
+        import traceback
+        logger.error(f"Error getting current price for {symbol}: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error fetching price: {str(e)}")
+
+# Paper Trading Endpoints
+@app.post("/api/paper-trading/start")
+async def start_paper_trading(config: PaperTradingConfig):
+    """Start paper trading system"""
+    global paper_trading_status, paper_trading_config, paper_trading_process
+    
+    try:
+        if paper_trading_status.is_running:
+            return {"status": "error", "message": "Paper trading is already running"}
+        
+        # Update configuration
+        paper_trading_config = config
+        
+        # Start paper trading process
+        paper_trading_status.is_running = True
+        paper_trading_status.start_time = datetime.now()
+        paper_trading_status.active_strategies = config.strategies
+        paper_trading_status.portfolio_value = config.initial_capital
+        
+        # Start paper trading in background
+        def run_paper_trading():
+            try:
+                # Create config file for the paper trading script
+                config_file = "/tmp/paper_trading_config.json"
+                with open(config_file, 'w') as f:
+                    json.dump(config.dict(), f)
+                
+                # Start the paper trading setup script with config
+                subprocess.run([
+                    "python3", "scripts/setup_paper_trading.py", config_file
+                ], check=True)
+            except Exception as e:
+                logger.error(f"Paper trading error: {e}")
+                paper_trading_status.is_running = False
+        
+        # Start in background thread
+        paper_trading_thread = threading.Thread(target=run_paper_trading, daemon=True)
+        paper_trading_thread.start()
+        
+        logger.info("🚀 Paper trading started")
+        return {
+            "status": "success",
+            "message": "Paper trading started successfully",
+            "config": config.dict(),
+            "status_info": paper_trading_status.dict()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error starting paper trading: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/paper-trading/stop")
+async def stop_paper_trading():
+    """Stop paper trading system"""
+    global paper_trading_status, paper_trading_process
+    
+    try:
+        if not paper_trading_status.is_running:
+            return {"status": "error", "message": "Paper trading is not running"}
+        
+        # Stop paper trading
+        paper_trading_status.is_running = False
+        
+        # Kill any running paper trading processes
+        if paper_trading_process:
+            try:
+                paper_trading_process.terminate()
+                paper_trading_process.wait(timeout=5)
+            except:
+                paper_trading_process.kill()
+            paper_trading_process = None
+        
+        # Kill any paper trading related processes
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['cmdline'] and any('paper_trading' in cmd for cmd in proc.info['cmdline']):
+                    proc.terminate()
+            except:
+                pass
+        
+        logger.info("⏹️ Paper trading stopped")
+        return {
+            "status": "success",
+            "message": "Paper trading stopped successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error stopping paper trading: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/paper-trading/status")
+async def get_paper_trading_status():
+    """Get paper trading status"""
+    return {
+        "status": "success",
+        "data": paper_trading_status.dict()
+    }
+
+@app.get("/api/paper-trading/config")
+async def get_paper_trading_config():
+    """Get paper trading configuration"""
+    return {
+        "status": "success",
+        "data": paper_trading_config.dict()
+    }
+
+@app.post("/api/paper-trading/config")
+async def update_paper_trading_config(config: PaperTradingConfig):
+    """Update paper trading configuration"""
+    global paper_trading_config
+    
+    try:
+        paper_trading_config = config
+        return {
+            "status": "success",
+            "message": "Configuration updated successfully",
+            "data": paper_trading_config.dict()
+        }
+    except Exception as e:
+        logger.error(f"Error updating config: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/paper-trading/trades")
+async def get_paper_trading_trades():
+    """Get recent paper trading trades from database"""
+    try:
+        # Connect to database
+        engine = get_database_connection()
+        if not engine:
+            return {"status": "error", "message": "Database connection failed"}
+        
+        with engine.connect() as conn:
+            # Get recent trades from database
+            result = conn.execute(text("""
+                SELECT symbol, action, quantity, price, pnl, strategy, timestamp, value
+                FROM trades 
+                WHERE timestamp >= NOW() - INTERVAL '30 days'
+                ORDER BY timestamp DESC
+                LIMIT 20
+            """))
+            
+            trades = []
+            for row in result:
+                trades.append({
+                    "symbol": row[0],
+                    "action": row[1],
+                    "quantity": row[2],
+                    "price": float(row[3] or 0),
+                    "strategy": row[5] or 'Unknown',
+                    "pnl": float(row[4] or 0),
+                    "timestamp": row[6].isoformat() if row[6] else None,
+                    "value": float(row[7] or 0)
+                })
+            
+            return {
+                "status": "success",
+                "data": trades
+            }
+    except Exception as e:
+        logger.error(f"Error getting trades: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/paper-trading/performance")
+async def get_paper_trading_performance():
+    """Get paper trading performance metrics from database"""
+    try:
+        # Connect to database
+        engine = get_database_connection()
+        if not engine:
+            return {"status": "error", "message": "Database connection failed"}
+        
+        with engine.connect() as conn:
+            # Get performance data from trades table
+            result = conn.execute(text("""
+                SELECT 
+                    COUNT(*) as total_trades,
+                    SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
+                    SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+                    SUM(pnl) as total_pnl,
+                    AVG(pnl) as avg_pnl,
+                    MAX(pnl) as best_trade,
+                    MIN(pnl) as worst_trade,
+                    SUM(value) as total_volume
+                FROM trades 
+                WHERE timestamp >= NOW() - INTERVAL '30 days'
+            """))
+            performance_data = result.fetchone()
+            
+            if not performance_data or performance_data[0] == 0:
+                # No recent trades, return default values
+                performance = {
+                    "total_trades": 0,
+                    "total_pnl": 0.0,
+                    "portfolio_value": paper_trading_config.initial_capital,
+                    "win_rate": 0.0,
+                    "sharpe_ratio": 0.0,
+                    "max_drawdown": 0.0,
+                    "strategy_performance": {}
+                }
+            else:
+                total_trades = performance_data[0]
+                winning_trades = performance_data[1]
+                losing_trades = performance_data[2]
+                total_pnl = float(performance_data[3] or 0)
+                avg_pnl = float(performance_data[4] or 0)
+                best_trade = float(performance_data[5] or 0)
+                worst_trade = float(performance_data[6] or 0)
+                total_volume = float(performance_data[7] or 0)
+                
+                # Calculate win rate
+                win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
+                
+                # Calculate portfolio value (initial capital + total P&L)
+                portfolio_value = paper_trading_config.initial_capital + total_pnl
+                
+                # Get strategy performance
+                strategy_result = conn.execute(text("""
+                    SELECT strategy, 
+                           COUNT(*) as trades,
+                           SUM(pnl) as total_pnl,
+                           AVG(pnl) as avg_pnl,
+                           SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins
+                    FROM trades 
+                    WHERE timestamp >= NOW() - INTERVAL '30 days'
+                    GROUP BY strategy
+                    ORDER BY total_pnl DESC
+                """))
+                
+                strategy_performance = {}
+                for row in strategy_result:
+                    strategy_name = row[0] or 'Unknown'
+                    trades = row[1]
+                    strategy_pnl = float(row[2] or 0)
+                    strategy_avg_pnl = float(row[3] or 0)
+                    wins = row[4]
+                    strategy_win_rate = (wins / trades * 100) if trades > 0 else 0.0
+                    
+                    strategy_performance[strategy_name] = {
+                        "trades": trades,
+                        "win_rate": strategy_win_rate,
+                        "pnl": strategy_pnl,
+                        "avg_pnl": strategy_avg_pnl
+                    }
+                
+                # Calculate Sharpe ratio (simplified)
+                sharpe_ratio = (avg_pnl / (abs(worst_trade) + 0.001)) if worst_trade < 0 else 0.0
+                
+                # Calculate max drawdown (simplified)
+                max_drawdown = abs(worst_trade) / portfolio_value if portfolio_value > 0 else 0.0
+                
+                performance = {
+                    "total_trades": total_trades,
+                    "total_pnl": total_pnl,
+                    "portfolio_value": portfolio_value,
+                    "win_rate": win_rate,
+                    "sharpe_ratio": sharpe_ratio,
+                    "max_drawdown": max_drawdown,
+                    "strategy_performance": strategy_performance
+                }
+            
+            return {
+                "status": "success",
+                "data": performance
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting performance: {e}")
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80) 

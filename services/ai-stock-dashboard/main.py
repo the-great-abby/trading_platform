@@ -50,7 +50,8 @@ templates = Jinja2Templates(directory="templates")
 
 # Configuration - Real service URLs
 VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:80")
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://llm-proxy:11081")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://host.docker.internal:12001")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11031")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:11084")
 RSS_FEED_URL = os.getenv("RSS_FEED_URL", "http://rss-feed-service:11004")
@@ -572,9 +573,22 @@ class AIStockAnalyzer:
                 logger.info(f"Calling LLM service at: {self.llm_proxy_url}/api/v1/llm")
                 logger.info(f"LLM request: {llm_request}")
                 
-                url = f"{self.llm_proxy_url}/api/v1/llm"
+                # Use high priority endpoint for stock analysis
+                url = f"{self.llm_proxy_url}/api/high-priority/chat"
                 logger.info(f"Making POST request to: {url}")
-                async with session.post(url, json=llm_request, timeout=120) as response:
+                
+                # Convert to high priority format
+                high_priority_request = {
+                    "messages": [
+                        {"role": "system", "content": "You are an expert stock analyst and trading advisor."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 800,
+                    "model": "gpt-3.5-turbo"
+                }
+                
+                async with session.post(url, json=high_priority_request, timeout=120) as response:
                     logger.info(f"LLM service response status: {response.status}")
                     if response.status == 200:
                         result = await response.json()

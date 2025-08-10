@@ -19,7 +19,7 @@
 # See also: make constrained-help and make deploy-help for more options
 # =====================================================================
 
-.PHONY: help status sync critical debug progress learning blocker startup llm-fix-resource-fix
+.PHONY: help status sync critical debug progress learning blocker startup llm-fix-resource-fix k8s-learn k8s-learn-preview k8s-rag-chat k8s-rag-chat-deploy
 
 # Colors for output
 GREEN := \033[0;32m
@@ -42,6 +42,12 @@ help: ## Show this help message
 	@echo "  llm-fix   - Show llm-worker fix progress"
 	@echo "  resource-fix - Show resource scaling progress"
 	@echo "  dashboard-fix - Show Grafana dashboard fixes progress"
+	@echo ""
+	@echo "$(GREEN)Kubernetes Learning:$(NC)"
+	@echo "  k8s-learn - Open Kubernetes Learning Guide (markdown)"
+	@echo "  k8s-learn-preview - Show Kubernetes Learning Guide preview (text)"
+	@echo "  k8s-rag-chat - Start Kubernetes RAG Chat service"
+	@echo "  k8s-rag-chat-deploy - Deploy Kubernetes RAG Chat to Kubernetes"
 	@echo ""
 	@echo "$(GREEN)Logging:$(NC)"
 	@echo "  progress  - Log progress on a task"
@@ -98,13 +104,82 @@ sync: ## Quick sync questions
 	@echo "$(GREEN)🤝 Quick sync questions...$(NC)"
 	docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py sync
 
-critical: ## Show critical areas for testing
-	@echo "$(GREEN)🎯 Critical areas for testing...$(NC)"
-	docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py critical
+k8s-learn: ## Open Kubernetes Learning Guide
+	@echo "$(GREEN)🎓 Opening Kubernetes Learning Guide...$(NC)"
+	@if command -v code >/dev/null 2>&1; then \
+		code docs/KUBERNETES_LEARNING_GUIDE.md; \
+	elif command -v open >/dev/null 2>&1; then \
+		open docs/KUBERNETES_LEARNING_GUIDE.md; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open docs/KUBERNETES_LEARNING_GUIDE.md; \
+	else \
+		echo "$(YELLOW)📖 Kubernetes Learning Guide location:$(NC) docs/KUBERNETES_LEARNING_GUIDE.md"; \
+		echo "$(YELLOW)💡 Tip: Open this file in your preferred markdown editor$(NC)"; \
+	fi
 
-debug: ## Show debugging workflow
-	@echo "$(GREEN)🐛 Debugging workflow...$(NC)"
-	docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py debug
+k8s-learn-preview: ## Show Kubernetes Learning Guide preview
+	@echo "$(GREEN)🎓 Kubernetes Learning Guide Preview$(NC)"
+	@echo "$(YELLOW)=====================================$(NC)"
+	@echo ""
+	@if [ -f "docs/KUBERNETES_LEARNING_GUIDE.md" ]; then \
+		echo "$(BLUE)📚 Overview:$(NC)"; \
+		head -n 20 docs/KUBERNETES_LEARNING_GUIDE.md | grep -v "^#" | head -n 5; \
+		echo ""; \
+		echo "$(BLUE)🎯 Learning Objectives:$(NC)"; \
+		grep -A 10 "## 🎯 Learning Objectives" docs/KUBERNETES_LEARNING_GUIDE.md | grep -E "^- " | head -n 5; \
+		echo ""; \
+		echo "$(BLUE)🏗️ Architecture:$(NC)"; \
+		echo "  • Kubernetes Cluster with Control Plane and Worker Nodes"; \
+		echo "  • Docker Desktop vs Production Kubernetes comparison"; \
+		echo "  • Our Trading System Architecture"; \
+		echo ""; \
+		echo "$(BLUE)🎮 Interactive Learning Scenarios:$(NC)"; \
+		echo "  • Scenario 1: First Deployment"; \
+		echo "  • Scenario 2: Debugging a Failing Pod"; \
+		echo "  • Scenario 3: Scaling Applications"; \
+		echo "  • Scenario 4: Configuration Management"; \
+		echo ""; \
+		echo "$(BLUE)🛠️ Hands-On Exercises:$(NC)"; \
+		echo "  • Exercise 1: Deploy a Simple Web Application"; \
+		echo "  • Exercise 2: Debug a Failing Application"; \
+		echo "  • Exercise 3: Configuration Management"; \
+		echo ""; \
+		echo "$(BLUE)🎯 Learning Path:$(NC)"; \
+		echo "  • Phase 1: Fundamentals (Week 1-2)"; \
+		echo "  • Phase 2: Intermediate (Week 3-4)"; \
+		echo "  • Phase 3: Advanced (Week 5-6)"; \
+		echo "  • Phase 4: Production (Week 7-8)"; \
+		echo ""; \
+		echo "$(GREEN)📖 Full guide available at: docs/KUBERNETES_LEARNING_GUIDE.md$(NC)"; \
+		echo "$(YELLOW)💡 Use 'make k8s-learn' to open in your editor$(NC)"; \
+	else \
+		echo "$(RED)❌ Kubernetes Learning Guide not found at docs/KUBERNETES_LEARNING_GUIDE.md$(NC)"; \
+	fi
+
+k8s-rag-chat: ## Start Kubernetes RAG Chat service
+	@echo "$(GREEN)🎓 Starting Kubernetes RAG Chat service...$(NC)"
+	@if [ -d "services/kubernetes-rag-chat" ]; then \
+		cd services/kubernetes-rag-chat && python main.py; \
+	else \
+		echo "$(RED)❌ Kubernetes RAG Chat service not found$(NC)"; \
+		echo "$(YELLOW)💡 Run 'make k8s-rag-chat-deploy' to deploy it first$(NC)"; \
+	fi
+
+k8s-rag-chat-deploy: ## Deploy Kubernetes RAG Chat to Kubernetes
+	@echo "$(GREEN)🚀 Deploying Kubernetes RAG Chat service...$(NC)"
+	@if [ -f "services/kubernetes-rag-chat/Dockerfile" ]; then \
+		echo "$(BLUE)📦 Building Docker image...$(NC)"; \
+		docker build -t localhost:32000/kubernetes-rag-chat:latest services/kubernetes-rag-chat/; \
+		echo "$(BLUE)📤 Pushing to registry...$(NC)"; \
+		docker push localhost:32000/kubernetes-rag-chat:latest; \
+		echo "$(BLUE)☸️ Deploying to Kubernetes...$(NC)"; \
+		kubectl apply -f k8s/kubernetes-rag-chat.yaml; \
+		echo "$(GREEN)✅ Kubernetes RAG Chat deployed!$(NC)"; \
+		echo "$(YELLOW)🌐 Access at: http://localhost:11116 (after port forwarding)$(NC)"; \
+		echo "$(YELLOW)💡 Run: kubectl port-forward svc/kubernetes-rag-chat 11116:8000 -n trading-system$(NC)"; \
+	else \
+		echo "$(RED)❌ Kubernetes RAG Chat service files not found$(NC)"; \
+	fi
 
 llm-fix: ## Show llm-worker fix progress
 	@echo "$(GREEN)🔧 LLM Worker Fix Progress:$(NC)"

@@ -16,7 +16,8 @@ help:
 	@echo "  make check-all          - Health check all services"
 	@echo ""
 	@echo "📊 Service Categories:"
-	@echo "  make start-dashboards   - Start dashboard services only"
+	@echo "  make start-unified-dashboards - Start core unified dashboard services only"
+	@echo "  make start-dashboards   - Start all dashboard services only"
 	@echo "  make start-monitoring   - Start monitoring services only"
 	@echo "  make start-data-services - Start data processing services only"
 	@echo "  make start-trading-services - Start trading services only"
@@ -25,6 +26,7 @@ help:
 	@echo "🔧 Individual Services:"
 	@echo "  make start-grafana      - Start Grafana monitoring"
 	@echo "  make start-prometheus   - Start Prometheus metrics"
+	@echo "  make start-unified-dashboards - Start Core Unified Dashboards"
 	@echo "  make start-unified-analytics - Start Unified Analytics Dashboard"
 	@echo "  make start-unified-trading - Start Unified Trading Dashboard"
 	@echo "  make start-unified-news - Start Unified News Dashboard"
@@ -107,6 +109,18 @@ start-dashboards:
 	@kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
 	@kubectl port-forward -n trading-system service/ai-stock-dashboard 11086:8000 &
 	@echo "✅ Dashboard services started"
+
+# 🎯 Core Unified Dashboard Services (Primary)
+start-unified-dashboards:
+	@echo "🎯 Starting Core Unified Dashboard Services..."
+	@kubectl port-forward -n trading-system service/unified-analytics-dashboard 11115:80 &
+	@kubectl port-forward -n trading-system service/unified-trading-dashboard 11114:80 &
+	@kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
+	@echo "✅ Core unified dashboard services started"
+	@echo "📊 Access URLs:"
+	@echo "  • Unified Analytics: http://localhost:11115/"
+	@echo "  • Unified Trading: http://localhost:11114/"
+	@echo "  • Unified News: http://localhost:11113/"
 
 # 📈 Monitoring Services (11190-11199)
 start-monitoring:
@@ -202,7 +216,7 @@ start-ai-stock:
 
 # Trading Services
 start-trading-ultra:
-	@kubectl port-forward -n trading-system service/trading-ultra-service 11099:11099 &
+	@kubectl port-forward -n trading-system service/trading-ultra-service 11099:80 &
 	@echo "✅ Trading Ultra Service started on http://localhost:11099/"
 
 start-market-data:
@@ -212,6 +226,10 @@ start-market-data:
 start-backtest:
 	@kubectl port-forward -n trading-system service/backtest-api 11101:11101 &
 	@echo "✅ Backtest API started on http://localhost:11101/"
+
+start-backtest-request:
+	@kubectl port-forward -n trading-system service/backtest-request-service 11126:80 &
+	@echo "✅ Backtest Request Service started on http://localhost:11126/"
 
 # Monitoring
 start-grafana:

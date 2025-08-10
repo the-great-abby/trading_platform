@@ -12,8 +12,14 @@ from decimal import Decimal
 # Import the portfolio service app
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../services/portfolio-service'))
-from main import app
+import importlib.util
+
+# Load the portfolio service module specifically
+portfolio_service_path = os.path.join(os.path.dirname(__file__), '../../services/portfolio-service/main.py')
+spec = importlib.util.spec_from_file_location("portfolio_service_main", portfolio_service_path)
+portfolio_service_main = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(portfolio_service_main)
+app = portfolio_service_main.app
 
 client = TestClient(app)
 

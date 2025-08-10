@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes RAG Chat</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .chat-container {
+            display: flex;
+            height: 600px;
+        }
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+        .message.bot {
+            background: white;
+            border: 1px solid #e9ecef;
+        }
+        .message.bot .confidence {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .message.bot a {
+            color: #007bff;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+        .message.bot a:hover {
+            color: #0056b3;
+            text-decoration: none;
+        }
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .input-group button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s;
+        }
+        .input-group button:hover {
+            transform: translateY(-2px);
+        }
+        .input-group button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .examples {
+            margin-bottom: 20px;
+        }
+        .examples h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .example-question {
+            display: block;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #495057;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .example-question:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sources {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        .source {
+            background: #f8f9fa;
+            padding: 5px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Kubernetes RAG Chat</h1>
+            <p>Ask questions about Kubernetes and get expert answers powered by AI</p>
+        </div>
+        
+        <div class="chat-container">
+            <div class="sidebar">
+                <div class="examples">
+                    <h3>💡 Example Questions</h3>
+                    <a href="#" class="example-question" onclick="askQuestion('How do I check the status of all pods?')">How do I check the status of all pods?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('What\'s the difference between a pod and a deployment?')">What's the difference between a pod and a deployment?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('How do I debug a pod that\'s in CrashLoopBackOff?')">How do I debug a pod that's in CrashLoopBackOff?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('How do I scale a deployment to 3 replicas?')">How do I scale a deployment to 3 replicas?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('How do I create a ConfigMap from a file?')">How do I create a ConfigMap from a file?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('What\'s the difference between Docker Desktop Kubernetes and production Kubernetes?')">What's the difference between Docker Desktop Kubernetes and production Kubernetes?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('How do I port-forward a service?')">How do I port-forward a service?</a>
+                    <a href="#" class="example-question" onclick="askQuestion('How do I view logs for a specific pod?')">How do I view logs for a specific pod?</a>
+                </div>
+            </div>
+            
+            <div class="main-chat">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot">
+                        <strong>Kubernetes RAG Chat:</strong> Hello! I'm your Kubernetes learning assistant. I can help you with:
+                        <ul>
+                            <li>Kubernetes commands and concepts</li>
+                            <li>Troubleshooting common issues</li>
+                            <li>Best practices and architecture</li>
+                            <li>Docker Desktop vs Production differences</li>
+                        </ul>
+                        <p>Ask me anything about Kubernetes! 🚀</p>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Thinking...</p>
+                </div>
+                
+                <div class="chat-input">
+                    <div class="input-group">
+                        <input type="text" id="questionInput" placeholder="Ask a Kubernetes question..." onkeypress="handleKeyPress(event)">
+                        <button onclick="askQuestion()" id="askButton">Ask</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const questionInput = document.getElementById('questionInput');
+        const askButton = document.getElementById('askButton');
+        const loading = document.getElementById('loading');
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                askQuestion();
+            }
+        }
+
+        function addMessage(content, isUser = false, confidence = null, sources = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            let html = `<strong>${isUser ? 'You' : 'Kubernetes RAG Chat'}:</strong> ${content}`;
+            
+            if (confidence !== null) {
+                html += `<div class="confidence">Confidence: ${(confidence * 100).toFixed(1)}%</div>`;
+            }
+            
+            if (sources && sources.length > 0) {
+                html += '<div class="sources"><strong>Sources:</strong>';
+                sources.forEach(source => {
+                    html += `<div class="source">${source.content || source.type}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            messageDiv.innerHTML = html;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function askQuestion(question = null) {
+            const questionText = question || questionInput.value.trim();
+            if (!questionText) return;
+
+            // Add user message
+            addMessage(questionText, true);
+            
+            // Clear input
+            questionInput.value = '';
+            
+            // Show loading
+            loading.classList.add('show');
+            askButton.disabled = true;
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: questionText,
+                        include_sources: true
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addMessage(data.answer, false, data.confidence, data.sources);
+                } else {
+                    addMessage(`Error: ${data.detail || 'Failed to get response'}`, false);
+                }
+            } catch (error) {
+                addMessage(`Error: ${error.message}`, false);
+            } finally {
+                loading.classList.remove('show');
+                askButton.disabled = false;
+                questionInput.focus();
+            }
+        }
+
+        // Focus on input when page loads
+        questionInput.focus();
+    </script>
+</body>
+</html>

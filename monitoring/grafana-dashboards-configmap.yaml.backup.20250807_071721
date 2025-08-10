@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: trading-system
+data:
+  dashboard-provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'Trading System Dashboards'
+        orgId: 1
+        folder: 'Trading System'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: /etc/grafana/provisioning/dashboards
+
+  trading-system-overview.json: |
+    {
+      "title": "Trading System Overview",
+      "tags": ["trading", "overview"],
+      "style": "dark",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Active Positions",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "trading_active_positions",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "red", "value": 10}
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Daily P&L",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "trading_daily_pnl",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "green", "value": 0}
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Orders Created",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "trading_orders_created",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Order Latency",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(trading_order_latency_seconds_sum[5m]) / rate(trading_order_latency_seconds_count[5m])",
+              "refId": "A",
+              "legendFormat": "Average Latency"
+            }
+          ]
+        }
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "refresh": "10s"
+    }
+
+  strategy-performance.json: |
+    {
+      "title": "Strategy Performance",
+      "tags": ["trading", "strategy"],
+      "style": "dark",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Strategy Win Rate",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "rate(trading_win_count[5m]) / rate(trading_loss_count[5m] + trading_win_count[5m]) * 100",
+              "refId": "A",
+              "legendFormat": "Win Rate %"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "yellow", "value": 50},
+                  {"color": "green", "value": 60}
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Max Drawdown",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "trading_max_drawdown",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 10},
+                  {"color": "red", "value": 20}
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "refresh": "10s"
+    }
+
+  market-data.json: |
+    {
+      "title": "Market Data Metrics",
+      "tags": ["trading", "market-data"],
+      "style": "dark",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Data Points Collected",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "market_data_points_collected",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Data Collection Rate",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(market_data_points_collected[5m])",
+              "refId": "A",
+              "legendFormat": "Points/sec"
+            }
+          ]
+        }
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "refresh": "10s"
+    } 

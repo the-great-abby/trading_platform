@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-engine
+  namespace: trading-system
+  labels:
+    app: trading-engine
+    component: trading
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-engine
+  template:
+    metadata:
+      labels:
+        app: trading-engine
+        component: trading
+    spec:
+      containers:
+      - name: trading-engine
+        image: localhost:32000/trading-engine:latest
+        ports:
+        - containerPort: 11080
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+        - name: TRADING_CONFIG_FILE
+          value: "/app/config/trading_config.json"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: trading-logs
+          mountPath: /app/logs
+        - name: trading-config
+          mountPath: /app/config
+        livenessProbe:
+          exec:
+            command:
+            - python3
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - python3
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: trading-logs
+        emptyDir: {}
+      - name: trading-config
+        configMap:
+          name: trading-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-config
+  namespace: trading-system
+data:
+  trading_config.json: |
+    {
+      "initial_capital": 100000.0,
+      "max_position_size": 0.05,
+      "max_risk_per_trade": 0.01,
+      "max_daily_loss": 0.02,
+      "max_drawdown": 0.10,
+      "trading_interval": 60,
+      "symbols": ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"],
+      "strategies": ["RiskFirst", "MarketRegimeAdaptive", "MultiTimeframe"]
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trading-engine
+  namespace: trading-system
+  labels:
+    app: trading-engine
+    component: trading
+spec:
+  selector:
+    app: trading-engine
+  ports:
+  - name: http
+    port: 11080
+    targetPort: 11080
+  type: ClusterIP 

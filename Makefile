@@ -1,7 +1,7 @@
 # Trading Platform Service Management
 # Easy commands to start/stop services in optimized configuration
 
-.PHONY: help status start-all stop-all start-core stop-core start-heavy stop-heavy start-dashboards stop-dashboards start-workers stop-workers start-management stop-management scale-down scale-up logs data-fetch data-fetch-symbols data-fetch-period data-coverage data-status
+.PHONY: help status start-all stop-all start-core stop-core start-heavy stop-heavy start-dashboards stop-dashboards start-workers stop-workers start-management stop-management scale-down scale-up logs data-fetch data-fetch-symbols data-fetch-period data-coverage data-status k8s-learn k8s-learn-preview k8s-rag-chat k8s-rag-chat-deploy
 
 # Default target
 help:
@@ -26,6 +26,12 @@ help:
 	@echo "  scale-up        - Scale up to full configuration"
 	@echo "  logs <service>  - Show logs for a specific service"
 	@echo "  port-forward    - Set up port forwarding for dashboards"
+	@echo ""
+	@echo "Kubernetes Learning Commands:"
+	@echo "  k8s-learn       - Open Kubernetes Learning Guide (markdown)"
+	@echo "  k8s-learn-preview - Show Kubernetes Learning Guide preview (text)"
+	@echo "  k8s-rag-chat    - Start Kubernetes RAG Chat service"
+	@echo "  k8s-rag-chat-deploy - Deploy Kubernetes RAG Chat to Kubernetes"
 	@echo ""
 	@echo "Port Watcher Commands:"
 	@echo "  port-watcher-start     - Start comprehensive port watcher"
@@ -559,4 +565,82 @@ constrained-help: ## Show resource-constrained deployment help
 	@echo "⚠️  Trade-offs:"
 	@echo "  • No high availability (single point of failure per service)"
 	@echo "  • Reduced throughput under high load"
-	@echo "  • Suitable for development and testing scenarios" 
+	@echo "  • Suitable for development and testing scenarios"
+
+# Kubernetes Learning Commands
+k8s-learn: ## Open Kubernetes Learning Guide
+	@echo "🎓 Opening Kubernetes Learning Guide..."
+	@if command -v code >/dev/null 2>&1; then \
+		code docs/KUBERNETES_LEARNING_GUIDE.md; \
+	elif command -v open >/dev/null 2>&1; then \
+		open docs/KUBERNETES_LEARNING_GUIDE.md; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open docs/KUBERNETES_LEARNING_GUIDE.md; \
+	else \
+		echo "📖 Kubernetes Learning Guide location: docs/KUBERNETES_LEARNING_GUIDE.md"; \
+		echo "💡 Tip: Open this file in your preferred markdown editor"; \
+	fi
+
+k8s-learn-preview: ## Show Kubernetes Learning Guide preview
+	@echo "🎓 Kubernetes Learning Guide Preview"
+	@echo "====================================="
+	@echo ""
+	@if [ -f "docs/KUBERNETES_LEARNING_GUIDE.md" ]; then \
+		echo "📚 Overview:"; \
+		head -n 20 docs/KUBERNETES_LEARNING_GUIDE.md | grep -v "^#" | head -n 5; \
+		echo ""; \
+		echo "🎯 Learning Objectives:"; \
+		grep -A 10 "## 🎯 Learning Objectives" docs/KUBERNETES_LEARNING_GUIDE.md | grep -E "^- " | head -n 5; \
+		echo ""; \
+		echo "🏗️ Architecture:"; \
+		echo "  • Kubernetes Cluster with Control Plane and Worker Nodes"; \
+		echo "  • Docker Desktop vs Production Kubernetes comparison"; \
+		echo "  • Our Trading System Architecture"; \
+		echo ""; \
+		echo "🎮 Interactive Learning Scenarios:"; \
+		echo "  • Scenario 1: First Deployment"; \
+		echo "  • Scenario 2: Debugging a Failing Pod"; \
+		echo "  • Scenario 3: Scaling Applications"; \
+		echo "  • Scenario 4: Configuration Management"; \
+		echo ""; \
+		echo "🛠️ Hands-On Exercises:"; \
+		echo "  • Exercise 1: Deploy a Simple Web Application"; \
+		echo "  • Exercise 2: Debug a Failing Application"; \
+		echo "  • Exercise 3: Configuration Management"; \
+		echo ""; \
+		echo "🎯 Learning Path:"; \
+		echo "  • Phase 1: Fundamentals (Week 1-2)"; \
+		echo "  • Phase 2: Intermediate (Week 3-4)"; \
+		echo "  • Phase 3: Advanced (Week 5-6)"; \
+		echo "  • Phase 4: Production (Week 7-8)"; \
+		echo ""; \
+		echo "📖 Full guide available at: docs/KUBERNETES_LEARNING_GUIDE.md"; \
+		echo "💡 Use 'make k8s-learn' to open in your editor"; \
+	else \
+		echo "❌ Kubernetes Learning Guide not found at docs/KUBERNETES_LEARNING_GUIDE.md"; \
+	fi
+
+k8s-rag-chat: ## Start Kubernetes RAG Chat service
+	@echo "🎓 Starting Kubernetes RAG Chat service..."
+	@if [ -d "services/kubernetes-rag-chat" ]; then \
+		cd services/kubernetes-rag-chat && python main.py; \
+	else \
+		echo "❌ Kubernetes RAG Chat service not found"; \
+		echo "💡 Run 'make k8s-rag-chat-deploy' to deploy it first"; \
+	fi
+
+k8s-rag-chat-deploy: ## Deploy Kubernetes RAG Chat to Kubernetes
+	@echo "🚀 Deploying Kubernetes RAG Chat service..."
+	@if [ -f "services/kubernetes-rag-chat/Dockerfile" ]; then \
+		echo "📦 Building Docker image..."; \
+		docker build -t localhost:32000/kubernetes-rag-chat:latest services/kubernetes-rag-chat/; \
+		echo "📤 Pushing to registry..."; \
+		docker push localhost:32000/kubernetes-rag-chat:latest; \
+		echo "☸️ Deploying to Kubernetes..."; \
+		kubectl apply -f k8s/kubernetes-rag-chat.yaml; \
+		echo "✅ Kubernetes RAG Chat deployed!"; \
+		echo "🌐 Access at: http://localhost:11116 (after port forwarding)"; \
+		echo "💡 Run: kubectl port-forward svc/kubernetes-rag-chat 11116:8000 -n trading-system"; \
+	else \
+		echo "❌ Kubernetes RAG Chat service files not found"; \
+	fi 

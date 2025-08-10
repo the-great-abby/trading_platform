@@ -48,6 +48,7 @@
             background: rgba(255,255,255,0.1);
             border-radius: 10px;
             padding: 10px;
+            flex-wrap: wrap;
         }
         
         .nav-tab {
@@ -125,15 +126,18 @@
         }
         
         .status-healthy {
-            color: #28a745;
+            color: #28a745 !important;
+            font-weight: bold;
         }
         
         .status-degraded {
-            color: #ffc107;
+            color: #ffc107 !important;
+            font-weight: bold;
         }
         
         .status-error {
-            color: #dc3545;
+            color: #dc3545 !important;
+            font-weight: bold;
         }
         
         .loading {
@@ -266,6 +270,168 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+
+        /* Symbol Management Styles */
+        .symbol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .symbol-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+        }
+        
+        .symbol-card.active {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .symbol-card.inactive {
+            border-color: #dc3545;
+            background: #f8d7da;
+            opacity: 0.7;
+        }
+        
+        .symbol-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .symbol-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #495057;
+        }
+        
+        .symbol-category {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .symbol-description {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .symbol-priority {
+            color: #495057;
+            font-size: 0.9em;
+        }
+        
+        .symbol-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border-radius: 4px;
+        }
+        
+        .btn-edit {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-toggle {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-toggle.inactive {
+            background: #6c757d;
+        }
+        
+        .add-symbol-form {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        
+        .form-group {
+            margin: 0;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .btn-add {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-add:hover {
+            background: #218838;
+        }
+        
+        .symbol-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -275,13 +441,15 @@
             <p>AI Stock Analysis, Central Hub, and Data Pipeline Management</p>
         </div>
         
-                <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
-            <button class="nav-tab" onclick="showTab('ai-stock')">AI Stock Analysis</button>
-            <button class="nav-tab" onclick="showTab('central-hub')">Central Hub</button>
-            <button class="nav-tab" onclick="showTab('data-pipeline')">Data Pipeline</button>
-            <button class="nav-tab" onclick="showTab('data-fetch')">Data Fetch</button>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')"> Overview</button>
+            <button class="nav-tab" onclick="showTab('ai-stock')">🤖 AI Stock Analysis</button>
+            <button class="nav-tab" onclick="showTab('central-hub')">🏢 Central Hub</button>
+            <button class="nav-tab" onclick="showTab('data-pipeline')">📈 Data Pipeline</button>
+            <button class="nav-tab" onclick="showTab('backtest')">📊 Backtest</button>
             <button class="nav-tab" onclick="showTab('order-entry')">Order Entry</button>
+            <button class="nav-tab" onclick="showTab('rag-search')">🔍 RAG Search</button>
+            <button class="nav-tab" onclick="showTab('symbol-management')">🎯 Symbol Management</button>
         </div>
         
         <div class="dashboard-content">
@@ -539,6 +707,119 @@
                     </div>
                 </div>
             </div>
+            
+            <div id="rag-search" class="tab-content" style="display: none;">
+                <h2>🔍 RAG Search Dashboard</h2>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3>🔍 Ask Questions</h3>
+                        <div class="rag-search-form">
+                            <div class="form-group">
+                                <label for="rag-query">What would you like to know?</label>
+                                <textarea id="rag-query" placeholder="e.g., What happened to AAPL stock recently? How did NVDA perform during earnings? What are the latest trends in tech stocks?" rows="4" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Search Type</label>
+                                <div class="search-type-selector" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                    <button type="button" class="search-type-btn active" data-type="all" style="flex: 1; padding: 8px; border: 1px solid #ddd; background: #667eea; color: white; border-radius: 4px;">All Data</button>
+                                    <button type="button" class="search-type-btn" data-type="market_data" style="flex: 1; padding: 8px; border: 1px solid #ddd; background: white; border-radius: 4px;">Market Data</button>
+                                    <button type="button" class="search-type-btn" data-type="news" style="flex: 1; padding: 8px; border: 1px solid #ddd; background: white; border-radius: 4px;">News</button>
+                                    <button type="button" class="search-type-btn" data-type="decisions" style="flex: 1; padding: 8px; border: 1px solid #ddd; background: white; border-radius: 4px;">Trading Decisions</button>
+                                </div>
+                            </div>
+                            <button onclick="performRAGSearch()" class="btn btn-primary" style="width: 100%; padding: 12px; margin: 10px 0;">🔍 Search with AI</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>💡 Example Questions</h3>
+                        <div id="rag-examples" style="font-size: 14px;">
+                            <div class="example-item" onclick="setRAGQuery('What happened to AAPL stock in the last quarter?')" style="padding: 8px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; cursor: pointer;">• What happened to AAPL stock in the last quarter?</div>
+                            <div class="example-item" onclick="setRAGQuery('How did NVDA perform during earnings season?')" style="padding: 8px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; cursor: pointer;">• How did NVDA perform during earnings season?</div>
+                            <div class="example-item" onclick="setRAGQuery('What are the recent trends in tech stocks?')" style="padding: 8px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; cursor: pointer;">• What are the recent trends in tech stocks?</div>
+                            <div class="example-item" onclick="setRAGQuery('What news affected TSLA recently?')" style="padding: 8px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; cursor: pointer;">• What news affected TSLA recently?</div>
+                            <div class="example-item" onclick="setRAGQuery('What were the best trading decisions for AAPL?')" style="padding: 8px; margin: 5px 0; background: #f8f9fa; border-radius: 4px; cursor: pointer;">• What were the best trading decisions for AAPL?</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>📊 Search Results</h3>
+                        <div id="rag-results">
+                            <p style="color: #666; text-align: center;">Enter a question above to start searching</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="symbol-management" class="tab-content" style="display: none;">
+                <h2>Symbol Management</h2>
+                <div class="add-symbol-form">
+                    <h3>Add New Symbol</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="new-symbol-name">Symbol Name:</label>
+                            <input type="text" id="new-symbol-name" placeholder="e.g., AAPL, MSFT, GOOGL" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-symbol-category">Category:</label>
+                            <select id="new-symbol-category" required>
+                                <option value="Technology">Technology</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Healthcare">Healthcare</option>
+                                <option value="Energy">Energy</option>
+                                <option value="Consumer Goods">Consumer Goods</option>
+                                <option value="Industrial">Industrial</option>
+                                <option value="Utilities">Utilities</option>
+                                <option value="Real Estate">Real Estate</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-symbol-description">Description:</label>
+                            <textarea id="new-symbol-description" placeholder="Brief description of the symbol" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-symbol-priority">Priority:</label>
+                            <select id="new-symbol-priority" required>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-symbol-active">Active:</label>
+                            <select id="new-symbol-active" required>
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button onclick="addSymbol()" class="btn btn-add">Add Symbol</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="symbol-grid">
+                    <div class="card">
+                        <h3>All Symbols</h3>
+                        <div id="all-symbols-list">
+                            <p>Loading symbols...</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Active Symbols</h3>
+                        <div id="active-symbols-list">
+                            <p>Loading active symbols...</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Inactive Symbols</h3>
+                        <div id="inactive-symbols-list">
+                            <p>Loading inactive symbols...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -583,6 +864,12 @@
                     break;
                 case 'order-entry':
                     loadOrderEntryData();
+                    break;
+                case 'rag-search':
+                    loadRAGSearchData();
+                    break;
+                case 'symbol-management':
+                    loadSymbolManagementData();
                     break;
             }
         }
@@ -680,164 +967,204 @@
                 document.getElementById('cache-status').innerHTML = '<div class="error">Error loading cache status</div>';
             }
         }
-        
-        // Data fetch functions
-        async function fetchRecentData() {
-            updateFetchStatus('🔄 Fetching recent data (30 days)...', 'info');
-            updateProgress(10);
-            
+
+        // Load symbol management data
+        async function loadSymbolManagementData() {
             try {
-                const response = await fetch('/api/data/fetch-recent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const result = await response.json();
-                updateProgress(100);
-                
-                if (result.success) {
-                    updateFetchStatus(`✅ Recent data fetch completed! ${result.records_added} records added, ${result.symbols_processed} symbols processed`, 'success');
-                    updateFetchResults(result);
-                } else {
-                    updateFetchStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-                }
+                const [allSymbols, activeSymbols, inactiveSymbols] = await Promise.all([
+                    fetch('/api/symbols/all').then(r => r.json()),
+                    fetch('/api/symbols/active').then(r => r.json()),
+                    fetch('/api/symbols/inactive').then(r => r.json())
+                ]);
+
+                document.getElementById('all-symbols-list').innerHTML = formatSymbolList(allSymbols, 'All Symbols');
+                document.getElementById('active-symbols-list').innerHTML = formatSymbolList(activeSymbols, 'Active Symbols');
+                document.getElementById('inactive-symbols-list').innerHTML = formatSymbolList(inactiveSymbols, 'Inactive Symbols');
             } catch (error) {
-                console.error('Error fetching recent data:', error);
-                updateFetchStatus(`❌ Error: ${error.message}`, 'error');
+                console.error('Error loading symbol management data:', error);
+                document.getElementById('all-symbols-list').innerHTML = '<div class="error">Error loading symbols.</div>';
+                document.getElementById('active-symbols-list').innerHTML = '<div class="error">Error loading symbols.</div>';
+                document.getElementById('inactive-symbols-list').innerHTML = '<div class="error">Error loading symbols.</div>';
             }
         }
-        
-        async function fetch2YearData() {
-            updateFetchStatus('🔄 Fetching 2-year historical data...', 'info');
-            updateProgress(10);
-            
-            try {
-                const response = await fetch('/api/data/fetch-2year', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const result = await response.json();
-                updateProgress(100);
-                
-                if (result.success) {
-                    updateFetchStatus(`✅ 2-year data fetch completed! ${result.records_added} records added, ${result.symbols_processed} symbols processed`, 'success');
-                    updateFetchResults(result);
-                } else {
-                    updateFetchStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error fetching 2-year data:', error);
-                updateFetchStatus(`❌ Error: ${error.message}`, 'error');
+
+        function formatSymbolList(symbols, title) {
+            if (symbols.error) {
+                return `<div class="error">Error: ${symbols.error}</div>`;
             }
+
+            if (!Array.isArray(symbols) || symbols.length === 0) {
+                return `<p>No ${title.toLowerCase()} found.</p>`;
+            }
+
+            let html = `<h4>${title} (${symbols.length})</h4>`;
+            html += '<div class="symbol-grid">';
+            symbols.forEach(symbol => {
+                const priorityClass = symbol.priority === 'High' ? 'status-error' : 
+                                    symbol.priority === 'Medium' ? 'status-degraded' : 'status-healthy';
+                html += `
+                    <div class="symbol-card ${symbol.active ? 'active' : 'inactive'}">
+                        <div class="symbol-header">
+                            <span class="symbol-name">${symbol.name}</span>
+                            <span class="symbol-category">${symbol.category}</span>
+                        </div>
+                        <p class="symbol-description">${symbol.description || 'No description available.'}</p>
+                        <p class="symbol-priority">Priority: <span class="${priorityClass}">${symbol.priority}</span></p>
+                        <div class="symbol-actions">
+                            <button onclick="toggleSymbolActive('${symbol.name}', ${!symbol.active})" class="btn btn-toggle ${!symbol.active ? 'inactive' : ''}">
+                                ${symbol.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button onclick="editSymbol('${symbol.name}')" class="btn btn-edit btn-small">Edit</button>
+                            <button onclick="deleteSymbol('${symbol.name}')" class="btn btn-delete btn-small">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
         }
-        
-        async function fetchCustomData() {
-            const symbol = document.getElementById('custom-symbol').value.trim();
-            const startDate = document.getElementById('custom-start-date').value;
-            const endDate = document.getElementById('custom-end-date').value;
-            
-            if (!symbol) {
-                updateFetchStatus('❌ Error: Please enter a symbol', 'error');
+
+        async function addSymbol() {
+            const name = document.getElementById('new-symbol-name').value.trim();
+            const category = document.getElementById('new-symbol-category').value;
+            const description = document.getElementById('new-symbol-description').value.trim();
+            const priority = document.getElementById('new-symbol-priority').value;
+            const active = document.getElementById('new-symbol-active').value === 'true';
+
+            if (!name) {
+                alert('Symbol name cannot be empty.');
                 return;
             }
-            
-            if (!startDate || !endDate) {
-                updateFetchStatus('❌ Error: Please select both start and end dates', 'error');
-                return;
-            }
-            
-            if (new Date(startDate) > new Date(endDate)) {
-                updateFetchStatus('❌ Error: Start date must be before end date', 'error');
-                return;
-            }
-            
-            updateFetchStatus(`🔄 Fetching custom data for ${symbol} from ${startDate} to ${endDate}...`, 'info');
-            updateProgress(10);
-            
+
             try {
-                const response = await fetch('/api/data/fetch-custom', {
+                const response = await fetch('/api/symbols/add', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        symbol: symbol,
-                        start_date: startDate,
-                        end_date: endDate
+                        name: name,
+                        category: category,
+                        description: description,
+                        priority: priority,
+                        active: active
                     })
                 });
-                
-                const result = await response.json();
-                updateProgress(100);
-                
-                if (result.success) {
-                    updateFetchStatus(`✅ Custom data fetch completed! ${result.records_added} records added for ${symbol}`, 'success');
-                    updateFetchResults(result);
+
+                if (response.ok) {
+                    alert('Symbol added successfully!');
+                    loadSymbolManagementData(); // Refresh list
+                    clearSymbolForm();
                 } else {
-                    updateFetchStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+                    const errorData = await response.json();
+                    alert(`Error adding symbol: ${errorData.error || 'Unknown error'}`);
                 }
             } catch (error) {
-                console.error('Error fetching custom data:', error);
-                updateFetchStatus(`❌ Error: ${error.message}`, 'error');
+                alert(`Error adding symbol: ${error.message}`);
             }
         }
-        
-        function updateFetchStatus(message, type) {
-            const statusElement = document.getElementById('fetch-status');
-            const statusClass = type === 'success' ? 'status-healthy' : type === 'error' ? 'status-error' : 'status-degraded';
-            statusElement.innerHTML = `<div class="${statusClass}">${message}</div>`;
+
+        async function editSymbol(name) {
+            try {
+                const response = await fetch(`/api/symbols/get/${name}`);
+                if (!response.ok) {
+                    alert(`Error fetching symbol: ${response.statusText}`);
+                    return;
+                }
+                
+                const symbol = await response.json();
+                if (symbol.error) {
+                    alert(`Error fetching symbol: ${symbol.error}`);
+                    return;
+                }
+
+                // Populate the form with current values
+                document.getElementById('new-symbol-name').value = symbol.name;
+                document.getElementById('new-symbol-category').value = symbol.category;
+                document.getElementById('new-symbol-description').value = symbol.description;
+                document.getElementById('new-symbol-priority').value = symbol.priority;
+                document.getElementById('new-symbol-active').value = symbol.active.toString();
+
+                // Show a confirmation dialog before editing
+                if (confirm(`Are you sure you want to edit symbol "${name}"?`)) {
+                    const updateResponse = await fetch(`/api/symbols/edit/${name}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: symbol.name,
+                            category: symbol.category,
+                            description: symbol.description,
+                            priority: symbol.priority,
+                            active: symbol.active
+                        })
+                    });
+
+                    if (updateResponse.ok) {
+                        alert('Symbol updated successfully!');
+                        loadSymbolManagementData(); // Refresh list
+                        clearSymbolForm();
+                    } else {
+                        const errorData = await updateResponse.json();
+                        alert(`Error updating symbol: ${errorData.error || 'Unknown error'}`);
+                    }
+                }
+            } catch (error) {
+                alert(`Error editing symbol: ${error.message}`);
+            }
         }
-        
-        function updateProgress(percentage) {
-            const progressFill = document.getElementById('progress-fill');
-            const progressText = document.getElementById('progress-text');
-            
-            progressFill.style.width = percentage + '%';
-            progressText.textContent = `Progress: ${percentage}%`;
+
+        async function deleteSymbol(name) {
+            if (confirm(`Are you sure you want to delete symbol "${name}"? This action cannot be undone.`)) {
+                try {
+                    const response = await fetch(`/api/symbols/delete/${name}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (response.ok) {
+                        alert('Symbol deleted successfully!');
+                        loadSymbolManagementData(); // Refresh list
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Error deleting symbol: ${errorData.error || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    alert(`Error deleting symbol: ${error.message}`);
+                }
+            }
         }
-        
-        function updateFetchResults(result) {
-            const resultsElement = document.getElementById('fetch-results');
-            resultsElement.innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">Records Added:</span>
-                    <span class="metric-value">${result.records_added || 0}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Symbols Processed:</span>
-                    <span class="metric-value">${result.symbols_processed || 0}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Time Taken:</span>
-                    <span class="metric-value">${result.time_taken || 'N/A'}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Failed Symbols:</span>
-                    <span class="metric-value">${result.failed_symbols?.length || 0}</span>
-                </div>
-            `;
+
+        async function toggleSymbolActive(name, newActiveState) {
+            if (confirm(`Are you sure you want to ${newActiveState ? 'activate' : 'deactivate'} symbol "${name}"?`)) {
+                try {
+                    const response = await fetch(`/api/symbols/toggle-active/${name}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ active: newActiveState })
+                    });
+
+                    if (response.ok) {
+                        alert(`Symbol "${name}" ${newActiveState ? 'activated' : 'deactivated'} successfully!`);
+                        loadSymbolManagementData(); // Refresh list
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Error toggling active status for "${name}": ${errorData.error || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    alert(`Error toggling active status for "${name}": ${error.message}`);
+                }
+            }
         }
-        
-        function formatCacheStatus(data) {
-            return `
-                <div class="metric">
-                    <span class="metric-label">Cache Size:</span>
-                    <span class="metric-value">${data.cache_size || 0}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Cache Keys:</span>
-                    <span class="metric-value">${data.cache_keys?.length || 0}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Last Updated:</span>
-                    <span class="metric-value">${data.timestamp || 'N/A'}</span>
-                </div>
-            `;
+
+        function clearSymbolForm() {
+            document.getElementById('new-symbol-name').value = '';
+            document.getElementById('new-symbol-category').value = 'Technology';
+            document.getElementById('new-symbol-description').value = '';
+            document.getElementById('new-symbol-priority').value = 'Medium';
+            document.getElementById('new-symbol-active').value = 'true';
         }
         
         // Format functions
@@ -865,16 +1192,61 @@
             
             const workerStatus = data.worker_status || 'Unknown';
             const polygonStatus = data.polygon_status?.status || 'Unknown';
+            const polygonDetails = data.polygon_status?.details || '';
+            const polygonDataSource = data.polygon_status?.data_source || '';
+            const polygonService = data.polygon_status?.service || '';
+            
+            // Worker queue information
+            const workerQueues = data.worker_queues || {};
+            let queueInfo = '';
+            if (workerQueues.status === 'connected') {
+                queueInfo = `
+                    <div class="metric">
+                        <span class="metric-label">Active Queues:</span>
+                        <span class="metric-value">${workerQueues.total_queues || 0}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Consumers:</span>
+                        <span class="metric-value">${workerQueues.active_consumers || 0}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Pending Messages:</span>
+                        <span class="metric-value">${workerQueues.pending_messages || 0}</span>
+                    </div>
+                `;
+            } else if (workerQueues.status === 'error') {
+                queueInfo = `
+                    <div class="metric">
+                        <span class="metric-label">Queue Status:</span>
+                        <span class="metric-value status-error">Error: ${workerQueues.error || 'Unknown'}</span>
+                    </div>
+                `;
+            }
+            
+            let polygonDetailsHtml = '';
+            if (polygonDetails) {
+                polygonDetailsHtml = `<div class="error-details" style="margin-top: 10px; font-size: 0.9em; color: #666;">${polygonDetails}</div>`;
+            }
             
             return `
                 <div class="metric">
                     <span class="metric-label">Worker Status:</span>
                     <span class="metric-value ${workerStatus === 'healthy' ? 'status-healthy' : workerStatus === 'error' ? 'status-error' : 'status-degraded'}">${workerStatus}</span>
                 </div>
+                ${queueInfo}
                 <div class="metric">
                     <span class="metric-label">Polygon Status:</span>
-                    <span class="metric-value ${polygonStatus === 'healthy' ? 'status-healthy' : polygonStatus === 'error' ? 'status-error' : 'status-degraded'}">${polygonStatus}</span>
+                    <span class="metric-value ${polygonStatus === 'healthy' ? 'status-healthy' : polygonStatus === 'error' ? 'status-error' : polygonStatus === 'timeout' ? 'status-degraded' : 'status-degraded'}">${polygonStatus}</span>
                 </div>
+                ${polygonDataSource ? `<div class="metric">
+                    <span class="metric-label">Data Source:</span>
+                    <span class="metric-value">${polygonDataSource}</span>
+                </div>` : ''}
+                ${polygonService ? `<div class="metric">
+                    <span class="metric-label">Service:</span>
+                    <span class="metric-value">${polygonService}</span>
+                </div>` : ''}
+                ${polygonDetailsHtml}
             `;
         }
         
@@ -1005,13 +1377,34 @@
                 return `<div class="error">Error: ${data.error}</div>`;
             }
             
-            const statusClass = data.polygon_status === 'connected' ? 'status-healthy' : 'status-error';
+            const polygonStatus = data.polygon_status || {};
+            const status = polygonStatus.status || 'Unknown';
+            const dataSource = polygonStatus.data_source || '';
+            const service = polygonStatus.service || '';
+            const details = polygonStatus.details || '';
+            
+            const statusClass = status === 'healthy' ? 'status-healthy' : 
+                              status === 'error' ? 'status-error' : 'status-degraded';
+            
+            let detailsHtml = '';
+            if (details) {
+                detailsHtml = `<div class="error-details" style="margin-top: 10px; font-size: 0.9em; color: #666;">${details}</div>`;
+            }
             
             return `
                 <div class="metric">
                     <span class="metric-label">Status:</span>
-                    <span class="metric-value ${statusClass}">${data.polygon_status || 'Unknown'}</span>
+                    <span class="metric-value ${statusClass}">${status}</span>
                 </div>
+                ${dataSource ? `<div class="metric">
+                    <span class="metric-label">Data Source:</span>
+                    <span class="metric-value">${dataSource}</span>
+                </div>` : ''}
+                ${service ? `<div class="metric">
+                    <span class="metric-label">Service:</span>
+                    <span class="metric-value">${service}</span>
+                </div>` : ''}
+                ${detailsHtml}
             `;
         }
         
@@ -1021,16 +1414,44 @@
             }
             
             const coverage = data.data_coverage || {};
+            const totalSymbols = coverage.total_symbols || 0;
+            const coveredSymbols = coverage.covered_symbols || 0;
+            const coveragePercentage = coverage.coverage_percentage || 0;
+            const popularSymbols = coverage.popular_symbols || [];
+            const availableSymbols = coverage.available_symbols || [];
+            
+            const symbolList = popularSymbols.slice(0, 5).join(', ');
+            
+            // Handle available symbols - they are objects with symbol and name properties
+            let availableList = '';
+            if (availableSymbols.length > 0) {
+                if (typeof availableSymbols[0] === 'object' && availableSymbols[0].symbol) {
+                    // Extract just the symbols from the objects
+                    const availableSymbolNames = availableSymbols.slice(0, 3).map(s => s.symbol).join(', ');
+                    availableList = availableSymbolNames;
+                } else {
+                    // Handle as simple strings
+                    availableList = availableSymbols.slice(0, 3).join(', ');
+                }
+            }
             
             return `
                 <div class="metric">
                     <span class="metric-label">Covered Symbols:</span>
-                    <span class="metric-value">${coverage.covered_symbols || 0}</span>
+                    <span class="metric-value">${coveredSymbols}/${totalSymbols}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Coverage:</span>
-                    <span class="metric-value">${coverage.coverage_percentage || 0}%</span>
+                    <span class="metric-value ${coveragePercentage > 50 ? 'status-healthy' : coveragePercentage > 20 ? 'status-degraded' : 'status-error'}">${coveragePercentage}%</span>
                 </div>
+                <div class="metric">
+                    <span class="metric-label">Popular Symbols:</span>
+                    <span class="metric-value">${symbolList || 'None'}</span>
+                </div>
+                ${availableList ? `<div class="metric">
+                    <span class="metric-label">Available:</span>
+                    <span class="metric-value">${availableList}...</span>
+                </div>` : ''}
             `;
         }
         
@@ -1040,14 +1461,28 @@
             }
             
             const activities = data.recent_activity || [];
-            const activityList = activities.slice(0, 3).map(a => `${a.action}: ${a.symbol}`).join('<br>');
             
-            return `
-                <div class="metric">
-                    <span class="metric-label">Recent:</span>
-                    <span class="metric-value">${activityList || 'No recent activity'}</span>
-                </div>
-            `;
+            if (activities.length === 0) {
+                return `<div class="metric">
+                    <span class="metric-label">Recent Activity:</span>
+                    <span class="metric-value">No recent activity</span>
+                </div>`;
+            }
+            
+            let activityHtml = '';
+            activities.forEach((activity, index) => {
+                const statusClass = activity.status === 'active' ? 'status-healthy' : 
+                                  activity.status === 'error' ? 'status-error' : 'status-degraded';
+                
+                activityHtml += `
+                    <div class="metric" style="margin-bottom: 8px;">
+                        <span class="metric-label">${activity.type || 'Unknown'}:</span>
+                        <span class="metric-value ${statusClass}">${activity.message || 'No message'}</span>
+                    </div>
+                `;
+            });
+            
+            return activityHtml;
         }
         
         function formatTransformationPipeline(data) {
@@ -1114,6 +1549,23 @@
                 <div class="metric">
                     <span class="metric-label">Last Updated:</span>
                     <span class="metric-value">${new Date(data.last_updated).toLocaleString()}</span>
+                </div>
+            `;
+        }
+        
+        function formatCacheStatus(data) {
+            return `
+                <div class="metric">
+                    <span class="metric-label">Cache Size:</span>
+                    <span class="metric-value">${data.cache_size || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Cache Keys:</span>
+                    <span class="metric-value">${data.cache_keys?.length || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Updated:</span>
+                    <span class="metric-value">${data.timestamp || 'N/A'}</span>
                 </div>
             `;
         }
@@ -1201,7 +1653,7 @@
                     const source = data.source;
                     document.getElementById('order-price').value = price;
                     
-                    if (source === 'market_data_service') {
+                    if (source === 'real_market_data') {
                         showOrderResult('success', `✅ Real market price for ${symbol}: $${price}`);
                     } else {
                         showOrderResult('info', `📊 Estimated price for ${symbol}: $${price} (market data service unavailable)`);
@@ -1337,6 +1789,134 @@
                     `<div class="error">Error loading orders: ${error.message}</div>`;
             }
         }
+        
+        // RAG Search Functions
+        let currentRAGSearchType = 'all';
+        
+        function loadRAGSearchData() {
+            // Set up search type buttons
+            document.querySelectorAll('.search-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.search-type-btn').forEach(b => {
+                        b.style.background = 'white';
+                        b.style.color = '#333';
+                    });
+                    this.style.background = '#667eea';
+                    this.style.color = 'white';
+                    currentRAGSearchType = this.dataset.type;
+                });
+            });
+        }
+        
+        function setRAGQuery(query) {
+            document.getElementById('rag-query').value = query;
+        }
+        
+        async function performRAGSearch() {
+            const query = document.getElementById('rag-query').value.trim();
+            if (!query) {
+                alert('Please enter a question to search');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('rag-results');
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div><p>Searching vector database and generating AI response...</p></div>';
+            
+            try {
+                const response = await fetch('/api/rag/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        search_type: currentRAGSearchType,
+                        top_k: 5,
+                        include_context: true
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                displayRAGResults(result);
+                
+            } catch (error) {
+                console.error('RAG search error:', error);
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function displayRAGResults(result) {
+            const container = document.getElementById('rag-results');
+            
+            const confidenceClass = result.confidence > 0.7 ? 'status-healthy' : 
+                                  result.confidence > 0.4 ? 'status-degraded' : 'status-error';
+            
+            container.innerHTML = `
+                <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px; border-left: 5px solid #667eea;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0;">AI Response</h4>
+                        <span class="${confidenceClass}" style="padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            Confidence: ${(result.confidence * 100).toFixed(1)}%
+                        </span>
+                    </div>
+                    
+                    <div style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
+                        ${result.answer}
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px;">
+                        <h5 style="margin-bottom: 15px;">📚 Sources (${result.sources.length})</h5>
+                        ${result.sources.map((source, index) => {
+                            // Handle different source types
+                            let sourceType = source.type || source.vector_type || 'unknown';
+                            let sourceContent = '';
+                            let sourceDetails = '';
+                            
+                            if (source.content) {
+                                // Vector storage source
+                                sourceContent = source.content.substring(0, 200) + (source.content.length > 200 ? '...' : '');
+                                sourceDetails = `Similarity: ${(source.similarity * 100).toFixed(1)}%`;
+                            } else if (source.data) {
+                                // Real-time data source
+                                if (source.data.symbol && source.data.price) {
+                                    sourceContent = `${source.data.symbol}: $${source.data.price}`;
+                                    sourceDetails = `Real-time data`;
+                                } else if (source.data.symbol && source.data.current_price) {
+                                    sourceContent = `${source.data.symbol}: $${source.data.current_price}`;
+                                    sourceDetails = `Real-time data`;
+                                } else {
+                                    sourceContent = JSON.stringify(source.data).substring(0, 200) + '...';
+                                    sourceDetails = `Data source`;
+                                }
+                            } else {
+                                sourceContent = 'No content available';
+                                sourceDetails = 'Unknown source';
+                            }
+                            
+                            return `
+                                <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #667eea;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; color: #666;">
+                                        <span>Source ${index + 1} (${sourceType})</span>
+                                        <span>${sourceDetails}</span>
+                                    </div>
+                                    <div style="font-size: 14px; line-height: 1.5; color: #333;">
+                                        ${sourceContent}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    
+                    <div style="margin-top: 15px; font-size: 12px; color: #666;">
+                        Search completed in ${result.search_time.toFixed(2)}s
+                    </div>
+                </div>
+            `;
+        }
     </script>
 </body>
-</html> 
+</html>

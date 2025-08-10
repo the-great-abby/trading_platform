@@ -12,8 +12,17 @@ from datetime import datetime
 # Import the RSS feed service app
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../services/rss-feed-service'))
-from main import app as rss_app, RSSFeedGenerator, RSSFeedConfig, RSSItem
+import importlib.util
+
+# Load the RSS feed service module specifically
+rss_service_path = os.path.join(os.path.dirname(__file__), '../../services/rss-feed-service/main.py')
+spec = importlib.util.spec_from_file_location("rss_service_main", rss_service_path)
+rss_service_main = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(rss_service_main)
+rss_app = rss_service_main.app
+RSSFeedGenerator = rss_service_main.RSSFeedGenerator
+RSSFeedConfig = rss_service_main.RSSFeedConfig
+RSSItem = rss_service_main.RSSItem
 
 # Import the unified news dashboard app
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../services/unified-news-dashboard'))

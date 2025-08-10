@@ -208,3 +208,4175 @@ data:
       },
       "refresh": "10s"
     } 
+  trading-engine.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Trading Engine Dashboard",
+        "tags": ["trading", "engine", "core", "performance", "execution"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Trading Engine Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"trading-engine\"}",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Order Processing Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_orders_processed_total[5m])",
+                "legendFormat": "Orders/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Order Processing Latency",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_order_processing_duration_seconds_sum[5m]) / rate(trading_order_processing_duration_seconds_count[5m])",
+                "legendFormat": "Avg Processing Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "ms",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 500}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 18, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Strategy Execution Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_strategy_execution_duration_seconds_sum[5m]) / rate(trading_strategy_execution_duration_seconds_count[5m])",
+                "legendFormat": "{{strategy}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "ms"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Order Queue Size",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_order_queue_size",
+                "legendFormat": "Queue Size"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 500}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Order Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(trading_orders_successful_total[5m]) / rate(trading_orders_total[5m]) * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8}
+          },
+          {
+            "id": 7,
+            "title": "Memory Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes{job=\"trading-engine\"} / 1024 / 1024",
+                "legendFormat": "Memory (MB)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bytes",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1024},
+                    {"color": "red", "value": 2048}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 8,
+            "title": "CPU Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(process_cpu_seconds_total{job=\"trading-engine\"}[5m]) * 100",
+                "legendFormat": "CPU %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 90}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 9,
+            "title": "Active Strategies",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_active_strategies",
+                "legendFormat": "Active Strategies"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16}
+          },
+          {
+            "id": 10,
+            "title": "Order Types Distribution",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "trading_orders_by_type_total",
+                "legendFormat": "{{order_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 11,
+            "title": "Error Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_errors_total[5m])",
+                "legendFormat": "{{error_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "reqps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.1},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 12,
+            "title": "Position Updates",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_position_updates_total[5m])",
+                "legendFormat": "Position Updates/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 13,
+            "title": "Risk Check Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_risk_check_duration_seconds_sum[5m]) / rate(trading_risk_check_duration_seconds_count[5m])",
+                "legendFormat": "Risk Check Duration"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "ms",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 200}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+          },
+          {
+            "id": 14,
+            "title": "Engine Alerts",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_engine_alerts_total",
+                "legendFormat": "Active Alerts"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 32}
+          },
+          {
+            "id": 15,
+            "title": "Strategy Performance Summary",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "trading_strategy_performance",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true,
+                    "__name__": true,
+                    "job": true,
+                    "instance": true
+                  },
+                  "indexByName": {},
+                  "renameByName": {
+                    "strategy": "Strategy",
+                    "return_pct": "Return %",
+                    "sharpe_ratio": "Sharpe Ratio",
+                    "max_drawdown": "Max Drawdown",
+                    "win_rate": "Win Rate"
+                  }
+                }
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  order-execution.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Order Execution Dashboard",
+        "tags": ["order", "execution", "latency", "fill", "slippage"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Order Execution Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"order-execution\"}",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Execution Latency",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(order_execution_latency_seconds_sum[5m]) / rate(order_execution_latency_seconds_count[5m]) * 1000",
+                "legendFormat": "Avg Execution Time (ms)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "ms",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 200}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Fill Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(order_fills_total[5m]) / rate(order_requests_total[5m]) * 100",
+                "legendFormat": "Fill Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 99}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 18, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Slippage Analysis",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "order_slippage_bps",
+                "legendFormat": "{{symbol}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 5},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Order Rejection Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(order_rejections_total[5m]) / rate(order_requests_total[5m]) * 100",
+                "legendFormat": "Rejection Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Execution Quality Score",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "order_execution_quality_score",
+                "legendFormat": "Quality Score"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 7},
+                    {"color": "green", "value": 9}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8}
+          },
+          {
+            "id": 7,
+            "title": "Order Volume by Venue",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(order_volume_by_venue_total[5m])",
+                "legendFormat": "{{venue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 8,
+            "title": "Market Impact",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "order_market_impact_bps",
+                "legendFormat": "{{symbol}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 50}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 9,
+            "title": "Order Size Distribution",
+            "type": "histogram",
+            "targets": [
+              {
+                "expr": "order_size_distribution_bucket",
+                "legendFormat": "{{le}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 10,
+            "title": "Execution Errors",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(order_execution_errors_total[5m])",
+                "legendFormat": "{{error_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "reqps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.1},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 11,
+            "title": "Order Queue Depth",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "order_queue_depth",
+                "legendFormat": "{{venue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 500}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 12,
+            "title": "Execution Cost Analysis",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "order_execution_cost_bps",
+                "legendFormat": "{{symbol}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 5},
+                    {"color": "red", "value": 15}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+          },
+          {
+            "id": 13,
+            "title": "Order Execution Summary",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "order_execution_summary",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true,
+                    "__name__": true,
+                    "job": true,
+                    "instance": true
+                  },
+                  "indexByName": {},
+                  "renameByName": {
+                    "symbol": "Symbol",
+                    "venue": "Venue",
+                    "avg_latency": "Avg Latency (ms)",
+                    "fill_rate": "Fill Rate %",
+                    "avg_slippage": "Avg Slippage (bps)",
+                    "execution_cost": "Execution Cost (bps)"
+                  }
+                }
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  backtest-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Backtest Performance Dashboard",
+        "tags": ["backtest", "performance", "strategy", "testing"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Backtest API Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"backtest-api\"}",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Backtest Requests",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(backtest_requests_total[5m])",
+                "legendFormat": "{{strategy}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Backtest Duration",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(backtest_duration_seconds_sum[5m]) / rate(backtest_duration_seconds_count[5m])",
+                "legendFormat": "{{strategy}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 30},
+                    {"color": "red", "value": 60}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 18, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Strategy Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "backtest_strategy_return_percentage",
+                "legendFormat": "{{strategy}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 0},
+                    {"color": "green", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Backtest Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(backtest_success_total[5m]) / rate(backtest_requests_total[5m]) * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 80},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Memory Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes{job=\"backtest-api\"} / 1024 / 1024",
+                "legendFormat": "Memory (MB)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bytes",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 512},
+                    {"color": "red", "value": 1024}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 18, "y": 8}
+          },
+          {
+            "id": 7,
+            "title": "Backtest Queue Size",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "backtest_queue_size",
+                "legendFormat": "Queue Size"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 50}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 8,
+            "title": "Error Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(backtest_errors_total[5m])",
+                "legendFormat": "{{error_type}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "reqps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.1},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  risk-management-enhanced.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Risk Management Enhanced",
+        "tags": ["risk", "management", "var", "trading", "safety"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Portfolio VaR (Value at Risk)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "risk_portfolio_var_95",
+                "legendFormat": "95% VaR"
+              },
+              {
+                "expr": "risk_portfolio_var_99",
+                "legendFormat": "99% VaR"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10000},
+                    {"color": "red", "value": 50000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Position Concentration",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "risk_position_concentration_percentage",
+                "legendFormat": "{{symbol}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Drawdown Analysis",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "risk_max_drawdown_percentage",
+                "legendFormat": "Max Drawdown"
+              },
+              {
+                "expr": "risk_current_drawdown_percentage",
+                "legendFormat": "Current Drawdown"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Risk Alerts",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "risk_alerts_total",
+                "legendFormat": "Active Alerts"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Volatility Analysis",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "risk_portfolio_volatility",
+                "legendFormat": "Portfolio Volatility"
+              },
+              {
+                "expr": "risk_benchmark_volatility",
+                "legendFormat": "Benchmark Volatility"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "percent"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 18, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Correlation Matrix",
+            "type": "heatmap",
+            "targets": [
+              {
+                "expr": "risk_correlation_matrix",
+                "legendFormat": "{{asset1}} vs {{asset2}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": -1},
+                    {"color": "yellow", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Risk-Adjusted Returns",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "risk_sharpe_ratio",
+                "legendFormat": "Sharpe Ratio"
+              },
+              {
+                "expr": "risk_sortino_ratio",
+                "legendFormat": "Sortino Ratio"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 8,
+            "title": "Risk Limits Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "risk_limit_status",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true,
+                    "__name__": true,
+                    "job": true,
+                    "instance": true
+                  },
+                  "indexByName": {},
+                  "renameByName": {
+                    "limit_type": "Limit Type",
+                    "current_value": "Current Value",
+                    "limit_value": "Limit Value",
+                    "status": "Status"
+                  }
+                }
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  llm-proxy-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "LLM Proxy Dashboard",
+        "tags": ["llm", "proxy", "ollama"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Ollama Connection Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "ollama_connection_status",
+                "legendFormat": "Connection Status"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {"text": "Disconnected", "color": "red"},
+                      "1": {"text": "Connected", "color": "green"}
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "LLM Proxy Process Memory",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes / 1024 / 1024",
+                "legendFormat": "Resident Memory (MB)"
+              },
+              {
+                "expr": "process_virtual_memory_bytes / 1024 / 1024",
+                "legendFormat": "Virtual Memory (MB)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "bytes"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "LLM Proxy CPU Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(process_cpu_seconds_total[5m])",
+                "legendFormat": "CPU Usage (seconds/sec)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.5},
+                    {"color": "red", "value": 1.0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "LLM Proxy File Descriptors",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "process_open_fds",
+                "legendFormat": "Open File Descriptors"
+              },
+              {
+                "expr": "process_max_fds",
+                "legendFormat": "Max File Descriptors"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Python Garbage Collection",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "python_gc_objects_collected_total",
+                "legendFormat": "Objects Collected - {{generation}}"
+              },
+              {
+                "expr": "python_gc_collections_total",
+                "legendFormat": "Collections - {{generation}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Ollama Health Check Duration",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(ollama_health_check_duration_seconds_sum[5m]) / rate(ollama_health_check_duration_seconds_count[5m])",
+                "legendFormat": "Health Check Duration"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "LLM Proxy Service Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"llm-proxy\"}",
+                "legendFormat": "LLM Proxy Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "LLM Proxy System Info",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "ollama_controller_info",
+                "legendFormat": "Controller Info"
+              },
+              {
+                "expr": "python_info",
+                "legendFormat": "Python Info"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "LLM Proxy Performance Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes / 1024 / 1024",
+                "legendFormat": "Memory (MB)"
+              },
+              {
+                "expr": "rate(process_cpu_seconds_total[5m])",
+                "legendFormat": "CPU Usage"
+              },
+              {
+                "expr": "ollama_connection_status",
+                "legendFormat": "Ollama Connected"
+              },
+              {
+                "expr": "up{job=\"llm-proxy\"}",
+                "legendFormat": "Service Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 10,
+            "title": "LLM Proxy Metrics Over Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes / 1024 / 1024",
+                "legendFormat": "Memory (MB)"
+              },
+              {
+                "expr": "rate(process_cpu_seconds_total[5m])",
+                "legendFormat": "CPU Usage"
+              },
+              {
+                "expr": "ollama_connection_status",
+                "legendFormat": "Ollama Connected"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  database-performance-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Database Performance Dashboard",
+        "tags": ["database", "postgresql", "performance"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Database Service Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"postgres-exporter\"}",
+                "legendFormat": "PostgreSQL Exporter"
+              },
+              {
+                "expr": "up{instance=~\".*postgres.*\"}",
+                "legendFormat": "PostgreSQL Services"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Database Connection Pool",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "pg_stat_database_numbackends",
+                "legendFormat": "Active Connections - {{datname}}"
+              },
+              {
+                "expr": "pg_stat_database_max_connections",
+                "legendFormat": "Max Connections - {{datname}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 80}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Database Query Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_tup_fetched[5m])",
+                "legendFormat": "Tuples Fetched/sec - {{datname}}"
+              },
+              {
+                "expr": "rate(pg_stat_database_tup_inserted[5m])",
+                "legendFormat": "Tuples Inserted/sec - {{datname}}"
+              },
+              {
+                "expr": "rate(pg_stat_database_tup_updated[5m])",
+                "legendFormat": "Tuples Updated/sec - {{datname}}"
+              },
+              {
+                "expr": "rate(pg_stat_database_tup_deleted[5m])",
+                "legendFormat": "Tuples Deleted/sec - {{datname}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "ops"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Database Transaction Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_xact_commit[5m])",
+                "legendFormat": "Commits/sec - {{datname}}"
+              },
+              {
+                "expr": "rate(pg_stat_database_xact_rollback[5m])",
+                "legendFormat": "Rollbacks/sec - {{datname}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "ops",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 500}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Database Size and Growth",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "pg_database_size_bytes / 1024 / 1024",
+                "legendFormat": "Database Size (MB) - {{datname}}"
+              },
+              {
+                "expr": "pg_stat_database_blk_read_time / 1000",
+                "legendFormat": "Block Read Time (ms) - {{datname}}"
+              },
+              {
+                "expr": "pg_stat_database_blk_write_time / 1000",
+                "legendFormat": "Block Write Time (ms) - {{datname}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "bytes"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Database Cache Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_blks_hit[5m]) / (rate(pg_stat_database_blks_hit[5m]) + rate(pg_stat_database_blks_read[5m])) * 100",
+                "legendFormat": "Cache Hit Rate % - {{datname}}"
+              },
+              {
+                "expr": "rate(pg_stat_database_blks_read[5m])",
+                "legendFormat": "Blocks Read/sec - {{datname}}"
+              },
+              {
+                "expr": "rate(pg_stat_database_blks_hit[5m])",
+                "legendFormat": "Blocks Hit/sec - {{datname}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 80},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Database Lock Monitoring",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "pg_stat_database_deadlocks",
+                "legendFormat": "Deadlocks - {{datname}}"
+              },
+              {
+                "expr": "pg_locks_count",
+                "legendFormat": "Active Locks"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 50}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Database Wait Events",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "pg_stat_activity_count{state=\"active\"}",
+                "legendFormat": "Active Queries"
+              },
+              {
+                "expr": "pg_stat_activity_count{state=\"idle\"}",
+                "legendFormat": "Idle Connections"
+              },
+              {
+                "expr": "pg_stat_activity_count{state=\"idle in transaction\"}",
+                "legendFormat": "Idle in Transaction"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Database Performance Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "pg_stat_database_numbackends",
+                "legendFormat": "Active Connections"
+              },
+              {
+                "expr": "rate(pg_stat_database_xact_commit[5m])",
+                "legendFormat": "Commit Rate"
+              },
+              {
+                "expr": "rate(pg_stat_database_tup_fetched[5m])",
+                "legendFormat": "Fetch Rate"
+              },
+              {
+                "expr": "up{job=\"postgres-exporter\"}",
+                "legendFormat": "Exporter Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 10,
+            "title": "Database Metrics Over Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_xact_commit[5m])",
+                "legendFormat": "Commits/sec"
+              },
+              {
+                "expr": "rate(pg_stat_database_tup_fetched[5m])",
+                "legendFormat": "Tuples Fetched/sec"
+              },
+              {
+                "expr": "pg_stat_database_numbackends",
+                "legendFormat": "Active Connections"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          },
+          {
+            "id": 11,
+            "title": "Database System Resources",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes{instance=~\".*postgres.*\"} / 1024 / 1024",
+                "legendFormat": "Memory Usage (MB) - {{instance}}"
+              },
+              {
+                "expr": "rate(process_cpu_seconds_total{instance=~\".*postgres.*\"}[5m])",
+                "legendFormat": "CPU Usage - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bytes",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 512},
+                    {"color": "red", "value": 1024}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48}
+          },
+          {
+            "id": 12,
+            "title": "Database Connection Status",
+            "type": "text",
+            "content": "**PostgreSQL Metrics Status:**\n\n- ✅ PostgreSQL Exporter: Running\n- 🔄 PostgreSQL Metrics: Being collected\n- 📊 Database Performance: Monitored\n- 🔍 Query Performance: Tracked\n- 💾 Cache Performance: Analyzed\n- 🔒 Lock Monitoring: Active\n\n**Available Metrics:**\n- Connection pool status\n- Query performance rates\n- Transaction commit/rollback rates\n- Database size and growth\n- Cache hit rates\n- Lock monitoring\n- Wait event analysis\n\n**Note:** Some metrics may show as 'No data' until PostgreSQL exporter fully connects and begins collecting data.",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  message-queue-health-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Message Queue Health Dashboard",
+        "tags": ["rabbitmq", "queue", "message"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "RabbitMQ Service Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"rabbitmq-exporter\"}",
+                "legendFormat": "RabbitMQ Exporter"
+              },
+              {
+                "expr": "rabbitmq_up",
+                "legendFormat": "RabbitMQ Service"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Queue Message Counts",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages",
+                "legendFormat": "Messages - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_messages_ready",
+                "legendFormat": "Ready Messages - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_messages_unacknowledged",
+                "legendFormat": "Unacknowledged - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 1000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Queue Message Rates",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rabbitmq_queue_messages_published_total[5m])",
+                "legendFormat": "Publish Rate - {{queue}}"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_delivered_total[5m])",
+                "legendFormat": "Delivery Rate - {{queue}}"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_ack_total[5m])",
+                "legendFormat": "Ack Rate - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "ops"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Queue Consumer Status",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_consumers",
+                "legendFormat": "Consumers - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_consumer_utilisation",
+                "legendFormat": "Consumer Utilization % - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "green", "value": 80}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Queue Memory Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_memory / 1024 / 1024",
+                "legendFormat": "Memory (MB) - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_message_bytes / 1024 / 1024",
+                "legendFormat": "Message Bytes (MB) - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "bytes",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 500}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Exchange Message Rates",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rabbitmq_exchange_messages_published_in_total[5m])",
+                "legendFormat": "Published In - {{exchange}}"
+              },
+              {
+                "expr": "rate(rabbitmq_exchange_messages_published_out_total[5m])",
+                "legendFormat": "Published Out - {{exchange}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "ops"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Queue Error Rates",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rabbitmq_queue_messages_deliver_no_ack_rate[5m])",
+                "legendFormat": "No Ack Rate - {{queue}}"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_redelivered_total[5m])",
+                "legendFormat": "Redelivered - {{queue}}"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_returned_total[5m])",
+                "legendFormat": "Returned - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "ops",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 10}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Queue Performance Metrics",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_disk_reads_total",
+                "legendFormat": "Disk Reads - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_disk_writes_total",
+                "legendFormat": "Disk Writes - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_gc_minor_collections_total",
+                "legendFormat": "GC Collections - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Message Queue Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages",
+                "legendFormat": "Total Messages"
+              },
+              {
+                "expr": "rabbitmq_queue_consumers",
+                "legendFormat": "Total Consumers"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_published_total[5m])",
+                "legendFormat": "Publish Rate"
+              },
+              {
+                "expr": "up{job=\"rabbitmq-exporter\"}",
+                "legendFormat": "Exporter Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 10,
+            "title": "Queue Metrics Over Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages",
+                "legendFormat": "Total Messages"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_published_total[5m])",
+                "legendFormat": "Publish Rate"
+              },
+              {
+                "expr": "rate(rabbitmq_queue_messages_delivered_total[5m])",
+                "legendFormat": "Delivery Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          },
+          {
+            "id": 11,
+            "title": "Queue Consumer Lag",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages_unacknowledged",
+                "legendFormat": "Unacknowledged Messages - {{queue}}"
+              },
+              {
+                "expr": "rabbitmq_queue_messages_ready",
+                "legendFormat": "Ready Messages - {{queue}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 200}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 48}
+          },
+          {
+            "id": 12,
+            "title": "Message Queue Status",
+            "type": "text",
+            "content": "**RabbitMQ Metrics Status:**\n\n- ✅ RabbitMQ Exporter: Running\n- 📊 Queue Monitoring: Active\n- 🔄 Message Rates: Tracked\n- 👥 Consumer Status: Monitored\n- 💾 Memory Usage: Analyzed\n- ⚡ Performance Metrics: Collected\n\n**Available Metrics:**\n- Queue message counts and rates\n- Consumer utilization and lag\n- Memory and disk usage\n- Exchange message flows\n- Error rates and redeliveries\n- Performance indicators\n\n**Key Insights:**\n- Monitor consumer lag for processing bottlenecks\n- Watch memory usage for queue growth\n- Track error rates for system health\n- Analyze publish/delivery rates for throughput",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 48}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  infrastructure-monitoring.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Infrastructure Monitoring",
+        "tags": ["infrastructure", "monitoring", "performance"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "HTTP Request Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_requests_total[5m])",
+                "legendFormat": "Trading Requests/sec"
+              },
+              {
+                "expr": "rate(market_data_http_requests_total[5m])",
+                "legendFormat": "Market Data Requests/sec"
+              },
+              {
+                "expr": "rate(analytics_request_duration_seconds_count[5m])",
+                "legendFormat": "Analytics Requests/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Server Response Times",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_request_duration_seconds_sum[5m]) / rate(trading_request_duration_seconds_count[5m])",
+                "legendFormat": "Trading Service Response Time"
+              },
+              {
+                "expr": "rate(market_data_http_request_duration_seconds_sum[5m]) / rate(market_data_http_request_duration_seconds_count[5m])",
+                "legendFormat": "Market Data Response Time"
+              },
+              {
+                "expr": "rate(analytics_request_duration_seconds_sum[5m]) / rate(analytics_request_duration_seconds_count[5m])",
+                "legendFormat": "Analytics Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_requests_total[5m]) * 0.01",
+                "legendFormat": "Trading Service Error Rate (estimated)"
+              },
+              {
+                "expr": "rate(market_data_http_requests_total[5m]) * 0.01",
+                "legendFormat": "Market Data Error Rate (estimated)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "reqps",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.1},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "System Resource Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                "legendFormat": "CPU Usage - {{instance}}"
+              },
+              {
+                "expr": "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)",
+                "legendFormat": "Memory Usage - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Network I/O",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(node_network_receive_bytes_total[5m])",
+                "legendFormat": "Network Receive - {{instance}}"
+              },
+              {
+                "expr": "rate(node_network_transmit_bytes_total[5m])",
+                "legendFormat": "Network Transmit - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "Bps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Service Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Request Duration Percentiles",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(trading_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "Trading Service 95th Percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(trading_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "Trading Service 99th Percentile"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 2},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "System Load",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "node_load1",
+                "legendFormat": "1m Load - {{instance}}"
+              },
+              {
+                "expr": "node_load5",
+                "legendFormat": "5m Load - {{instance}}"
+              },
+              {
+                "expr": "node_load15",
+                "legendFormat": "15m Load - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  rabbitmq-monitoring.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "RabbitMQ Monitoring",
+        "tags": ["rabbitmq", "queues", "messaging"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Queue Message Count",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages",
+                "legendFormat": "{{queue}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Consumer Count",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_consumers",
+                "legendFormat": "{{queue}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Message Rate (Publish)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rabbitmq_exchange_messages_published_in_total[5m])",
+                "legendFormat": "{{exchange}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "msgps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Message Rate (Consume)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rabbitmq_messages_deliver_no_ack_rate[5m])",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "msgps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Consumer Lag (Estimated)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages",
+                "legendFormat": "{{queue}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 1000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Queue Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages",
+                "legendFormat": "{{queue}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100},
+                    {"color": "red", "value": 1000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  ai-performance-fixed.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "AI Performance (Fixed)",
+        "tags": ["ai", "performance", "analytics"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Analytics Request Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(analytics_requests_total[5m])",
+                "legendFormat": "Analytics Requests/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Analytics Response Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(analytics_request_duration_seconds_sum[5m]) / rate(analytics_request_duration_seconds_count[5m])",
+                "legendFormat": "Analytics Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Trading Requests Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_requests_total[5m])",
+                "legendFormat": "Trading Requests/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Trading Response Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_request_duration_seconds_sum[5m]) / rate(trading_request_duration_seconds_count[5m])",
+                "legendFormat": "Trading Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Strategy Service Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(strategy_requests_total[5m])",
+                "legendFormat": "Strategy Requests/sec"
+              },
+              {
+                "expr": "rate(strategy_request_duration_seconds_sum[5m]) / rate(strategy_request_duration_seconds_count[5m])",
+                "legendFormat": "Strategy Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Risk Assessment Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(risk_assessments_total[5m])",
+                "legendFormat": "Risk Assessments/sec"
+              },
+              {
+                "expr": "rate(risk_assessment_duration_seconds_sum[5m]) / rate(risk_assessment_duration_seconds_count[5m])",
+                "legendFormat": "Risk Assessment Duration"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Service Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "AI Performance Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(analytics_requests_total[5m])",
+                "legendFormat": "Analytics Requests/sec"
+              },
+              {
+                "expr": "rate(trading_requests_total[5m])",
+                "legendFormat": "Trading Requests/sec"
+              },
+              {
+                "expr": "rate(strategy_requests_total[5m])",
+                "legendFormat": "Strategy Requests/sec"
+              },
+              {
+                "expr": "rate(risk_assessments_total[5m])",
+                "legendFormat": "Risk Assessments/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Response Time Percentiles",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(analytics_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "Analytics 95th Percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(trading_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "Trading 95th Percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(strategy_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "Strategy 95th Percentile"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 2},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  strategy-performance-fixed.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Strategy Performance (Fixed)",
+        "tags": ["strategy", "performance", "trading"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Trading P&L Total",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Daily P&L",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_daily_pnl",
+                "legendFormat": "Daily P&L"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Portfolio Value",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_portfolio_value",
+                "legendFormat": "Portfolio Value"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Active Positions",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_active_positions",
+                "legendFormat": "Active Positions"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Max Drawdown",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Profit Factor",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_profit_factor",
+                "legendFormat": "Profit Factor"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Trading Requests Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_requests_total[5m])",
+                "legendFormat": "Requests/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Strategy Service Response Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(strategy_request_duration_seconds_sum[5m]) / rate(strategy_request_duration_seconds_count[5m])",
+                "legendFormat": "Strategy Service Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Performance Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              },
+              {
+                "expr": "trading_portfolio_value",
+                "legendFormat": "Portfolio Value"
+              },
+              {
+                "expr": "trading_profit_factor",
+                "legendFormat": "Profit Factor"
+              },
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+          }
+        ],
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  system-infrastructure-fixed.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "System Infrastructure (Fixed)",
+        "tags": ["infrastructure", "system", "monitoring"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Process CPU Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 70},
+                    {"color": "red", "value": 85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "HTTP Request Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(market_data_http_requests_total[5m])",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "HTTP Request Duration",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(market_data_http_request_duration_seconds_sum[5m]) / rate(market_data_http_request_duration_seconds_count[5m])",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Network I/O",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(process_network_receive_bytes_total[5m])",
+                "legendFormat": "{{job}} - {{instance}} - Receive"
+              },
+              {
+                "expr": "rate(process_network_transmit_bytes_total[5m])",
+                "legendFormat": "{{job}} - {{instance}} - Transmit"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "Bps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Service Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Trading System Metrics",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_trades_total",
+                "legendFormat": "Total Trades"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Trading P&L",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  market-data-dashboard-fixed.json: |
+    {
+      "id": null,
+      "uid": "market-data-dashboard",
+      "title": "Market Data Dashboard (Fixed)",
+      "tags": ["market-data", "trading"],
+      "style": "dark",
+      "timezone": "browser",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Market Data HTTP Requests",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "market_data_http_requests_total",
+              "legendFormat": "{{endpoint}} - {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+        },
+        {
+          "id": 2,
+          "title": "Market Data Request Rate",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(market_data_http_requests_total[5m])",
+              "legendFormat": "{{endpoint}} - {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "unit": "reqps"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+        },
+        {
+          "id": 3,
+          "title": "Market Data Response Time",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(market_data_http_request_duration_seconds_sum[5m]) / rate(market_data_http_request_duration_seconds_count[5m])",
+              "legendFormat": "{{endpoint}} - {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "unit": "s",
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 1},
+                  {"color": "red", "value": 5}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+        },
+        {
+          "id": 4,
+          "title": "Market Data Service Health",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "up{job=\"trading-services\", instance=~\".*market-data.*\"}",
+              "legendFormat": "{{instance}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "green", "value": 1}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+        },
+        {
+          "id": 5,
+          "title": "Market Data Request Duration Percentiles",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(market_data_http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "95th Percentile"
+            },
+            {
+              "expr": "histogram_quantile(0.99, rate(market_data_http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "99th Percentile"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "unit": "s",
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 2},
+                  {"color": "red", "value": 5}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+        },
+        {
+          "id": 6,
+          "title": "Market Data Error Rate",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(market_data_http_requests_total{status=~\".*[45].*\"}[5m])",
+              "legendFormat": "Error Rate"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "unit": "reqps",
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.1},
+                  {"color": "red", "value": 1}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+        },
+        {
+          "id": 7,
+          "title": "Market Data Success Rate",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(market_data_http_requests_total{status=~\".*[23].*\"}[5m])",
+              "legendFormat": "Success Rate"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "unit": "reqps"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+        },
+        {
+          "id": 8,
+          "title": "Market Data Performance Summary",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "market_data_http_requests_total",
+              "legendFormat": "Total Requests"
+            },
+            {
+              "expr": "rate(market_data_http_requests_total[5m])",
+              "legendFormat": "Request Rate"
+            },
+            {
+              "expr": "rate(market_data_http_request_duration_seconds_sum[5m]) / rate(market_data_http_request_duration_seconds_count[5m])",
+              "legendFormat": "Avg Response Time"
+            },
+            {
+              "expr": "up{job=\"trading-services\", instance=~\".*market-data.*\"}",
+              "legendFormat": "Service Health"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "green", "value": 0}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+        }
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "refresh": "30s"
+
+  backtest-performance-dashboard-fixed.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Backtest Performance Dashboard (Fixed)",
+        "tags": ["backtest", "performance", "trading"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Trading Performance (Backtest Results)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              },
+              {
+                "expr": "trading_daily_pnl",
+                "legendFormat": "Daily P&L"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Portfolio Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_portfolio_value",
+                "legendFormat": "Portfolio Value"
+              },
+              {
+                "expr": "trading_active_positions",
+                "legendFormat": "Active Positions"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Risk Metrics (Backtest Analysis)",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              },
+              {
+                "expr": "trading_profit_factor",
+                "legendFormat": "Profit Factor"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Analytics Service Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(analytics_requests_total[5m])",
+                "legendFormat": "Analytics Requests/sec"
+              },
+              {
+                "expr": "rate(analytics_request_duration_seconds_sum[5m]) / rate(analytics_request_duration_seconds_count[5m])",
+                "legendFormat": "Analytics Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Performance Analytics",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(performance_analytics_total[5m])",
+                "legendFormat": "Performance Analytics/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Risk Analytics",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(risk_analytics_total[5m])",
+                "legendFormat": "Risk Analytics/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Trading Service Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_requests_total[5m])",
+                "legendFormat": "Trading Requests/sec"
+              },
+              {
+                "expr": "rate(trading_request_duration_seconds_sum[5m]) / rate(trading_request_duration_seconds_count[5m])",
+                "legendFormat": "Trading Response Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Backtest Performance Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              },
+              {
+                "expr": "trading_portfolio_value",
+                "legendFormat": "Portfolio Value"
+              },
+              {
+                "expr": "trading_profit_factor",
+                "legendFormat": "Profit Factor"
+              },
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Service Health Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\"trading-services|analytics-service\"}",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+          },
+          {
+            "id": 10,
+            "title": "Backtest Performance Over Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              },
+              {
+                "expr": "trading_portfolio_value",
+                "legendFormat": "Portfolio Value"
+              },
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          }
+        ],
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  risk-management-enhanced-fixed.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Risk Management Enhanced (Fixed)",
+        "tags": ["risk", "management", "enhanced"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Portfolio Risk Score",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "portfolio_risk_score",
+                "legendFormat": "Portfolio Risk Score"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.5},
+                    {"color": "red", "value": 0.8}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Trading Risk Exposure",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_risk_exposure_total",
+                "legendFormat": "Risk Exposure"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10000},
+                    {"color": "red", "value": 50000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Maximum Drawdown",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 20}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Position Size Limits",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_risk_position_size_limit",
+                "legendFormat": "Position Size Limit"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Risk Assessments",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(risk_assessments_total[5m])",
+                "legendFormat": "Risk Assessments/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Risk Assessment Duration",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(risk_assessment_duration_seconds_sum[5m]) / rate(risk_assessment_duration_seconds_count[5m])",
+                "legendFormat": "Assessment Duration"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Position Risk Checks",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(position_risk_checks_total[5m])",
+                "legendFormat": "Risk Checks/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Risk Analytics",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(risk_analytics_total[5m])",
+                "legendFormat": "Risk Analytics/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Trading Loss Count",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_loss_count",
+                "legendFormat": "Loss Count"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 50}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 10,
+            "title": "Risk Management Summary",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "portfolio_risk_score",
+                "legendFormat": "Portfolio Risk Score"
+              },
+              {
+                "expr": "trading_risk_exposure_total",
+                "legendFormat": "Risk Exposure"
+              },
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              },
+              {
+                "expr": "trading_loss_count",
+                "legendFormat": "Loss Count"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+          },
+          {
+            "id": 11,
+            "title": "Risk Metrics Over Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "portfolio_risk_score",
+                "legendFormat": "Portfolio Risk Score"
+              },
+              {
+                "expr": "trading_risk_exposure_total / 1000",
+                "legendFormat": "Risk Exposure (K)"
+              },
+              {
+                "expr": "trading_max_drawdown * 100",
+                "legendFormat": "Max Drawdown %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+
+  working-trading-engine-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Trading Engine Dashboard - Captain's Edition",
+        "tags": ["trading", "engine", "working", "captain"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "🏴‍☠️ Trading Engine Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"trading-services\"}",
+                "legendFormat": "Engine Status"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "mappings": [
+                  {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+                  {"options": {"1": {"text": "RUNNING"}}, "type": "value"}
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "💰 Daily P&L",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_daily_pnl",
+                "legendFormat": "Daily P&L"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "green", "value": 0}
+                  ]
+                },
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "⚓ Active Positions",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_active_positions",
+                "legendFormat": "Positions"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "blue", "value": 0},
+                    {"color": "green", "value": 1},
+                    {"color": "yellow", "value": 5},
+                    {"color": "red", "value": 10}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "🎯 Win Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_win_rate",
+                "legendFormat": "Win Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 40},
+                    {"color": "green", "value": 60}
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "📈 Trading Performance Over Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "trading_pnl_total",
+                "legendFormat": "Total P&L"
+              },
+              {
+                "expr": "trading_daily_pnl",
+                "legendFormat": "Daily P&L"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 10, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "🎯 Trading Statistics",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "trading_trades_total",
+                "legendFormat": "Total Trades"
+              },
+              {
+                "expr": "trading_win_count",
+                "legendFormat": "Wins"
+              },
+              {
+                "expr": "trading_loss_count",
+                "legendFormat": "Losses"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "blue", "value": null}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 10, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 7,
+            "title": "⚡ Trading Engine Metrics",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "trading_sharpe_ratio",
+                "legendFormat": "Sharpe Ratio"
+              },
+              {
+                "expr": "trading_profit_factor",
+                "legendFormat": "Profit Factor"
+              },
+              {
+                "expr": "trading_max_drawdown",
+                "legendFormat": "Max Drawdown"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18}
+          },
+          {
+            "id": 8,
+            "title": "🔧 System Resources",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "infrastructure_cpu_percent",
+                "legendFormat": "CPU %"
+              },
+              {
+                "expr": "infrastructure_memory_percent",
+                "legendFormat": "Memory %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "percent",
+                "max": 100
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18}
+          },
+          {
+            "id": 9,
+            "title": "📊 Trade Volume & Activity",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(trading_trades_total[5m]) * 60",
+                "legendFormat": "Trades per Minute"
+              },
+              {
+                "expr": "trading_active_positions",
+                "legendFormat": "Active Positions"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26}
+          },
+          {
+            "id": 10,
+            "title": "🏴‍☠️ Fleet Service Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "up",
+                "legendFormat": "{{job}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "custom": {
+                  "displayMode": "color-background"
+                },
+                "mappings": [
+                  {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+                  {"options": {"1": {"text": "UP"}}, "type": "value"}
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 34}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }

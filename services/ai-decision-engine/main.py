@@ -149,18 +149,26 @@ Provide analysis in JSON format:
         
         try:
             async with aiohttp.ClientSession() as session:
+                # Call LLM proxy service with normal priority (background analysis)
                 llm_request = {
-                    "prompt": prompt,
-                    "max_tokens": 800,
+                    "messages": [
+                        {"role": "system", "content": "You are an expert investment analyst and decision maker."},
+                        {"role": "user", "content": prompt}
+                    ],
                     "temperature": 0.3,
-                    "task_type": "investment_analysis"
+                    "max_tokens": 800,
+                    "model": "gpt-3.5-turbo"
                 }
                 
-                url = f"{LLM_PROXY_URL}/api/chat"
+                # Use normal priority endpoint for background analysis
+                url = f"{LLM_PROXY_URL}/api/v1/llm"
                 async with session.post(url, json=llm_request) as response:
                     if response.status == 200:
                         result = await response.json()
-                        return self._parse_ai_response(result.get("response", ""))
+                        if result.get("success") and result.get("data"):
+                            return self._parse_ai_response(result["data"]["content"])
+                        else:
+                            return self._parse_ai_response(result.get("response", ""))
                     else:
                         logger.error(f"LLM service error: {response.status}")
                         return self._get_fallback_analysis(symbol)

@@ -15,13 +15,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import os
 import numpy as np
-from dataclasses import dataclass
 import hashlib
 import asyncpg
-from sqlalchemy import create_engine, text, Column, String, Float, Integer, DateTime, Text, JSON
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
+from vector_types import VectorSearchResult
+from models import Base, VectorEmbedding
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,28 +33,7 @@ app = FastAPI(title="PostgreSQL Vector Storage Service", version="1.0.0")
 LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://llm-proxy:12001")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 
-Base = declarative_base()
 
-class VectorEmbedding(Base):
-    """Vector embedding model for PostgreSQL"""
-    __tablename__ = 'vector_embeddings'
-    
-    id = Column(String(100), primary_key=True)
-    content = Column(Text, nullable=False)
-    embedding = Column(Text, nullable=False)  # JSON array of floats
-    metadata_json = Column(JSON, nullable=True)
-    vector_type = Column(String(50), nullable=False)  # "news", "market_data", "decision", "analysis"
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-@dataclass
-class SearchResult:
-    """Search result with similarity score"""
-    id: str
-    content: str
-    similarity: float
-    metadata: Dict[str, Any]
-    vector_type: str
 
 class PostgreSQLVectorStorage:
     """PostgreSQL-based vector storage using pgvector"""
@@ -108,7 +87,7 @@ class PostgreSQLVectorStorage:
             logger.error(f"Error initializing PostgreSQL vector storage: {e}")
             raise
     
-    async def add_embedding(self, content: str, metadata: Dict[str, Any], 
+    async def add_embedding(self, content: str, metadata_dict: Dict[str, Any], 
                            vector_type: str) -> str:
         """Add content to PostgreSQL vector database"""
         
@@ -130,7 +109,7 @@ class PostgreSQLVectorStorage:
                     # Update existing embedding
                     existing.content = content
                     existing.embedding = json.dumps(embedding)
-                    existing.metadata_json = metadata
+                    existing.metadata_json = metadata_dict
                     existing.updated_at = datetime.utcnow()
                 else:
                     # Create new embedding
@@ -138,7 +117,7 @@ class PostgreSQLVectorStorage:
                         id=embedding_id,
                         content=content,
                         embedding=json.dumps(embedding),
-                        metadata_json=metadata,
+                        metadata_json=metadata_dict,
                         vector_type=vector_type
                     )
                     session.add(vector_embedding)
@@ -153,7 +132,7 @@ class PostgreSQLVectorStorage:
         return embedding_id
     
     async def search_similar(self, query: str, vector_type: Optional[str] = None, 
-                           top_k: int = 5) -> List[SearchResult]:
+                           top_k: int = 5) -> List[VectorSearchResult]:
         """Search for similar content using PostgreSQL vector similarity"""
         
         # Generate query embedding
@@ -181,14 +160,14 @@ class PostgreSQLVectorStorage:
                 result = conn.execute(text(sql), params)
                 rows = result.fetchall()
                 
-                # Convert to SearchResult objects
+                # Convert to VectorSearchResult objects
                 similarities = []
                 for row in rows:
-                    similarities.append(SearchResult(
+                    similarities.append(VectorSearchResult(
                         id=row[0],
                         content=row[1],
                         similarity=1.0 - float(row[4]),  # Convert distance to similarity
-                        metadata=row[2] or {},
+                        metadata_json=row[2] or {},
                         vector_type=row[3]
                     ))
                 
@@ -199,7 +178,7 @@ class PostgreSQLVectorStorage:
             return []
     
     async def search_by_metadata(self, metadata_filters: Dict[str, Any], 
-                                top_k: int = 10) -> List[SearchResult]:
+                                top_k: int = 10) -> List[VectorSearchResult]:
         """Search by metadata filters"""
         
         try:
@@ -228,14 +207,14 @@ class PostgreSQLVectorStorage:
                 result = conn.execute(text(sql), params)
                 rows = result.fetchall()
                 
-                # Convert to SearchResult objects
+                # Convert to VectorSearchResult objects
                 results = []
                 for row in rows:
-                    results.append(SearchResult(
+                    results.append(VectorSearchResult(
                         id=row[0],
                         content=row[1],
                         similarity=float(row[4]),
-                        metadata=row[2] or {},
+                        metadata_json=row[2] or {},
                         vector_type=row[3]
                     ))
                 
@@ -357,7 +336,7 @@ Market Cap: {market_data.get('market_cap', 0)}
 Technical Indicators: {market_data.get('technical_indicators', {})}
         """
         
-        metadata = {
+        metadata_dict = {
             "symbol": symbol,
             "data_type": "market_data",
             "timestamp": datetime.now().isoformat(),
@@ -366,7 +345,7 @@ Technical Indicators: {market_data.get('technical_indicators', {})}
             "change_percent": market_data.get('change_percent')
         }
         
-        return await self.vector_storage.add_embedding(content, metadata, "market_data")
+        return await self.vector_storage.add_embedding(content, metadata_dict, "market_data")
     
     async def vectorize_news_article(self, article: Dict[str, Any]) -> str:
         """Vectorize news article"""
@@ -379,7 +358,7 @@ Source: {article.get('source', '')}
 Sentiment: {article.get('sentiment_score', 0)}
         """
         
-        metadata = {
+        metadata_dict = {
             "symbol": article.get('ticker'),
             "data_type": "news",
             "timestamp": article.get('published_at'),
@@ -388,7 +367,7 @@ Sentiment: {article.get('sentiment_score', 0)}
             "event_type": article.get('event_type')
         }
         
-        return await self.vector_storage.add_embedding(content, metadata, "news")
+        return await self.vector_storage.add_embedding(content, metadata_dict, "news")
     
     async def vectorize_decision(self, decision: Dict[str, Any]) -> str:
         """Vectorize investment decision"""
@@ -403,7 +382,7 @@ Target Price: {decision.get('target_price')}
 Stop Loss: {decision.get('stop_loss')}
         """
         
-        metadata = {
+        metadata_dict = {
             "symbol": decision.get('symbol'),
             "data_type": "decision",
             "timestamp": decision.get('created_at'),
@@ -412,7 +391,7 @@ Stop Loss: {decision.get('stop_loss')}
             "risk_level": decision.get('risk_level')
         }
         
-        return await self.vector_storage.add_embedding(content, metadata, "decision")
+        return await self.vector_storage.add_embedding(content, metadata_dict, "decision")
 
 # Initialize PostgreSQL vector storage
 vector_storage = PostgreSQLVectorStorage(DATABASE_URL)
@@ -459,7 +438,7 @@ async def search_similar(query: str, vector_type: Optional[str] = None,
                 "id": result.id,
                 "content": result.content,
                 "similarity": result.similarity,
-                "metadata": result.metadata,
+                "metadata": result.metadata_json,
                 "vector_type": result.vector_type
             }
             for result in results
@@ -479,7 +458,7 @@ async def search_by_metadata(metadata_filters: Dict[str, Any],
                 "id": result.id,
                 "content": result.content,
                 "similarity": result.similarity,
-                "metadata": result.metadata,
+                "metadata": result.metadata_json,
                 "vector_type": result.vector_type
             }
             for result in results
@@ -512,7 +491,7 @@ async def search_context(query: str, symbol: str, context_type: str = "all") -> 
                 {
                     "content": result.content,
                     "similarity": result.similarity,
-                    "metadata": result.metadata
+                    "metadata": result.metadata_json
                 }
                 for result in market_results
             ],
@@ -520,7 +499,7 @@ async def search_context(query: str, symbol: str, context_type: str = "all") -> 
                 {
                     "content": result.content,
                     "similarity": result.similarity,
-                    "metadata": result.metadata
+                    "metadata": result.metadata_json
                 }
                 for result in news_results
             ],
@@ -528,7 +507,7 @@ async def search_context(query: str, symbol: str, context_type: str = "all") -> 
                 {
                     "content": result.content,
                     "similarity": result.similarity,
-                    "metadata": result.metadata
+                    "metadata": result.metadata_json
                 }
                 for result in decision_results
             ]

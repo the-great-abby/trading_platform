@@ -1,0 +1,262 @@
+# Optimized Resource Configurations
+# Based on 2x actual usage from kubectl top
+
+---
+# Backtest API - Current: 7m CPU, 44Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backtest-api
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest-api
+        resources:
+          requests:
+            cpu: 20m        # 2x actual usage (7m * 2 = 14m, rounded to 20m)
+            memory: 100Mi   # 2x actual usage (44Mi * 2 = 88Mi, rounded to 100Mi)
+          limits:
+            cpu: 40m        # 4x actual usage for burst capacity
+            memory: 200Mi   # 4x actual usage for burst capacity
+
+---
+# Backtest Request Service - Current: 5m CPU, 50Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backtest-request-service
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: backtest-request-service
+        resources:
+          requests:
+            cpu: 15m        # 2x actual usage (5m * 2 = 10m, rounded to 15m)
+            memory: 100Mi   # 2x actual usage (50Mi * 2 = 100Mi)
+          limits:
+            cpu: 30m        # 4x actual usage for burst capacity
+            memory: 200Mi   # 4x actual usage for burst capacity
+
+---
+# Grafana - Current: 17m CPU, 116Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: grafana
+        resources:
+          requests:
+            cpu: 40m        # 2x actual usage (17m * 2 = 34m, rounded to 40m)
+            memory: 250Mi   # 2x actual usage (116Mi * 2 = 232Mi, rounded to 250Mi)
+          limits:
+            cpu: 80m        # 4x actual usage for burst capacity
+            memory: 500Mi   # 4x actual usage for burst capacity
+
+---
+# Market Data Service - Current: 5m CPU, 116Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-data-service
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: market-data-service
+        resources:
+          requests:
+            cpu: 15m        # 2x actual usage (5m * 2 = 10m, rounded to 15m)
+            memory: 250Mi   # 2x actual usage (116Mi * 2 = 232Mi, rounded to 250Mi)
+          limits:
+            cpu: 30m        # 4x actual usage for burst capacity
+            memory: 500Mi   # 4x actual usage for burst capacity
+
+---
+# Postgres Dev - Current: 1m CPU, 22Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-dev
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres-dev
+        resources:
+          requests:
+            cpu: 5m         # 2x actual usage (1m * 2 = 2m, rounded to 5m)
+            memory: 50Mi    # 2x actual usage (22Mi * 2 = 44Mi, rounded to 50Mi)
+          limits:
+            cpu: 10m        # 4x actual usage for burst capacity
+            memory: 100Mi   # 4x actual usage for burst capacity
+
+---
+# RabbitMQ - Current: 9m CPU, 165Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: rabbitmq
+        resources:
+          requests:
+            cpu: 20m        # 2x actual usage (9m * 2 = 18m, rounded to 20m)
+            memory: 350Mi   # 2x actual usage (165Mi * 2 = 330Mi, rounded to 350Mi)
+          limits:
+            cpu: 40m        # 4x actual usage for burst capacity
+            memory: 700Mi   # 4x actual usage for burst capacity
+
+---
+# Redis - Current: 7m CPU, 3Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: redis
+        resources:
+          requests:
+            cpu: 15m        # 2x actual usage (7m * 2 = 14m, rounded to 15m)
+            memory: 10Mi    # 2x actual usage (3Mi * 2 = 6Mi, rounded to 10Mi)
+          limits:
+            cpu: 30m        # 4x actual usage for burst capacity
+            memory: 20Mi    # 4x actual usage for burst capacity
+
+---
+# TimescaleDB - Current: 1m CPU, 72Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timescaledb
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: timescaledb
+        resources:
+          requests:
+            cpu: 5m         # 2x actual usage (1m * 2 = 2m, rounded to 5m)
+            memory: 150Mi   # 2x actual usage (72Mi * 2 = 144Mi, rounded to 150Mi)
+          limits:
+            cpu: 10m        # 4x actual usage for burst capacity
+            memory: 300Mi   # 4x actual usage for burst capacity
+
+---
+# Unified Analytics Dashboard - Current: 5m CPU, 52Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unified-analytics-dashboard
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: unified-analytics-dashboard
+        resources:
+          requests:
+            cpu: 15m        # 2x actual usage (5m * 2 = 10m, rounded to 15m)
+            memory: 100Mi   # 2x actual usage (52Mi * 2 = 104Mi, rounded to 100Mi)
+          limits:
+            cpu: 30m        # 4x actual usage for burst capacity
+            memory: 200Mi   # 4x actual usage for burst capacity
+
+---
+# Unified News Dashboard - Current: 4m CPU, 60Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unified-news-dashboard
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: unified-news-dashboard
+        resources:
+          requests:
+            cpu: 10m        # 2x actual usage (4m * 2 = 8m, rounded to 10m)
+            memory: 120Mi   # 2x actual usage (60Mi * 2 = 120Mi)
+          limits:
+            cpu: 20m        # 4x actual usage for burst capacity
+            memory: 240Mi   # 4x actual usage for burst capacity
+
+---
+# Unified Trading Dashboard - Current: 7m CPU, 52Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unified-trading-dashboard
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: unified-trading-dashboard
+        resources:
+          requests:
+            cpu: 15m        # 2x actual usage (7m * 2 = 14m, rounded to 15m)
+            memory: 100Mi   # 2x actual usage (52Mi * 2 = 104Mi, rounded to 100Mi)
+          limits:
+            cpu: 30m        # 4x actual usage for burst capacity
+            memory: 200Mi   # 4x actual usage for burst capacity
+
+---
+# Infrastructure Metrics Collector - Current: 4m CPU, 212Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infrastructure-metrics-collector
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: infrastructure-metrics-collector
+        resources:
+          requests:
+            cpu: 10m        # 2x actual usage (4m * 2 = 8m, rounded to 10m)
+            memory: 450Mi   # 2x actual usage (212Mi * 2 = 424Mi, rounded to 450Mi)
+          limits:
+            cpu: 20m        # 4x actual usage for burst capacity
+            memory: 900Mi   # 4x actual usage for burst capacity
+
+---
+# Metrics Test Service - Current: 4m CPU, 134Mi Memory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-test-service
+  namespace: trading-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: metrics-test-service
+        resources:
+          requests:
+            cpu: 10m        # 2x actual usage (4m * 2 = 8m, rounded to 10m)
+            memory: 300Mi   # 2x actual usage (134Mi * 2 = 268Mi, rounded to 300Mi)
+          limits:
+            cpu: 20m        # 4x actual usage for burst capacity
+            memory: 600Mi   # 4x actual usage for burst capacity 

@@ -212,7 +212,10 @@ class AlphaVantageProvider(MarketDataProvider):
     
     def get_live_price(self, symbol: str) -> Optional[float]:
         """Get current price from Alpha Vantage"""
+        logger.info(f"🔍 DEBUG: AlphaVantageProvider.get_live_price({symbol}) - Starting")
+        
         if not self.api_key:
+            logger.warning(f"⚠️ DEBUG: {symbol} - No API key configured for Alpha Vantage")
             return None
         
         try:
@@ -222,21 +225,38 @@ class AlphaVantageProvider(MarketDataProvider):
                 "apikey": self.api_key
             }
             
-            response = self.session.get(self.base_url, params=params)
+            url = f"{self.base_url}"
+            logger.info(f"🔍 DEBUG: {symbol} - Making request to: {url}")
+            logger.info(f"🔍 DEBUG: {symbol} - Params: {params}")
+            
+            response = self.session.get(url, params=params)
+            logger.info(f"🔍 DEBUG: {symbol} - Response status: {response.status_code}")
+            
             response.raise_for_status()
             
             data = response.json()
+            logger.info(f"🔍 DEBUG: {symbol} - Response data: {data}")
             
             if "Global Quote" in data and data["Global Quote"]:
                 quote = data["Global Quote"]
+                logger.info(f"🔍 DEBUG: {symbol} - Global Quote keys: {list(quote.keys())}")
+                
                 price = quote.get("05. price")
+                logger.info(f"🔍 DEBUG: {symbol} - Raw price from Alpha Vantage: {price}")
+                
                 if price:
-                    return float(price)
+                    final_price = float(price)
+                    logger.info(f"✅ DEBUG: {symbol} - Final price from Alpha Vantage: {final_price}")
+                    return final_price
+                else:
+                    logger.warning(f"⚠️ DEBUG: {symbol} - No price found in Global Quote")
+            else:
+                logger.warning(f"⚠️ DEBUG: {symbol} - No Global Quote found in response")
             
             return None
             
         except Exception as e:
-            logger.error(f"Error getting live price from Alpha Vantage for {symbol}: {str(e)}")
+            logger.error(f"❌ DEBUG: {symbol} - Error getting live price from Alpha Vantage: {str(e)}")
             return None
     
     def get_multiple_symbols(self, symbols: List[str], start_date: str, end_date: str, interval: str = "1d") -> Dict[str, pd.DataFrame]:
@@ -533,27 +553,44 @@ class PolygonProvider(MarketDataProvider):
     
     def get_live_price(self, symbol: str) -> Optional[float]:
         """Get current price from Polygon"""
+        logger.info(f"🔍 DEBUG: PolygonProvider.get_live_price({symbol}) - Starting")
+        
         if not self.api_key:
+            logger.warning(f"⚠️ DEBUG: {symbol} - No API key configured for Polygon")
             return None
         
         try:
             endpoint = f"/v2/snapshot/locale/us/markets/stocks/tickers/{symbol}"
             params = {"apiKey": self.api_key}
             
-            response = self.session.get(f"{self.base_url}{endpoint}", params=params)
+            url = f"{self.base_url}{endpoint}"
+            logger.info(f"🔍 DEBUG: {symbol} - Making request to: {url}")
+            
+            response = self.session.get(url, params=params)
+            logger.info(f"🔍 DEBUG: {symbol} - Response status: {response.status_code}")
+            
             response.raise_for_status()
             
             data = response.json()
+            logger.info(f"🔍 DEBUG: {symbol} - Response data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
             
             if "results" in data and data["results"]:
                 result = data["results"]
+                logger.info(f"🔍 DEBUG: {symbol} - Results keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+                
                 if "lastTrade" in result and "p" in result["lastTrade"]:
-                    return float(result["lastTrade"]["p"])
+                    price = float(result["lastTrade"]["p"])
+                    logger.info(f"✅ DEBUG: {symbol} - Found price in lastTrade.p: {price}")
+                    return price
+                else:
+                    logger.warning(f"⚠️ DEBUG: {symbol} - No lastTrade.p found in results")
+            else:
+                logger.warning(f"⚠️ DEBUG: {symbol} - No results found in response")
             
             return None
             
         except Exception as e:
-            logger.error(f"Error getting live price from Polygon for {symbol}: {str(e)}")
+            logger.error(f"❌ DEBUG: {symbol} - Error getting live price from Polygon: {str(e)}")
             return None
     
     def get_multiple_symbols(self, symbols: List[str], start_date: str, end_date: str, interval: str = "1d") -> Dict[str, pd.DataFrame]:
@@ -599,17 +636,11 @@ class MarketDataManager:
         self.providers.append(YahooFinanceService())
         logger.info("Added Yahoo Finance as secondary provider (free)")
         
-        # 3. Alpha Vantage (free tier available)
-        alpha_vantage = AlphaVantageProvider()
-        if alpha_vantage.api_key:
-            self.providers.append(alpha_vantage)
-            logger.info("Added Alpha Vantage as tertiary provider (free tier)")
-        
-        # 4. IEX Cloud (free tier available)
+        # 3. IEX Cloud (free tier available)
         iex_cloud = IEXCloudProvider()
         if iex_cloud.api_key:
             self.providers.append(iex_cloud)
-            logger.info("Added IEX Cloud as quaternary provider (free tier)")
+            logger.info("Added IEX Cloud as tertiary provider (free tier)")
         
         logger.info(f"Total providers configured: {len(self.providers)}")
         for i, provider in enumerate(self.providers):
@@ -637,18 +668,27 @@ class MarketDataManager:
     
     def get_live_price(self, symbol: str) -> Optional[float]:
         """Get live price with provider fallback"""
+        logger.info(f"🔍 DEBUG: MarketDataManager.get_live_price({symbol}) - Starting with {len(self.providers)} providers")
+        
         for i, provider in enumerate(self.providers):
+            provider_name = provider.__class__.__name__
+            logger.info(f"🔍 DEBUG: {symbol} - Trying provider {i+1}/{len(self.providers)}: {provider_name}")
+            
             try:
                 price = provider.get_live_price(symbol)
+                logger.info(f"🔍 DEBUG: {symbol} - {provider_name} returned: {price}")
+                
                 if price is not None:
-                    logger.info(f"Successfully got live price from provider {i+1}")
+                    logger.info(f"✅ DEBUG: {symbol} - Successfully got live price from {provider_name}: {price}")
                     return price
+                else:
+                    logger.warning(f"⚠️ DEBUG: {symbol} - {provider_name} returned None")
                     
             except Exception as e:
-                logger.error(f"Provider {i+1} failed for live price of {symbol}: {str(e)}")
+                logger.error(f"❌ DEBUG: {symbol} - {provider_name} failed: {str(e)}")
                 continue
         
-        logger.error(f"All providers failed for live price of {symbol}")
+        logger.error(f"❌ DEBUG: {symbol} - All providers failed for live price")
         return None
     
     def get_multiple_symbols(self, symbols: List[str], start_date: str, end_date: str, interval: str = "1d") -> Dict[str, pd.DataFrame]:

@@ -19,6 +19,7 @@ from src.services.market_data.market_data_provider import get_market_data_manage
 from src.services.market_data.cached_market_data_manager import get_cached_market_data_manager
 from src.services.database.backtest_results_service import BacktestResultsService
 from src.services.ai.trade_evaluator import TradeEvaluator
+from src.strategies.strategy_registry import get_strategy_registry, discover_strategies
 
 logger = logging.getLogger(__name__)
 
@@ -547,56 +548,7 @@ class BacktestEngine:
     
     def _get_strategy_class(self, strategy_name: str):
         """Get strategy class by name"""
-        strategy_map = {
-            'sma_crossover': 'src.strategies.breakout.sma_crossover.SMACrossoverStrategy',
-            'rsi': 'src.strategies.momentum.rsi_strategy.RSIStrategy',
-            'macd': 'src.strategies.momentum.macd_strategy.MACDStrategy',
-            'bollinger_bands': 'src.strategies.mean_reversion.bollinger_bands_strategy.BollingerBandsStrategy',
-            'news_enhanced': 'src.strategies.news_enhanced_strategy.NewsEnhancedStrategy',
-            'momentum': 'src.strategies.momentum.momentum_strategy.MomentumStrategy',
-            'mean_reversion': 'src.strategies.mean_reversion.mean_reversion_strategy.MeanReversionStrategy',
-            'volatility_breakout': 'src.strategies.breakout.volatility_breakout_strategy.VolatilityBreakoutStrategy',
-            'portfolio': 'src.strategies.portfolio_strategy.PortfolioStrategy',
-            'SMACrossover': 'src.strategies.breakout.sma_crossover.SMACrossoverStrategy',
-            'RSI': 'src.strategies.momentum.rsi_strategy.RSIStrategy',
-            'MACD': 'src.strategies.momentum.macd_strategy.MACDStrategy',
-            'BollingerBands': 'src.strategies.mean_reversion.bollinger_bands_strategy.BollingerBandsStrategy',
-            'MeanReversion': 'src.strategies.mean_reversion.mean_reversion_strategy.MeanReversionStrategy',
-            'Momentum': 'src.strategies.momentum.momentum_strategy.MomentumStrategy',
-            'VolatilityBreakout': 'src.strategies.breakout.volatility_breakout_strategy.VolatilityBreakoutStrategy',
-            'TrailingStop': 'src.strategies.advanced.trailing_stop_strategy.TrailingStopStrategy',
-            'Fibonacci': 'src.strategies.advanced.fibonacci_strategy.FibonacciStrategy',
-            'GreeksEnhanced': 'src.strategies.options.greeks_enhanced_strategy.GreeksEnhancedStrategy',
-            'Ichimoku': 'src.strategies.ichimoku_strategy.IchimokuStrategy',
-            'IchimokuEnhanced': 'src.strategies.ichimoku_enhanced_strategy.IchimokuEnhancedStrategy',
-            'AdaptiveMomentum': 'src.strategies.adaptive_momentum_strategy.AdaptiveMomentumStrategy',
-            'NeuralNetwork': 'src.strategies.neural_network_strategy.NeuralNetworkStrategy',
-            'QuantumMomentum': 'src.strategies.quantum_momentum_strategy.QuantumMomentumStrategy',
-            'RegimeSwitching': 'src.strategies.regime_switching_strategy.RegimeSwitchingStrategy',
-            'IronCondor': 'src.strategies.options.iron_condor_strategy.IronCondorStrategy',
-            'EnhancedIronCondor': 'src.strategies.options.enhanced_iron_condor_strategy.EnhancedIronCondorStrategy',
-            'VWAP': 'src.strategies.vwap_strategy.VWAPStrategy',
-            'PairsTrading': 'src.strategies.pairs_trading_strategy.PairsTradingStrategy',
-            'KalmanFilter': 'src.strategies.kalman_filter_strategy.KalmanFilterStrategy',
-            'MLEnsemble': 'src.strategies.ml_ensemble_strategy.MLEnsembleStrategy',
-            'EnhancedDayTrading': 'src.strategies.enhanced_day_trading_strategy.EnhancedDayTradingStrategy',
-            'NewsEnhanced': 'src.strategies.news_enhanced_strategy.NewsEnhancedStrategy',
-            'SocialMediaSentiment': 'src.strategies.sentiment.social_media_sentiment_strategy.SocialMediaSentimentStrategy',
-            # New Options Strategies
-            'CashSecuredPut': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',
-            'CoveredCall': 'src.strategies.options.covered_call_strategy.CoveredCallStrategy',
-            'CalendarSpread': 'src.strategies.options.calendar_spread_strategy.CalendarSpreadStrategy',
-            'ButterflySpread': 'src.strategies.options.butterfly_spread_strategy.ButterflySpreadStrategy',
-            'VolatilityStrategy': 'src.strategies.options.volatility_strategy.VolatilityStrategy',
-            'EarningsStrategy': 'src.strategies.options.earnings_strategy.EarningsStrategy',
-            # Alternative names for options strategies
-            'CSP': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',
-            'CC': 'src.strategies.options.covered_call_strategy.CoveredCallStrategy',
-            'Calendar': 'src.strategies.options.calendar_spread_strategy.CalendarSpreadStrategy',
-            'Butterfly': 'src.strategies.options.butterfly_spread_strategy.ButterflySpreadStrategy',
-            'Volatility': 'src.strategies.options.volatility_strategy.VolatilityStrategy',
-            'Earnings': 'src.strategies.options.earnings_strategy.EarningsStrategy'
-        }
+        strategy_map = self._get_strategy_mapping()
         
         if strategy_name not in strategy_map:
             return None
@@ -608,6 +560,77 @@ class BacktestEngine:
         except Exception as e:
             logger.error(f"Error importing strategy {strategy_name}: {str(e)}")
             return None
+    
+    def _get_strategy_mapping(self) -> Dict[str, str]:
+        """Get dynamic strategy mapping from registry"""
+        try:
+            registry = get_strategy_registry()
+            
+            # Discover strategies if not already done
+            if not registry.discovered:
+                discover_strategies()
+            
+            # Get all strategies
+            strategies = registry.get_all_strategies()
+            
+            # Build mapping (strategy_name -> module_path)
+            mapping = {}
+            for strategy_name, strategy_class in strategies.items():
+                mapping[strategy_name] = strategy_class.__module__
+            
+            logger.info(f"📊 Dynamic strategy mapping created with {len(mapping)} strategies")
+            return mapping
+            
+        except Exception as e:
+            logger.error(f"Error creating dynamic strategy mapping: {e}")
+            # Fallback to hardcoded mapping
+            return {
+                'BollingerBands': 'src.strategies.bollinger_bands_strategy.BollingerBandsStrategy',
+                'RSI': 'src.strategies.rsi_strategy.RSIStrategy',
+                'MACD': 'src.strategies.macd_strategy.MACDStrategy',
+                'SMACrossover': 'src.strategies.momentum.sma_crossover_strategy.SMACrossoverStrategy',
+                'MeanReversion': 'src.strategies.mean_reversion.mean_reversion_strategy.MeanReversionStrategy',
+                'Momentum': 'src.strategies.momentum.momentum_strategy.MomentumStrategy',
+                'VolatilityBreakout': 'src.strategies.breakout.volatility_breakout_strategy.VolatilityBreakoutStrategy',
+                'TrailingStop': 'src.strategies.advanced.trailing_stop_strategy.TrailingStopStrategy',
+                'Fibonacci': 'src.strategies.advanced.fibonacci_strategy.FibonacciStrategy',
+                'GreeksEnhanced': 'src.strategies.options.greeks_enhanced_strategy.GreeksEnhancedStrategy',
+                'Ichimoku': 'src.strategies.ichimoku_strategy.IchimokuStrategy',
+                'IchimokuEnhanced': 'src.strategies.ichimoku_enhanced_strategy.IchimokuEnhancedStrategy',
+                'AdaptiveMomentum': 'src.strategies.adaptive_momentum_strategy.AdaptiveMomentumStrategy',
+                'NeuralNetwork': 'src.strategies.neural_network_strategy.NeuralNetworkStrategy',
+                'QuantumMomentum': 'src.strategies.quantum_momentum_strategy.QuantumMomentumStrategy',
+                'RegimeSwitching': 'src.strategies.regime_switching_strategy.RegimeSwitchingStrategy',
+                'IronCondor': 'src.strategies.options.iron_condor_strategy.IronCondorStrategy',
+                'EnhancedIronCondor': 'src.strategies.options.enhanced_iron_condor_strategy.EnhancedIronCondorStrategy',
+                'VWAP': 'src.strategies.vwap_strategy.VWAPStrategy',
+                'PairsTrading': 'src.strategies.pairs_trading_strategy.PairsTradingStrategy',
+                'KalmanFilter': 'src.strategies.kalman_filter_strategy.KalmanFilterStrategy',
+                'MLEnsemble': 'src.strategies.ml_ensemble_strategy.MLEnsembleStrategy',
+                'EnhancedDayTrading': 'src.strategies.enhanced_day_trading_strategy.EnhancedDayTradingStrategy',
+                'NewsEnhanced': 'src.strategies.news_enhanced_strategy.NewsEnhancedStrategy',
+                'SocialMediaSentiment': 'src.strategies.social_media_sentiment_strategy.SocialMediaSentimentStrategy',
+                'CashSecuredPut': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',
+                'CoveredCall': 'src.strategies.options.covered_call_strategy.CoveredCallStrategy',
+                'CalendarSpread': 'src.strategies.options.calendar_spread_strategy.CalendarSpreadStrategy',
+                'ButterflySpread': 'src.strategies.options.butterfly_spread_strategy.ButterflySpreadStrategy',
+                'BullishDiagonal': 'src.strategies.options.bullish_diagonal_strategy.BullishDiagonalStrategy',
+                'BearishDiagonal': 'src.strategies.options.bearish_diagonal_strategy.BearishDiagonalStrategy',
+                'VolatilityStrategy': 'src.strategies.volatility_strategy.VolatilityStrategy',
+                'Straddle': 'src.strategies.options.straddle_strategy.StraddleStrategy',
+                'LongStrangle': 'src.strategies.options.long_strangle_strategy.LongStrangleStrategy',
+                'ShortStrangle': 'src.strategies.options.short_strangle_strategy.ShortStrangleStrategy',
+                'EarningsStrategy': 'src.strategies.options.earnings_strategy.EarningsStrategy',
+                'EnhancedExit': 'src.strategies.advanced_exit_strategies.EnhancedExitStrategy',
+                'AdvancedExit': 'src.strategies.advanced_exit_strategies.AdvancedExitStrategy',
+                'PortfolioStrategy': 'src.strategies.portfolio_strategy.PortfolioStrategy',
+                'CrossSectionalMomentum': 'src.strategies.cross_sectional_momentum_strategy.CrossSectionalMomentumStrategy',
+                'WinningEnsemble': 'src.strategies.winning_ensemble_strategy.WinningEnsembleStrategy',
+                # Add new strategies
+                'RiskFirst': 'src.strategies.risk_first_strategy.RiskFirstStrategy',
+                'MarketRegimeAdaptive': 'src.strategies.market_regime_adaptive_strategy.MarketRegimeAdaptiveStrategy',
+                'MultiTimeframe': 'src.strategies.multi_timeframe_strategy.MultiTimeframeStrategy'
+            }
     
     def _calculate_sharpe_ratio(self, trades: List[Dict]) -> float:
         """Calculate Sharpe ratio from trades"""

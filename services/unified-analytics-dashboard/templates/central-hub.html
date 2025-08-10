@@ -366,6 +366,77 @@
                 margin: 2px 0;
             }
         }
+        
+        /* Symbol Management Styles */
+        .symbols-list {
+            margin-bottom: 20px;
+        }
+        
+        .symbol-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+        
+        .symbol-info {
+            flex: 1;
+        }
+        
+        .symbol-info strong {
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .symbol-info small {
+            color: #666;
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .category {
+            color: #667eea !important;
+            font-weight: 500;
+        }
+        
+        .symbol-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .add-symbol-form {
+            border-top: 2px solid #e0e0e0;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        
+        .add-symbol-form h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .add-symbol-form .form-group {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -549,6 +620,19 @@
                     </div>
                     <div id="symbol-coverage">
                         <div class="loading">Loading symbol coverage...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">📋 Symbol Management</div>
+                            <div class="card-subtitle">Manage popular symbols list</div>
+                        </div>
+                        <button class="refresh-btn" onclick="loadSymbolManagement()">Refresh</button>
+                    </div>
+                    <div id="symbol-management">
+                        <div class="loading">Loading symbol management...</div>
                     </div>
                 </div>
                 
@@ -1248,6 +1332,168 @@
             document.getElementById('date-range').value = '1m';
             document.getElementById('data-fetch-result').innerHTML = 
                 '<div class="loading">Enter parameters and click "Fetch Data" to get started</div>';
+        }
+        
+        // Symbol Management Functions
+        async function loadSymbolManagement() {
+            try {
+                const response = await fetch('/api/symbols');
+                const data = await response.json();
+                
+                const container = document.getElementById('symbol-management');
+                if (data.error) {
+                    container.innerHTML = `<div class="error">Error loading symbols: ${data.error}</div>`;
+                    return;
+                }
+                
+                const symbols = data.symbols_detailed || [];
+                if (symbols.length === 0) {
+                    container.innerHTML = '<div class="loading">No symbols found</div>';
+                    return;
+                }
+                
+                const symbolsHtml = symbols.map(symbol => `
+                    <div class="symbol-item" data-symbol="${symbol.symbol}">
+                        <div class="symbol-info">
+                            <strong>${symbol.symbol}</strong>
+                            <br>
+                            <small>${symbol.description || 'No description'}</small>
+                            <br>
+                            <small class="category">${symbol.category} • Priority: ${symbol.priority}</small>
+                        </div>
+                        <div class="symbol-actions">
+                            <button onclick="editSymbol('${symbol.symbol}')" class="btn btn-sm btn-primary">Edit</button>
+                            <button onclick="deleteSymbol('${symbol.symbol}')" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = `
+                    <div class="symbols-list">
+                        ${symbolsHtml}
+                    </div>
+                    <div class="add-symbol-form">
+                        <h4>Add New Symbol</h4>
+                        <div class="form-group">
+                            <input type="text" id="new-symbol" placeholder="Symbol (e.g., AAPL)" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="new-description" placeholder="Description (e.g., Apple Inc.)" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <select id="new-category" class="form-control">
+                                <option value="stock">Stock</option>
+                                <option value="etf">ETF</option>
+                                <option value="crypto">Crypto</option>
+                                <option value="commodity">Commodity</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="new-priority" placeholder="Priority (0-100)" class="form-control" value="0">
+                        </div>
+                        <button onclick="addSymbol()" class="btn btn-success">Add Symbol</button>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('symbol-management').innerHTML = 
+                    `<div class="error">Error loading symbols: ${error.message}</div>`;
+            }
+        }
+        
+        async function addSymbol() {
+            const symbol = document.getElementById('new-symbol').value.trim().toUpperCase();
+            const description = document.getElementById('new-description').value.trim();
+            const category = document.getElementById('new-category').value;
+            const priority = parseInt(document.getElementById('new-priority').value) || 0;
+            
+            if (!symbol) {
+                alert('Please enter a symbol');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/symbols', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        description: description,
+                        category: category,
+                        priority: priority
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Symbol ${symbol} added successfully!`);
+                    loadSymbolManagement();
+                    // Clear form
+                    document.getElementById('new-symbol').value = '';
+                    document.getElementById('new-description').value = '';
+                    document.getElementById('new-priority').value = '0';
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Error adding symbol: ${error.message}`);
+            }
+        }
+        
+        async function editSymbol(symbol) {
+            const newDescription = prompt(`Enter new description for ${symbol}:`);
+            if (newDescription === null) return;
+            
+            const newCategory = prompt(`Enter new category for ${symbol} (stock/etf/crypto/commodity):`, 'stock');
+            if (newCategory === null) return;
+            
+            const newPriority = prompt(`Enter new priority for ${symbol} (0-100):`, '0');
+            if (newPriority === null) return;
+            
+            try {
+                const response = await fetch(`/api/symbols/${symbol}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: newDescription,
+                        category: newCategory,
+                        priority: parseInt(newPriority) || 0
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Symbol ${symbol} updated successfully!`);
+                    loadSymbolManagement();
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Error updating symbol: ${error.message}`);
+            }
+        }
+        
+        async function deleteSymbol(symbol) {
+            if (!confirm(`Are you sure you want to delete ${symbol}?`)) return;
+            
+            try {
+                const response = await fetch(`/api/symbols/${symbol}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Symbol ${symbol} deleted successfully!`);
+                    loadSymbolManagement();
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Error deleting symbol: ${error.message}`);
+            }
         }
     </script>
 </body>

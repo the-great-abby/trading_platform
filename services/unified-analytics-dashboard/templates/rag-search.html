@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 RAG Search - Unified Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .nav-tab {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .nav-tab.active {
+            background: rgba(255,255,255,0.3);
+            font-weight: bold;
+        }
+        
+        .dashboard-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .rag-search-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .search-form {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-type-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .search-type-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .search-type-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .examples-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .examples-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .example-queries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .example-query {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .example-query:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+        
+        .results-section {
+            display: none;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .confidence-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .confidence-badge.low {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        }
+        
+        .confidence-badge.medium {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+        
+        .result-answer {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .sources-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .sources-section h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .source-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .source-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .source-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .stats-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 RAG Search</h1>
+            <p>Ask questions about market data, news, and trading decisions using AI-powered semantic search</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <a href="/" class="nav-tab">Dashboard</a>
+            <a href="/ai-stock" class="nav-tab">AI Stock Analysis</a>
+            <a href="/central-hub" class="nav-tab">Central Hub</a>
+            <a href="/data-pipeline" class="nav-tab">Data Pipeline</a>
+            <a href="/backtest" class="nav-tab">Backtest</a>
+            <a href="/rag-search" class="nav-tab active">RAG Search</a>
+        </div>
+        
+        <div class="dashboard-content">
+            <div class="rag-search-container">
+                <!-- Search Form -->
+                <div class="search-form">
+                    <h2>Ask Your Question</h2>
+                    <form id="ragSearchForm">
+                        <div class="form-group">
+                            <label for="query">What would you like to know?</label>
+                            <textarea id="query" class="form-control" rows="4" placeholder="e.g., What happened to AAPL stock recently? How did NVDA perform during earnings? What are the latest trends in tech stocks?" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Search Type</label>
+                            <div class="search-type-selector">
+                                <button type="button" class="search-type-btn active" data-type="all">All Data</button>
+                                <button type="button" class="search-type-btn" data-type="market_data">Market Data</button>
+                                <button type="button" class="search-type-btn" data-type="news">News</button>
+                                <button type="button" class="search-type-btn" data-type="decisions">Trading Decisions</button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="search-btn" id="searchBtn">
+                            🔍 Search with AI
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Examples Section -->
+                <div class="examples-section">
+                    <h3>💡 Example Questions</h3>
+                    <div class="example-queries" id="exampleQueries">
+                        <!-- Examples will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Stats Section -->
+                <div class="stats-section">
+                    <h3>📊 Search Statistics</h3>
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Stats will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div class="results-section" id="resultsSection">
+                    <div id="loadingIndicator" class="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Searching vector database and generating AI response...</p>
+                    </div>
+                    
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    
+                    <div id="searchResults">
+                        <!-- Results will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentSearchType = 'all';
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExamples();
+            loadStats();
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // Search type buttons
+            document.querySelectorAll('.search-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.search-type-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentSearchType = this.dataset.type;
+                });
+            });
+            
+            // Search form
+            document.getElementById('ragSearchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performSearch();
+            });
+            
+            // Example queries
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('example-query')) {
+                    document.getElementById('query').value = e.target.textContent;
+                    performSearch();
+                }
+            });
+        }
+        
+        async function loadExamples() {
+            try {
+                const response = await fetch('/api/rag/examples');
+                const examples = await response.json();
+                
+                const container = document.getElementById('exampleQueries');
+                container.innerHTML = '';
+                
+                Object.entries(examples).forEach(([category, queries]) => {
+                    queries.forEach(query => {
+                        const div = document.createElement('div');
+                        div.className = 'example-query';
+                        div.textContent = query;
+                        container.appendChild(div);
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading examples:', error);
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/rag/stats');
+                const stats = await response.json();
+                
+                const container = document.getElementById('statsGrid');
+                container.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.supported_search_types?.length || 4}</div>
+                        <div class="stat-label">Search Types</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.max_results_per_query || 10}</div>
+                        <div class="stat-label">Max Results</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.rag_processor === 'active' ? '✅' : '❌'}</div>
+                        <div class="stat-label">RAG Processor</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">🔍</div>
+                        <div class="stat-label">Vector Search</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function performSearch() {
+            const query = document.getElementById('query').value.trim();
+            if (!query) return;
+            
+            // Show loading
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('searchResults').innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/rag/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        search_type: currentSearchType,
+                        top_k: 5,
+                        include_context: true
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').textContent = `Error: ${error.message}`;
+            } finally {
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
+        }
+        
+        function displayResults(result) {
+            const container = document.getElementById('searchResults');
+            
+            const confidenceClass = result.confidence > 0.7 ? 'high' : 
+                                  result.confidence > 0.4 ? 'medium' : 'low';
+            
+            container.innerHTML = `
+                <div class="result-card">
+                    <div class="result-header">
+                        <h3>AI Response</h3>
+                        <span class="confidence-badge ${confidenceClass}">
+                            Confidence: ${(result.confidence * 100).toFixed(1)}%
+                        </span>
+                    </div>
+                    
+                    <div class="result-answer">
+                        ${result.answer}
+                    </div>
+                    
+                    <div class="sources-section">
+                        <h4>📚 Sources (${result.sources.length})</h4>
+                        ${result.sources.map((source, index) => {
+                            // Handle different source types
+                            let sourceType = source.type || source.vector_type || 'unknown';
+                            let sourceContent = '';
+                            let sourceDetails = '';
+                            
+                            if (source.content) {
+                                // Vector storage source
+                                sourceContent = source.content.substring(0, 200) + (source.content.length > 200 ? '...' : '');
+                                sourceDetails = `Similarity: ${(source.similarity * 100).toFixed(1)}%`;
+                            } else if (source.data) {
+                                // Real-time data source
+                                if (source.data.symbol && source.data.price) {
+                                    sourceContent = `${source.data.symbol}: $${source.data.price}`;
+                                    sourceDetails = `Real-time data`;
+                                } else if (source.data.symbol && source.data.current_price) {
+                                    sourceContent = `${source.data.symbol}: $${source.data.current_price}`;
+                                    sourceDetails = `Real-time data`;
+                                } else {
+                                    sourceContent = JSON.stringify(source.data).substring(0, 200) + '...';
+                                    sourceDetails = `Data source`;
+                                }
+                            } else {
+                                sourceContent = 'No content available';
+                                sourceDetails = 'Unknown source';
+                            }
+                            
+                            return `
+                                <div class="source-item">
+                                    <div class="source-meta">
+                                        <span>Source ${index + 1} (${sourceType})</span>
+                                        <span>${sourceDetails}</span>
+                                    </div>
+                                    <div class="source-content">
+                                        ${sourceContent}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    
+                    <div style="margin-top: 15px; font-size: 12px; color: #666;">
+                        Search completed in ${result.search_time.toFixed(2)}s
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -85,7 +85,7 @@ build-all: ## Build all services
 	@for service in $(SERVICES); do \
 		echo "$(YELLOW)Building $$service...$(NC)"; \
 		if [ -f "services/$$service/Dockerfile" ]; then \
-			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			cd services/$$service && docker build -t $(REGISTRY)/$$service:latest .; \
 			echo "$(GREEN)✅ $$service built successfully!$(NC)"; \
 		else \
 			echo "$(RED)❌ Error: Dockerfile not found for $$service$(NC)"; \
@@ -101,7 +101,7 @@ build-service: ## Build specific service (usage: make build-service SERVICE=serv
 	fi
 	@echo "$(GREEN)🔨 Building $(SERVICE)...$(NC)"
 	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
-		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		cd services/$(SERVICE) && docker build -t $(REGISTRY)/$(SERVICE):latest .; \
 		echo "$(GREEN)✅ $(SERVICE) built successfully!$(NC)"; \
 	else \
 		echo "$(RED)❌ Error: Dockerfile not found for $(SERVICE)$(NC)"; \
@@ -116,7 +116,7 @@ build-and-push: ## Build and push specific service
 	fi
 	@echo "$(GREEN)🔨 Building and pushing $(SERVICE)...$(NC)"
 	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
-		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		cd services/$(SERVICE) && docker build -t $(REGISTRY)/$(SERVICE):latest .; \
 		docker push $(REGISTRY)/$(SERVICE):latest; \
 		echo "$(GREEN)✅ $(SERVICE) built and pushed successfully!$(NC)"; \
 	else \
@@ -132,7 +132,7 @@ build-and-deploy: ## Build, push, and deploy specific service
 	fi
 	@echo "$(GREEN)🚀 Building, pushing, and deploying $(SERVICE)...$(NC)"
 	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
-		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		cd services/$(SERVICE) && docker build -t $(REGISTRY)/$(SERVICE):latest .; \
 		docker push $(REGISTRY)/$(SERVICE):latest; \
 		kubectl rollout restart deployment/$(SERVICE) -n $(NAMESPACE); \
 		kubectl wait --for=condition=available --timeout=60s deployment/$(SERVICE) -n $(NAMESPACE); \
@@ -268,7 +268,7 @@ quick-build: ## Quick build for development (build, push, restart)
 	fi
 	@echo "$(GREEN)⚡ Quick build for $(SERVICE)...$(NC)"
 	@if [ -f "services/$(SERVICE)/Dockerfile" ]; then \
-		docker build -t $(REGISTRY)/$(SERVICE):latest -f services/$(SERVICE)/Dockerfile .; \
+		cd services/$(SERVICE) && docker build -t $(REGISTRY)/$(SERVICE):latest .; \
 		docker push $(REGISTRY)/$(SERVICE):latest; \
 		kubectl rollout restart deployment/$(SERVICE) -n $(NAMESPACE); \
 		kubectl wait --for=condition=available --timeout=60s deployment/$(SERVICE) -n $(NAMESPACE); \
@@ -301,7 +301,7 @@ build-trading: ## Build trading-related services
 	@for service in trading-service market-data-service strategy-service portfolio-service risk-service; do \
 		echo "$(YELLOW)Building $$service...$(NC)"; \
 		if [ -f "services/$$service/Dockerfile" ]; then \
-			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			cd services/$$service && docker build -t $(REGISTRY)/$$service:latest .; \
 			echo "$(GREEN)✅ $$service built!$(NC)"; \
 		else \
 			echo "$(RED)❌ Dockerfile not found for $$service$(NC)"; \
@@ -314,7 +314,7 @@ build-dashboards: ## Build dashboard services
 	@for service in unified-trading-dashboard unified-analytics-dashboard unified-news-dashboard health-dashboard; do \
 		echo "$(YELLOW)Building $$service...$(NC)"; \
 		if [ -f "services/$$service/Dockerfile" ]; then \
-			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			cd services/$$service && docker build -t $(REGISTRY)/$$service:latest .; \
 			echo "$(GREEN)✅ $$service built!$(NC)"; \
 		else \
 			echo "$(RED)❌ Dockerfile not found for $$service$(NC)"; \
@@ -327,7 +327,7 @@ build-apis: ## Build API services
 	@for service in backtest-api command-api query-api public-api; do \
 		echo "$(YELLOW)Building $$service...$(NC)"; \
 		if [ -f "services/$$service/Dockerfile" ]; then \
-			docker build -t $(REGISTRY)/$$service:latest -f services/$$service/Dockerfile .; \
+			cd services/$$service && docker build -t $(REGISTRY)/$$service:latest .; \
 			echo "$(GREEN)✅ $$service built!$(NC)"; \
 		else \
 			echo "$(RED)❌ Dockerfile not found for $$service$(NC)"; \

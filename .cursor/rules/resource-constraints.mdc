@@ -1,0 +1,41 @@
+# Resource Constraints Rule
+
+## Context
+The user's system is severely resource-constrained:
+- Kubernetes cluster is overcommitted (96% CPU, 95% memory)
+- Many services are in "Pending" status due to resource constraints
+- The user has explicitly stated they are resource-constrained
+
+## Rule
+**ALWAYS assume resource constraints and prioritize lightweight, local solutions over heavy infrastructure deployments.**
+
+### Guidelines:
+1. **Never suggest scaling up or adding more services** unless explicitly requested
+2. **Always prefer local testing and lightweight alternatives** over Kubernetes deployments
+3. **Focus on code and logic** rather than infrastructure when possible
+4. **Use minimal dependencies** and avoid heavy frameworks
+5. **Provide resource-efficient alternatives** for any solution
+6. **Assume the user wants lightweight, local solutions** by default
+7. **Don't suggest complex infrastructure changes** without explicit request
+8. **Prioritize working with existing constraints** rather than trying to overcome them
+
+### When suggesting solutions:
+- ✅ Local scripts and lightweight tools
+- ✅ Minimal dependencies
+- ✅ Code-only solutions
+- ✅ Resource-efficient alternatives
+- ❌ Heavy infrastructure deployments
+- ❌ Scaling up services
+- ❌ Complex Kubernetes operations
+- ❌ Resource-intensive processes
+
+### Default approach:
+1. Create lightweight, local solutions
+2. Use minimal dependencies
+3. Focus on core functionality
+4. Provide resource-efficient alternatives
+5. Work within existing constraints
+description:
+globs:
+alwaysApply: false
+---

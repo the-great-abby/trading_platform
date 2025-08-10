@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Paper Trading Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .status-running {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-stopped {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .config-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .config-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            height: 80px;
+            resize: vertical;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .trades-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .trades-table th, .trades-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .trades-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .trades-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .pnl-positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .pnl-negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .strategy-performance {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .strategy-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .strategy-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .strategies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .strategy-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .strategy-checkbox:hover {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .strategy-checkbox input[type="checkbox"] {
+            margin-right: 0px !important;
+            transform: scale(1.1);
+        }
+        
+        .strategy-checkbox input[type="checkbox"]:checked + label {
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .strategy-checkbox label {
+            cursor: pointer;
+            margin: 0;
+            flex: 1;
+        }
+        
+        .strategy-category {
+            margin-bottom: 15px;
+        }
+        
+        .strategy-category h4 {
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Paper Trading Dashboard</h1>
+            <p>Automated trading with real-time monitoring and strategy optimization</p>
+        </div>
+        
+        <!-- Status and Controls -->
+        <div class="control-panel">
+            <div id="status-indicator" class="status-indicator status-stopped">
+                Status: Stopped
+            </div>
+            
+            <div class="btn-group">
+                <button id="start-btn" class="btn btn-success" onclick="startPaperTrading()">
+                    🚀 Start Paper Trading
+                </button>
+                <button id="stop-btn" class="btn btn-danger" onclick="stopPaperTrading()" disabled>
+                    ⏹️ Stop Paper Trading
+                </button>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    🔄 Refresh Data
+                </button>
+            </div>
+        </div>
+        
+        <!-- Configuration -->
+        <div class="config-section">
+            <h3>⚙️ Paper Trading Configuration</h3>
+            <div class="form-group">
+                <label for="initial-capital">Initial Capital ($)</label>
+                <input type="number" id="initial-capital" value="100000" min="1000" step="1000">
+            </div>
+            <div class="form-group">
+                <label for="max-position-size">Max Position Size (%)</label>
+                <input type="number" id="max-position-size" value="5" min="1" max="20" step="1">
+            </div>
+            <div class="form-group">
+                <label for="max-risk-per-trade">Max Risk Per Trade (%)</label>
+                <input type="number" id="max-risk-per-trade" value="1" min="0.1" max="5" step="0.1">
+            </div>
+            <div class="form-group">
+                <label for="trading-interval">Trading Interval (seconds)</label>
+                <input type="number" id="trading-interval" value="60" min="30" max="300" step="30">
+            </div>
+            <div class="form-group">
+                <label>🎯 Trading Strategies</label>
+                <div id="strategies-container" class="strategies-grid">
+                    <div class="loading">Loading strategies...</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="symbols">Symbols (comma-separated)</label>
+                <input type="text" id="symbols" value="AAPL,MSFT,GOOGL,TSLA,NVDA">
+            </div>
+            <button class="btn btn-primary" onclick="updateConfig()">
+                💾 Update Configuration
+            </button>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>💰 Portfolio Value</h3>
+                <div id="portfolio-value" class="metric-value">$100,000.00</div>
+                <div class="metric-label">Current Value</div>
+            </div>
+            <div class="metric-card">
+                <h3>📈 Total P&L</h3>
+                <div id="total-pnl" class="metric-value">$0.00</div>
+                <div class="metric-label">Profit/Loss</div>
+            </div>
+            <div class="metric-card">
+                <h3>📊 Total Trades</h3>
+                <div id="total-trades" class="metric-value">0</div>
+                <div class="metric-label">Executed Trades</div>
+            </div>
+            <div class="metric-card">
+                <h3>🎯 Win Rate</h3>
+                <div id="win-rate" class="metric-value">0%</div>
+                <div class="metric-label">Success Rate</div>
+            </div>
+        </div>
+        
+        <!-- Recent Trades -->
+        <div class="trades-section">
+            <h3>🔄 Recent Trades</h3>
+            <table class="trades-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Symbol</th>
+                        <th>Action</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Strategy</th>
+                        <th>P&L</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-table-body">
+                    <tr>
+                        <td colspan="7" class="loading">No trades yet. Start paper trading to see activity.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Strategy Performance -->
+        <div class="strategy-performance">
+            <h3>📊 Strategy Performance</h3>
+            <div id="strategy-performance">
+                <div class="loading">Loading strategy performance...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isRunning = false;
+        let refreshInterval;
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatus();
+            loadConfig();
+            loadPerformance();
+            loadTrades();
+            loadStrategyPerformance();
+        });
+        
+        // Add event listeners for form changes to update performance metrics
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialCapitalInput = document.getElementById('initial-capital');
+            if (initialCapitalInput) {
+                initialCapitalInput.addEventListener('change', function() {
+                    // Update portfolio value immediately when initial capital changes
+                    const newCapital = parseFloat(this.value) || 0;
+                    document.getElementById('portfolio-value').textContent = '$' + newCapital.toLocaleString();
+                });
+            }
+        });
+        
+        async function startPaperTrading() {
+            try {
+                const config = getConfigFromForm();
+                const response = await fetch('/api/paper-trading/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showMessage('Paper trading started successfully!', 'success');
+                    isRunning = true;
+                    updateStatusUI();
+                    startAutoRefresh();
+                } else {
+                    showMessage('Failed to start paper trading: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error starting paper trading: ' + error.message, 'error');
+            }
+        }
+        
+        async function stopPaperTrading() {
+            try {
+                const response = await fetch('/api/paper-trading/stop', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showMessage('Paper trading stopped successfully!', 'success');
+                    isRunning = false;
+                    updateStatusUI();
+                    stopAutoRefresh();
+                } else {
+                    showMessage('Failed to stop paper trading: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error stopping paper trading: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/paper-trading/status');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    isRunning = result.data.is_running;
+                    updateStatusUI();
+                    
+                    if (isRunning) {
+                        startAutoRefresh();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+        
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/paper-trading/config');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const config = result.data;
+                    console.log('Loading config:', config); // Debug log
+                    
+                    document.getElementById('initial-capital').value = config.initial_capital;
+                    document.getElementById('max-position-size').value = config.max_position_size * 100;
+                    document.getElementById('max-risk-per-trade').value = config.max_risk_per_trade * 100;
+                    document.getElementById('trading-interval').value = config.trading_interval;
+                    document.getElementById('symbols').value = config.symbols.join(',');
+                    
+                    // Load strategies dynamically
+                    await loadStrategies();
+                    
+                    // Set selected strategies based on config
+                    setSelectedStrategies(config.strategies);
+                }
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+        
+        async function loadStrategies() {
+            try {
+                const response = await fetch('/api/strategies/');
+                const strategiesData = await response.json();
+                
+                const container = document.getElementById('strategies-container');
+                
+                if (strategiesData.categories) {
+                    let html = '';
+                    
+                    // Add new strategies first
+                    if (strategiesData.categories.new) {
+                        html += createStrategyCategory('🆕 New Strategies', strategiesData.categories.new.strategies);
+                    }
+                    
+                    // Add advanced strategies
+                    if (strategiesData.categories.advanced) {
+                        html += createStrategyCategory('🚀 Advanced Strategies', strategiesData.categories.advanced.strategies);
+                    }
+                    
+                    // Add basic strategies
+                    if (strategiesData.categories.basic) {
+                        html += createStrategyCategory('📊 Basic Strategies', strategiesData.categories.basic.strategies);
+                    }
+                    
+                    // Add options strategies
+                    if (strategiesData.categories.options) {
+                        html += createStrategyCategory('🎯 Options Strategies', strategiesData.categories.options.strategies);
+                    }
+                    
+                    container.innerHTML = html;
+                } else {
+                    // Fallback to hardcoded strategies
+                    const fallbackStrategies = [
+                        'RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy',
+                        'WinningEnsembleStrategy', 'MomentumStrategy', 'MeanReversionStrategy'
+                    ];
+                    container.innerHTML = createStrategyCategory('📊 Available Strategies', fallbackStrategies);
+                }
+            } catch (error) {
+                console.error('Error loading strategies:', error);
+                // Fallback to hardcoded strategies
+                const fallbackStrategies = [
+                    'RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy',
+                    'WinningEnsembleStrategy', 'MomentumStrategy', 'MeanReversionStrategy'
+                ];
+                document.getElementById('strategies-container').innerHTML = 
+                    createStrategyCategory('📊 Available Strategies', fallbackStrategies);
+            }
+        }
+        
+        function createStrategyCategory(title, strategies) {
+            let html = `<div class="strategy-category">
+                <h4>${title}</h4>
+                <div class="strategies-grid">`;
+            
+            strategies.forEach(strategy => {
+                const displayName = strategy.replace('Strategy', '');
+                html += `
+                    <div class="strategy-checkbox">
+                        <input type="checkbox" id="strategy-${strategy}" value="${strategy}">
+                        <label for="strategy-${strategy}">${displayName}</label>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            return html;
+        }
+        
+        function setSelectedStrategies(selectedStrategies) {
+            // Clear all checkboxes first
+            const checkboxes = document.querySelectorAll('#strategies-container input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Check the ones that are in the config
+            selectedStrategies.forEach(strategy => {
+                const checkbox = document.getElementById(`strategy-${strategy}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+        
+        function getSelectedStrategies() {
+            const checkboxes = document.querySelectorAll('#strategies-container input[type="checkbox"]:checked');
+            const selected = Array.from(checkboxes).map(checkbox => checkbox.value);
+            console.log('Selected strategies:', selected); // Debug log
+            return selected;
+        }
+        
+        async function updateConfig() {
+            try {
+                const config = getConfigFromForm();
+                console.log('Sending config:', config); // Debug log
+                
+                const response = await fetch('/api/paper-trading/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                console.log('Response:', result); // Debug log
+                
+                if (result.status === 'success') {
+                    showMessage('Configuration updated successfully!', 'success');
+                    // Reload the config to show updated values
+                    await loadConfig();
+                    // Refresh performance metrics to show updated values
+                    await loadPerformance();
+                    await loadTrades();
+                    await loadStrategyPerformance();
+                } else {
+                    showMessage('Failed to update configuration: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating configuration:', error); // Debug log
+                showMessage('Error updating configuration: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadPerformance() {
+            try {
+                const response = await fetch('/api/paper-trading/performance');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const data = result.data;
+                    document.getElementById('portfolio-value').textContent = '$' + data.portfolio_value.toLocaleString();
+                    document.getElementById('total-pnl').textContent = '$' + data.total_pnl.toLocaleString();
+                    document.getElementById('total-trades').textContent = data.total_trades;
+                    document.getElementById('win-rate').textContent = (data.win_rate * 100).toFixed(1) + '%';
+                }
+            } catch (error) {
+                console.error('Error loading performance:', error);
+            }
+        }
+        
+        async function loadTrades() {
+            try {
+                const response = await fetch('/api/paper-trading/trades');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const trades = result.data;
+                    const tbody = document.getElementById('trades-table-body');
+                    
+                    if (trades.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="loading">No trades yet. Start paper trading to see activity.</td></tr>';
+                    } else {
+                        tbody.innerHTML = trades.map(trade => `
+                            <tr>
+                                <td>${new Date(trade.timestamp).toLocaleTimeString()}</td>
+                                <td>${trade.symbol}</td>
+                                <td>${trade.action}</td>
+                                <td>${trade.quantity}</td>
+                                <td>$${trade.price.toFixed(2)}</td>
+                                <td>${trade.strategy}</td>
+                                <td class="${trade.pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}">
+                                    $${trade.pnl.toFixed(2)}
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading trades:', error);
+            }
+        }
+        
+        async function loadStrategyPerformance() {
+            try {
+                const response = await fetch('/api/paper-trading/performance');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const data = result.data;
+                    const container = document.getElementById('strategy-performance');
+                    
+                    if (data.strategy_performance) {
+                        container.innerHTML = Object.entries(data.strategy_performance).map(([strategy, perf]) => `
+                            <div class="strategy-card">
+                                <div class="strategy-name">${strategy}</div>
+                                <div class="strategy-metrics">
+                                    <div>Trades: ${perf.trades}</div>
+                                    <div>Win Rate: ${(perf.win_rate * 100).toFixed(1)}%</div>
+                                    <div>P&L: $${perf.pnl.toFixed(2)}</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="loading">No strategy performance data available.</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading strategy performance:', error);
+            }
+        }
+        
+        function getConfigFromForm() {
+            return {
+                initial_capital: parseFloat(document.getElementById('initial-capital').value),
+                max_position_size: parseFloat(document.getElementById('max-position-size').value) / 100,
+                max_risk_per_trade: parseFloat(document.getElementById('max-risk-per-trade').value) / 100,
+                trading_interval: parseInt(document.getElementById('trading-interval').value),
+                strategies: getSelectedStrategies(),
+                symbols: document.getElementById('symbols').value.split(',').map(s => s.trim()),
+                enable_alerts: true,
+                performance_tracking: true
+            };
+        }
+        
+        function updateStatusUI() {
+            const statusIndicator = document.getElementById('status-indicator');
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            
+            if (isRunning) {
+                statusIndicator.textContent = 'Status: Running';
+                statusIndicator.className = 'status-indicator status-running';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                statusIndicator.textContent = 'Status: Stopped';
+                statusIndicator.className = 'status-indicator status-stopped';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            refreshInterval = setInterval(() => {
+                if (isRunning) {
+                    loadPerformance();
+                    loadTrades();
+                    loadStrategyPerformance();
+                }
+            }, 5000); // Refresh every 5 seconds
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+        
+        function refreshData() {
+            loadStatus();
+            loadPerformance();
+            loadTrades();
+            loadStrategyPerformance();
+        }
+        
+        function showMessage(message, type) {
+            const existingMessage = document.querySelector('.message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html> 

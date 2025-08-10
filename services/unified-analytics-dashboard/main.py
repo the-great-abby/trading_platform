@@ -71,10 +71,10 @@ except RuntimeError:
 templates = Jinja2Templates(directory="templates")
 
 # Configuration
-VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:80")
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://llm-proxy:11081")
+VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:11006")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://host.docker.internal:12001")
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11031")
-MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:11084")
+MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8002")
 RSS_FEED_URL = os.getenv("RSS_FEED_URL", "http://rss-feed-service:11004")
 NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:80")
 TRANSFORMATION_PIPELINE_URL = os.getenv("TRANSFORMATION_PIPELINE_URL", "http://data-transformation-pipeline:11135")
@@ -126,11 +126,59 @@ def create_report_tables():
         );
         """
         
+        # Create popular symbols table
+        create_popular_symbols_table_sql = """
+        CREATE TABLE IF NOT EXISTS popular_symbols (
+            id SERIAL PRIMARY KEY,
+            symbol VARCHAR(20) NOT NULL UNIQUE,
+            description VARCHAR(255),
+            category VARCHAR(50) DEFAULT 'stock',
+            priority INTEGER DEFAULT 0,
+            active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+        
         with engine.connect() as conn:
             conn.execute(text(create_reports_table_sql))
+            conn.execute(text(create_popular_symbols_table_sql))
+            
+            # Insert default popular symbols if table is empty
+            check_symbols_sql = "SELECT COUNT(*) FROM popular_symbols"
+            result = conn.execute(text(check_symbols_sql))
+            count = result.scalar()
+            
+            if count == 0:
+                default_symbols = [
+                    ('AAPL', 'Apple Inc.', 'stock', 1),
+                    ('GOOGL', 'Alphabet Inc.', 'stock', 2),
+                    ('MSFT', 'Microsoft Corp.', 'stock', 3),
+                    ('AMZN', 'Amazon.com Inc.', 'stock', 4),
+                    ('TSLA', 'Tesla Inc.', 'stock', 5),
+                    ('NVDA', 'NVIDIA Corp.', 'stock', 6),
+                    ('META', 'Meta Platforms Inc.', 'stock', 7),
+                    ('NFLX', 'Netflix Inc.', 'stock', 8),
+                    ('SPY', 'SPDR S&P 500 ETF', 'etf', 9),
+                    ('QQQ', 'Invesco QQQ Trust', 'etf', 10)
+                ]
+                
+                insert_symbols_sql = """
+                INSERT INTO popular_symbols (symbol, description, category, priority) 
+                VALUES (:symbol, :description, :category, :priority)
+                """
+                
+                for symbol, description, category, priority in default_symbols:
+                    conn.execute(text(insert_symbols_sql), {
+                        'symbol': symbol,
+                        'description': description,
+                        'category': category,
+                        'priority': priority
+                    })
+            
             conn.commit()
         
-        logger.info("Report tables created successfully")
+        logger.info("Report and popular symbols tables created successfully")
         return True
     except Exception as e:
         logger.error(f"Error creating report tables: {e}")
@@ -657,11 +705,11 @@ class AIStockAnalyzer:
                         "task_type": "stock_analysis",
                         "temperature": 0.3,
                         "max_tokens": 800,
-                        "use_cache": True
+                        "use_cache": False
                     },
                     "model": "gpt-3.5-turbo",
                     "priority": 1,
-                    "use_cache": True
+                    "use_cache": False
                 }
                 
                 logger.info(f"Calling LLM service at: {self.llm_proxy_url}/api/v1/llm")
@@ -669,7 +717,7 @@ class AIStockAnalyzer:
                 
                 url = f"{self.llm_proxy_url}/api/v1/llm"
                 logger.info(f"Making POST request to: {url}")
-                async with session.post(url, json=llm_request, timeout=120) as response:
+                async with session.post(url, json=llm_request, timeout=300) as response:
                     logger.info(f"LLM service response status: {response.status}")
                     if response.status == 200:
                         result = await response.json()
@@ -707,9 +755,12 @@ class AIStockAnalyzer:
         prompt = f"""
 You are an expert stock analyst. Analyze the following data for {symbol} and provide a trading recommendation.
 
+IMPORTANT: Use the current price of ${current_price:.2f} for all calculations.
+ANALYSIS TIMESTAMP: {datetime.now().isoformat()}
+
 Current Market Data:
 - Symbol: {symbol}
-- Price: ${current_price:.2f}
+- Current Price: ${current_price:.2f}
 - Volume: {market_data.get('volume', 0):,}
 - Change: {market_data.get('change_percent', 0):.2f}%
 - Market Cap: {market_data.get('market_cap', 'N/A')}
@@ -726,15 +777,29 @@ News Sentiment:
 - Sentiment Score: {news.get('sentiment_score', 0):.2f}
 - News Count: {len(news.get('news_items', []))}
 
-Provide your analysis in the following JSON format:
+CRITICAL: You MUST respond with ONLY valid JSON in this exact format:
 {{
     "recommendation": "BUY|SELL|HOLD",
     "confidence": 1-10,
     "reasoning": "Detailed explanation",
-    "target_price": 0.0,
-    "stop_loss": 0.0,
+    "target_price": <CALCULATE: current_price * 1.05 to 1.15 for BUY, current_price * 0.85 to 0.95 for SELL>,
+    "stop_loss": <CALCULATE: current_price * 0.92 to 0.97 for BUY, current_price * 1.03 to 1.08 for SELL>,
     "risk_level": "LOW|MEDIUM|HIGH"
 }}
+
+DO NOT include any text before or after the JSON. Return ONLY the JSON object.
+
+IMPORTANT CALCULATION RULES:
+- For BUY recommendations: target_price should be 5-15% above current price (${current_price:.2f})
+- For SELL recommendations: target_price should be 5-15% below current price (${current_price:.2f})
+- For HOLD recommendations: target_price should be 2-5% above current price (${current_price:.2f})
+- Stop loss should be 3-8% from current price in the opposite direction
+- ALWAYS calculate target_price and stop_loss based on the current price of ${current_price:.2f}
+- DO NOT use hardcoded values - calculate percentages relative to current price
+- CRITICAL: You MUST calculate target_price and stop_loss using the current price of ${current_price:.2f}
+- FORBIDDEN: Do not use $185.00 or $165.00 - these are wrong values
+- REQUIRED: Calculate target_price = current_price * (1.05 to 1.15) for BUY recommendations
+- REQUIRED: Calculate stop_loss = current_price * (0.92 to 0.97) for BUY recommendations
 
 Focus on:
 1. Technical analysis signals
@@ -755,8 +820,36 @@ Focus on:
             if start_idx != -1 and end_idx != 0:
                 json_str = response_text[start_idx:end_idx]
                 analysis = json.loads(json_str)
+                
+                # Validate and correct target prices if they seem unreasonable
+                current_price = context["current_price"]
+                if analysis.get("target_price"):
+                    target_price = float(analysis["target_price"])
+                    # Check if target price is reasonable (within 50% of current price)
+                    if target_price < current_price * 0.5 or target_price > current_price * 1.5:
+                        logger.warning(f"LLM returned unreasonable target price {target_price} for current price {current_price}, recalculating")
+                        if analysis.get("recommendation", "").upper() == "BUY":
+                            analysis["target_price"] = current_price * 1.05
+                        elif analysis.get("recommendation", "").upper() == "SELL":
+                            analysis["target_price"] = current_price * 0.95
+                        else:
+                            analysis["target_price"] = current_price * 1.02
+                
+                if analysis.get("stop_loss"):
+                    stop_loss = float(analysis["stop_loss"])
+                    # Check if stop loss is reasonable (within 50% of current price)
+                    if stop_loss < current_price * 0.5 or stop_loss > current_price * 1.5:
+                        logger.warning(f"LLM returned unreasonable stop loss {stop_loss} for current price {current_price}, recalculating")
+                        if analysis.get("recommendation", "").upper() == "BUY":
+                            analysis["stop_loss"] = current_price * 0.95
+                        elif analysis.get("recommendation", "").upper() == "SELL":
+                            analysis["stop_loss"] = current_price * 1.05
+                        else:
+                            analysis["stop_loss"] = current_price * 0.98
+                
                 return analysis
-        except:
+        except Exception as e:
+            logger.error(f"Error parsing AI response: {e}")
             pass
         
         # Enhanced text parsing for confidence extraction
@@ -1127,26 +1220,34 @@ class UnifiedAnalyticsDashboard:
             return {"error": str(e)}
     
     async def get_central_hub_data(self) -> Dict[str, Any]:
-        """Get central hub data with improved status reporting"""
+        """Get central hub data with enhanced status reporting"""
         try:
             async with aiohttp.ClientSession() as session:
                 # Get data coverage
                 coverage = await self._get_data_coverage(session)
                 
-                # Get Polygon status with better error handling
+                # Get Polygon status
                 polygon_status = await self._get_polygon_status(session)
                 
-                # Get recent activity
+                # Get recent activity (enhanced)
                 recent_activity = await self._get_recent_activity(session)
                 
-                # Check worker status
+                # Get worker status
                 worker_status = await self._get_worker_status(session)
+                
+                # Get worker queue status
+                worker_queues = await self._get_worker_queue_status(session)
+                
+                # Get popular symbols
+                popular_symbols = await self._get_popular_symbols(session)
                 
                 return {
                     "data_coverage": coverage,
                     "polygon_status": polygon_status,
                     "recent_activity": recent_activity,
                     "worker_status": worker_status,
+                    "worker_queues": worker_queues,
+                    "popular_symbols": popular_symbols,
                     "last_updated": datetime.utcnow().isoformat()
                 }
         except Exception as e:
@@ -1290,53 +1391,200 @@ class UnifiedAnalyticsDashboard:
         }
     
     async def _get_data_coverage(self, session: aiohttp.ClientSession) -> Dict[str, Any]:
-        """Get data coverage information"""
+        """Get data coverage with actual symbol information"""
         try:
-            async with session.get(f"{self.market_data_url}/api/coverage") as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    return {"total_symbols": 0, "covered_symbols": 0, "coverage_percentage": 0.0}
+            # Get available symbols from market data service
+            try:
+                async with session.get(f"{MARKET_DATA_URL}/market-data/symbols", timeout=5) as response:
+                    if response.status == 200:
+                        symbols_data = await response.json()
+                        available_symbols = symbols_data.get('symbols', [])
+                    else:
+                        available_symbols = []
+            except Exception as e:
+                logger.error(f"Error getting symbols: {e}")
+                available_symbols = []
+            
+            # Get popular symbols for coverage calculation
+            popular_symbols = await self._get_popular_symbols(session)
+            
+            # Calculate coverage based on popular symbols
+            total_symbols = len(popular_symbols)
+            
+            # Extract symbol names from available_symbols (they are objects with symbol and name properties)
+            available_symbol_names = []
+            if available_symbols and isinstance(available_symbols[0], dict):
+                available_symbol_names = [s.get('symbol', '') for s in available_symbols if s.get('symbol')]
+            else:
+                available_symbol_names = available_symbols
+            
+            # Count how many popular symbols are available
+            covered_symbols = len([s for s in popular_symbols if s in available_symbol_names])
+            coverage_percentage = (covered_symbols / total_symbols * 100) if total_symbols > 0 else 0.0
+            
+            return {
+                "total_symbols": total_symbols,
+                "covered_symbols": covered_symbols,
+                "coverage_percentage": round(coverage_percentage, 1),
+                "available_symbols": available_symbols[:10],  # Show first 10
+                "popular_symbols": popular_symbols
+            }
         except Exception as e:
             logger.error(f"Error getting data coverage: {e}")
-            return {"total_symbols": 0, "covered_symbols": 0, "coverage_percentage": 0.0}
+            return {
+                "total_symbols": 0,
+                "covered_symbols": 0,
+                "coverage_percentage": 0.0,
+                "available_symbols": [],
+                "popular_symbols": []
+            }
     
     async def _get_polygon_status(self, session: aiohttp.ClientSession) -> Dict[str, Any]:
-        """Get Polygon API status"""
+        """Get Polygon API status with detailed error reporting"""
         try:
-            async with session.get(f"{self.market_data_url}/api/polygon/status") as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    return {"status": "unknown", "last_check": datetime.utcnow().isoformat()}
-        except Exception as e:
-            logger.error(f"Error getting Polygon status: {e}")
-            return {"status": "error", "error": str(e)}
-    
-    async def _get_recent_activity(self, session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
-        """Get recent activity"""
-        try:
-            async with session.get(f"{self.market_data_url}/api/activity") as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    return []
-        except Exception as e:
-            logger.error(f"Error getting recent activity: {e}")
-            return []
-    
-    async def _get_popular_symbols(self, session: aiohttp.ClientSession) -> List[str]:
-        """Get popular symbols"""
-        try:
-            async with session.get(f"{self.market_data_url}/api/symbols/popular") as response:
+            # Try the correct status endpoint first
+            async with session.get(f"{self.market_data_url}/status", timeout=5) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data.get("symbols", ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"])
+                    return {
+                        "status": "healthy" if data.get("status") == "operational" else "degraded",
+                        "data_source": data.get("data_source", "Unknown"),
+                        "service": data.get("service", "Unknown"),
+                        "last_check": datetime.utcnow().isoformat(),
+                        "details": f"Service: {data.get('service', 'Unknown')}, Data Source: {data.get('data_source', 'Unknown')}"
+                    }
                 else:
-                    return ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
+                    return {
+                        "status": "error",
+                        "last_check": datetime.utcnow().isoformat(),
+                        "details": f"HTTP {response.status}: Service not responding properly"
+                    }
+        except asyncio.TimeoutError:
+            return {
+                "status": "timeout",
+                "last_check": datetime.utcnow().isoformat(),
+                "details": "Connection timeout - service may be overloaded or unavailable"
+            }
         except Exception as e:
-            logger.error(f"Error getting popular symbols: {e}")
-            return ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
+            logger.error(f"Error getting Polygon status: {e}")
+            return {
+                "status": "error",
+                "last_check": datetime.utcnow().isoformat(),
+                "details": f"Connection error: {str(e)}"
+            }
+    
+    async def _get_recent_activity(self, session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+        """Get recent activity with enhanced tracking"""
+        try:
+            activities = []
+            
+            # Check LLM worker activity
+            try:
+                async with session.get("http://llm-proxy:11081/health", timeout=3) as response:
+                    if response.status == 200:
+                        activities.append({
+                            "type": "worker",
+                            "status": "active",
+                            "message": "LLM workers processing requests",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                    else:
+                        activities.append({
+                            "type": "worker",
+                            "status": "inactive",
+                            "message": "LLM workers not responding",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+            except Exception as e:
+                activities.append({
+                    "type": "worker",
+                    "status": "error",
+                    "message": f"LLM worker error: {str(e)}",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            
+            # Check market data activity
+            try:
+                async with session.get(f"{MARKET_DATA_URL}/status", timeout=3) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        activities.append({
+                            "type": "market_data",
+                            "status": "active",
+                            "message": f"Market data service: {data.get('status', 'unknown')}",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                    else:
+                        activities.append({
+                            "type": "market_data",
+                            "status": "inactive",
+                            "message": "Market data service not responding",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+            except Exception as e:
+                activities.append({
+                    "type": "market_data",
+                    "status": "error",
+                    "message": f"Market data error: {str(e)}",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            
+            # Check data processing activity
+            try:
+                async with session.get("http://data-transformation-pipeline:11135/health", timeout=3) as response:
+                    if response.status == 200:
+                        activities.append({
+                            "type": "processing",
+                            "status": "active",
+                            "message": "Data transformation pipeline running",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                    else:
+                        activities.append({
+                            "type": "processing",
+                            "status": "inactive",
+                            "message": "Data transformation pipeline not responding",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+            except Exception as e:
+                activities.append({
+                    "type": "processing",
+                    "status": "error",
+                    "message": f"Processing error: {str(e)}",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            
+            return activities
+        except Exception as e:
+            logger.error(f"Error getting recent activity: {e}")
+            return [{
+                "type": "error",
+                "status": "error",
+                "message": f"Activity tracking error: {str(e)}",
+                "timestamp": datetime.utcnow().isoformat()
+            }]
+    
+    async def _get_popular_symbols(self, session: aiohttp.ClientSession) -> List[str]:
+        """Get popular symbols from the database"""
+        try:
+            # Get symbols from the database
+            engine = get_database_connection()
+            if engine is None:
+                return ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "NVDA", "META", "NFLX", "SPY", "QQQ"]
+            
+            with engine.connect() as conn:
+                result = conn.execute(text("""
+                    SELECT symbol FROM popular_symbols 
+                    WHERE active = TRUE 
+                    ORDER BY priority, symbol
+                """))
+                
+                symbols = [row[0] for row in result]
+                return symbols if symbols else ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "NVDA", "META", "NFLX", "SPY", "QQQ"]
+        except Exception as e:
+            logger.error(f"Error getting popular symbols from database: {e}")
+            # Fallback to a subset of common symbols
+            return ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "NVDA", "META", "NFLX", "SPY", "QQQ"]
     
     async def _get_coverage_statistics(self, session: aiohttp.ClientSession) -> Dict[str, Any]:
         """Get coverage statistics"""
@@ -1373,6 +1621,55 @@ class UnifiedAnalyticsDashboard:
         except Exception as e:
             logger.error(f"Error getting Greeks status: {e}")
             return {"status": "error", "error": str(e)}
+
+    async def _get_worker_queue_status(self, session: aiohttp.ClientSession) -> Dict[str, Any]:
+        """Get worker queue status from RabbitMQ"""
+        try:
+            # Try to get queue status from RabbitMQ management API
+            rabbitmq_url = "http://rabbitmq:15672/api/queues"
+            auth = aiohttp.BasicAuth('trading', 'trading_pass')
+            
+            async with session.get(rabbitmq_url, auth=auth, timeout=5) as response:
+                if response.status == 200:
+                    queues = await response.json()
+                    
+                    # Filter for LLM worker queues
+                    llm_queues = [q for q in queues if q['name'].startswith('llm.')]
+                    
+                    queue_status = {}
+                    for queue in llm_queues:
+                        queue_status[queue['name']] = {
+                            "messages": queue.get('messages', 0),
+                            "consumers": queue.get('consumers', 0),
+                            "state": queue.get('state', 'unknown')
+                        }
+                    
+                    return {
+                        "status": "connected",
+                        "queues": queue_status,
+                        "total_queues": len(llm_queues),
+                        "active_consumers": sum(q.get('consumers', 0) for q in llm_queues),
+                        "pending_messages": sum(q.get('messages', 0) for q in llm_queues)
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "error": f"HTTP {response.status}",
+                        "queues": {},
+                        "total_queues": 0,
+                        "active_consumers": 0,
+                        "pending_messages": 0
+                    }
+        except Exception as e:
+            logger.error(f"Error getting worker queue status: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "queues": {},
+                "total_queues": 0,
+                "active_consumers": 0,
+                "pending_messages": 0
+            }
 
 # Initialize dashboard manager
 dashboard_manager = UnifiedAnalyticsDashboard()
@@ -1571,6 +1868,16 @@ async def data_pipeline_dashboard(request: Request):
     """Data pipeline dashboard page"""
     return templates.TemplateResponse("data-pipeline.html", {"request": request})
 
+@app.get("/backtest", response_class=HTMLResponse)
+async def backtest_dashboard(request: Request):
+    """Backtest dashboard page"""
+    return templates.TemplateResponse("backtest.html", {"request": request})
+
+@app.get("/rag-search", response_class=HTMLResponse)
+async def rag_search_dashboard(request: Request):
+    """RAG search dashboard page"""
+    return templates.TemplateResponse("rag-search.html", {"request": request})
+
 @app.post("/api/analyze")
 async def analyze_stock(request: StockAnalysisRequest) -> StockAnalysisResponse:
     """Analyze a stock"""
@@ -1599,16 +1906,37 @@ async def get_central_hub_data():
 
 @app.get("/api/symbols")
 async def get_popular_symbols() -> Dict[str, Any]:
-    """Get popular symbols for the AI Stock Dashboard"""
+    """Get popular symbols from database"""
     try:
-        # Use the symbols from trading config
-        popular_symbols = SYMBOLS[:12]  # Show first 12 symbols as popular
+        # Get symbols from the database
+        engine = get_database_connection()
+        if engine is None:
+            return {"error": "Database connection failed"}
         
-        return {
-            "success": True,
-            "symbols": popular_symbols,
-            "total_count": len(popular_symbols)
-        }
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT symbol, description, category, priority, active 
+                FROM popular_symbols 
+                WHERE active = TRUE 
+                ORDER BY priority, symbol
+            """))
+            
+            symbols = []
+            for row in result:
+                symbols.append({
+                    "symbol": row[0],
+                    "description": row[1],
+                    "category": row[2],
+                    "priority": row[3],
+                    "active": row[4]
+                })
+            
+            return {
+                "success": True,
+                "symbols": [s["symbol"] for s in symbols],  # Backward compatibility
+                "symbols_detailed": symbols,
+                "total_count": len(symbols)
+            }
     except Exception as e:
         logger.error(f"Error getting popular symbols: {e}")
         return {
@@ -1616,6 +1944,259 @@ async def get_popular_symbols() -> Dict[str, Any]:
             "symbols": [],
             "error": str(e)
         }
+
+@app.get("/api/symbols/all")
+async def get_all_symbols() -> List[Dict[str, Any]]:
+    """Get all symbols from database"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return [{"error": "Database connection failed"}]
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT symbol, description, category, priority, active 
+                FROM popular_symbols 
+                ORDER BY priority, symbol
+            """))
+            
+            symbols = []
+            for row in result:
+                symbols.append({
+                    "name": row[0],
+                    "description": row[1] or "",
+                    "category": row[2] or "stock",
+                    "priority": row[3] or 0,
+                    "active": row[4]
+                })
+            
+            return symbols
+    except Exception as e:
+        logger.error(f"Error getting all symbols: {e}")
+        return [{"error": str(e)}]
+
+@app.get("/api/symbols/active")
+async def get_active_symbols() -> List[Dict[str, Any]]:
+    """Get active symbols from database"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return [{"error": "Database connection failed"}]
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT symbol, description, category, priority, active 
+                FROM popular_symbols 
+                WHERE active = TRUE 
+                ORDER BY priority, symbol
+            """))
+            
+            symbols = []
+            for row in result:
+                symbols.append({
+                    "name": row[0],
+                    "description": row[1] or "",
+                    "category": row[2] or "stock",
+                    "priority": row[3] or 0,
+                    "active": row[4]
+                })
+            
+            return symbols
+    except Exception as e:
+        logger.error(f"Error getting active symbols: {e}")
+        return [{"error": str(e)}]
+
+@app.get("/api/symbols/inactive")
+async def get_inactive_symbols() -> List[Dict[str, Any]]:
+    """Get inactive symbols from database"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return [{"error": "Database connection failed"}]
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT symbol, description, category, priority, active 
+                FROM popular_symbols 
+                WHERE active = FALSE 
+                ORDER BY priority, symbol
+            """))
+            
+            symbols = []
+            for row in result:
+                symbols.append({
+                    "name": row[0],
+                    "description": row[1] or "",
+                    "category": row[2] or "stock",
+                    "priority": row[3] or 0,
+                    "active": row[4]
+                })
+            
+            return symbols
+    except Exception as e:
+        logger.error(f"Error getting inactive symbols: {e}")
+        return [{"error": str(e)}]
+
+@app.get("/api/symbols/get/{symbol}")
+async def get_symbol_details(symbol: str) -> Dict[str, Any]:
+    """Get details for a specific symbol"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return {"error": "Database connection failed"}
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT symbol, description, category, priority, active 
+                FROM popular_symbols 
+                WHERE symbol = :symbol
+            """), {"symbol": symbol.upper()})
+            
+            row = result.fetchone()
+            if row:
+                return {
+                    "name": row[0],
+                    "description": row[1] or "",
+                    "category": row[2] or "stock",
+                    "priority": row[3] or 0,
+                    "active": row[4]
+                }
+            else:
+                return {"error": f"Symbol {symbol} not found"}
+    except Exception as e:
+        logger.error(f"Error getting symbol details: {e}")
+        return {"error": str(e)}
+
+@app.post("/api/symbols/add")
+async def add_symbol(symbol_data: dict) -> Dict[str, Any]:
+    """Add a new symbol"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return {"error": "Database connection failed"}
+        
+        name = symbol_data.get("name", "").upper()
+        description = symbol_data.get("description", "")
+        category = symbol_data.get("category", "stock")
+        priority = symbol_data.get("priority", 0)
+        active = symbol_data.get("active", True)
+        
+        if not name:
+            return {"error": "Symbol name is required"}
+        
+        with engine.connect() as conn:
+            # Check if symbol already exists
+            check_result = conn.execute(text("SELECT id FROM popular_symbols WHERE symbol = :symbol"), {"symbol": name})
+            if check_result.fetchone():
+                return {"error": f"Symbol {name} already exists"}
+            
+            # Insert new symbol
+            conn.execute(text("""
+                INSERT INTO popular_symbols (symbol, description, category, priority, active)
+                VALUES (:symbol, :description, :category, :priority, :active)
+            """), {
+                "symbol": name,
+                "description": description,
+                "category": category,
+                "priority": priority,
+                "active": active
+            })
+            conn.commit()
+            
+            return {"success": True, "message": f"Symbol {name} added successfully"}
+    except Exception as e:
+        logger.error(f"Error adding symbol: {e}")
+        return {"error": str(e)}
+
+@app.put("/api/symbols/edit/{symbol}")
+async def edit_symbol(symbol: str, symbol_data: dict) -> Dict[str, Any]:
+    """Edit an existing symbol"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return {"error": "Database connection failed"}
+        
+        description = symbol_data.get("description", "")
+        category = symbol_data.get("category", "stock")
+        priority = symbol_data.get("priority", 0)
+        active = symbol_data.get("active", True)
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                UPDATE popular_symbols 
+                SET description = :description, category = :category, priority = :priority, 
+                    active = :active, updated_at = CURRENT_TIMESTAMP
+                WHERE symbol = :symbol
+            """), {
+                "symbol": symbol.upper(),
+                "description": description,
+                "category": category,
+                "priority": priority,
+                "active": active
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return {"error": f"Symbol {symbol} not found"}
+            
+            return {"success": True, "message": f"Symbol {symbol} updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating symbol: {e}")
+        return {"error": str(e)}
+
+@app.put("/api/symbols/toggle-active/{symbol}")
+async def toggle_symbol_active(symbol: str, toggle_data: dict) -> Dict[str, Any]:
+    """Toggle active status of a symbol"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return {"error": "Database connection failed"}
+        
+        active = toggle_data.get("active", True)
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                UPDATE popular_symbols 
+                SET active = :active, updated_at = CURRENT_TIMESTAMP
+                WHERE symbol = :symbol
+            """), {
+                "symbol": symbol.upper(),
+                "active": active
+            })
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return {"error": f"Symbol {symbol} not found"}
+            
+            status = "activated" if active else "deactivated"
+            return {"success": True, "message": f"Symbol {symbol} {status} successfully"}
+    except Exception as e:
+        logger.error(f"Error toggling symbol active status: {e}")
+        return {"error": str(e)}
+
+@app.delete("/api/symbols/delete/{symbol}")
+async def delete_symbol(symbol: str) -> Dict[str, Any]:
+    """Delete a symbol (soft delete by setting active = FALSE)"""
+    try:
+        engine = get_database_connection()
+        if engine is None:
+            return {"error": "Database connection failed"}
+        
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                UPDATE popular_symbols 
+                SET active = FALSE, updated_at = CURRENT_TIMESTAMP
+                WHERE symbol = :symbol
+            """), {"symbol": symbol.upper()})
+            conn.commit()
+            
+            if result.rowcount == 0:
+                return {"error": f"Symbol {symbol} not found"}
+            
+            return {"success": True, "message": f"Symbol {symbol} deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting symbol: {e}")
+        return {"error": str(e)}
 
 @app.get("/api/options/coverage")
 async def get_options_coverage():
@@ -2537,33 +3118,35 @@ async def cancel_order(order_id: str):
 async def get_current_market_price(symbol: str):
     """Proxy endpoint to get current market price from market data service"""
     try:
-        # Use the working pod directly since we know it's working
-        result = subprocess.run([
-            'kubectl', 'exec', '-n', 'trading-system', 
-            'market-data-service-584dc49d4d-th7jv', '--', 
-            'curl', '-s', f'http://localhost:8000/market-data/current/{symbol.upper()}'
-        ], capture_output=True, text=True, timeout=15)
-        
-        if result.returncode == 0 and result.stdout.strip():
-            data = json.loads(result.stdout.strip())
-            logger.info(f"Got REAL market data for {symbol}: {data}")
-            return {
-                "symbol": data.get("symbol", symbol.upper()),
-                "price": data.get("price"),
-                "timestamp": data.get("timestamp"),
-                "source": "real_market_data"
-            }
-        else:
-            logger.warning(f"Market data service returned error for {symbol}: {result.stderr}")
-            # Fallback to estimated prices
-            return {
-                "symbol": symbol.upper(),
-                "price": get_simple_estimate(symbol.upper()),
-                "timestamp": datetime.now().isoformat(),
-                "source": "estimated"
-            }
+        # Use the proper Kubernetes service name
+        async with aiohttp.ClientSession() as session:
+            url = f"{MARKET_DATA_URL}/market-data/current/{symbol.upper()}"
+            logger.info(f"Attempting to fetch market data from: {url}")
+            async with session.get(url, timeout=10) as response:
+                logger.info(f"Response status: {response.status}")
+                if response.status == 200:
+                    data = await response.json()
+                    logger.info(f"Got REAL market data for {symbol}: {data}")
+                    return {
+                        "symbol": data.get("symbol", symbol.upper()),
+                        "price": data.get("price"),
+                        "timestamp": data.get("timestamp"),
+                        "source": "real_market_data"
+                    }
+                else:
+                    response_text = await response.text()
+                    logger.warning(f"Market data service returned {response.status} for {symbol}: {response_text}")
+                    # Fallback to estimated prices
+                    return {
+                        "symbol": symbol.upper(),
+                        "price": get_simple_estimate(symbol.upper()),
+                        "timestamp": datetime.now().isoformat(),
+                        "source": "estimated"
+                    }
     except Exception as e:
         logger.error(f"Error fetching market data for {symbol}: {e}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         # Fallback to estimated prices
         return {
             "symbol": symbol.upper(),
@@ -2618,6 +3201,431 @@ def get_simple_estimate(symbol: str) -> float:
     }
     
     return estimates.get(symbol, 100.00)
+
+# Add after the existing Pydantic models (around line 295)
+
+class RAGSearchRequest(BaseModel):
+    """Request for RAG-based search"""
+    query: str
+    search_type: str = "all"  # "market_data", "news", "decisions", "all"
+    top_k: int = 5
+    include_context: bool = True
+
+class RAGSearchResponse(BaseModel):
+    """Response from RAG-based search"""
+    query: str
+    answer: str
+    confidence: float
+    sources: List[Dict[str, Any]]
+    search_time: float
+    timestamp: str
+
+class RAGSearchProcessor:
+    """Process RAG-based search queries using vector storage and LLM"""
+    
+    def __init__(self):
+        self.vector_storage_url = VECTOR_STORAGE_URL
+        self.llm_proxy_url = LLM_PROXY_URL
+    
+    async def process_rag_query(self, query: str, search_type: str = "all", 
+                              top_k: int = 5, include_context: bool = True) -> RAGSearchResponse:
+        """Process a RAG query using vector storage, real-time services, and LLM"""
+        start_time = time.time()
+        
+        try:
+            # Step 1: Search vector storage for relevant context
+            vector_results = await self._search_vector_storage(query, search_type, top_k)
+            
+            # Step 2: Extract symbols from query and fetch real-time data
+            symbols = self._extract_symbols_from_query(query)
+            real_time_data = await self._fetch_real_time_data(symbols, search_type)
+            
+            # Step 3: Build comprehensive context from vector results and real-time data
+            context = self._build_comprehensive_context(vector_results, real_time_data, query)
+            
+            # Step 4: Generate AI response using LLM
+            ai_response = await self._generate_ai_response(query, context, include_context)
+            
+            # Step 5: Calculate confidence based on available data
+            confidence = self._calculate_enhanced_confidence(vector_results, real_time_data)
+            
+            search_time = time.time() - start_time
+            
+            return RAGSearchResponse(
+                query=query,
+                answer=ai_response["answer"],
+                confidence=confidence,
+                sources=vector_results + real_time_data.get("sources", []),
+                search_time=search_time,
+                timestamp=datetime.now().isoformat()
+            )
+            
+        except Exception as e:
+            logger.error(f"Error processing RAG query: {e}")
+            return RAGSearchResponse(
+                query=query,
+                answer=f"I encountered an error while processing your query: {str(e)}",
+                confidence=0.0,
+                sources=[],
+                search_time=time.time() - start_time,
+                timestamp=datetime.now().isoformat()
+            )
+    
+    async def _search_vector_storage(self, query: str, search_type: str, top_k: int) -> List[Dict[str, Any]]:
+        """Search vector storage for relevant content"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = f"{self.vector_storage_url}/api/search/similar"
+                params = {
+                    "query": query,
+                    "top_k": top_k
+                }
+                
+                if search_type != "all":
+                    params["vector_type"] = search_type
+                
+                async with session.get(url, params=params, timeout=30) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        logger.warning(f"Vector storage search failed: {response.status}")
+                        return []
+                        
+        except Exception as e:
+            logger.error(f"Error searching vector storage: {e}")
+            return []
+    
+    def _build_context_from_results(self, vector_results: List[Dict[str, Any]]) -> str:
+        """Build context string from vector search results"""
+        if not vector_results:
+            return "No relevant historical data found."
+        
+        context_parts = []
+        for i, result in enumerate(vector_results[:5], 1):  # Limit to top 5
+            content = result.get("content", "")
+            similarity = result.get("similarity", 0.0)
+            vector_type = result.get("vector_type", "unknown")
+            
+            context_parts.append(f"Source {i} ({vector_type}, similarity: {similarity:.2f}):\n{content}\n")
+        
+        return "\n".join(context_parts)
+    
+    async def _generate_ai_response(self, query: str, context: str, include_context: bool) -> Dict[str, Any]:
+        """Generate AI response using LLM with high priority"""
+        try:
+            # Build prompt for LLM
+            if include_context:
+                prompt = f"""You are an expert financial analyst. Answer the following question based on the provided context.
+
+Question: {query}
+
+Context from historical data:
+{context}
+
+Please provide a comprehensive answer based on the context above. If the context doesn't contain enough information, say so and provide general guidance.
+
+Answer:"""
+            else:
+                prompt = f"""You are an expert financial analyst. Answer the following question about financial markets and trading.
+
+Question: {query}
+
+Please provide a comprehensive and helpful answer.
+
+Answer:"""
+            
+            async with aiohttp.ClientSession() as session:
+                # Use high priority endpoint for RAG chat
+                llm_request = {
+                    "messages": [
+                        {"role": "system", "content": "You are an expert financial analyst and trading advisor."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 800,
+                    "model": "gpt-3.5-turbo"
+                }
+                
+                # Use the high priority endpoint
+                url = f"{self.llm_proxy_url}/api/high-priority/chat"
+                async with session.post(url, json=llm_request, timeout=120) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        if result.get("success") and result.get("data"):
+                            return {"answer": result["data"]["content"]}
+                        else:
+                            return {"answer": "I'm having trouble generating a response right now. Please try again."}
+                    else:
+                        return {"answer": "I'm having trouble connecting to the AI service. Please try again."}
+                        
+        except Exception as e:
+            logger.error(f"Error generating AI response: {e}")
+            return {"answer": f"I encountered an error while generating a response: {str(e)}"}
+    
+    def _extract_symbols_from_query(self, query: str) -> List[str]:
+        """Extract stock symbols from the query"""
+        import re
+        # Common stock symbols to look for
+        common_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
+                         'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS',
+                         'V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO',
+                         'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY']
+        
+        found_symbols = []
+        query_upper = query.upper()
+        
+        # Look for specific symbols in the query
+        for symbol in common_symbols:
+            if symbol in query_upper:
+                found_symbols.append(symbol)
+        
+        # If no specific symbols found, check for general market terms
+        if not found_symbols:
+            general_terms = ['STOCK', 'STOCKS', 'MARKET', 'TRENDING', 'TREND', 'PERFORMANCE', 'PRICE', 'PRICES']
+            if any(term in query_upper for term in general_terms):
+                # Return empty list to trigger popular symbols fetch
+                return []
+        
+        return found_symbols
+
+    async def _fetch_real_time_data(self, symbols: List[str], search_type: str) -> Dict[str, Any]:
+        """Fetch real-time data from available services"""
+        real_time_data = {"market_data": {}, "news": {}, "technical": {}, "sources": []}
+        
+        # If no specific symbols found, use popular symbols for general queries
+        if not symbols:
+            symbols = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'META', 'AMZN', 'SPY', 'QQQ']
+            logger.info(f"No specific symbols found in query, using popular symbols: {symbols}")
+        
+        try:
+            # Fetch market data for each symbol using direct function calls
+            for symbol in symbols[:3]:  # Limit to 3 symbols to avoid overwhelming
+                try:
+                    # Get current market price using direct function call
+                    price_data = await get_current_market_price(symbol)
+                    if price_data and isinstance(price_data, dict):
+                        real_time_data["market_data"][symbol] = price_data
+                        real_time_data["sources"].append({
+                            "type": "market_data",
+                            "symbol": symbol,
+                            "data": price_data
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch market data for {symbol}: {e}")
+            
+            # Fetch news data if requested (using external service)
+            if search_type in ["news", "all"] and symbols:
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        # Get news sentiment for first symbol
+                        news_url = f"{RSS_FEED_URL}/api/news/sentiment/{symbols[0]}"
+                        async with session.get(news_url, timeout=10) as response:
+                            if response.status == 200:
+                                news_data = await response.json()
+                                real_time_data["news"] = news_data
+                                real_time_data["sources"].append({
+                                    "type": "news",
+                                    "symbol": symbols[0],
+                                    "data": news_data
+                                })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch news data: {e}")
+            
+            # Fetch technical analysis if requested (using external service)
+            if search_type in ["market_data", "all"] and symbols:
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        # Get technical analysis for first symbol
+                        tech_url = f"{MARKET_DATA_URL}/api/technical/{symbols[0]}"
+                        async with session.get(tech_url, timeout=10) as response:
+                            if response.status == 200:
+                                tech_data = await response.json()
+                                real_time_data["technical"] = tech_data
+                                real_time_data["sources"].append({
+                                    "type": "technical",
+                                    "symbol": symbols[0],
+                                    "data": tech_data
+                                })
+                except Exception as e:
+                    logger.warning(f"Failed to fetch technical data: {e}")
+                        
+        except Exception as e:
+            logger.error(f"Error fetching real-time data: {e}")
+        
+        return real_time_data
+
+    def _build_comprehensive_context(self, vector_results: List[Dict[str, Any]], 
+                                   real_time_data: Dict[str, Any], query: str) -> str:
+        """Build comprehensive context from vector results and real-time data"""
+        context_parts = []
+        
+        # Add vector storage results
+        if vector_results:
+            context_parts.append("Historical Data from Vector Storage:")
+            for i, result in enumerate(vector_results[:3], 1):
+                content = result.get("content", "")
+                similarity = result.get("similarity", 0.0)
+                vector_type = result.get("vector_type", "unknown")
+                context_parts.append(f"Source {i} ({vector_type}, similarity: {similarity:.2f}):\n{content}\n")
+        
+        # Add real-time market data
+        market_data = real_time_data.get("market_data", {})
+        if market_data:
+            context_parts.append("Real-time Market Data:")
+            # Sort symbols by price to show trending stocks first
+            sorted_data = sorted(market_data.items(), key=lambda x: x[1].get("price", 0) if isinstance(x[1], dict) else 0, reverse=True)
+            
+            for symbol, data in sorted_data:
+                if isinstance(data, dict):
+                    price = data.get("price", data.get("current_price", "N/A"))
+                    change = data.get("change", "N/A")
+                    volume = data.get("volume", "N/A")
+                    source = data.get("source", "unknown")
+                    context_parts.append(f"{symbol}: Price ${price}, Source: {source}")
+                    if change != "N/A":
+                        context_parts.append(f"{symbol}: Change {change}, Volume {volume}")
+            
+            # Add summary for general market queries
+            if len(market_data) > 3:
+                prices = [data.get("price", 0) for data in market_data.values() if isinstance(data, dict)]
+                avg_price = sum(prices) / len(prices) if prices else 0
+                context_parts.append(f"Market Summary: {len(market_data)} stocks tracked, average price: ${avg_price:.2f}")
+        
+        # Add real-time news data
+        news_data = real_time_data.get("news", {})
+        if news_data:
+            context_parts.append("Recent News and Sentiment:")
+            sentiment = news_data.get("sentiment", {})
+            if sentiment:
+                overall_sentiment = sentiment.get("overall_sentiment", "neutral")
+                confidence = sentiment.get("confidence", 0.0)
+                context_parts.append(f"Overall sentiment: {overall_sentiment} (confidence: {confidence:.2f})")
+            
+            articles = news_data.get("articles", [])
+            if articles:
+                context_parts.append("Recent articles:")
+                for i, article in enumerate(articles[:3], 1):
+                    title = article.get("title", "No title")
+                    sentiment = article.get("sentiment", "neutral")
+                    context_parts.append(f"{i}. {title} (sentiment: {sentiment})")
+        
+        # Add technical analysis
+        tech_data = real_time_data.get("technical", {})
+        if tech_data:
+            context_parts.append("Technical Analysis:")
+            indicators = tech_data.get("indicators", {})
+            if indicators:
+                for indicator, value in indicators.items():
+                    context_parts.append(f"{indicator}: {value}")
+        
+        if not context_parts:
+            return "No relevant data found from vector storage or real-time services."
+        
+        return "\n\n".join(context_parts)
+
+    def _calculate_enhanced_confidence(self, vector_results: List[Dict[str, Any]], 
+                                     real_time_data: Dict[str, Any]) -> float:
+        """Calculate enhanced confidence score based on available data"""
+        confidence = 0.0
+        
+        # Base confidence from vector similarity
+        if vector_results:
+            similarities = [result.get("similarity", 0.0) for result in vector_results]
+            avg_similarity = sum(similarities) / len(similarities)
+            confidence += min(0.6, avg_similarity * 1.2)  # Vector data contributes up to 60%
+        
+        # Additional confidence from real-time data
+        real_time_sources = len(real_time_data.get("sources", []))
+        if real_time_sources > 0:
+            confidence += min(0.4, real_time_sources * 0.2)  # Real-time data contributes up to 40%
+        
+        return round(min(1.0, confidence), 2)
+
+    def _calculate_confidence(self, vector_results: List[Dict[str, Any]]) -> float:
+        """Calculate confidence score based on vector similarity"""
+        if not vector_results:
+            return 0.0
+        
+        # Calculate average similarity score
+        similarities = [result.get("similarity", 0.0) for result in vector_results]
+        avg_similarity = sum(similarities) / len(similarities)
+        
+        # Convert to confidence score (0-1)
+        confidence = min(1.0, avg_similarity * 2)  # Scale similarity to confidence
+        
+        return round(confidence, 2)
+
+# Initialize RAG processor
+rag_processor = RAGSearchProcessor()
+
+# RAG Search API Endpoints
+@app.post("/api/rag/search")
+async def rag_search(request: RAGSearchRequest) -> RAGSearchResponse:
+    """Process a RAG-based search query"""
+    try:
+        response = await rag_processor.process_rag_query(
+            query=request.query,
+            search_type=request.search_type,
+            top_k=request.top_k,
+            include_context=request.include_context
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error in RAG search: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/rag/examples")
+async def get_rag_examples() -> Dict[str, List[str]]:
+    """Get example RAG search queries"""
+    return {
+        "market_analysis": [
+            "What happened to AAPL stock in the last quarter?",
+            "How did NVDA perform during earnings season?",
+            "What are the recent trends in tech stocks?",
+            "Show me market data for MSFT"
+        ],
+        "news_analysis": [
+            "What news affected TSLA recently?",
+            "What are the latest developments for META?",
+            "Show me news about AI stocks",
+            "What earnings news came out this week?"
+        ],
+        "investment_decisions": [
+            "What were the best trading decisions for AAPL?",
+            "When should I buy NVDA?",
+            "What's the risk level for tech stocks?",
+            "Show me successful trading patterns"
+        ],
+        "general": [
+            "What's the current market sentiment?",
+            "Which stocks are trending up?",
+            "What are the key market drivers?",
+            "How is the overall market performing?"
+        ]
+    }
+
+@app.get("/api/rag/stats")
+async def get_rag_stats() -> Dict[str, Any]:
+    """Get RAG search statistics"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Get vector storage stats
+            url = f"{VECTOR_STORAGE_URL}/api/stats"
+            async with session.get(url, timeout=10) as response:
+                if response.status == 200:
+                    vector_stats = await response.json()
+                else:
+                    vector_stats = {"error": "Vector storage unavailable"}
+        
+        return {
+            "vector_storage": vector_stats,
+            "rag_processor": "active",
+            "supported_search_types": ["market_data", "news", "decisions", "all"],
+            "max_results_per_query": 10
+        }
+    except Exception as e:
+        logger.error(f"Error getting RAG stats: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80) 

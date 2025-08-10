@@ -311,6 +311,92 @@
                 margin: 2px 0;
             }
         }
+        
+        /* Backtest Form Styles */
+        .backtest-form {
+            padding: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .strategy-categories {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        
+        .strategy-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .strategy-checkbox input[type="checkbox"] {
+            margin-right: 0px !important;
+        }
+        
+        .info-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .strategy-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        
+        .strategy-result h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -326,6 +412,7 @@
             <button class="nav-tab" onclick="showSection('trades')">Trades</button>
             <button class="nav-tab" onclick="showSection('orders')">Order Entry</button>
             <button class="nav-tab" onclick="showSection('strategies')">Strategies</button>
+            <button class="nav-tab" onclick="showSection('backtesting')">Backtesting</button>
             <button class="nav-tab" onclick="showSection('health')">System Health</button>
         </div>
         
@@ -572,6 +659,100 @@
                 </div>
                 <div id="strategy-comparison">
                     <div class="loading">Loading strategy comparison...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Backtesting Section -->
+        <div id="backtesting" class="dashboard-section" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">🚀 Strategy Backtesting</div>
+                            <div class="card-subtitle">Test strategies with historical data</div>
+                        </div>
+                        <button class="refresh-btn" onclick="loadBacktestResults()">Refresh Results</button>
+                    </div>
+                    <div class="backtest-form">
+                        <div class="form-group">
+                            <label for="backtest-symbols">Symbols (comma-separated):</label>
+                            <input type="text" id="backtest-symbols" placeholder="AAPL,MSFT,GOOGL,TSLA,NVDA" value="AAPL,MSFT,GOOGL,TSLA,NVDA" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="backtest-start-date">Start Date:</label>
+                                <input type="date" id="backtest-start-date" value="2024-01-01" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div class="form-group">
+                                <label for="backtest-end-date">End Date:</label>
+                                <input type="date" id="backtest-end-date" value="2024-12-31" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="backtest-capital">Initial Capital ($):</label>
+                            <input type="number" id="backtest-capital" value="10000" min="1000" step="1000" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Strategy Categories:</label>
+                            <div class="strategy-categories">
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('basic')">📊 Basic Strategies</button>
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('options')">🎯 Options Strategies</button>
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('advanced')">🚀 Advanced Strategies</button>
+                                <button type="button" class="btn btn-outline" onclick="selectCategory('all')">🌟 All Strategies</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Selected Strategies:</label>
+                            <div id="strategy-selection" class="strategy-grid">
+                                <!-- Strategies will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="backtest-risk-profile">Risk Profile:</label>
+                            <select id="backtest-risk-profile" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="conservative">Conservative</option>
+                                <option value="moderate" selected>Moderate</option>
+                                <option value="aggressive">Aggressive</option>
+                                <option value="ultra-aggressive">Ultra Aggressive</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="backtest-use-llm" style="margin-right: 8px;">
+                                Use AI/LLM Analysis
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="backtest-parallel" checked style="margin-right: 8px;">
+                                Parallel Execution
+                            </label>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="runBacktest()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;">
+                            🚀 Run Backtest
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">📊 Backtest Results</div>
+                            <div class="card-subtitle">Strategy performance analysis</div>
+                        </div>
+                    </div>
+                    <div id="backtest-results">
+                        <div class="info-message">Configure and run a backtest to see results here</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1091,21 +1272,35 @@
             }
             
             try {
-                // Try to get real market data from our market data service
-                const response = await fetch(`http://localhost:11150/market-data/current/${symbol.toUpperCase()}`);
+                console.log(`Fetching market data for ${symbol}...`);
+                // Try to get real market data from our unified analytics dashboard
+                const response = await fetch(`http://localhost:11114/api/market-data/current/${symbol.toUpperCase()}`);
+                
+                console.log(`Response status: ${response.status}`);
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const realPrice = data.price;
-                    document.getElementById('order-price').value = realPrice;
-                    showOrderResult('success', `Real market price for ${symbol}: $${realPrice}`);
+                    console.log('Market data response:', data);
+                    
+                    if (data.source === 'real_market_data') {
+                        const realPrice = data.price;
+                        document.getElementById('order-price').value = realPrice;
+                        showOrderResult('success', `Real market price for ${symbol}: $${realPrice}`);
+                    } else {
+                        // Even if response is ok, check if it's estimated data
+                        const mockPrice = (Math.random() * 200 + 50).toFixed(2);
+                        document.getElementById('order-price').value = mockPrice;
+                        showOrderResult('warning', `Using estimated price for ${symbol}: $${mockPrice} (market data service unavailable)`);
+                    }
                 } else {
+                    console.log(`Response not ok: ${response.status} ${response.statusText}`);
                     // Fallback to mock data if real data unavailable
                     const mockPrice = (Math.random() * 200 + 50).toFixed(2);
                     document.getElementById('order-price').value = mockPrice;
-                    showOrderResult('warning', `Using estimated price for ${symbol}: $${mockPrice} (real data unavailable)`);
+                    showOrderResult('warning', `Using estimated price for ${symbol}: $${mockPrice} (market data service unavailable)`);
                 }
             } catch (error) {
+                console.error('Error fetching market data:', error);
                 // Fallback to mock data if service unavailable
                 const mockPrice = (Math.random() * 200 + 50).toFixed(2);
                 document.getElementById('order-price').value = mockPrice;
@@ -1210,6 +1405,242 @@
             } catch (error) {
                 document.getElementById('order-history').innerHTML = 
                     `<div class="error">Error loading order history: ${error.message}</div>`;
+            }
+        }
+        
+        // ============================================================================
+        // BACKTESTING FUNCTIONS
+        // ============================================================================
+        
+        // Strategy definitions
+        const STRATEGIES = {
+            basic: [
+                'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+                'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
+                'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy'
+            ],
+            options: [
+                'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+                'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
+                'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy'
+            ],
+            advanced: [
+                'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
+                'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
+                'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
+            ]
+        };
+        
+        // Initialize strategy selection
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeStrategySelection();
+        });
+        
+        function initializeStrategySelection() {
+            // Set default to basic strategies
+            selectCategory('basic');
+        }
+        
+        function selectCategory(category) {
+            const strategyGrid = document.getElementById('strategy-selection');
+            let strategies = [];
+            
+            if (category === 'all') {
+                strategies = [...STRATEGIES.basic, ...STRATEGIES.options, ...STRATEGIES.advanced];
+            } else {
+                strategies = STRATEGIES[category] || [];
+            }
+            
+            const strategiesHtml = strategies.map(strategy => `
+                <label class="strategy-checkbox">
+                    <input type="checkbox" value="${strategy}" checked>
+                    ${strategy.replace('Strategy', '')}
+                </label>
+            `).join('');
+            
+            strategyGrid.innerHTML = strategiesHtml;
+        }
+        
+        async function runBacktest() {
+            const symbols = document.getElementById('backtest-symbols').value.trim();
+            const startDate = document.getElementById('backtest-start-date').value;
+            const endDate = document.getElementById('backtest-end-date').value;
+            const initialCapital = parseFloat(document.getElementById('backtest-capital').value);
+            const riskProfile = document.getElementById('backtest-risk-profile').value;
+            const useLLM = document.getElementById('backtest-use-llm').checked;
+            const parallelExecution = document.getElementById('backtest-parallel').checked;
+            
+            // Get selected strategies
+            const selectedStrategies = Array.from(document.querySelectorAll('#strategy-selection input:checked'))
+                .map(cb => cb.value);
+            
+            if (!symbols || !startDate || !endDate || selectedStrategies.length === 0) {
+                showBacktestResult('error', 'Please fill in all required fields and select at least one strategy');
+                return;
+            }
+            
+            const backtestData = {
+                symbols: symbols.split(',').map(s => s.trim().toUpperCase()),
+                strategies: selectedStrategies,
+                start_date: startDate,
+                end_date: endDate,
+                initial_capital: initialCapital,
+                risk_profile: riskProfile,
+                use_llm: useLLM,
+                parallel_execution: parallelExecution
+            };
+            
+            // Show loading state
+            showBacktestResult('loading', '🚀 Starting backtest... This may take several minutes.');
+            
+            try {
+                // Submit backtest request
+                const response = await fetch('/api/backtest/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(backtestData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showBacktestResult('success', `✅ Backtest started successfully! Job ID: ${result.job_id}`);
+                    // Start polling for results
+                    pollBacktestResults(result.job_id);
+                } else {
+                    showBacktestResult('error', `❌ Backtest failed: ${result.error}`);
+                }
+            } catch (error) {
+                showBacktestResult('error', `❌ Error starting backtest: ${error.message}`);
+            }
+        }
+        
+        function showBacktestResult(type, message) {
+            const resultsDiv = document.getElementById('backtest-results');
+            
+            if (type === 'loading') {
+                resultsDiv.innerHTML = `
+                    <div class="loading">
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                            <div>${message}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'success') {
+                resultsDiv.innerHTML = `
+                    <div class="success">
+                        <div style="padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        <div style="padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        async function pollBacktestResults(jobId) {
+            let attempts = 0;
+            const maxAttempts = 60; // 5 minutes with 5-second intervals
+            
+            const poll = async () => {
+                try {
+                    const response = await fetch(`/api/backtest/status/${jobId}`);
+                    const result = await response.json();
+                    
+                    if (result.status === 'completed') {
+                        showBacktestResults(result.results);
+                    } else if (result.status === 'failed') {
+                        showBacktestResult('error', `❌ Backtest failed: ${result.error}`);
+                    } else if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(poll, 5000); // Poll every 5 seconds
+                    } else {
+                        showBacktestResult('error', '❌ Backtest timed out. Please check the job status.');
+                    }
+                } catch (error) {
+                    if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(poll, 5000);
+                    } else {
+                        showBacktestResult('error', `❌ Error polling results: ${error.message}`);
+                    }
+                }
+            };
+            
+            poll();
+        }
+        
+        function showBacktestResults(results) {
+            const resultsDiv = document.getElementById('backtest-results');
+            
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<div class="info-message">No results available</div>';
+                return;
+            }
+            
+            const resultsHtml = results.map(strategy => `
+                <div class="strategy-result" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h4 style="margin-bottom: 10px; color: #667eea;">${strategy.name}</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                        <div>
+                            <strong>Total Return:</strong><br>
+                            <span style="color: ${strategy.total_return >= 0 ? '#28a745' : '#dc3545'}; font-weight: bold;">
+                                ${(strategy.total_return * 100).toFixed(2)}%
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Sharpe Ratio:</strong><br>
+                            <span style="font-weight: bold;">${strategy.sharpe_ratio?.toFixed(3) || 'N/A'}</span>
+                        </div>
+                        <div>
+                            <strong>Max Drawdown:</strong><br>
+                            <span style="color: #dc3545; font-weight: bold;">
+                                ${(strategy.max_drawdown * 100).toFixed(2)}%
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Win Rate:</strong><br>
+                            <span style="font-weight: bold;">${(strategy.win_rate * 100).toFixed(1)}%</span>
+                        </div>
+                        <div>
+                            <strong>Total Trades:</strong><br>
+                            <span style="font-weight: bold;">${strategy.total_trades}</span>
+                        </div>
+                        <div>
+                            <strong>Profit Factor:</strong><br>
+                            <span style="font-weight: bold;">${strategy.profit_factor?.toFixed(2) || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = resultsHtml;
+        }
+        
+        async function loadBacktestResults() {
+            try {
+                const response = await fetch('/api/backtest/results');
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    showBacktestResults(data.results);
+                } else {
+                    document.getElementById('backtest-results').innerHTML = 
+                        '<div class="info-message">No recent backtest results available</div>';
+                }
+            } catch (error) {
+                document.getElementById('backtest-results').innerHTML = 
+                    `<div class="error">Error loading backtest results: ${error.message}</div>`;
             }
         }
     </script>

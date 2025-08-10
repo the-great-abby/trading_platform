@@ -2,6 +2,45 @@
 
 A comprehensive algorithmic trading system built with CQRS (Command Query Responsibility Segregation) architecture, featuring backtesting, real-time market data, and Kubernetes deployment. Welcome to Mission Control!
 
+## 🎓 New: Kubernetes Learning Resources
+
+We've created comprehensive Kubernetes learning resources to help you learn Kubernetes through hands-on experience with our trading system:
+
+### 📖 Learning Guide
+- **Comprehensive Guide**: `docs/KUBERNETES_LEARNING_GUIDE.md` with Mermaid diagrams, interactive scenarios, and hands-on exercises
+- **Quick Preview**: `make k8s-learn-preview` - Show guide preview in terminal
+- **Full Access**: `make k8s-learn` - Open guide in your editor
+
+### 🤖 AI-Powered RAG Chat
+- **Kubernetes RAG Chat**: Specialized AI service for Kubernetes questions using GPT-OSS model
+- **Web Interface**: User-friendly chat interface at http://localhost:11116
+- **Deploy**: `make k8s-rag-chat-deploy` - Deploy to Kubernetes
+- **Local Start**: `make k8s-rag-chat` - Start locally
+
+### 🎮 Interactive Learning
+- **Structured Path**: 8-week learning program with progressive difficulty
+- **Hands-On Exercises**: Real-world scenarios and troubleshooting
+- **Production Focus**: Docker Desktop vs Production Kubernetes comparisons
+- **Command Reference**: Common kubectl commands with explanations
+
+### 🚀 Quick Start
+```bash
+# View learning guide preview
+make k8s-learn-preview
+
+# Deploy RAG chat service
+make k8s-rag-chat-deploy
+
+# Access RAG chat (after port forwarding)
+kubectl port-forward svc/kubernetes-rag-chat 11116:8000 -n trading-system
+```
+
+For more details, see: `docs/KUBERNETES_LEARNING_SUMMARY.md`
+
+---
+
+## 🎯 Mission Control Overview
+
 ## 🏗️ Space Station Architecture
 
 - **CQRS Pattern**: Separate command and query models for optimal performance
@@ -10,6 +49,7 @@ A comprehensive algorithmic trading system built with CQRS (Command Query Respon
 - **Kubernetes Native**: Production-ready deployment
 - **Multi-Strategy Backtesting**: Comprehensive strategy evaluation
 - **AI Navigation Systems**: LLM-enhanced trading strategies
+- **TimescaleDB**: Production time-series database (replaced deprecated postgres-dev)
 
 ## 📁 Mission Control Structure
 
@@ -32,6 +72,10 @@ A comprehensive algorithmic trading system built with CQRS (Command Query Respon
 ├── scripts/               # Utility scripts
 └── docs/                  # Documentation
 ```
+
+## ⚠️ **Deprecated Services**
+
+**postgres-dev** has been deprecated and replaced by **TimescaleDB**. See `docs/DEPRECATED_SERVICES.md` for details.
 
 ## 🚀 Launch Sequence (Quick Start)
 

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>CORS Test for Live Trading Monitor</h1>
+    <div id="status">Testing...</div>
+    <div id="performance">Testing...</div>
+    <div id="trades">Testing...</div>
+    <div id="positions">Testing...</div>
+    
+    <script>
+        async function testAPI(url, elementId) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                document.getElementById(elementId).innerHTML = `<strong>✅ Success:</strong> ${JSON.stringify(data)}`;
+            } catch (error) {
+                document.getElementById(elementId).innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
+            }
+        }
+        
+        // Test all endpoints
+        testAPI('http://localhost:11116/api/status', 'status');
+        testAPI('http://localhost:11116/api/performance', 'performance');
+        testAPI('http://localhost:11116/api/trades?limit=5', 'trades');
+        testAPI('http://localhost:11116/api/positions', 'positions');
+    </script>
+</body>
+</html> 
