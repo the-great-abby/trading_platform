@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: background-vectorization-service
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: background-vectorization-service
+  template:
+    metadata:
+      labels:
+        app: background-vectorization-service
+        tier: backend
+    spec:
+      containers:
+      - name: background-vectorization-service
+        image: background-vectorization-service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres:5432/trading_db"
+        - name: VECTOR_STORAGE_URL
+          value: "http://postgres-vector-storage:11006"
+        - name: LLM_PROXY_URL
+          value: "http://host.docker.internal:12001"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: background-vectorization-service
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+spec:
+  selector:
+    app: background-vectorization-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  type: ClusterIP

@@ -233,3 +233,4 @@ kubectl rollout restart deployment/jaeger -n trading-system
 This quick reference provides everything you need to get started with observability and request tracking in your trading system.
 
 
+

@@ -30,7 +30,7 @@ class PortWatcherV2:
         # Comprehensive list of all important services to monitor
         self.watched_ports = {
             # Core Monitoring Services
-            'grafana': {'local_port': 11102, 'target_port': 3000, 'service': 'grafana'},
+            'grafana': {'local_port': 11044, 'target_port': 3000, 'service': 'grafana'},
             'prometheus': {'local_port': 11101, 'target_port': 9090, 'service': 'prometheus'},
             'infrastructure-metrics': {'local_port': 11103, 'target_port': 11103, 'service': 'infrastructure-metrics-collector'},
             
@@ -46,11 +46,13 @@ class PortWatcherV2:
             'ai-analysis-service': {'local_port': 11110, 'target_port': 11085, 'service': 'ai-analysis-service'},
             'llm-service': {'local_port': 11112, 'target_port': 11109, 'service': 'llm-service'},
             'analytics-service': {'local_port': 11113, 'target_port': 8006, 'service': 'analytics-service'},
+            'kubernetes-rag-chat': {'local_port': 11117, 'target_port': 8000, 'service': 'kubernetes-rag-chat'},
+            'background-vectorization-service': {'local_port': 11116, 'target_port': 8080, 'service': 'background-vectorization-service'},
             
             # Unified Dashboard Services (Phase 1 Consolidation)
-            'unified-trading-dashboard': {'local_port': 11114, 'target_port': 80, 'service': 'unified-trading-dashboard'},
-            'unified-analytics-dashboard': {'local_port': 11115, 'target_port': 80, 'service': 'unified-analytics-dashboard'},
-            'unified-news-dashboard': {'local_port': 11116, 'target_port': 80, 'service': 'unified-news-dashboard'},
+            'unified-news-dashboard': {'local_port': 11113, 'target_port': 80, 'service': 'unified-news-dashboard'},
+            'unified-analytics-dashboard': {'local_port': 11114, 'target_port': 80, 'service': 'unified-analytics-dashboard'},
+            'unified-trading-dashboard': {'local_port': 11115, 'target_port': 80, 'service': 'unified-trading-dashboard'},
             
             # Backtesting Services
             'backtest-api': {'local_port': 11119, 'target_port': 10001, 'service': 'backtest-api'},

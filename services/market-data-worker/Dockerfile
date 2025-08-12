@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY services/market-data-worker/main.py .
 COPY services/market-data-worker/config.py .
 
-# Copy source code
+# Copy source code (needed for imports)
 COPY src ./src
 
 # Create non-root user

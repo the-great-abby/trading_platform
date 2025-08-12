@@ -3,12 +3,12 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY services/unified-analytics-dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY main.py .
-COPY templates/ ./templates/
+COPY services/unified-analytics-dashboard/main.py .
+COPY services/unified-analytics-dashboard/templates/ ./templates/
 # COPY src/ ./src/  # Not needed for this service
 # COPY static/ ./static/  # Static directory doesn't exist yet
 

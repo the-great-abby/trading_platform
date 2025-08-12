@@ -1852,25 +1852,31 @@
         function displayRAGResults(result) {
             const container = document.getElementById('rag-results');
             
-            const confidenceClass = result.confidence > 0.7 ? 'status-healthy' : 
-                                  result.confidence > 0.4 ? 'status-degraded' : 'status-error';
+            // Handle the actual API response format
+            const sources = result.sources || result.results || [];
+            const confidence = result.confidence || 0.5;
+            const answer = result.answer || result.ai_response?.answer || 'No answer available';
+            const searchTime = result.search_time || 0;
+            
+            const confidenceClass = confidence > 0.7 ? 'status-healthy' : 
+                                  confidence > 0.4 ? 'status-degraded' : 'status-error';
             
             container.innerHTML = `
                 <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px; border-left: 5px solid #667eea;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h4 style="margin: 0;">AI Response</h4>
                         <span class="${confidenceClass}" style="padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                            Confidence: ${(result.confidence * 100).toFixed(1)}%
+                            Confidence: ${(confidence * 100).toFixed(1)}%
                         </span>
                     </div>
                     
                     <div style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px;">
-                        ${result.answer}
+                        ${answer}
                     </div>
                     
                     <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px;">
-                        <h5 style="margin-bottom: 15px;">📚 Sources (${result.sources.length})</h5>
-                        ${result.sources.map((source, index) => {
+                        <h5 style="margin-bottom: 15px;">📚 Sources (${sources.length})</h5>
+                        ${sources.length > 0 ? sources.map((source, index) => {
                             // Handle different source types
                             let sourceType = source.type || source.vector_type || 'unknown';
                             let sourceContent = '';
@@ -1908,11 +1914,11 @@
                                     </div>
                                 </div>
                             `;
-                        }).join('')}
+                        }).join('') : '<p>No sources available</p>'}
                     </div>
                     
                     <div style="margin-top: 15px; font-size: 12px; color: #666;">
-                        Search completed in ${result.search_time.toFixed(2)}s
+                        Search completed in ${searchTime.toFixed(2)}s
                     </div>
                 </div>
             `;

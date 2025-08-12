@@ -23,7 +23,7 @@ metadata:
   name: llm-service
   namespace: trading-system
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: llm-service
@@ -55,11 +55,11 @@ spec:
               key: rabbitmq_url
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "250m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "200m"
         livenessProbe:
           httpGet:
             path: /health
@@ -96,7 +96,7 @@ metadata:
   name: llm-worker
   namespace: trading-system
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: llm-worker

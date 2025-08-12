@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: background-vectorization-service
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    tier: backend
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: background-vectorization-service
+  template:
+    metadata:
+      labels:
+        app: background-vectorization-service
+        tier: backend
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: vectorization-service-account
+      containers:
+      - name: background-vectorization-service
+        image: localhost:32000/background-vectorization-service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+        - name: VECTOR_STORAGE_URL
+          value: "http://postgres-vector-storage:80"
+        - name: LLM_PROXY_URL
+          value: "http://llm-proxy:12001"
+        - name: VECTORIZATION_BATCH_SIZE
+          value: "20"
+        - name: VECTORIZATION_MAX_RETRIES
+          value: "5"
+        - name: VECTORIZATION_RETRY_DELAY
+          value: "120"
+        - name: MARKET_DATA_INTERVAL
+          value: "900"  # 15 minutes
+        - name: NEWS_INTERVAL
+          value: "1800"  # 30 minutes
+        - name: EARNINGS_INTERVAL
+          value: "7200"  # 2 hours
+        - name: ENABLE_AUTO_VECTORIZATION
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENVIRONMENT
+          value: "production"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+        volumeMounts:
+        - name: shared-data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: vectorization-service-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: background-vectorization-service
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    environment: production
+spec:
+  selector:
+    app: background-vectorization-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: background-vectorization-service-hpa
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    environment: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: background-vectorization-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vectorization-service-config
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    environment: production
+data:
+  vectorization.conf: |
+    [vectorization]
+    batch_size = 20
+    max_retries = 5
+    retry_delay = 120
+    
+    [scheduling]
+    market_data_interval = 900
+    news_interval = 1800
+    earnings_interval = 7200
+    
+    [monitoring]
+    metrics_enabled = true
+    alerting_enabled = true
+    performance_thresholds = true
+    
+    [integrations]
+    webhooks_enabled = true
+    market_data_webhook = true
+    news_webhook = true
+    earnings_webhook = true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vectorization-service-account
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    environment: production
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vectorization-service-role
+  labels:
+    app: background-vectorization-service
+    environment: production
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vectorization-service-rolebinding
+  labels:
+    app: background-vectorization-service
+    environment: production
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vectorization-service-role
+subjects:
+- kind: ServiceAccount
+  name: vectorization-service-account
+  namespace: trading-system
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: background-vectorization-service-pdb
+  namespace: trading-system
+  labels:
+    app: background-vectorization-service
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: background-vectorization-service

@@ -119,3 +119,6 @@ kubectl get services -n trading-system | grep postgres-dev
 **Migration Status**: ✅ **COMPLETE** - Safe to remove `postgres-dev`
 
 
+
+
+

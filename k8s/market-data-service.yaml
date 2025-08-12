@@ -36,12 +36,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: trading-secrets
-              key: polygon-api-key
+              key: polygon_api_key
         - name: ALPHA_VANTAGE_API_KEY
           valueFrom:
             secretKeyRef:
               name: trading-secrets
-              key: alpha-vantage-api-key
+              key: alpha_vantage_api_key
         - name: IEX_CLOUD_API_KEY
           valueFrom:
             secretKeyRef:
@@ -49,11 +49,11 @@ spec:
               key: iex-cloud-api-key
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "200m"
+            memory: "64Mi"
+            cpu: "50m"
           limits:
-            memory: "512Mi"
-            cpu: "400m"
+            memory: "128Mi"
+            cpu: "100m"
         livenessProbe:
           httpGet:
             path: /health

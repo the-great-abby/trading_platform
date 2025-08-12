@@ -185,3 +185,6 @@ kubectl logs deployment/<service-name> -n trading-system
 **Issues**: LLM Service in CrashLoopBackOff, Market Data Service has ImagePullBackOff
 
 
+
+
+

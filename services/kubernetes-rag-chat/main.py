@@ -309,21 +309,20 @@ Answer:"""
                     if response.status == 200:
                         result = await response.json()
                         # Check for the correct response format
-                        if "request_id" in result:
+                        if "request_id" in result and result.get("status") == "queued":
                             # This is an async request, we need to poll for the result
                             actual_request_id = result["request_id"]
-                            logger.info(f"Submitted request {actual_request_id} to LLM proxy")
+                            logger.info(f"Submitted request {actual_request_id} to LLM proxy, now polling for completion")
                             
-                            # Store the request ID for later retrieval
-                            # For now, we'll return a status URL immediately
-                            status_url = f"/status/{actual_request_id}"
-                            
-                            return {
-                                "answer": f"Your request is being processed. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
-                                "model": "gpt-oss:20b",
-                                "request_id": actual_request_id,
-                                "status_url": status_url
-                            }
+                                                    # Return immediately with status URL for async processing
+                        status_url = f"/status/{actual_request_id}"
+                        
+                        return {
+                            "answer": f"Your request is being processed. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
+                            "model": "gpt-oss:20b",
+                            "request_id": actual_request_id,
+                            "status_url": status_url
+                        }
                         else:
                             logger.error(f"Unexpected LLM response format: {result}")
                             return {
@@ -344,6 +343,68 @@ Answer:"""
                 "answer": f"I encountered an error while generating a response: {str(e)}",
                 "model": "gpt-oss:20b"
             }
+    
+    async def _poll_for_completion(self, session: aiohttp.ClientSession, request_id: str, 
+                                  max_wait_time: int = 300, poll_interval: int = 5) -> Optional[Dict[str, Any]]:
+        """Poll the status endpoint until the request completes"""
+        start_time = time.time()
+        
+        while time.time() - start_time < max_wait_time:
+            try:
+                status_url = f"{self.llm_proxy_url}/api/status/{request_id}"
+                
+                async with session.get(status_url, timeout=30) as response:
+                    if response.status == 200:
+                        status_result = await response.json()
+                        current_status = status_result.get("status", "unknown")
+                        
+                        logger.info(f"Request {request_id} status: {current_status}")
+                        
+                        if current_status == "completed":
+                            # Request completed successfully
+                            if "result" in status_result:
+                                logger.info(f"Request {request_id} completed successfully")
+                                return status_result["result"]
+                            else:
+                                logger.warning(f"Request {request_id} completed but no result found")
+                                return None
+                        
+                        elif current_status == "failed":
+                            # Request failed
+                            error_msg = status_result.get("error", "Unknown error")
+                            logger.error(f"Request {request_id} failed: {error_msg}")
+                            return None
+                        
+                        elif current_status in ["queued", "processing"]:
+                            # Still processing, wait and poll again
+                            queue_position = status_result.get("queue_position", "Unknown")
+                            logger.info(f"Request {request_id} still {current_status}, queue position: {queue_position}")
+                            await asyncio.sleep(poll_interval)
+                            continue
+                        
+                        else:
+                            # Unknown status
+                            logger.warning(f"Unknown status for request {request_id}: {current_status}")
+                            await asyncio.sleep(poll_interval)
+                            continue
+                    
+                    else:
+                        logger.warning(f"Failed to get status for request {request_id}: {response.status}")
+                        await asyncio.sleep(poll_interval)
+                        continue
+                        
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout getting status for request {request_id}")
+                await asyncio.sleep(poll_interval)
+                continue
+            except Exception as e:
+                logger.error(f"Error polling status for request {request_id}: {e}")
+                await asyncio.sleep(poll_interval)
+                continue
+        
+        # Timeout reached
+        logger.warning(f"Timeout waiting for request {request_id} to complete after {max_wait_time} seconds")
+        return None
     
     def _calculate_confidence(self, k8s_knowledge: List[Dict], vector_results: List[Dict]) -> float:
         """Calculate confidence score based on available knowledge"""

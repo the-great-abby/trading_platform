@@ -427,6 +427,24 @@ async def vectorize_decision(decision: Dict[str, Any]) -> Dict[str, str]:
         logger.error(f"Error vectorizing decision: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/vectorize/text")
+async def vectorize_text(request: Dict[str, Any]) -> Dict[str, str]:
+    """Generic text vectorization endpoint"""
+    try:
+        content = request.get("content")
+        vector_type = request.get("vector_type", "generic")
+        metadata = request.get("metadata", {})
+        
+        if not content:
+            raise HTTPException(status_code=400, detail="Content is required")
+        
+        # Add the content to vector storage
+        embedding_id = await vector_storage.add_embedding(content, metadata, vector_type)
+        return {"embedding_id": embedding_id, "status": "success"}
+    except Exception as e:
+        logger.error(f"Error vectorizing text: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/search/similar")
 async def search_similar(query: str, vector_type: Optional[str] = None, 
                         top_k: int = 5) -> List[Dict[str, Any]]:

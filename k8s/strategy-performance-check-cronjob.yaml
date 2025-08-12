@@ -35,12 +35,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: trading-secrets
-                  key: polygon-api-key
+                  key: polygon_api_key
             - name: ALPHA_VANTAGE_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: trading-secrets
-                  key: alpha-vantage-api-key
+                  key: alpha_vantage_api_key
             - name: OLLAMA_BASE_URL
               value: "http://192.168.65.3:11434"
             - name: LOG_LEVEL

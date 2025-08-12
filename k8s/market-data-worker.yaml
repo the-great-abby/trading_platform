@@ -27,12 +27,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: trading-secrets
-              key: polygon-api-key
+              key: polygon_api_key
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
               name: trading-secrets
-              key: database-url
+              key: database_url
         - name: RABBITMQ_URL
           value: "amqp://trading:trading_pass@rabbitmq-service:11302/trading_vhost"
         - name: MARKET_DATA_UPDATE_INTERVAL

@@ -552,25 +552,31 @@
         function displayResults(result) {
             const container = document.getElementById('searchResults');
             
-            const confidenceClass = result.confidence > 0.7 ? 'high' : 
-                                  result.confidence > 0.4 ? 'medium' : 'low';
+            // Handle the actual API response format
+            const sources = result.sources || result.results || [];
+            const confidence = result.confidence || 0.5;
+            const answer = result.answer || result.ai_response?.answer || 'No answer available';
+            const searchTime = result.search_time || 0;
+            
+            const confidenceClass = confidence > 0.7 ? 'high' : 
+                                  confidence > 0.4 ? 'medium' : 'low';
             
             container.innerHTML = `
                 <div class="result-card">
                     <div class="result-header">
                         <h3>AI Response</h3>
                         <span class="confidence-badge ${confidenceClass}">
-                            Confidence: ${(result.confidence * 100).toFixed(1)}%
+                            Confidence: ${(confidence * 100).toFixed(1)}%
                         </span>
                     </div>
                     
                     <div class="result-answer">
-                        ${result.answer}
+                        ${answer}
                     </div>
                     
                     <div class="sources-section">
-                        <h4>📚 Sources (${result.sources.length})</h4>
-                        ${result.sources.map((source, index) => {
+                        <h4>📚 Sources (${sources.length})</h4>
+                        ${sources.length > 0 ? sources.map((source, index) => {
                             // Handle different source types
                             let sourceType = source.type || source.vector_type || 'unknown';
                             let sourceContent = '';
@@ -608,11 +614,11 @@
                                     </div>
                                 </div>
                             `;
-                        }).join('')}
+                        }).join('') : '<p>No sources available</p>'}
                     </div>
                     
                     <div style="margin-top: 15px; font-size: 12px; color: #666;">
-                        Search completed in ${result.search_time.toFixed(2)}s
+                        Search completed in ${searchTime.toFixed(2)}s
                     </div>
                 </div>
             `;

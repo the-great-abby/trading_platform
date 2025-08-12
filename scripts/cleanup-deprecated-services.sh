@@ -51,3 +51,6 @@ echo ""
 echo "🔗 All services use: postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
 
 
+
+
+

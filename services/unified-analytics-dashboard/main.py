@@ -91,7 +91,8 @@ def get_database_connection():
             poolclass=QueuePool,
             pool_size=10,
             max_overflow=20,
-            pool_timeout=30
+            pool_timeout=30,
+            connect_args={"connect_timeout": 30}  # 30 second connection timeout
         )
         return engine
     except Exception as e:
@@ -693,39 +694,41 @@ class AIStockAnalyzer:
             prompt = self._build_ai_prompt(context)
             
             async with aiohttp.ClientSession() as session:
-                # Call real LLM service
+                # Call real LLM service (same format as kubernetes-rag-chat)
+                import uuid
+                request_id = str(uuid.uuid4())
+                
                 llm_request = {
-                    "operation": "custom",
-                    "data": {
-                        "model": "gpt-3.5-turbo",
-                        "messages": [
-                            {"role": "system", "content": "You are an expert stock analyst."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        "task_type": "stock_analysis",
-                        "temperature": 0.3,
-                        "max_tokens": 800,
-                        "use_cache": False
-                    },
-                    "model": "gpt-3.5-turbo",
-                    "priority": 1,
-                    "use_cache": False
+                    "model": "gpt-oss:20b",
+                    "prompt": prompt,
+                    "stream": True,
+                    "priority": 40,  # High priority
+                    "timeout_seconds": 300,
+                    "request_id": request_id
                 }
                 
-                logger.info(f"Calling LLM service at: {self.llm_proxy_url}/api/v1/llm")
+                logger.info(f"Calling LLM service at: {self.llm_proxy_url}/api/generate")
                 logger.info(f"LLM request: {llm_request}")
                 
-                url = f"{self.llm_proxy_url}/api/v1/llm"
+                url = f"{self.llm_proxy_url}/api/generate"
                 logger.info(f"Making POST request to: {url}")
                 async with session.post(url, json=llm_request, timeout=300) as response:
                     logger.info(f"LLM service response status: {response.status}")
                     if response.status == 200:
                         result = await response.json()
                         logger.info(f"LLM service response: {result}")
-                        if result.get("success") and result.get("data"):
-                            return self._parse_ai_response(result["data"]["content"], context)
+                        
+                        # Handle immediate response format from LLM service
+                        if "response" in result:
+                            # This is an immediate response, process it directly
+                            ai_response = result["response"]
+                            logger.info(f"Received immediate AI response: {ai_response}")
+                            
+                            # Parse the AI response to extract trading recommendation
+                            parsed_response = self._parse_ai_response(ai_response, context)
+                            return parsed_response
                         else:
-                            logger.error(f"LLM service error: {result.get('error', 'Unknown error')}")
+                            logger.error(f"Unexpected LLM response format: {result}")
                             return self._get_fallback_recommendation(context)
                     else:
                         error_text = await response.text()
@@ -1098,7 +1101,7 @@ class UnifiedAnalyticsDashboard:
             
             # Check transformation pipeline
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
                     async with session.get(f"{self.transformation_pipeline_url}/health") as response:
                         if response.status == 200:
                             status["transformation_pipeline"] = "healthy"
@@ -1116,7 +1119,7 @@ class UnifiedAnalyticsDashboard:
             
             # Check analysis service
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
                     async with session.get(f"{self.analysis_service_url}/health") as response:
                         if response.status == 200:
                             status["analysis_service"] = "healthy"
@@ -1134,7 +1137,7 @@ class UnifiedAnalyticsDashboard:
             
             # Check market data service
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
                     async with session.get(f"{self.market_data_url}/health") as response:
                         if response.status == 200:
                             status["market_data_service"] = "healthy"
@@ -1257,8 +1260,8 @@ class UnifiedAnalyticsDashboard:
     async def _get_worker_status(self, session: aiohttp.ClientSession) -> str:
         """Get worker status with detailed information"""
         try:
-            # Check if LLM workers are running by checking the LLM proxy
-            async with session.get("http://llm-proxy:11081/health", timeout=5) as response:
+            # Check if LLM workers are running by checking the external LLM proxy
+            async with session.get("http://host.docker.internal:12001/api/v1/health", timeout=5) as response:
                 if response.status == 200:
                     return "healthy"
                 else:
@@ -1443,7 +1446,7 @@ class UnifiedAnalyticsDashboard:
         """Get Polygon API status with detailed error reporting"""
         try:
             # Try the correct status endpoint first
-            async with session.get(f"{self.market_data_url}/status", timeout=5) as response:
+            async with session.get(f"{self.market_data_url}/status", timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
                     return {
@@ -1480,7 +1483,7 @@ class UnifiedAnalyticsDashboard:
             
             # Check LLM worker activity
             try:
-                async with session.get("http://llm-proxy:11081/health", timeout=3) as response:
+                async with session.get("http://host.docker.internal:12001/api/v1/health", timeout=3) as response:
                     if response.status == 200:
                         activities.append({
                             "type": "worker",
@@ -1498,10 +1501,10 @@ class UnifiedAnalyticsDashboard:
             except Exception as e:
                 activities.append({
                     "type": "worker",
-                    "status": "error",
-                    "message": f"LLM worker error: {str(e)}",
-                    "timestamp": datetime.utcnow().isoformat()
-                })
+                            "status": "error",
+                            "message": f"LLM worker error: {str(e)}",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
             
             # Check market data activity
             try:
@@ -1674,8 +1677,13 @@ class UnifiedAnalyticsDashboard:
 # Initialize dashboard manager
 dashboard_manager = UnifiedAnalyticsDashboard()
 
-# Initialize database tables on startup
-create_report_tables()
+# Initialize database tables on startup (non-blocking)
+try:
+    create_report_tables()
+    logger.info("Database tables initialized successfully")
+except Exception as e:
+    logger.warning(f"Database initialization failed (non-critical): {e}")
+    logger.info("Dashboard will continue without database features")
 
 # Database report storage functions
 def store_report_job(job_data: Dict[str, Any]) -> bool:
@@ -3311,7 +3319,7 @@ class RAGSearchProcessor:
         return "\n".join(context_parts)
     
     async def _generate_ai_response(self, query: str, context: str, include_context: bool) -> Dict[str, Any]:
-        """Generate AI response using LLM with high priority"""
+        """Generate AI response using external LLM with async callback system"""
         try:
             # Build prompt for LLM
             if include_context:
@@ -3334,29 +3342,54 @@ Please provide a comprehensive and helpful answer.
 
 Answer:"""
             
+            # Generate a unique request ID for tracking
+            import uuid
+            request_id = str(uuid.uuid4())
+            
+            # Use the external LLM API endpoint with callback system
+            url = f"{self.llm_proxy_url}/api/generate"
+            
+            # Format request for external LLM API with callback
+            llm_request = {
+                "model": "gpt-oss:20b",
+                "prompt": prompt,
+                "stream": False,  # Use async callback system
+                "priority": 40,  # Highest priority (40 = highest)
+                "timeout_seconds": 300,  # 5 minutes timeout
+                "request_id": request_id,
+                "callback_url": f"http://unified-analytics-dashboard:80/api/rag/callback/{request_id}",
+                "callback_method": "POST"
+            }
+            
+            # Log the request for debugging
+            logger.info(f"Sending LLM request with priority {llm_request['priority']}: {llm_request}")
+            
             async with aiohttp.ClientSession() as session:
-                # Use high priority endpoint for RAG chat
-                llm_request = {
-                    "messages": [
-                        {"role": "system", "content": "You are an expert financial analyst and trading advisor."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "temperature": 0.3,
-                    "max_tokens": 800,
-                    "model": "gpt-3.5-turbo"
-                }
-                
-                # Use the high priority endpoint
-                url = f"{self.llm_proxy_url}/api/high-priority/chat"
-                async with session.post(url, json=llm_request, timeout=120) as response:
+                async with session.post(url, json=llm_request, timeout=60) as response:
                     if response.status == 200:
                         result = await response.json()
-                        if result.get("success") and result.get("data"):
-                            return {"answer": result["data"]["content"]}
+                        # Check for the async response format
+                        if "request_id" in result:
+                            # This is an async request, we need to return a status response
+                            actual_request_id = result["request_id"]
+                            logger.info(f"Submitted request {actual_request_id} to external LLM service")
+                            
+                            # Return a response indicating the request is being processed
+                            status_url = f"/api/rag/status/{actual_request_id}"
+                            
+                            return {
+                                "answer": f"Your request is being processed by the AI service. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
+                                "model": "gpt-oss:20b",
+                                "request_id": actual_request_id,
+                                "status_url": status_url
+                            }
                         else:
-                            return {"answer": "I'm having trouble generating a response right now. Please try again."}
+                            logger.error(f"Unexpected LLM response format: {result}")
+                            return {"answer": "I'm having trouble processing the AI response. Please try again later."}
                     else:
-                        return {"answer": "I'm having trouble connecting to the AI service. Please try again."}
+                        error_text = await response.text()
+                        logger.error(f"LLM request failed with status {response.status}: {error_text}")
+                        return {"answer": "I'm having trouble connecting to the AI service. Please try again later."}
                         
         except Exception as e:
             logger.error(f"Error generating AI response: {e}")
@@ -3560,16 +3593,21 @@ rag_processor = RAGSearchProcessor()
 
 # RAG Search API Endpoints
 @app.post("/api/rag/search")
-async def rag_search(request: RAGSearchRequest) -> RAGSearchResponse:
-    """Process a RAG-based search query"""
+async def rag_search(request: RAGSearchRequest):
+    """Search and generate RAG response"""
     try:
+        logger.info(f"RAG search request: {request}")
+        
+        # Use the RAGSearchProcessor for consistent response structure
         response = await rag_processor.process_rag_query(
             query=request.query,
             search_type=request.search_type,
             top_k=request.top_k,
             include_context=request.include_context
         )
+        
         return response
+        
     except Exception as e:
         logger.error(f"Error in RAG search: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -3626,6 +3664,216 @@ async def get_rag_stats() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error getting RAG stats: {e}")
         return {"error": str(e)}
+
+async def generate_ai_response_for_rag(question: str, context: str) -> Dict[str, Any]:
+    """Generate AI response using the same async callback system as kubernetes-rag-chat"""
+    try:
+        # Build prompt for financial analysis
+        prompt = f"""You are an expert financial analyst and trading strategist. Answer the following question based on the provided context.
+
+Question: {question}
+
+Context:
+{context}
+
+Please provide a comprehensive, practical answer that includes:
+1. Clear analysis of the financial data or market situation
+2. Key insights and trends
+3. Practical implications for trading or investment decisions
+4. Risk considerations
+5. Recommendations when appropriate
+
+Answer:"""
+        
+        # Generate a unique request ID for tracking
+        import uuid
+        request_id = str(uuid.uuid4())
+        
+        # Use the exact same LLM request format as kubernetes-rag-chat
+        llm_request = {
+            "model": "gpt-oss:20b",
+            "prompt": prompt,
+            "stream": False,  # Use async callback system like kubernetes-rag-chat
+            "priority": 40,  # Highest priority (40 = highest, 30 = high, 20 = normal, 10 = low)
+            "timeout_seconds": 300,  # 5 minutes for the LLM request
+            "request_id": request_id,
+            "callback_url": f"http://unified-analytics-dashboard:80/api/rag/callback/{request_id}",
+            "callback_method": "POST"
+        }
+        
+        # Log the request for debugging
+        logger.info(f"Sending LLM request with priority {llm_request['priority']}: {llm_request}")
+        
+        # Use the generate endpoint for external LLM proxy (same as kubernetes-rag-chat)
+        url = f"{LLM_PROXY_URL}/api/generate"
+        
+        # Create a session with longer timeout and retry logic (same as kubernetes-rag-chat)
+        timeout = aiohttp.ClientTimeout(total=60, connect=30)
+        connector = aiohttp.TCPConnector(limit=100, limit_per_host=30, keepalive_timeout=60)
+        
+        async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+            # Submit the request
+            async with session.post(url, json=llm_request) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    # Check for the correct response format (same as kubernetes-rag-chat)
+                    if "request_id" in result:
+                        # This is an async request, we need to poll for the result
+                        actual_request_id = result["request_id"]
+                        logger.info(f"Submitted request {actual_request_id} to LLM proxy")
+                        
+                        # Store the request ID for later retrieval
+                        # For now, we'll return a status URL immediately (same as kubernetes-rag-chat)
+                        status_url = f"/api/rag/status/{actual_request_id}"
+                        
+                        return {
+                            "answer": f"Your request is being processed. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
+                            "model": "gpt-oss:20b",
+                            "request_id": actual_request_id,
+                            "status_url": status_url
+                        }
+                    else:
+                        logger.error(f"Unexpected LLM response format: {result}")
+                        return {
+                            "answer": "I'm having trouble processing the AI response. Please try again later.",
+                            "model": "gpt-oss:20b"
+                        }
+                else:
+                    error_text = await response.text()
+                    logger.error(f"LLM request failed with status {response.status}: {error_text}")
+                    return {
+                        "answer": "I'm having trouble connecting to the AI service. Please try again later.",
+                        "model": "gpt-oss:20b"
+                    }
+                    
+    except Exception as e:
+        logger.error(f"Error generating AI response: {e}")
+        return {
+            "answer": f"I encountered an error while generating a response: {str(e)}",
+            "model": "gpt-oss:20b"
+        }
+
+@app.post("/api/rag/callback/{request_id}")
+async def handle_rag_callback(request_id: str, request: Dict[str, Any]):
+    """Handle callback from external LLM proxy when request completes (same as kubernetes-rag-chat)"""
+    try:
+        logger.info(f"Received callback for RAG request {request_id}: {request}")
+        
+        # Store the completed request result (in a real implementation, you'd use a database)
+        # For now, we'll just log it (same as kubernetes-rag-chat)
+        if request.get("status") == "completed" and request.get("result"):
+            logger.info(f"RAG request {request_id} completed successfully")
+            # Here you could store the result in a database or cache
+        elif request.get("status") == "failed":
+            logger.error(f"RAG request {request_id} failed: {request.get('error')}")
+        
+        return {"status": "received"}
+        
+    except Exception as e:
+        logger.error(f"Error handling callback for RAG request {request_id}: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/rag/status/{request_id}")
+async def check_rag_request_status(request_id: str):
+    """Check the status of a RAG request and display the result if completed (same as kubernetes-rag-chat)"""
+    try:
+        # Check the status with the external LLM proxy (same as kubernetes-rag-chat)
+        status_url = f"{LLM_PROXY_URL}/api/status/{request_id}"
+        
+        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(status_url) as response:
+                if response.status == 200:
+                    status_result = await response.json()
+                    
+                    # Create a simple HTML page to display the status (same as kubernetes-rag-chat)
+                    html_content = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>RAG Request Status - {request_id}</title>
+                        <style>
+                            body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                            .status {{ padding: 20px; border-radius: 5px; margin: 20px 0; }}
+                            .queued {{ background-color: #fff3cd; border: 1px solid #ffeaa7; }}
+                            .processing {{ background-color: #d1ecf1; border: 1px solid #bee5eb; }}
+                            .completed {{ background-color: #d4edda; border: 1px solid #c3e6cb; }}
+                            .failed {{ background-color: #f8d7da; border: 1px solid #f5c6cb; }}
+                            .answer {{ background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; margin: 20px 0; }}
+                            .refresh {{ background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }}
+                            .refresh:hover {{ background-color: #0056b3; }}
+                        </style>
+                        <script>
+                            function refreshStatus() {{
+                                location.reload();
+                            }}
+                            
+                            // Auto-refresh every 30 seconds if still processing
+                            function autoRefresh() {{
+                                const status = '{status_result.get("status", "unknown")}';
+                                if (status === 'queued' || status === 'processing') {{
+                                    setTimeout(refreshStatus, 30000);
+                                }}
+                            }}
+                            
+                            // Start auto-refresh when page loads
+                            window.onload = autoRefresh;
+                        </script>
+                    </head>
+                    <body>
+                        <h1>RAG Request Status</h1>
+                        <p><strong>Request ID:</strong> {request_id}</p>
+                        
+                        <div class="status {status_result.get('status', 'unknown')}">
+                            <h2>Status: {status_result.get('status', 'unknown').title()}</h2>
+                            <p>{status_result.get('message', 'No status message available')}</p>
+                        </div>
+                        
+                        {f'''
+                        <div class="answer">
+                            <h3>Generated Answer:</h3>
+                            <p>{status_result.get('result', {}).get('response', 'No response available')}</p>
+                        </div>
+                        ''' if status_result.get('status') == 'completed' else ''}
+                        
+                        <button class="refresh" onclick="refreshStatus()">Refresh Status</button>
+                        
+                        <p><a href="/api/rag/search" style="color: #007bff;">← Back to RAG Search</a></p>
+                    </body>
+                    </html>
+                    """
+                    
+                    return HTMLResponse(content=html_content)
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to check status: {response.status} - {error_text}")
+                    return HTMLResponse(content=f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>Error</title></head>
+                    <body>
+                        <h1>Error Checking Status</h1>
+                        <p>Failed to check status: {response.status}</p>
+                        <p><a href="/api/rag/search">← Back to RAG Search</a></p>
+                    </body>
+                    </html>
+                    """)
+                    
+    except Exception as e:
+        logger.error(f"Error checking RAG request status: {e}")
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Error</title></head>
+        <body>
+            <h1>Error</h1>
+            <p>Error checking status: {str(e)}</p>
+            <p><a href="/api/rag/search">← Back to RAG Search</a></p>
+        </body>
+        </html>
+        """)
+
+# Removed old mock functions - now using RAGSearchProcessor class methods
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80) 

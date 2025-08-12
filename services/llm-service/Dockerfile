@@ -11,21 +11,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY services/llm-service/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy shared src code
-COPY src /app/src
-
-# Set PYTHONPATH to include /app and /app/src
-ENV PYTHONPATH="/app:/app/src"
-
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
+# Copy the main application
+COPY main.py .
 
 # Expose port
 EXPOSE 8008
@@ -35,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8008/health || exit 1
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "src.services.llm_service.service:app", "--host", "0.0.0.0", "--port", "8008"] 
+CMD ["python", "main.py"] 

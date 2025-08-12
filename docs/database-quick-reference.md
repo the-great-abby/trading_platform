@@ -221,3 +221,4 @@ kubectl exec -n trading-system timescaledb-7968f6845d-nflhk -- psql -U trading_u
 **Status**: ✅ ACTIVE
 
 
+

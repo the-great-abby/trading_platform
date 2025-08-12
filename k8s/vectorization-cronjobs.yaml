@@ -1,0 +1,237 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: market-data-vectorization-cronjob
+  namespace: trading-system
+  labels:
+    app: vectorization
+    job-type: cronjob
+    data-type: market-data
+spec:
+  schedule: "*/15 * * * 1-5"  # Every 15 minutes on weekdays
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: vectorization
+            data-type: market-data
+        spec:
+          containers:
+          - name: market-data-vectorization
+            image: localhost:32000/background-vectorization-service:latest
+            command: ["curl"]
+            args: 
+            - "-X"
+            - "POST"
+            - "http://background-vectorization-service:8080/api/vectorization/trigger"
+            - "-H"
+            - "Content-Type: application/json"
+            - "-d"
+            - '{"data_type": "market_data", "priority": 1}'
+            env:
+            - name: VECTORIZATION_SOURCE
+              value: "cronjob"
+            - name: DATA_TYPE
+              value: "market_data"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: news-vectorization-cronjob
+  namespace: trading-system
+  labels:
+    app: vectorization
+    job-type: cronjob
+    data-type: news
+spec:
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: vectorization
+            data-type: news
+        spec:
+          containers:
+          - name: news-vectorization
+            image: localhost:32000/background-vectorization-service:latest
+            command: ["curl"]
+            args:
+            - "-X"
+            - "POST"
+            - "http://background-vectorization-service:8080/api/vectorization/trigger"
+            - "-H"
+            - "Content-Type: application/json"
+            - "-d"
+            - '{"data_type": "news", "priority": 2}'
+            env:
+            - name: VECTORIZATION_SOURCE
+              value: "cronjob"
+            - name: DATA_TYPE
+              value: "news"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: earnings-vectorization-cronjob
+  namespace: trading-system
+  labels:
+    app: vectorization
+    job-type: cronjob
+    data-type: earnings
+spec:
+  schedule: "0 */2 * * 1-5"  # Every 2 hours on weekdays
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: vectorization
+            data-type: earnings
+        spec:
+          containers:
+          - name: earnings-vectorization
+            image: localhost:32000/background-vectorization-service:latest
+            command: ["curl"]
+            args:
+            - "-X"
+            - "POST"
+            - "http://background-vectorization-service:8080/api/vectorization/trigger"
+            - "-H"
+            - "Content-Type: application/json"
+            - "-d"
+            - '{"data_type": "earnings", "priority": 3}'
+            env:
+            - name: VECTORIZATION_SOURCE
+              value: "cronjob"
+            - name: DATA_TYPE
+              value: "earnings"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: comprehensive-vectorization-cronjob
+  namespace: trading-system
+  labels:
+    app: vectorization
+    job-type: cronjob
+    data-type: comprehensive
+spec:
+  schedule: "0 2 * * *"  # Daily at 2:00 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: vectorization
+            data-type: comprehensive
+        spec:
+          containers:
+          - name: comprehensive-vectorization
+            image: localhost:32000/background-vectorization-service:latest
+            command: ["curl"]
+            args:
+            - "-X"
+            - "POST"
+            - "http://background-vectorization-service:8080/api/vectorization/trigger"
+            - "-H"
+            - "Content-Type: application/json"
+            - "-d"
+            - '{"data_type": "all", "priority": 1}'
+            env:
+            - name: VECTORIZATION_SOURCE
+              value: "cronjob"
+            - name: DATA_TYPE
+              value: "comprehensive"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "400m"
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vectorization-cleanup-cronjob
+  namespace: trading-system
+  labels:
+    app: vectorization
+    job-type: cronjob
+    data-type: cleanup
+spec:
+  schedule: "0 3 * * *"  # Daily at 3:00 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: vectorization
+            data-type: cleanup
+        spec:
+          containers:
+          - name: vectorization-cleanup
+            image: localhost:32000/background-vectorization-service:latest
+            command: ["curl"]
+            args:
+            - "-X"
+            - "POST"
+            - "http://background-vectorization-service:8080/api/vectorization/cleanup"
+            - "-H"
+            - "Content-Type: application/json"
+            env:
+            - name: VECTORIZATION_SOURCE
+              value: "cronjob"
+            - name: DATA_TYPE
+              value: "cleanup"
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+          restartPolicy: OnFailure

@@ -101,6 +101,7 @@ class RabbitMQService:
             # Declare queues
             for queue_name in self.queues.values():
                 try:
+                    # First try to declare queue with TTL arguments
                     queue = await self.channel.declare_queue(
                         queue_name,
                         durable=True,
@@ -109,14 +110,44 @@ class RabbitMQService:
                             'x-max-priority': 10
                         }
                     )
+                    logger.info(f"Created queue {queue_name} with TTL arguments")
                 except Exception as e:
-                    # If queue already exists with different arguments, try to declare it passively
-                    logger.warning(f"Failed to declare queue {queue_name} with arguments: {e}")
-                    queue = await self.channel.declare_queue(
-                        queue_name,
-                        durable=True,
-                        passive=True
-                    )
+                    # If queue already exists with different arguments, try to delete and recreate
+                    if "PRECONDITION_FAILED" in str(e) and "x-message-ttl" in str(e):
+                        logger.warning(f"Queue {queue_name} exists with different arguments. Deleting and recreating...")
+                        try:
+                            # Delete the existing queue
+                            await self.channel.queue_delete(queue_name)
+                            logger.info(f"Deleted existing queue {queue_name}")
+                            
+                            # Recreate with TTL arguments
+                            queue = await self.channel.declare_queue(
+                                queue_name,
+                                durable=True,
+                                arguments={
+                                    'x-message-ttl': 24 * 60 * 60 * 1000,  # 24 hours
+                                    'x-max-priority': 10
+                                }
+                            )
+                            logger.info(f"Recreated queue {queue_name} with TTL arguments")
+                        except Exception as recreate_error:
+                            logger.error(f"Failed to recreate queue {queue_name}: {recreate_error}")
+                            # Fallback to passive declaration
+                            queue = await self.channel.declare_queue(
+                                queue_name,
+                                durable=True,
+                                passive=True
+                            )
+                            logger.warning(f"Using existing queue {queue_name} without TTL arguments")
+                    else:
+                        # For other errors, try passive declaration
+                        logger.warning(f"Failed to declare queue {queue_name}: {e}")
+                        queue = await self.channel.declare_queue(
+                            queue_name,
+                            durable=True,
+                            passive=True
+                        )
+                        logger.info(f"Using existing queue {queue_name}")
                 
                 # Bind queue to exchange
                 await queue.bind(self.exchange, routing_key=queue_name)

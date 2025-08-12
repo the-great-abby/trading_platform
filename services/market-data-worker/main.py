@@ -107,7 +107,7 @@ class MarketDataWorker:
         self.cache_manager = AdvancedCacheManager()
         
         # Worker configuration
-        self.symbols = get_symbols()
+        self.symbols = []  # Will be populated in start() method
         self.update_interval_minutes = self.config.update_interval_minutes
         self.gap_fill_days = self.config.gap_fill_days
         self.max_concurrent_jobs = self.config.max_concurrent_jobs
@@ -129,9 +129,39 @@ class MarketDataWorker:
             'cache_cleanup': 'cache_cleanup_queue'
         }
         
-        logger.info(f"Market Data Worker initialized with {len(self.symbols)} symbols")
+        logger.info(f"Market Data Worker initialized (symbols will be loaded from database)")
         logger.info(f"Update interval: {self.update_interval_minutes} minutes")
         logger.info(f"Gap fill days: {self.gap_fill_days}")
+    
+    async def _get_symbols_from_database(self) -> List[str]:
+        """Get active symbols from the database"""
+        try:
+            # Try to get symbols from the unified analytics dashboard
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://unified-analytics-dashboard:80/api/symbols/active', timeout=10) as response:
+                    if response.status == 200:
+                        symbols_data = await response.json()
+                        if isinstance(symbols_data, list):
+                            symbols = [item['name'] for item in symbols_data if item.get('name')]
+                            logger.info(f"✅ Fetched {len(symbols)} symbols from database")
+                            return symbols
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to fetch symbols from database: {e}")
+            logger.info("🔄 Falling back to hardcoded symbol list")
+        
+        # Fallback to hardcoded list if database fetch fails
+        try:
+            from src.utils.trading_config import get_symbols
+            fallback_symbols = get_symbols()
+            logger.info(f"📋 Using fallback list: {len(fallback_symbols)} symbols")
+            return fallback_symbols
+        except Exception as e:
+            logger.error(f"❌ Failed to get fallback symbols: {e}")
+            # Ultimate fallback - basic symbols
+            basic_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'SPY', 'QQQ']
+            logger.info(f"🆘 Using basic fallback: {len(basic_symbols)} symbols")
+            return basic_symbols
     
     async def start(self):
         """Start the market data worker"""
@@ -141,6 +171,11 @@ class MarketDataWorker:
             # Connect to RabbitMQ
             await self.rabbitmq.connect()
             logger.info("✅ Connected to RabbitMQ")
+            
+            # Fetch symbols from database
+            logger.info("📊 Fetching symbols from database...")
+            self.symbols = await self._get_symbols_from_database()
+            logger.info(f"✅ Loaded {len(self.symbols)} symbols from database")
             
             # Register job handlers
             self._register_handlers()
