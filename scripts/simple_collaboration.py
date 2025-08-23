@@ -27,6 +27,27 @@ class SimpleCollaboration:
         os.makedirs("docs/progress", exist_ok=True)
         os.makedirs("docs/learnings", exist_ok=True)
         os.makedirs("docs/blockers", exist_ok=True)
+        
+        # Ensure files exist with headers
+        self.ensure_files_exist()
+    
+    def get_current_directory(self):
+        """Get the current working directory"""
+        return os.getcwd()
+    
+    def ensure_files_exist(self):
+        """Ensure all required files exist with headers"""
+        files = [
+            (self.progress_file, "Progress Log"),
+            (self.learnings_file, "Learnings Log"), 
+            (self.blockers_file, "Blockers Log")
+        ]
+        
+        for file_path, header in files:
+            if not os.path.exists(file_path):
+                with open(file_path, "w") as f:
+                    f.write(f"# {header}\n")
+                    f.write(f"Date: {datetime.now().strftime('%Y-%m-%d')}\n\n")
     
     def log_progress(self, task: str, status: str, details: str = ""):
         """Log progress on a task"""
@@ -70,6 +91,11 @@ class SimpleCollaboration:
         """Show quick status of current work"""
         print("📊 Quick Status Check")
         print("=" * 30)
+        print(f"📍 Working Directory: {self.get_current_directory()}")
+        print(f"📁 Progress File: {self.progress_file}")
+        print(f"📁 Learnings File: {self.learnings_file}")
+        print(f"📁 Blockers File: {self.blockers_file}")
+        print()
         
         # Check recent progress
         if os.path.exists(self.progress_file):
@@ -190,6 +216,85 @@ class SimpleCollaboration:
         print("  - Run failing test to get coverage")
         print("  - Compare to find unique code paths")
         print("  - Focus debugging on those paths")
+    
+    def get_recent_learnings(self, category: str, limit: int = 5):
+        """Get recent learnings, progress, or blockers by category"""
+        try:
+            limit = int(limit)
+        except ValueError:
+            limit = 5
+        
+        if category.lower() == "learning":
+            file_path = self.learnings_file
+            category_name = "Learnings"
+        elif category.lower() == "progress":
+            file_path = self.progress_file
+            category_name = "Progress"
+        elif category.lower() == "blocker":
+            file_path = self.blockers_file
+            category_name = "Blockers"
+        elif category.lower() == "session context":
+            file_path = self.learnings_file
+            category_name = "Session Context"
+        else:
+            print(f"Unknown category: {category}")
+            return
+        
+        if not os.path.exists(file_path):
+            print(f"No {category_name.lower()} found yet")
+            return
+        
+        with open(file_path, "r") as f:
+            content = f.read()
+        
+        if not content.strip():
+            print(f"No {category_name.lower()} found yet")
+            return
+        
+        # Split by sections (## headers)
+        sections = content.split("## ")[1:]  # Skip first empty section
+        
+        if not sections:
+            print(f"No {category_name.lower()} found yet")
+            return
+        
+        # Get the most recent sections up to the limit
+        recent_sections = sections[-limit:]
+        
+        print(f"📋 Recent {category_name} (Last {len(recent_sections)}):")
+        print("=" * (len(f"Recent {category_name} (Last {len(recent_sections)}):") + 10))
+        
+        for i, section in enumerate(recent_sections, 1):
+            lines = section.strip().split("\n")
+            if lines:
+                title = lines[0].split(" (")[0]  # Remove timestamp
+                print(f"\n{i}. {title}")
+                
+                # Show first few lines of content
+                content_lines = [line for line in lines[1:] if line.strip() and not line.startswith("---")]
+                for line in content_lines[:3]:  # Show first 3 content lines
+                    if line.strip():
+                        print(f"   {line.strip()}")
+                
+                if len(content_lines) > 3:
+                    print(f"   ... ({len(content_lines) - 3} more lines)")
+    
+    def get_session_summary(self):
+        """Get a comprehensive session summary"""
+        print("📋 Session Summary")
+        print("=" * 50)
+        
+        print("\n🎯 Current Focus:")
+        self.get_recent_learnings("Session Context", 3)
+        
+        print("\n📝 Recent Progress:")
+        self.get_recent_learnings("Progress", 3)
+        
+        print("\n🚨 Recent Blockers:")
+        self.get_recent_learnings("Blocker", 3)
+        
+        print("\n💡 Recent Learnings:")
+        self.get_recent_learnings("Learning", 5)
 
 
 def main():
@@ -205,6 +310,8 @@ def main():
         print("  python scripts/simple_collaboration.py progress <task> <status>")
         print("  python scripts/simple_collaboration.py learning <topic> <discovery>")
         print("  python scripts/simple_collaboration.py blocker <task> <blocker>")
+        print("  python scripts/simple_collaboration.py get_recent_learnings <category> <limit>")
+        print("  python scripts/simple_collaboration.py session_summary")
         return
     
     collab = SimpleCollaboration()
@@ -233,8 +340,24 @@ def main():
         blocker = sys.argv[3]
         help_needed = " ".join(sys.argv[4:]) if len(sys.argv) > 4 else ""
         collab.log_blocker(task, blocker, help_needed)
+    elif command == "get_recent_learnings" and len(sys.argv) >= 3:
+        category = sys.argv[2]
+        limit = sys.argv[3] if len(sys.argv) > 3 else 5
+        collab.get_recent_learnings(category, limit)
+    elif command == "session_summary":
+        collab.get_session_summary()
     else:
         print("Invalid command or missing arguments")
+        print("\nAvailable commands:")
+        print("  status - Quick status check")
+        print("  sync - Team sync")
+        print("  critical - Show critical areas")
+        print("  debug - Debugging workflow")
+        print("  progress <task> <status> - Log progress")
+        print("  learning <topic> <discovery> - Log learning")
+        print("  blocker <task> <blocker> - Log blocker")
+        print("  get_recent_learnings <category> <limit> - Get recent items")
+        print("  session_summary - Comprehensive session summary")
 
 
 if __name__ == "__main__":

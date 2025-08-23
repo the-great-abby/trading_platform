@@ -816,7 +816,7 @@
                             </div>
                         `).join('')}
                     </div>
-                    <button class="refresh-btn" onclick="copyToClipboard('${data.stocks.join(',')}')" style="font-size: 0.8rem; padding: 5px 10px;">
+                    <button class="refresh-btn" onclick="copyToClipboard('${data.stocks.join(',')}', event)" style="font-size: 0.8rem; padding: 5px 10px;">
                         📋 Copy All Stocks
                     </button>
                 </div>
@@ -832,7 +832,7 @@
                             </div>
                         `).join('')}
                     </div>
-                    <button class="refresh-btn" onclick="copyToClipboard('${data.options.join(',')}')" style="font-size: 0.8rem; padding: 5px 10px;">
+                    <button class="refresh-btn" onclick="copyToClipboard('${data.options.join(',')}', event)" style="font-size: 0.8rem; padding: 5px 10px;">
                         📋 Copy All Options
                     </button>
                 </div>
@@ -854,17 +854,19 @@
         }
 
         // Copy to clipboard function
-        function copyToClipboard(text) {
+        function copyToClipboard(text, event) {
             navigator.clipboard.writeText(text).then(function() {
                 // Show a temporary success message
-                const button = event.target;
-                const originalText = button.textContent;
-                button.textContent = '✅ Copied!';
-                button.style.background = '#28a745';
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.style.background = '#2a5298';
-                }, 2000);
+                if (event && event.target) {
+                    const button = event.target;
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Copied!';
+                    button.style.background = '#28a745';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '#2a5298';
+                    }, 2000);
+                }
             }).catch(function(err) {
                 console.error('Could not copy text: ', err);
                 alert('Failed to copy to clipboard');

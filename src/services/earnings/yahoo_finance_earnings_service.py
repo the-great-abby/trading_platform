@@ -270,3 +270,4 @@ class YahooFinanceEarningsService:
         except:
             return datetime.now().year
 
+

@@ -20,6 +20,9 @@ from xml.dom import minidom
 # Import news data service
 from news_data_service import NewsDataService, NewsEvent
 
+# Import centralized trading configuration
+from trading_config import get_symbols
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -131,13 +134,8 @@ class DailyRecommendationsService:
     async def get_daily_recommendations(self, symbols: List[str] = None) -> List[Dict[str, Any]]:
         """Get daily trading recommendations with news analysis"""
         if symbols is None:
-            # Use centralized symbol list (same as trading_config.py)
-            symbols = [
-                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
-                'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS',
-                'V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO',
-                'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY'
-            ]
+            # Use centralized symbol list from trading_config.py
+            symbols = get_symbols()
             logger.info(f"✅ Using centralized symbol list with {len(symbols)} symbols")
         
         recommendations = []

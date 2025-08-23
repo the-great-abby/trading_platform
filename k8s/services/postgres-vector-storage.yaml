@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
       - name: postgres-vector-storage
-        image: postgres-vector-storage:latest
+        image: localhost:32000/postgres-vector-storage:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 8000
@@ -41,7 +41,7 @@ spec:
         - name: DATABASE_URL
           value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
         - name: LLM_PROXY_URL
-          value: "http://llm-proxy:12001"
+          value: "http://ollama-controller-api-service.ollama-controller.svc.cluster.local:12001"
         resources:
           requests:
             memory: "256Mi"

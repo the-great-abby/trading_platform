@@ -217,10 +217,10 @@
         </div>
         
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
-            <button class="nav-tab" onclick="showTab('rss')">RSS Feeds</button>
-            <button class="nav-tab" onclick="showTab('feed')">News Feed</button>
-            <button class="nav-tab" onclick="showTab('recommendations')">Recommendations</button>
+            <button class="nav-tab active" onclick="showTab('overview', event)">Overview</button>
+            <button class="nav-tab" onclick="showTab('rss', event)">RSS Feeds</button>
+            <button class="nav-tab" onclick="showTab('feed', event)">News Feed</button>
+            <button class="nav-tab" onclick="showTab('recommendations', event)">Recommendations</button>
         </div>
         
         <div class="dashboard-content">
@@ -305,7 +305,7 @@
     
     <script>
         // Tab switching
-        function showTab(tabName) {
+        function showTab(tabName, event) {
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => content.style.display = 'none');
@@ -315,10 +315,23 @@
             navTabs.forEach(tab => tab.classList.remove('active'));
             
             // Show selected tab content
-            document.getElementById(tabName).style.display = 'block';
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+            } else {
+                console.error('Tab not found:', tabName);
+            }
             
-            // Add active class to clicked tab
-            event.target.classList.add('active');
+            // Add active class to clicked tab - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            } else {
+                // If no event or target, find the tab button by tab name and activate it
+                const tabButton = document.querySelector(`[onclick*="showTab('${tabName}', event)"]`);
+                if (tabButton && tabButton.classList) {
+                    tabButton.classList.add('active');
+                }
+            }
             
             // Load data for the selected tab
             loadTabData(tabName);

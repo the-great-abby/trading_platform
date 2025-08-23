@@ -49,7 +49,7 @@ spec:
                   key: alpha-vantage-api-key
             # Updated to use LLM Proxy instead of direct Ollama
             - name: LLM_PROXY_URL
-              value: "http://llm-proxy:12001"
+              value: "http://host.docker.internal:12001"
             - name: LOG_LEVEL
               value: "INFO"
             - name: PYTHONPATH

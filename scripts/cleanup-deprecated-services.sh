@@ -54,3 +54,8 @@ echo "🔗 All services use: postgresql://trading_user:trading_pass@timescaledb.
 
 
 
+
+
+
+
+

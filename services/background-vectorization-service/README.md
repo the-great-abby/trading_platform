@@ -278,3 +278,4 @@ When adding new features or modifying existing code:
 ## License
 
 This service is part of the Trading System project and follows the same licensing terms.
+

@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: strategy-performance-check
+  namespace: trading-system
+  labels:
+    app: strategy-performance-monitor
+    job-type: cronjob
+spec:
+  schedule: "0 */4 * * *"  # Every 4 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: strategy-performance-monitor
+            image: localhost:32000/strategy-service:latest
+            imagePullPolicy: Always
+            args:
+            - run_strategy_performance_monitor.py
+            - --single-check
+            command:
+            - python
+            env:
+            # Database - Using centralized secrets
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database_url
+            
+            # Redis - Using centralized secrets
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: redis_url
+            
+            # RabbitMQ - Using centralized secrets
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: rabbitmq_url
+            
+            # API Keys - Using centralized secrets
+            - name: POLYGON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: polygon_api_key
+            
+            - name: ALPHA_VANTAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: alpha_vantage_api_key
+            
+            # Service URLs - Using centralized config
+            - name: STRATEGY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: STRATEGY_SERVICE_URL
+            
+            # Dynamic Stock Lists - Using centralized config
+            - name: STOCK_LIST_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: stock-list-config
+                  key: default_stocks
+            
+            # Logging
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: LOG_LEVEL
+            
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account

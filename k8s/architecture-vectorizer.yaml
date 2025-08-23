@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: architecture-vectorizer
+  namespace: trading-system
+  labels:
+    app: architecture-vectorizer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: architecture-vectorizer
+  template:
+    metadata:
+      labels:
+        app: architecture-vectorizer
+    spec:
+      containers:
+      - name: architecture-vectorizer
+        image: localhost:32000/architecture-vectorizer:latest
+        env:
+        - name: VECTOR_STORAGE_URL
+          value: "http://postgres-vector-storage:11006"
+        - name: REPO_ROOT
+          value: "/app"
+        - name: RUN_ONCE
+          value: "false"  # Set to "true" for one-time runs
+        - name: VECTORIZE_INTERVAL
+          value: "3600"   # Run every hour
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        # No volume mounts needed for now - we'll run this as a one-time job
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: architecture-vectorizer
+  namespace: trading-system
+  labels:
+    app: architecture-vectorizer
+spec:
+  selector:
+    app: architecture-vectorizer
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: architecture-vectorizer-job
+  namespace: trading-system
+spec:
+  schedule: "0 */6 * * *"  # Run every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: architecture-vectorizer
+            image: localhost:32000/architecture-vectorizer:latest
+            env:
+            - name: VECTOR_STORAGE_URL
+              value: "http://postgres-vector-storage:11006"
+            - name: REPO_ROOT
+              value: "/app"
+            - name: RUN_ONCE
+              value: "true"  # One-time run for the job
+            # No volume mounts needed for now
+          restartPolicy: OnFailure
+

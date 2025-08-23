@@ -72,7 +72,7 @@ templates = Jinja2Templates(directory="templates")
 
 # Configuration
 VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:11006")
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://host.docker.internal:12001")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-local-forward.ollama-controller.svc.cluster.local:12001")
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11031")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8002")
 RSS_FEED_URL = os.getenv("RSS_FEED_URL", "http://rss-feed-service:11004")
@@ -80,6 +80,10 @@ NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notific
 TRANSFORMATION_PIPELINE_URL = os.getenv("TRANSFORMATION_PIPELINE_URL", "http://data-transformation-pipeline:11135")
 ANALYSIS_SERVICE_URL = os.getenv("ANALYSIS_SERVICE_URL", "http://ai-analysis-service:11085")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
+
+# New dedicated vector databases
+KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector.postgres-infra.svc.cluster.local:5432/kubernetes_vector_db")
+FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector.postgres-infra.svc.cluster.local:5432/financial_vector_db")
 
 # Database connection
 def get_database_connection():
@@ -701,10 +705,12 @@ class AIStockAnalyzer:
                 llm_request = {
                     "model": "gpt-oss:20b",
                     "prompt": prompt,
-                    "stream": True,
+                    "stream": False,  # Use async callback system
                     "priority": 40,  # High priority
                     "timeout_seconds": 300,
-                    "request_id": request_id
+                    "request_id": request_id,
+                    "callback_url": f"http://unified-analytics-dashboard:80/api/rag/callback/{request_id}",
+                    "callback_method": "POST"
                 }
                 
                 logger.info(f"Calling LLM service at: {self.llm_proxy_url}/api/generate")
@@ -3280,28 +3286,103 @@ class RAGSearchProcessor:
             )
     
     async def _search_vector_storage(self, query: str, search_type: str, top_k: int) -> List[Dict[str, Any]]:
-        """Search vector storage for relevant content"""
+        """Search vector storage for relevant content - now using dedicated databases"""
         try:
-            async with aiohttp.ClientSession() as session:
-                url = f"{self.vector_storage_url}/api/search/similar"
-                params = {
-                    "query": query,
-                    "top_k": top_k
-                }
+            # Determine which database to search based on query content and search_type
+            query_lower = query.lower()
+            
+            # Keywords that indicate Kubernetes/system questions
+            k8s_keywords = [
+                'kubernetes', 'k8s', 'pod', 'deployment', 'service', 'configmap', 
+                'secret', 'namespace', 'cluster', 'node', 'container', 'docker',
+                'helm', 'operator', 'crd', 'rbac', 'network policy', 'ingress'
+            ]
+            
+            # Keywords that indicate financial/trading questions
+            financial_keywords = [
+                'stock', 'market', 'trading', 'portfolio', 'investment', 'price',
+                'earnings', 'financial', 'revenue', 'profit', 'loss', 'dividend',
+                'option', 'futures', 'forex', 'crypto', 'bond', 'etf'
+            ]
+            
+            # Determine database based on search_type or query content
+            if search_type == "all":
+                # Auto-detect based on query content
+                k8s_score = sum(1 for keyword in k8s_keywords if keyword in query_lower)
+                financial_score = sum(1 for keyword in financial_keywords if keyword in query_lower)
                 
-                if search_type != "all":
-                    params["vector_type"] = search_type
-                
-                async with session.get(url, params=params, timeout=30) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        logger.warning(f"Vector storage search failed: {response.status}")
-                        return []
+                if k8s_score > financial_score:
+                    db_url = KUBERNETES_VECTOR_DB_URL
+                    vector_types = ['architecture_kubernetes', 'architecture_monitoring']
+                    db_name = "Kubernetes"
+                else:
+                    db_url = FINANCIAL_VECTOR_DB_URL
+                    vector_types = ['architecture_trading', 'architecture_api', 'architecture_database', 'architecture_general']
+                    db_name = "Financial"
+            elif search_type in ['architecture_kubernetes', 'architecture_monitoring']:
+                db_url = KUBERNETES_VECTOR_DB_URL
+                vector_types = [search_type]
+                db_name = "Kubernetes"
+            else:
+                db_url = FINANCIAL_VECTOR_DB_URL
+                vector_types = [search_type] if search_type != "all" else ['architecture_trading', 'architecture_api', 'architecture_database', 'architecture_general']
+                db_name = "Financial"
+            
+            logger.info(f"Query '{query}' searching {db_name} database with types: {vector_types}")
+            
+            # Search the appropriate database directly
+            results = []
+            for vector_type in vector_types:
+                try:
+                    # Connect to the appropriate database
+                    import psycopg2
+                    conn = psycopg2.connect(db_url)
+                    cursor = conn.cursor()
+                    
+                    # Search for similar content using vector similarity
+                    cursor.execute("""
+                        SELECT id, content, meta_info, 
+                               embedding <=> %s as distance
+                        FROM vector_embeddings 
+                        WHERE vector_type = %s
+                        ORDER BY embedding <=> %s
+                        LIMIT %s
+                    """, (self._get_query_embedding(query), vector_type, self._get_query_embedding(query), top_k))
+                    
+                    type_results = cursor.fetchall()
+                    for record in type_results:
+                        id_val, content, meta_info, distance = record
+                        similarity = 1.0 / (1.0 + distance)  # Convert distance to similarity
+                        
+                        results.append({
+                            "id": id_val,
+                            "content": content,
+                            "similarity": similarity,
+                            "vector_type": vector_type,
+                            "metadata": meta_info or {}
+                        })
+                    
+                    cursor.close()
+                    conn.close()
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to search {vector_type} in {db_name} database: {e}")
+                    continue
+            
+            # Sort by similarity and return top results
+            results.sort(key=lambda x: x["similarity"], reverse=True)
+            return results[:top_k]
                         
         except Exception as e:
             logger.error(f"Error searching vector storage: {e}")
             return []
+    
+    def _get_query_embedding(self, query: str) -> str:
+        """Get a simple embedding representation for the query"""
+        # For now, use a simple approach - in production you'd use a proper embedding model
+        # This is a placeholder that will be replaced with actual embedding logic
+        import hashlib
+        return hashlib.md5(query.encode()).hexdigest()[:32]  # Simple hash-based representation
     
     def _build_context_from_results(self, vector_results: List[Dict[str, Any]]) -> str:
         """Build context string from vector search results"""

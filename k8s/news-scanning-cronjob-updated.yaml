@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: news-scanning-cronjob
+  namespace: trading-system
+  labels:
+    app: news-scanner
+    job-type: cronjob
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: news-scanner
+            image: localhost:32000/news-service:latest
+            imagePullPolicy: Always
+            args:
+            - fetch_polygon_news.py
+            command:
+            - python
+            env:
+            # API Keys - Using centralized secrets
+            - name: POLYGON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: polygon_api_key
+            
+            - name: ALPHA_VANTAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: alpha_vantage_api_key
+            
+            # Database - Using centralized secrets
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database_url
+            
+            # Service URLs - Using centralized config
+            - name: RSS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: RSS_SERVICE_URL
+            
+            - name: STRATEGY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: STRATEGY_SERVICE_URL
+            
+            # Dynamic Stock Lists - Using centralized config
+            - name: STOCK_LIST_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: stock-list-config
+                  key: default_stocks
+            
+            # Logging
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: LOG_LEVEL
+           
+            # Updated to use LLM Proxy instead of direct Ollama
+            - name: LLM_PROXY_URL
+              value: "http://host.docker.internal:12001"
+            - name: ENABLE_LLM_ANALYSIS
+              value: "true"
+            - name: LLM_TIMEOUT
+              value: "90"
+            - name: LLM_MAX_RETRIES
+              value: "3"
+            - name: LOG_LEVEL
+              value: "INFO" 
+
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account

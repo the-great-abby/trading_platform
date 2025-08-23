@@ -316,11 +316,11 @@
         </div>
         
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showSection('overview')">Overview</button>
-            <button class="nav-tab" onclick="showSection('services')">Services</button>
-            <button class="nav-tab" onclick="showSection('metrics')">Metrics</button>
-            <button class="nav-tab" onclick="showSection('logs')">Logs</button>
-            <button class="nav-tab" onclick="showSection('performance')">Performance</button>
+            <button class="nav-tab active" onclick="showSection('overview', event)">Overview</button>
+            <button class="nav-tab" onclick="showSection('services', event)">Services</button>
+            <button class="nav-tab" onclick="showSection('metrics', event)">Metrics</button>
+            <button class="nav-tab" onclick="showSection('logs', event)">Logs</button>
+            <button class="nav-tab" onclick="showSection('performance', event)">Performance</button>
         </div>
         
         <!-- Overview Section -->
@@ -476,7 +476,7 @@
             setInterval(loadAllData, 30000); // Refresh every 30 seconds
         });
         
-        function showSection(section) {
+        function showSection(section, event) {
             // Hide all sections
             document.querySelectorAll('.dashboard-section').forEach(el => {
                 el.style.display = 'none';
@@ -489,7 +489,11 @@
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            
+            // Add active class to clicked tab - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            }
             
             currentSection = section;
             

@@ -158,9 +158,9 @@
             <div class="container-fluid p-4">
                 <!-- Navigation Tabs -->
                 <div class="nav-tabs">
-                    <button class="nav-tab active" onclick="showTab('analysis')">📊 Stock Analysis</button>
-                    <button class="nav-tab" onclick="showTab('reports')">📋 Report Jobs</button>
-                    <button class="nav-tab" onclick="showTab('symbols')">⭐ Popular Symbols</button>
+                                <button class="nav-tab active" onclick="showTab('analysis', event)">📊 Stock Analysis</button>
+            <button class="nav-tab" onclick="showTab('reports', event)">📋 Report Jobs</button>
+            <button class="nav-tab" onclick="showTab('symbols', event)">⭐ Popular Symbols</button>
                 </div>
 
                 <!-- Notification Setup -->
@@ -328,7 +328,7 @@
         });
 
         // Tab navigation
-        function showTab(tabName) {
+        function showTab(tabName, event) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.style.display = 'none';
@@ -340,12 +340,22 @@
             });
             
             // Show selected tab
-            document.getElementById(tabName + '-tab').style.display = 'block';
+            const selectedTab = document.getElementById(tabName + '-tab');
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+            } else {
+                console.error('Tab not found:', tabName + '-tab');
+            }
             
-            // Add active class to the tab button
-            const tabButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
-            if (tabButton) {
-                tabButton.classList.add('active');
+            // Add active class to the tab button - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            } else {
+                // If no event or target, find the tab button by tab name and activate it
+                const tabButton = document.querySelector(`[onclick*="showTab('${tabName}', event)"]`);
+                if (tabButton && tabButton.classList) {
+                    tabButton.classList.add('active');
+                }
             }
         }
 
@@ -554,7 +564,7 @@
                     refreshReportJobs();
                     
                     // Switch to reports tab to show progress
-                    showTab('reports');
+                    showTab('reports', null);
                 } else {
                     alert('Error submitting report job: ' + result.error);
                 }
@@ -697,7 +707,7 @@
             document.getElementById('symbol').value = symbol;
             
             // Switch to analysis tab
-            showTab('analysis');
+            showTab('analysis', null);
             
             // Focus on the price field for quick entry
             document.getElementById('price').focus();

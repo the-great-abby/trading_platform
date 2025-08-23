@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY main.py .
 COPY news_data_service.py .
+COPY trading_config.py .
 
 # Expose port
 EXPOSE 8084

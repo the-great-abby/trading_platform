@@ -153,3 +153,4 @@ def generate_simple_ai_response(prompt: str) -> str:
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8008)
+

@@ -327,3 +327,4 @@ class PolygonEarningsService:
             logger.warning(f"Error finding relevant guidance: {e}")
             return []
 
+

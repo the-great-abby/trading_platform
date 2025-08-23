@@ -50,11 +50,11 @@ spec:
                   key: iex-cloud-api-key
             # Updated to use LLM Proxy instead of direct Ollama
             - name: LLM_PROXY_URL
-              value: "http://llm-proxy:12001"
+              value: "http://host.docker.internal:12001"
             - name: ENABLE_LLM_ANALYSIS
               value: "true"
             - name: LLM_TIMEOUT
-              value: "30"
+              value: "90"
             - name: LLM_MAX_RETRIES
               value: "3"
             - name: LOG_LEVEL

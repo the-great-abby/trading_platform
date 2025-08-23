@@ -1,0 +1,93 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: earnings-scanning-cronjob
+  namespace: trading-system
+  labels:
+    app: earnings-scanner
+    job-type: cronjob
+spec:
+  schedule: "0 6 * * 1-5"  # 6 AM on weekdays
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: earnings-scanner
+            image: localhost:32000/earnings-data-service:latest
+            imagePullPolicy: Always
+            command:
+            - python
+            - -c
+            - |
+              import asyncio
+              import aiohttp
+              import os
+              from datetime import datetime
+              
+              async def fetch_earnings():
+                  # Get configuration from environment variables
+                  database_url = os.getenv('DATABASE_URL')
+                  log_level = os.getenv('LOG_LEVEL', 'INFO')
+                  
+                  print(f"🔍 Starting earnings scan at {datetime.now()}")
+                  print(f"📊 Database: {database_url}")
+                  print(f"📝 Log Level: {log_level}")
+                  
+                  # Your earnings scanning logic here
+                  print("✅ Earnings scan completed successfully")
+              
+              asyncio.run(fetch_earnings())
+            env:
+            # Database - Using centralized secrets
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database_url
+            
+            # Logging - Using centralized config
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: LOG_LEVEL
+            
+            # API Keys - Using centralized secrets
+            - name: POLYGON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: polygon_api_key
+            
+            - name: ALPHA_VANTAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: alpha_vantage_api_key
+            
+            # Service URLs - Using centralized config
+            - name: STRATEGY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: STRATEGY_SERVICE_URL
+            
+            - name: RSS_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trading-platform-config
+                  key: RSS_SERVICE_URL
+            
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account

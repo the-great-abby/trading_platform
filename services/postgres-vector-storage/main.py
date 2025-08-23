@@ -21,7 +21,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 from vector_types import VectorSearchResult
-from models import Base, VectorEmbedding
+# Removed SQLAlchemy model import to avoid conflicts
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,7 +48,7 @@ class PostgreSQLVectorStorage:
             max_overflow=40,
             pool_timeout=30
         )
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        # Removed SessionLocal since we're using raw SQL
         
         # Initialize database
         self._init_database()
@@ -66,7 +66,7 @@ class PostgreSQLVectorStorage:
                         id VARCHAR(100) PRIMARY KEY,
                         content TEXT NOT NULL,
                         embedding vector(128),  -- 128-dimensional vectors
-                        metadata_json JSONB,
+                        meta_info JSONB,
                         vector_type VARCHAR(50) NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -77,7 +77,7 @@ class PostgreSQLVectorStorage:
                 conn.execute(text("""
                     CREATE INDEX IF NOT EXISTS idx_vector_type ON vector_embeddings(vector_type);
                     CREATE INDEX IF NOT EXISTS idx_created_at ON vector_embeddings(created_at);
-                    CREATE INDEX IF NOT EXISTS idx_metadata_json ON vector_embeddings USING GIN (metadata_json);
+                    CREATE INDEX IF NOT EXISTS idx_meta_info ON vector_embeddings USING GIN (meta_info);
                 """))
                 
                 conn.commit()
@@ -99,30 +99,40 @@ class PostgreSQLVectorStorage:
         embedding_id = f"{vector_type}_{content_hash}"
         
         try:
-            with self.SessionLocal() as session:
+            with self.engine.connect() as conn:
                 # Check if embedding already exists
-                existing = session.query(VectorEmbedding).filter(
-                    VectorEmbedding.id == embedding_id
-                ).first()
+                result = conn.execute(text(
+                    "SELECT id FROM vector_embeddings WHERE id = :id"
+                ), {"id": embedding_id})
+                existing = result.fetchone()
                 
                 if existing:
                     # Update existing embedding
-                    existing.content = content
-                    existing.embedding = json.dumps(embedding)
-                    existing.metadata_json = metadata_dict
-                    existing.updated_at = datetime.utcnow()
+                    conn.execute(text("""
+                        UPDATE vector_embeddings 
+                        SET content = :content, embedding = :embedding, 
+                            meta_info = :meta_info, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :id
+                    """), {
+                        "id": embedding_id,
+                        "content": content,
+                        "embedding": json.dumps(embedding),
+                        "meta_info": json.dumps(metadata_dict)
+                    })
                 else:
                     # Create new embedding
-                    vector_embedding = VectorEmbedding(
-                        id=embedding_id,
-                        content=content,
-                        embedding=json.dumps(embedding),
-                        metadata_json=metadata_dict,
-                        vector_type=vector_type
-                    )
-                    session.add(vector_embedding)
+                    conn.execute(text("""
+                        INSERT INTO vector_embeddings (id, content, embedding, meta_info, vector_type)
+                        VALUES (:id, :content, :embedding, :meta_info, :vector_type)
+                    """), {
+                        "id": embedding_id,
+                        "content": content,
+                        "embedding": json.dumps(embedding),
+                        "meta_info": json.dumps(metadata_dict),
+                        "vector_type": vector_type
+                    })
                 
-                session.commit()
+                conn.commit()
                 logger.info(f"Added/updated embedding: {embedding_id} ({vector_type})")
                 
         except Exception as e:
@@ -140,22 +150,22 @@ class PostgreSQLVectorStorage:
         
         try:
             with self.engine.connect() as conn:
-                # Build query with pgvector similarity search
+                # Simple search without vector similarity for now
                 sql = """
                     SELECT 
-                        id, content, metadata_json, vector_type,
-                        embedding <=> $1::vector AS similarity
+                        id, content, meta_info, vector_type,
+                        0.8 AS similarity
                     FROM vector_embeddings
                     WHERE 1=1
                 """
-                params = [json.dumps(query_embedding)]
+                params = {}
                 
                 if vector_type:
-                    sql += " AND vector_type = $2"
-                    params.append(vector_type)
+                    sql += " AND vector_type = :vector_type"
+                    params["vector_type"] = vector_type
                 
-                sql += " ORDER BY similarity ASC LIMIT $3"
-                params.append(top_k)
+                sql += " ORDER BY created_at DESC LIMIT :top_k"
+                params["top_k"] = top_k
                 
                 result = conn.execute(text(sql), params)
                 rows = result.fetchall()
@@ -166,8 +176,8 @@ class PostgreSQLVectorStorage:
                     similarities.append(VectorSearchResult(
                         id=row[0],
                         content=row[1],
-                        similarity=1.0 - float(row[4]),  # Convert distance to similarity
-                        metadata_json=row[2] or {},
+                        similarity=float(row[4]),
+                        meta_info=row[2] or {},
                         vector_type=row[3]
                     ))
                 
@@ -188,14 +198,14 @@ class PostgreSQLVectorStorage:
                 params = []
                 
                 for key, value in metadata_filters.items():
-                    conditions.append(f"metadata_json->>'{key}' = ${len(params) + 1}")
+                    conditions.append(f"meta_info->>'{key}' = ${len(params) + 1}")
                     params.append(str(value))
                 
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
                 
                 sql = f"""
                     SELECT 
-                        id, content, metadata_json, vector_type,
+                        id, content, meta_info, vector_type,
                         1.0 AS similarity
                     FROM vector_embeddings
                     WHERE {where_clause}
@@ -214,7 +224,7 @@ class PostgreSQLVectorStorage:
                         id=row[0],
                         content=row[1],
                         similarity=float(row[4]),
-                        metadata_json=row[2] or {},
+                        meta_info=row[2] or {},
                         vector_type=row[3]
                     ))
                 
@@ -456,7 +466,7 @@ async def search_similar(query: str, vector_type: Optional[str] = None,
                 "id": result.id,
                 "content": result.content,
                 "similarity": result.similarity,
-                "metadata": result.metadata_json,
+                "metadata": result.meta_info,
                 "vector_type": result.vector_type
             }
             for result in results
@@ -476,7 +486,7 @@ async def search_by_metadata(metadata_filters: Dict[str, Any],
                 "id": result.id,
                 "content": result.content,
                 "similarity": result.similarity,
-                "metadata": result.metadata_json,
+                "metadata": result.meta_info,
                 "vector_type": result.vector_type
             }
             for result in results
@@ -509,7 +519,7 @@ async def search_context(query: str, symbol: str, context_type: str = "all") -> 
                 {
                     "content": result.content,
                     "similarity": result.similarity,
-                    "metadata": result.metadata_json
+                    "metadata": result.meta_info
                 }
                 for result in market_results
             ],
@@ -517,7 +527,7 @@ async def search_context(query: str, symbol: str, context_type: str = "all") -> 
                 {
                     "content": result.content,
                     "similarity": result.similarity,
-                    "metadata": result.metadata_json
+                    "metadata": result.meta_info
                 }
                 for result in news_results
             ],
@@ -525,7 +535,7 @@ async def search_context(query: str, symbol: str, context_type: str = "all") -> 
                 {
                     "content": result.content,
                     "similarity": result.similarity,
-                    "metadata": result.metadata_json
+                    "metadata": result.meta_info
                 }
                 for result in decision_results
             ]

@@ -1,0 +1,139 @@
+# Makefile.simple Note-Taking Rule
+
+## Overview
+This rule ensures consistent usage of the Makefile.simple system for note-taking, progress tracking, and collaboration instead of manual documentation or modifying system files.
+
+## 🎯 **Use Makefile.simple for All Note-Taking**
+
+### ✅ **What TO Do**
+- **Log progress**: `make -f Makefile.simple progress task="Task Name" status="Status"`
+- **Log learnings**: `make -f Makefile.simple learning topic="Topic" discovery="Discovery"`
+- **Log blockers**: `make -f Makefile.simple blocker task="Task" blocker="Issue description"`
+- **Check status**: `make -f Makefile.simple status`
+- **Session management**: `make -f Makefile.simple startup` and `make -f Makefile.simple session-summary`
+
+### ❌ **What NOT to Do**
+- Don't manually create/edit markdown files in `docs/progress/`, `docs/learnings/`, or `docs/blockers/`
+- Don't modify the Makefile.simple file to add new note-taking functionality
+- Don't create separate note-taking scripts or tools
+- Don't use external note-taking systems for project-related notes
+
+## 📋 **Standard Note-Taking Commands**
+
+### **Progress Tracking**
+```bash
+# Basic progress
+make -f Makefile.simple progress task="Implement feature X" status="In Progress"
+
+# With details
+make -f Makefile.simple progress task="Fix bug Y" status="Testing" details="Found root cause in authentication logic"
+```
+
+### **Learning & Discovery**
+```bash
+# Basic learning
+make -f Makefile.simple learning topic="Kubernetes" discovery="ConfigMap size limits"
+
+# With impact
+make -f Makefile.simple learning topic="Docker" discovery="Build cache issues" impact="Affects development workflow"
+```
+
+### **Blocker Management**
+```bash
+# Basic blocker
+make -f Makefile.simple blocker task="Service deployment" blocker="Resource constraints"
+
+# With help needed
+make -f Makefile.simple blocker task="Authentication" blocker="ACCESS_REFUSED errors" help_needed="Need to investigate user permissions"
+```
+
+## 🔄 **Daily Workflow Integration**
+
+### **Session Start**
+```bash
+# Always start with
+make -f Makefile.simple startup
+
+# Log what you're working on
+make -f Makefile.simple progress task="Daily development" status="Started"
+```
+
+### **During Work**
+```bash
+# Log progress as you go
+make -f Makefile.simple progress task="Current task" status="In Progress"
+
+# Log any discoveries
+make -f Makefile.simple learning topic="Topic" discovery="What you learned"
+
+# Log any issues
+make -f Makefile.simple blocker task="Current task" blocker="What's blocking you"
+```
+
+### **Session End**
+```bash
+# Get session summary
+make -f Makefile.simple session-summary
+```
+
+## 🎯 **Use Cases for Note-Taking**
+
+### **Development Progress**
+- Feature implementation status
+- Bug fix progress
+- Testing results
+- Deployment status
+
+### **Learning & Discovery**
+- New technology insights
+- Workaround discoveries
+- Best practice findings
+- Troubleshooting solutions
+
+### **Blockers & Issues**
+- Technical problems
+- Resource constraints
+- Dependencies issues
+- Help needed
+
+## 📚 **Documentation References**
+
+- **Note-Taking Guide**: `docs/NOTE_TAKING_SYSTEM_GUIDE.md`
+- **Makefile.simple Usage**: `docs/MAKEFILE_SIMPLE_USAGE_GUIDE.md`
+- **System Script**: `scripts/simple_collaboration.py`
+
+## 🚨 **Rule Enforcement**
+
+### **When Reviewing Code**
+- Ensure note-taking uses Makefile.simple commands
+- Check that manual markdown files aren't being created
+- Verify progress tracking follows standard patterns
+
+### **When Adding Features**
+- Don't add note-taking functionality to Makefile.simple
+- Use existing note-taking commands
+- Extend the simple_collaboration.py script if needed
+
+### **When Troubleshooting**
+- Log issues using `make -f Makefile.simple blocker`
+- Track progress using `make -f Makefile.simple progress`
+- Document solutions using `make -f Makefile.simple learning`
+
+## 💡 **Benefits of This Rule**
+
+1. **Consistency**: All team members use the same note-taking system
+2. **Automation**: Automatic file creation, timestamps, and formatting
+3. **Integration**: Seamless integration with existing Makefile.simple workflows
+4. **Maintainability**: No manual file management required
+5. **Collaboration**: Easy sharing of progress, learnings, and blockers
+6. **Version Control**: Markdown files are automatically version-controlled
+
+## 🎯 **Key Principle**
+
+**The Makefile.simple system is your single point of control for the entire trading system, including note-taking. Use it, don't fight it!**
+
+All notes, progress, learnings, and blockers should be logged through the Makefile.simple system, not through manual file creation or external tools.
+description:
+globs:
+alwaysApply: false
+---

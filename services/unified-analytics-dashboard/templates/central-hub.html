@@ -447,10 +447,10 @@
         </div>
         
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showSection('overview')">Overview</button>
-            <button class="nav-tab" onclick="showSection('data')">Data Management</button>
-            <button class="nav-tab" onclick="showSection('services')">Services</button>
-            <button class="nav-tab" onclick="showSection('activity')">Recent Activity</button>
+            <button class="nav-tab active" onclick="showSection('overview', event)">Overview</button>
+            <button class="nav-tab" onclick="showSection('data', event)">Data Management</button>
+            <button class="nav-tab" onclick="showSection('services', event)">Services</button>
+            <button class="nav-tab" onclick="showSection('activity', event)">Recent Activity</button>
         </div>
         
         <!-- Overview Section -->
@@ -694,7 +694,7 @@
             setInterval(loadAllData, 30000); // Refresh every 30 seconds
         });
         
-        function showSection(section) {
+        function showSection(section, event) {
             // Hide all sections
             document.querySelectorAll('.dashboard-section').forEach(el => {
                 el.style.display = 'none';
@@ -707,7 +707,11 @@
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            
+            // Add active class to clicked tab - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            }
             
             currentSection = section;
             

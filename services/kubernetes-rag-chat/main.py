@@ -314,15 +314,15 @@ Answer:"""
                             actual_request_id = result["request_id"]
                             logger.info(f"Submitted request {actual_request_id} to LLM proxy, now polling for completion")
                             
-                                                    # Return immediately with status URL for async processing
-                        status_url = f"/status/{actual_request_id}"
-                        
-                        return {
-                            "answer": f"Your request is being processed. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
-                            "model": "gpt-oss:20b",
-                            "request_id": actual_request_id,
-                            "status_url": status_url
-                        }
+                            # Return immediately with status URL for async processing
+                            status_url = f"/status/{actual_request_id}"
+                            
+                            return {
+                                "answer": f"Your request is being processed. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
+                                "model": "gpt-oss:20b",
+                                "request_id": actual_request_id,
+                                "status_url": status_url
+                            }
                         else:
                             logger.error(f"Unexpected LLM response format: {result}")
                             return {

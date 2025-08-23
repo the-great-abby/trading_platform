@@ -111,14 +111,15 @@
         }
         
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
+            margin-bottom: 8px;
+            font-weight: 600;
             color: #333;
+            font-size: 1.1em;
         }
         
         .form-row {
@@ -127,17 +128,130 @@
             gap: 15px;
         }
         
-        .strategy-categories {
+        .symbol-selection-tabs {
             display: flex;
             gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
+        }
+        
+        .symbol-tab {
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+        
+        .symbol-tab:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .symbol-tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .symbol-content {
+            display: none;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .symbol-content.active {
+            display: block;
+        }
+        
+        .symbol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .symbol-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
+        }
+        
+        .symbol-item:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        
+        .symbol-item.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .symbol-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .category-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
             margin-bottom: 15px;
         }
         
-        .btn {
-            padding: 8px 16px;
-            border: none;
+        .category-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .category-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: white;
             border-radius: 6px;
+            border: 1px solid #2196f3;
+        }
+        
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
@@ -165,6 +279,16 @@
         .btn-outline:hover {
             background: #667eea;
             color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
         }
         
         .strategy-grid {
@@ -274,6 +398,65 @@
         .back-link:hover {
             opacity: 0.8;
         }
+        
+        .selected-symbols-display {
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .selected-symbols-display h4 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        
+        .selected-symbols-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .symbol-tag {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-action-btn {
+            padding: 15px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .quick-action-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-3px);
+        }
+        
+        .quick-action-btn .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -281,7 +464,7 @@
         <div class="header">
             <a href="/" class="back-link">← Back to Unified Dashboard</a>
             <h1>🚀 Strategy Backtesting</h1>
-            <p>Comprehensive strategy testing and performance analysis</p>
+            <p>Comprehensive strategy testing across your centralized symbol portfolio</p>
         </div>
         
         <div class="dashboard-content">
@@ -289,9 +472,144 @@
                 <div class="card">
                     <h3>📊 Backtest Configuration</h3>
                     <div class="backtest-form">
+                        <!-- Quick Action Buttons -->
+                        <div class="quick-actions">
+                            <div class="quick-action-btn" onclick="quickBacktest('all')">
+                                <span class="icon">🔄</span>
+                                <div>Test All Symbols</div>
+                                <small>(43 symbols)</small>
+                            </div>
+                            <div class="quick-action-btn" onclick="quickBacktest('tech')">
+                                <span class="icon">🏗️</span>
+                                <div>Tech Portfolio</div>
+                                <small>(18 symbols)</small>
+                            </div>
+                            <div class="quick-action-btn" onclick="quickBacktest('finance')">
+                                <span class="icon">💰</span>
+                                <div>Finance Portfolio</div>
+                                <small>(7 symbols)</small>
+                            </div>
+                            <div class="quick-action-btn" onclick="quickBacktest('etfs')">
+                                <span class="icon">📈</span>
+                                <div>ETF Portfolio</div>
+                                <small>(10 symbols)</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Symbol Selection Tabs -->
                         <div class="form-group">
-                            <label for="backtest-symbols">Symbols (comma-separated):</label>
-                            <input type="text" id="backtest-symbols" placeholder="AAPL,MSFT,GOOGL,TSLA,NVDA" value="AAPL,MSFT,GOOGL,TSLA,NVDA" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            <label>Symbol Selection Method:</label>
+                            <div class="symbol-selection-tabs">
+                                <div class="symbol-tab active" onclick="showSymbolTab('portfolio')">🔄 Portfolio</div>
+                                <div class="symbol-tab" onclick="showSymbolTab('category')">📊 By Category</div>
+                                <div class="symbol-tab" onclick="showSymbolTab('priority')">⭐ By Priority</div>
+                                <div class="symbol-tab" onclick="showSymbolTab('custom')">🎯 Custom</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Portfolio Tab -->
+                        <div id="portfolio-tab" class="symbol-content active">
+                            <div class="category-info">
+                                <h4>📊 Portfolio Overview</h4>
+                                <p>Test your entire portfolio of 43 active symbols across all categories.</p>
+                                <div class="category-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-value">43</div>
+                                        <div class="stat-label">Total Symbols</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">18</div>
+                                        <div class="stat-label">Technology</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">7</div>
+                                        <div class="stat-label">Finance</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">10</div>
+                                        <div class="stat-label">ETFs</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-success" onclick="selectAllSymbols()">✅ Select All 43 Symbols</button>
+                        </div>
+                        
+                        <!-- Category Tab -->
+                        <div id="category-tab" class="symbol-content">
+                            <div class="form-group">
+                                <label>Select Categories to Test:</label>
+                                <div class="symbol-grid">
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="technology" checked>
+                                        🏗️ Technology (18)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="finance" checked>
+                                        💰 Finance (7)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="healthcare" checked>
+                                        🏥 Healthcare (3)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="etf" checked>
+                                        📈 ETFs (10)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="consumer">
+                                        🛍️ Consumer (2)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="energy">
+                                        ⚡ Energy (1)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="industrial">
+                                        🏭 Industrial (1)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="utilities">
+                                        🔌 Utilities (1)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Priority Tab -->
+                        <div id="priority-tab" class="symbol-content">
+                            <div class="form-group">
+                                <label>Select Priority Levels:</label>
+                                <div class="symbol-grid">
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="high" checked>
+                                        🔴 High Priority (1-10)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="medium" checked>
+                                        🟡 Medium Priority (11-20)
+                                    </label>
+                                    <label class="symbol-item">
+                                        <input type="checkbox" value="low" checked>
+                                        🟢 Low Priority (21-43)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Tab -->
+                        <div id="custom-tab" class="symbol-content">
+                            <div class="form-group">
+                                <label>Select Individual Symbols:</label>
+                                <div class="symbol-grid" id="custom-symbol-grid">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Symbols Display -->
+                        <div id="selected-symbols-display" class="selected-symbols-display" style="display: none;">
+                            <h4>✅ Selected Symbols: <span id="selected-count">0</span></h4>
+                            <div id="selected-symbols-list" class="selected-symbols-list"></div>
                         </div>
                         
                         <div class="form-row">
@@ -307,7 +625,7 @@
                         
                         <div class="form-group">
                             <label for="backtest-capital">Initial Capital ($):</label>
-                            <input type="number" id="backtest-capital" value="10000" min="1000" step="1000" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="number" id="backtest-capital" value="100000" min="10000" step="10000" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
                         </div>
                         
                         <div class="form-group">
@@ -352,7 +670,7 @@
                         </div>
                         
                         <button type="button" class="btn btn-primary" onclick="runBacktest()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;">
-                            🚀 Run Backtest
+                            🚀 Run Comprehensive Backtest
                         </button>
                     </div>
                 </div>
@@ -368,6 +686,24 @@
     </div>
     
     <script>
+        // Centralized symbol data
+        const SYMBOLS = {
+            technology: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO', 'SMCI'],
+            finance: ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'V', 'MA'],
+            healthcare: ['JNJ', 'PFE', 'UNH'],
+            consumer: ['HD', 'DIS'],
+            etf: ['SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY'],
+            energy: ['XLE'],
+            industrial: ['XLI'],
+            utilities: ['XLU']
+        };
+        
+        const SYMBOL_PRIORITIES = {
+            high: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC'],
+            medium: ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS'],
+            low: ['V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO', 'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'SMCI']
+        };
+        
         // Strategy definitions
         const STRATEGIES = {
             basic: [
@@ -386,6 +722,116 @@
                 'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
             ]
         };
+        
+        let selectedSymbols = new Set();
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            selectCategory('basic');
+            populateCustomSymbolGrid();
+            updateSelectedSymbolsDisplay();
+        });
+        
+        // Show different symbol selection tabs
+        function showSymbolTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.symbol-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.symbol-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Populate custom symbol grid
+        function populateCustomSymbolGrid() {
+            const grid = document.getElementById('custom-symbol-grid');
+            let allSymbols = [];
+            
+            // Combine all symbols from all categories
+            Object.values(SYMBOLS).forEach(categorySymbols => {
+                allSymbols = allSymbols.concat(categorySymbols);
+            });
+            
+            // Sort alphabetically
+            allSymbols.sort();
+            
+            const symbolsHtml = allSymbols.map(symbol => `
+                <label class="symbol-item" onclick="toggleSymbol('${symbol}')">
+                    <input type="checkbox" value="${symbol}" onchange="toggleSymbol('${symbol}')">
+                    ${symbol}
+                </label>
+            `).join('');
+            
+            grid.innerHTML = symbolsHtml;
+        }
+        
+        // Toggle symbol selection
+        function toggleSymbol(symbol) {
+            if (selectedSymbols.has(symbol)) {
+                selectedSymbols.delete(symbol);
+            } else {
+                selectedSymbols.add(symbol);
+            }
+            updateSelectedSymbolsDisplay();
+        }
+        
+        // Quick backtest functions
+        function quickBacktest(type) {
+            selectedSymbols.clear();
+            
+            switch(type) {
+                case 'all':
+                    Object.values(SYMBOLS).forEach(categorySymbols => {
+                        categorySymbols.forEach(symbol => selectedSymbols.add(symbol));
+                    });
+                    break;
+                case 'tech':
+                    SYMBOLS.technology.forEach(symbol => selectedSymbols.add(symbol));
+                    break;
+                case 'finance':
+                    SYMBOLS.finance.forEach(symbol => selectedSymbols.add(symbol));
+                    break;
+                case 'etfs':
+                    SYMBOLS.etf.forEach(symbol => selectedSymbols.add(symbol));
+                    break;
+            }
+            
+            updateSelectedSymbolsDisplay();
+            showSymbolTab('custom');
+            document.querySelector('[onclick="showSymbolTab(\'custom\')"]').classList.add('active');
+            document.querySelectorAll('.symbol-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('custom-tab').classList.add('active');
+        }
+        
+        // Select all symbols
+        function selectAllSymbols() {
+            selectedSymbols.clear();
+            Object.values(SYMBOLS).forEach(categorySymbols => {
+                categorySymbols.forEach(symbol => selectedSymbols.add(symbol));
+            });
+            updateSelectedSymbolsDisplay();
+        }
+        
+        // Update selected symbols display
+        function updateSelectedSymbolsDisplay() {
+            const display = document.getElementById('selected-symbols-display');
+            const count = document.getElementById('selected-count');
+            const list = document.getElementById('selected-symbols-list');
+            
+            if (selectedSymbols.size > 0) {
+                display.style.display = 'block';
+                count.textContent = selectedSymbols.size;
+                
+                const symbolsHtml = Array.from(selectedSymbols).map(symbol => 
+                    `<span class="symbol-tag">${symbol}</span>`
+                ).join('');
+                
+                list.innerHTML = symbolsHtml;
+            } else {
+                display.style.display = 'none';
+            }
+        }
         
         // Initialize strategy selection
         function selectCategory(category) {
@@ -408,8 +854,42 @@
             strategyGrid.innerHTML = strategiesHtml;
         }
         
+        // Get symbols based on current selection method
+        function getSelectedSymbols() {
+            const activeTab = document.querySelector('.symbol-content.active');
+            const tabId = activeTab.id;
+            
+            if (tabId === 'portfolio-tab') {
+                return Array.from(selectedSymbols);
+            } else if (tabId === 'category-tab') {
+                const selectedCategories = Array.from(document.querySelectorAll('#category-tab input:checked'))
+                    .map(cb => cb.value);
+                let symbols = [];
+                selectedCategories.forEach(category => {
+                    if (SYMBOLS[category]) {
+                        symbols = symbols.concat(SYMBOLS[category]);
+                    }
+                });
+                return symbols;
+            } else if (tabId === 'priority-tab') {
+                const selectedPriorities = Array.from(document.querySelectorAll('#priority-tab input:checked'))
+                    .map(cb => cb.value);
+                let symbols = [];
+                selectedPriorities.forEach(priority => {
+                    if (SYMBOL_PRIORITIES[priority]) {
+                        symbols = symbols.concat(SYMBOL_PRIORITIES[priority]);
+                    }
+                });
+                return symbols;
+            } else if (tabId === 'custom-tab') {
+                return Array.from(selectedSymbols);
+            }
+            
+            return [];
+        }
+        
         async function runBacktest() {
-            const symbols = document.getElementById('backtest-symbols').value.trim();
+            const symbols = getSelectedSymbols();
             const startDate = document.getElementById('backtest-start-date').value;
             const endDate = document.getElementById('backtest-end-date').value;
             const capital = parseFloat(document.getElementById('backtest-capital').value);
@@ -421,13 +901,13 @@
             const selectedStrategies = Array.from(document.querySelectorAll('#strategy-selection input:checked'))
                 .map(cb => cb.value);
             
-            if (!symbols || !startDate || !endDate || selectedStrategies.length === 0) {
-                showBacktestResult('error', 'Please fill in all required fields and select at least one strategy');
+            if (symbols.length === 0 || !startDate || !endDate || selectedStrategies.length === 0) {
+                showBacktestResult('error', 'Please select symbols and fill in all required fields');
                 return;
             }
             
             const backtestData = {
-                symbols: symbols.split(',').map(s => s.trim().toUpperCase()),
+                symbols: symbols,
                 strategies: selectedStrategies,
                 start_date: startDate,
                 end_date: endDate,
@@ -438,7 +918,7 @@
             };
             
             // Show loading state
-            showBacktestResult('loading', '🚀 Starting backtest... This may take several minutes.');
+            showBacktestResult('loading', `🚀 Starting comprehensive backtest on ${symbols.length} symbols with ${selectedStrategies.length} strategies... This may take several minutes.`);
             
             // Simulate backtest processing
             await simulateBacktest(backtestData);
@@ -446,7 +926,7 @@
         
         async function simulateBacktest(data) {
             // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 3000));
             
             // Generate mock results
             const results = [];
@@ -469,7 +949,7 @@
                 });
             }
             
-            showBacktestResults(results);
+            showBacktestResults(results, data);
         }
         
         function showBacktestResult(type, message) {
@@ -499,13 +979,37 @@
             }
         }
         
-        function showBacktestResults(results) {
+        function showBacktestResults(results, data) {
             const resultsDiv = document.getElementById('backtest-results');
             
             if (!results || results.length === 0) {
                 resultsDiv.innerHTML = '<div class="info-message">No results available</div>';
                 return;
             }
+            
+            const summaryHtml = `
+                <div class="strategy-result" style="background: #e8f5e8; border-color: #28a745;">
+                    <h4>📊 Backtest Summary</h4>
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <strong>Symbols Tested</strong>
+                            <span class="neutral">${data.symbols.length}</span>
+                        </div>
+                        <div class="metric">
+                            <strong>Strategies</strong>
+                            <span class="neutral">${data.strategies.length}</span>
+                        </div>
+                        <div class="metric">
+                            <strong>Date Range</strong>
+                            <span class="neutral">${data.start_date} to ${data.end_date}</span>
+                        </div>
+                        <div class="metric">
+                            <strong>Initial Capital</strong>
+                            <span class="neutral">$${data.initial_capital.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
             
             const resultsHtml = results.map(strategy => `
                 <div class="strategy-result">
@@ -551,13 +1055,8 @@
                 </div>
             `).join('');
             
-            resultsDiv.innerHTML = resultsHtml;
+            resultsDiv.innerHTML = summaryHtml + resultsHtml;
         }
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            selectCategory('basic');
-        });
     </script>
 </body>
 </html> 

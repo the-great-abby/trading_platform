@@ -122,3 +122,8 @@ kubectl get services -n trading-system | grep postgres-dev
 
 
 
+
+
+
+
+

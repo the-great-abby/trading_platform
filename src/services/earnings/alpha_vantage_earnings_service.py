@@ -229,3 +229,4 @@ class AlphaVantageEarningsService:
         except:
             return datetime.now().year
 
+

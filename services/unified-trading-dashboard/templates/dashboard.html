@@ -299,6 +299,57 @@
             font-weight: bold;
         }
         
+        /* Kubernetes RAG Chat Styles */
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 90%;
+        }
+        
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.bot {
+            background: white;
+            border: 1px solid #e9ecef;
+            color: #333;
+        }
+        
+        .message-content {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .sources {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .confidence {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
         .positive { color: #28a745; }
         .negative { color: #dc3545; }
         .neutral { color: #6c757d; }
@@ -312,13 +363,13 @@
         </div>
         
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('overview')">Overview</button>
-            <button class="nav-tab" onclick="showTab('trading')">Trading</button>
-            <button class="nav-tab" onclick="showTab('performance')">Performance</button>
-            <button class="nav-tab" onclick="showTab('backtesting')">Backtesting</button>
-            <button class="nav-tab" onclick="showTab('paper-trading')">🚀 Paper Trading</button>
-            <button class="nav-tab" onclick="showTab('live-trading')">💰 Live Trading</button>
-            <button class="nav-tab" onclick="showTab('health')">Health</button>
+            <button class="nav-tab active" onclick="showTab('overview', event)">Overview</button>
+            <button class="nav-tab" onclick="showTab('trading', event)">Trading</button>
+            <button class="nav-tab" onclick="showTab('performance', event)">Performance</button>
+            <button class="nav-tab" onclick="showTab('paper-trading', event)">🚀 Paper Trading</button>
+            <button class="nav-tab" onclick="showTab('live-trading', event)">💰 Live Trading</button>
+            <button class="nav-tab" onclick="showTab('health', event)">Health</button>
+            <button class="nav-tab" onclick="showTab('k8s-chat', event)">☸️ K8s Chat</button>
         </div>
         
         <div class="dashboard-content">
@@ -460,96 +511,79 @@
                 </div>
             </div>
             
-            <div id="backtesting" class="tab-content" style="display: none;">
-                <h2>🚀 Strategy Backtesting</h2>
+            <div id="k8s-chat" class="tab-content" style="display: none;">
+                <h2>☸️ Kubernetes RAG Chat</h2>
                 <div class="dashboard-grid">
-                    <div class="card">
-                        <h3>📊 Backtest Configuration</h3>
-                        <div class="backtest-form">
-                            <div class="form-group">
-                                <label for="backtest-symbols">Symbols (comma-separated):</label>
-                                <input type="text" id="backtest-symbols" placeholder="AAPL,MSFT,GOOGL,TSLA,NVDA" value="AAPL,MSFT,GOOGL,TSLA,NVDA" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <div class="card" style="grid-column: 1 / -1;">
+                        <h3>🤖 Ask Kubernetes Questions</h3>
+                        <div style="padding: 20px;">
+                            <p style="margin-bottom: 20px; color: #666;">
+                                Get instant help with Kubernetes commands, troubleshooting, and best practices. 
+                                The AI assistant will search through Kubernetes knowledge and provide relevant answers.
+                            </p>
+                            
+                            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                <input type="text" id="k8s-question" placeholder="Ask a Kubernetes question..." 
+                                       style="flex: 1; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 16px;">
+                                <button onclick="sendK8sQuestion()" class="btn btn-primary" style="padding: 12px 24px; font-size: 16px;">
+                                    🚀 Ask
+                                </button>
+                                <button onclick="clearK8sChat()" class="btn btn-secondary" style="padding: 12px 24px; font-size: 16px;">
+                                    🗑️ Clear
+                                </button>
                             </div>
                             
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="backtest-start-date">Start Date:</label>
-                                    <input type="date" id="backtest-start-date" value="2024-01-01" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
-                                </div>
-                                <div class="form-group">
-                                    <label for="backtest-end-date">End Date:</label>
-                                    <input type="date" id="backtest-end-date" value="2024-12-31" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="backtest-capital">Initial Capital ($):</label>
-                                <input type="number" id="backtest-capital" value="10000" min="1000" step="1000" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Strategy Categories:</label>
-                                <div class="strategy-categories">
-                                    <button type="button" class="btn btn-outline" onclick="selectCategory('basic')">📊 Basic Strategies</button>
-                                    <button type="button" class="btn btn-outline" onclick="selectCategory('options')">🎯 Options Strategies</button>
-                                    <button type="button" class="btn btn-outline" onclick="selectCategory('advanced')">🚀 Advanced Strategies</button>
-                                    <button type="button" class="btn btn-outline" onclick="selectCategory('new')">🆕 New Strategies</button>
-                                    <button type="button" class="btn btn-outline" onclick="selectCategory('all')">🌟 All Strategies</button>
-                                    <button type="button" class="btn btn-primary" onclick="selectCategory('new')" style="background: #28a745; border-color: #28a745;">🆕 New Strategies</button>
+                            <div id="k8s-chat-messages" style="height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; background: #f8f9fa;">
+                                <div style="text-align: center; color: #6c757d; padding: 20px;">
+                                    <p>💡 <strong>Example questions:</strong></p>
+                                    <p>• "How do I check pod logs?"</p>
+                                    <p>• "What's the difference between pods and deployments?"</p>
+                                    <p>• "How do I troubleshoot a pending pod?"</p>
+                                    <p>• "Show me kubectl commands for managing services"</p>
                                 </div>
                             </div>
-                            
-                            <div class="form-group">
-                                <label>Selected Strategies:</label>
-                                <div id="strategy-selection" class="strategy-grid">
-                                    <!-- Strategies will be populated by JavaScript -->
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="backtest-risk-profile">Risk Profile:</label>
-                                <select id="backtest-risk-profile" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
-                                    <option value="conservative">Conservative</option>
-                                    <option value="moderate" selected>Moderate</option>
-                                    <option value="aggressive">Aggressive</option>
-                                    <option value="ultra-aggressive">Ultra Aggressive</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="backtest-use-llm" style="margin-right: 8px;">
-                                    Use AI/LLM Analysis
-                                </label>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="backtest-parallel" checked style="margin-right: 8px;">
-                                    Parallel Execution
-                                </label>
-                            </div>
-                            
-                            <button type="button" class="btn btn-primary" onclick="runBacktest()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;">
-                                🚀 Run Backtest
-                            </button>
                         </div>
                     </div>
                     
                     <div class="card">
-                        <h3>📊 Backtest Results</h3>
-                        <div id="backtest-results">
-                            <div class="info-message">Configure and run a backtest to see results here</div>
+                        <h3>📚 Knowledge Base</h3>
+                        <div style="padding: 15px;">
+                            <h4>Available Topics:</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Pod Management</li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Deployment Management</li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Service Management</li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Configuration</li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ Troubleshooting</li>
+                                <li style="padding: 8px 0;">✅ Best Practices</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>🔧 Quick Commands</h3>
+                        <div style="padding: 15px;">
+                            <h4>Common kubectl commands:</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">📋 <code>kubectl get pods</code></li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">📋 <code>kubectl describe pod &lt;name&gt;</code></li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">📋 <code>kubectl logs &lt;name&gt;</code></li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">📋 <code>kubectl get services</code></li>
+                                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">📋 <code>kubectl port-forward</code></li>
+                                <li style="padding: 8px 0;">📋 <code>kubectl get events</code></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
             </div>
+            
+
         </div>
     </div>
     
     <script>
         // Tab switching
-        function showTab(tabName) {
+        function showTab(tabName, event) {
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => content.style.display = 'none');
@@ -559,10 +593,23 @@
             navTabs.forEach(tab => tab.classList.remove('active'));
             
             // Show selected tab content
-            document.getElementById(tabName).style.display = 'block';
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+            } else {
+                console.error('Tab not found:', tabName);
+            }
             
-            // Add active class to clicked tab
-            event.target.classList.add('active');
+            // Add active class to clicked tab - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            } else {
+                // If no event or target, find the tab button by tab name and activate it
+                const tabButton = document.querySelector(`[onclick*="showTab('${tabName}', event)"]`);
+                if (tabButton && tabButton.classList) {
+                    tabButton.classList.add('active');
+                }
+            }
             
             // Load data for the selected tab
             loadTabData(tabName);
@@ -580,9 +627,7 @@
                 case 'performance':
                     loadPerformanceData();
                     break;
-                case 'backtesting':
-                    loadBacktestingData();
-                    break;
+
                 case 'live-trading':
                     loadLiveTradingData();
                     break;
@@ -1254,7 +1299,6 @@
         // Load initial data
         document.addEventListener('DOMContentLoaded', () => {
             loadOverviewData();
-            initializeStrategySelection(); // Initialize strategy selection on load
         });
         
         // ============================================================================
@@ -1280,11 +1324,7 @@
             ]
         };
         
-        // Load backtesting data
-        function loadBacktestingData() {
-            // Initialize strategy selection
-            selectCategory('basic');
-        }
+
         
         // Dynamic strategy loading
         async function loadStrategies() {
@@ -1358,242 +1398,93 @@
             };
         }
         
-        // Initialize strategy selection with dynamic loading
-        async function initializeStrategySelection() {
-            const strategiesData = await loadStrategies();
-            window.STRATEGIES_DATA = strategiesData;
-            
-            // Set default to basic strategies
-            selectCategory('basic');
-        }
+        // ============================================================================
+        // KUBERNETES RAG CHAT FUNCTIONS
+        // ============================================================================
         
-        // Initialize strategy selection
-        function selectCategory(category) {
-            // Special case for new strategies if button is not visible
-            if (category === 'new') {
-                const fallbackData = getFallbackStrategies();
-                const newStrategies = fallbackData.categories.new.strategies;
-                const strategyGrid = document.getElementById('strategy-selection');
-                const strategiesHtml = newStrategies.map(strategy => `
-                    <label class="strategy-checkbox">
-                        <input type="checkbox" value="${strategy}" checked>
-                        ${strategy.replace('Strategy', '')}
-                    </label>
-                `).join('');
-                strategyGrid.innerHTML = strategiesHtml;
-                return;
-            }
-            const strategyGrid = document.getElementById('strategy-selection');
-            let strategies = [];
-            
-            if (window.STRATEGIES_DATA) {
-                // Use dynamic data
-                const categoryData = window.STRATEGIES_DATA.categories[category];
-                if (categoryData) {
-                    strategies = categoryData.strategies;
-                } else if (category === 'all') {
-                    strategies = window.STRATEGIES_DATA.all_strategies;
-                }
-            } else {
-                // Fallback to hardcoded strategies
-                const fallbackData = getFallbackStrategies();
-                if (category === 'all') {
-                    strategies = fallbackData.all_strategies;
-                } else {
-                    const categoryData = fallbackData.categories[category];
-                    if (categoryData) {
-                        strategies = categoryData.strategies;
-                    }
-                }
-            }
-            
-            const strategiesHtml = strategies.map(strategy => `
-                <label class="strategy-checkbox">
-                    <input type="checkbox" value="${strategy}" checked>
-                    ${strategy.replace('Strategy', '')}
-                </label>
-            `).join('');
-            
-            strategyGrid.innerHTML = strategiesHtml;
-        }
+        let chatMessages = [];
+        let isProcessing = false;
         
-        async function runBacktest() {
-            const symbols = document.getElementById('backtest-symbols').value.trim();
-            const startDate = document.getElementById('backtest-start-date').value;
-            const endDate = document.getElementById('backtest-end-date').value;
-            const capital = parseFloat(document.getElementById('backtest-capital').value);
-            const riskProfile = document.getElementById('backtest-risk-profile').value;
-            const useLLM = document.getElementById('backtest-use-llm').checked;
-            const parallel = document.getElementById('backtest-parallel').checked;
+        async function sendK8sQuestion() {
+            const questionInput = document.getElementById('k8s-question');
+            const question = questionInput.value.trim();
             
-            // Get selected strategies
-            const selectedStrategies = Array.from(document.querySelectorAll('#strategy-selection input:checked'))
-                .map(cb => cb.value);
-            
-            if (!symbols || !startDate || !endDate || selectedStrategies.length === 0) {
-                showBacktestResult('error', 'Please fill in all required fields and select at least one strategy');
+            if (!question) {
+                alert('Please enter a question');
                 return;
             }
             
-            const backtestData = {
-                symbols: symbols.split(',').map(s => s.trim().toUpperCase()),
-                strategies: selectedStrategies,
-                start_date: startDate,
-                end_date: endDate,
-                initial_capital: capital,
-                risk_profile: riskProfile,
-                use_llm: useLLM,
-                parallel_execution: parallel
-            };
+            if (isProcessing) {
+                alert('Please wait for the current question to be processed');
+                return;
+            }
             
-            // Show loading state
-            showBacktestResult('loading', '🚀 Starting backtest... This may take several minutes.');
+            isProcessing = true;
             
-            // Use simulation mode since real backtest API is not fully connected
-            await simulateBacktest(backtestData);
-        }
-        
-        async function simulateBacktest(data) {
-            // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Add user message
+            addChatMessage('user', question);
+            questionInput.value = '';
             
-            // Generate mock results
-            const results = [];
-            for (const strategy of data.strategies) {
-                const totalReturn = (Math.random() - 0.3) * 0.8; // -30% to +50%
-                const sharpeRatio = (Math.random() - 0.5) * 3; // -1.5 to +1.5
-                const maxDrawdown = Math.random() * 0.3; // 0% to 30%
-                const winRate = 0.4 + Math.random() * 0.3; // 40% to 70%
-                const totalTrades = Math.floor(Math.random() * 90) + 10; // 10 to 100
-                const profitFactor = 0.8 + Math.random() * 0.7; // 0.8 to 1.5
-                
-                results.push({
-                    name: strategy,
-                    total_return: totalReturn,
-                    sharpe_ratio: sharpeRatio,
-                    max_drawdown: maxDrawdown,
-                    win_rate: winRate,
-                    total_trades: totalTrades,
-                    profit_factor: profitFactor
+            try {
+                const response = await fetch('/api/rag-chat/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        include_sources: true,
+                        max_tokens: 1000,
+                        temperature: 0.3
+                    })
                 });
-            }
-            
-            showBacktestResults(results);
-        }
-        
-        function showBacktestResult(type, message) {
-            const resultsDiv = document.getElementById('backtest-results');
-            
-            if (type === 'loading') {
-                resultsDiv.innerHTML = `
-                    <div class="loading">
-                        <div style="text-align: center; padding: 40px;">
-                            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
-                            <div style="font-size: 18px;">${message}</div>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'success') {
-                resultsDiv.innerHTML = `
-                    <div class="success">
-                        ${message}
-                    </div>
-                `;
-            } else {
-                resultsDiv.innerHTML = `
-                    <div class="error">
-                        ${message}
-                    </div>
-                `;
-            }
-        }
-        
-        async function pollBacktestResults(jobId) {
-            let attempts = 0;
-            const maxAttempts = 60; // 5 minutes with 5-second intervals
-            
-            const poll = async () => {
-                try {
-                    const response = await fetch(`/api/backtest/status/${jobId}`);
-                    const result = await response.json();
-                    
-                    if (result.status === 'completed') {
-                        showBacktestResults(result.results);
-                    } else if (result.status === 'failed') {
-                        showBacktestResult('error', `❌ Backtest failed: ${result.error}`);
-                    } else if (attempts < maxAttempts) {
-                        attempts++;
-                        setTimeout(poll, 5000); // Poll every 5 seconds
-                    } else {
-                        showBacktestResult('error', '❌ Backtest timed out. Please check the job status.');
-                    }
-                } catch (error) {
-                    if (attempts < maxAttempts) {
-                        attempts++;
-                        setTimeout(poll, 5000);
-                    } else {
-                        showBacktestResult('error', `❌ Error polling results: ${error.message}`);
-                    }
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addChatMessage('bot', data.answer, data.sources, data.confidence);
+                } else {
+                    const errorData = await response.json();
+                    addChatMessage('bot', `Error: ${errorData.detail || 'Failed to get response'}`, [], 0);
                 }
-            };
-            
-            poll();
+            } catch (error) {
+                console.error('Error sending question:', error);
+                addChatMessage('bot', `Error: ${error.message}`, [], 0);
+            } finally {
+                isProcessing = false;
+            }
         }
         
-        function showBacktestResults(results) {
-            const resultsDiv = document.getElementById('backtest-results');
+        function addChatMessage(type, content, sources = [], confidence = 1.0) {
+            const chatContainer = document.getElementById('k8s-chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
             
-            if (!results || results.length === 0) {
-                resultsDiv.innerHTML = '<div class="info-message">No results available</div>';
-                return;
+            let messageContent = `<div class="message-content">${content}</div>`;
+            
+            if (type === 'bot' && sources && sources.length > 0) {
+                messageContent += '<div class="sources">';
+                messageContent += '<strong>Sources:</strong><br>';
+                sources.forEach(source => {
+                    messageContent += `• ${source.content}<br>`;
+                });
+                messageContent += '</div>';
             }
             
-            const resultsHtml = results.map(strategy => `
-                <div class="strategy-result">
-                    <h4>${strategy.name.replace('Strategy', '')}</h4>
-                    <div class="metrics-grid">
-                        <div class="metric">
-                            <strong>Total Return</strong>
-                            <span class="${strategy.total_return >= 0 ? 'positive' : 'negative'}">
-                                ${(strategy.total_return * 100).toFixed(2)}%
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <strong>Sharpe Ratio</strong>
-                            <span class="${strategy.sharpe_ratio >= 0 ? 'positive' : 'negative'}">
-                                ${strategy.sharpe_ratio.toFixed(3)}
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <strong>Max Drawdown</strong>
-                            <span class="negative">
-                                ${(strategy.max_drawdown * 100).toFixed(2)}%
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <strong>Win Rate</strong>
-                            <span class="neutral">
-                                ${(strategy.win_rate * 100).toFixed(1)}%
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <strong>Total Trades</strong>
-                            <span class="neutral">
-                                ${strategy.total_trades}
-                            </span>
-                        </div>
-                        <div class="metric">
-                            <strong>Profit Factor</strong>
-                            <span class="${strategy.profit_factor >= 1 ? 'positive' : 'negative'}">
-                                ${strategy.profit_factor.toFixed(2)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            if (type === 'bot' && confidence < 1.0) {
+                messageContent += `<div class="confidence">Confidence: ${(confidence * 100).toFixed(1)}%</div>`;
+            }
             
-            resultsDiv.innerHTML = resultsHtml;
+            messageDiv.innerHTML = messageContent;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+        
+        function clearK8sChat() {
+            const chatContainer = document.getElementById('k8s-chat-messages');
+            chatContainer.innerHTML = '';
+            chatMessages = [];
+        }
+               
     </script>
 </body>
-</html> 
+</html>

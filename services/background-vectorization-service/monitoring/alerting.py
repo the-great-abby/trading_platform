@@ -341,3 +341,4 @@ integration_monitor = IntegrationMonitor(alert_manager)
 # Add default handlers
 alert_manager.add_alert_handler(console_alert_handler)
 alert_manager.add_alert_handler(log_alert_handler)
+

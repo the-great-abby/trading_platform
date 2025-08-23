@@ -442,14 +442,14 @@
         </div>
         
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('overview')"> Overview</button>
-            <button class="nav-tab" onclick="showTab('ai-stock')">🤖 AI Stock Analysis</button>
-            <button class="nav-tab" onclick="showTab('central-hub')">🏢 Central Hub</button>
-            <button class="nav-tab" onclick="showTab('data-pipeline')">📈 Data Pipeline</button>
-            <button class="nav-tab" onclick="showTab('backtest')">📊 Backtest</button>
-            <button class="nav-tab" onclick="showTab('order-entry')">Order Entry</button>
-            <button class="nav-tab" onclick="showTab('rag-search')">🔍 RAG Search</button>
-            <button class="nav-tab" onclick="showTab('symbol-management')">🎯 Symbol Management</button>
+            <button class="nav-tab active" onclick="showTab('overview', event)"> Overview</button>
+            <button class="nav-tab" onclick="showTab('ai-stock', event)">🤖 AI Stock Analysis</button>
+            <button class="nav-tab" onclick="showTab('central-hub', event)">🏢 Central Hub</button>
+            <button class="nav-tab" onclick="showTab('data-pipeline', event)">📈 Data Pipeline</button>
+            <button class="nav-tab" onclick="showTab('backtest', event)">📊 Backtest</button>
+            <button class="nav-tab" onclick="showTab('order-entry', event)">Order Entry</button>
+            <button class="nav-tab" onclick="showTab('rag-search', event)">🔍 RAG Search</button>
+            <button class="nav-tab" onclick="showTab('symbol-management', event)">🎯 Symbol Management</button>
         </div>
         
         <div class="dashboard-content">
@@ -479,9 +479,9 @@
                     <div class="card">
                         <h3>🔄 Data Fetch Controls</h3>
                         <div id="data-fetch-controls">
-                            <button onclick="fetchRecentData()" class="btn btn-primary">📊 Fetch Recent Data (30 days)</button>
-                            <button onclick="fetch2YearData()" class="btn btn-success">📈 Fetch 2-Year Historical Data</button>
-                            <button onclick="fetchCustomData()" class="btn btn-info">⚙️ Fetch Custom Data</button>
+                            <button class="btn btn-primary">📊 Fetch Recent Data (30 days)</button>
+                            <button class="btn btn-success">📈 Fetch 2-Year Historical Data</button>
+                            <button class="btn btn-info">⚙️ Fetch Custom Data</button>
                             <div id="fetch-status" style="margin-top: 15px; font-size: 14px;"></div>
                         </div>
                     </div>
@@ -570,8 +570,8 @@
                     <div class="card">
                         <h3>📊 Historical Data Fetch</h3>
                         <div class="fetch-controls">
-                            <button onclick="fetchRecentData()" class="btn btn-primary" style="margin: 5px;">📊 Fetch Recent Data (30 days)</button>
-                            <button onclick="fetch2YearData()" class="btn btn-success" style="margin: 5px;">📈 Fetch 2-Year Historical Data</button>
+                            <button class="btn btn-primary" style="margin: 5px;">📊 Fetch Recent Data (30 days)</button>
+                            <button class="btn btn-success" style="margin: 5px;">📈 Fetch 2-Year Historical Data</button>
                         </div>
                         <div id="fetch-status" style="margin-top: 15px; font-size: 14px;"></div>
                     </div>
@@ -591,7 +591,7 @@
                                 <label for="custom-end-date">End Date:</label>
                                 <input type="date" id="custom-end-date" value="2024-12-31" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
                             </div>
-                            <button onclick="fetchCustomData()" class="btn btn-info" style="width: 100%; margin-top: 10px;">🚀 Fetch Custom Data</button>
+                            <button class="btn btn-info" style="width: 100%; margin-top: 10px;">🚀 Fetch Custom Data</button>
                         </div>
                     </div>
                     
@@ -703,6 +703,223 @@
                         </div>
                         <div id="order-history">
                             <p>Click "Refresh Orders" to load recent orders</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="backtest" class="tab-content" style="display: none;">
+                <h2>📊 Backtest Dashboard</h2>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3>📊 Backtest Configuration</h3>
+                        <div class="backtest-form">
+                            <!-- Quick Action Buttons -->
+                            <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                <div class="quick-action-btn" onclick="quickBacktest('all')" style="padding: 15px; border: 2px solid #667eea; border-radius: 10px; background: white; color: #667eea; cursor: pointer; transition: all 0.3s ease; text-align: center; font-weight: 600;">
+                                    <span class="icon" style="font-size: 2em; margin-bottom: 10px; display: block;">🔄</span>
+                                    <div>Test All Symbols</div>
+                                    <small>(43 symbols)</small>
+                            </div>
+                                <div class="quick-action-btn" onclick="quickBacktest('tech')" style="padding: 15px; border: 2px solid #667eea; border-radius: 10px; background: white; color: #667eea; cursor: pointer; transition: all 0.3s ease; text-align: center; font-weight: 600;">
+                                    <span class="icon" style="font-size: 2em; margin-bottom: 10px; display: block;">🏗️</span>
+                                    <div>Tech Portfolio</div>
+                                    <small>(18 symbols)</small>
+                            </div>
+                                <div class="quick-action-btn" onclick="quickBacktest('finance')" style="padding: 15px; border: 2px solid #667eea; border-radius: 10px; background: white; color: #667eea; cursor: pointer; transition: all 0.3s ease; text-align: center; font-weight: 600;">
+                                    <span class="icon" style="font-size: 2em; margin-bottom: 10px; display: block;">💰</span>
+                                    <div>Finance Portfolio</div>
+                                    <small>(7 symbols)</small>
+                                </div>
+                                <div class="quick-action-btn" onclick="quickBacktest('etfs')" style="padding: 15px; border: 2px solid #667eea; border-radius: 10px; background: white; color: #667eea; cursor: pointer; transition: all 0.3s ease; text-align: center; font-weight: 600;">
+                                    <span class="icon" style="font-size: 2em; margin-bottom: 10px; display: block;">📈</span>
+                                    <div>ETF Portfolio</div>
+                                    <small>(10 symbols)</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Symbol Selection Tabs -->
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Symbol Selection Method:</label>
+                                <div class="symbol-selection-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                                    <div class="symbol-tab active" onclick="showSymbolTab('portfolio')" style="padding: 12px 20px; border: 2px solid #667eea; border-radius: 8px; background: #667eea; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; font-size: 0.9em;">🔄 Portfolio</div>
+                                    <div class="symbol-tab" onclick="showSymbolTab('category')" style="padding: 12px 20px; border: 2px solid #667eea; border-radius: 8px; background: white; color: #667eea; cursor: pointer; font-weight: 600; transition: all 0.3s ease; font-size: 0.9em;">📊 By Category</div>
+                                    <div class="symbol-tab" onclick="showSymbolTab('priority')" style="padding: 12px 20px; border: 2px solid #667eea; border-radius: 8px; background: white; color: #667eea; cursor: pointer; font-weight: 600; transition: all 0.3s ease; font-size: 0.9em;">⭐ By Priority</div>
+                                    <div class="symbol-tab" onclick="showSymbolTab('custom')" style="padding: 12px 20px; border: 2px solid #667eea; border-radius: 8px; background: white; color: #667eea; cursor: pointer; font-weight: 600; transition: all 0.3s ease; font-size: 0.9em;">🎯 Custom</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Portfolio Tab -->
+                            <div id="portfolio-tab" class="symbol-content active" style="display: block; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 20px;">
+                                <div class="category-info" style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                    <h4 style="color: #1976d2; margin-bottom: 10px;">📊 Portfolio Overview</h4>
+                                    <p>Test your entire portfolio of 43 active symbols across all categories.</p>
+                                    <div class="category-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 10px;">
+                                        <div class="stat-item" style="text-align: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #2196f3;">
+                                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #1976d2;">43</div>
+                                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Total Symbols</div>
+                                        </div>
+                                        <div class="stat-item" style="text-align: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #2196f3;">
+                                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #1976d2;">18</div>
+                                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Technology</div>
+                                        </div>
+                                        <div class="stat-item" style="text-align: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #2196f3;">
+                                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #1976d2;">7</div>
+                                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Finance</div>
+                                        </div>
+                                        <div class="stat-item" style="text-align: center; padding: 8px; background: white; border-radius: 6px; border: 1px solid #2196f3;">
+                                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #1976d2;">10</div>
+                                            <div class="stat-label" style="font-size: 0.8em; color: #666;">ETFs</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" onclick="selectAllSymbols()" style="padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; background: #28a745; color: white;">✅ Select All 43 Symbols</button>
+                            </div>
+                            
+                            <!-- Category Tab -->
+                            <div id="category-tab" class="symbol-content" style="display: none; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 20px;">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Select Categories to Test:</label>
+                                    <div class="symbol-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 15px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="technology" checked style="margin-right: 8px;">
+                                            🏗️ Technology (18)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="finance" checked style="margin-right: 8px;">
+                                            💰 Finance (7)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="healthcare" checked style="margin-right: 8px;">
+                                            🏥 Healthcare (3)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="etf" checked style="margin-right: 8px;">
+                                            📈 ETFs (10)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="consumer" style="margin-right: 8px;">
+                                            🛍️ Consumer (2)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="energy" style="margin-right: 8px;">
+                                            ⚡ Energy (1)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="industrial" style="margin-right: 8px;">
+                                            🏭 Industrial (1)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="utilities" style="margin-right: 8px;">
+                                            🔌 Utilities (1)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Priority Tab -->
+                            <div id="priority-tab" class="symbol-content" style="display: none; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 20px;">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Select Priority Levels:</label>
+                                    <div class="symbol-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 15px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="high" checked style="margin-right: 8px;">
+                                            🔴 High Priority (1-10)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="medium" checked style="margin-right: 8px;">
+                                            🟡 Medium Priority (11-20)
+                                        </label>
+                                        <label class="symbol-item" style="display: flex; align-items: center; padding: 8px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; font-size: 0.9em;">
+                                            <input type="checkbox" value="low" checked style="margin-right: 8px;">
+                                            🟢 Low Priority (21-43)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Custom Tab -->
+                            <div id="custom-tab" class="symbol-content" style="display: none; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 20px;">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Select Individual Symbols:</label>
+                                    <div class="symbol-grid" id="custom-symbol-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 15px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Symbols Display -->
+                            <div id="selected-symbols-display" class="selected-symbols-display" style="display: none; background: #e8f5e8; border: 1px solid #28a745; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                                <h4 style="color: #28a745; margin-bottom: 10px;">✅ Selected Symbols: <span id="selected-count">0</span></h4>
+                                <div id="selected-symbols-list" class="selected-symbols-list" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                            </div>
+                            
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label for="backtest-start-date" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Start Date:</label>
+                                <input type="date" id="backtest-start-date" value="2024-01-01" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                                <div class="form-group" style="margin-bottom: 20px;">
+                                    <label for="backtest-end-date" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">End Date:</label>
+                                <input type="date" id="backtest-end-date" value="2024-12-31" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                            
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="backtest-capital" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Initial Capital ($):</label>
+                                <input type="number" id="backtest-capital" value="100000" min="10000" step="10000" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Strategy Categories:</label>
+                                <div class="strategy-categories" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-outline" onclick="selectCategory('basic')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">📊 Basic Strategies</button>
+                                    <button type="button" class="btn btn-outline" onclick="selectCategory('options')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🎯 Options Strategies</button>
+                                    <button type="button" class="btn btn-outline" onclick="selectCategory('advanced')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🚀 Advanced Strategies</button>
+                                    <button type="button" class="btn btn-outline" onclick="selectCategory('all')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🌟 All Strategies</button>
+                        </div>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Selected Strategies:</label>
+                                <div id="strategy-selection" class="strategy-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px; background: #f9f9f9;">
+                                    <!-- Strategies will be populated by JavaScript -->
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="backtest-risk-profile" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">Risk Profile:</label>
+                                <select id="backtest-risk-profile" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                                    <option value="conservative">Conservative</option>
+                                    <option value="moderate" selected>Moderate</option>
+                                    <option value="aggressive">Aggressive</option>
+                                    <option value="ultra-aggressive">Ultra Aggressive</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">
+                                    <input type="checkbox" id="backtest-use-llm" style="margin-right: 8px;">
+                                    Use AI/LLM Analysis
+                                </label>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 1.1em;">
+                                    <input type="checkbox" id="backtest-parallel" checked style="margin-right: 8px;">
+                                    Parallel Execution
+                                </label>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="runComprehensiveBacktest()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">🚀 Run Comprehensive Backtest</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>📊 Backtest Results</h3>
+                        <div id="backtest-results">
+                            <div class="info-message" style="text-align: center; padding: 20px; color: #666; font-style: italic;">Configure and run a backtest to see results here</div>
                         </div>
                     </div>
                 </div>
@@ -824,24 +1041,66 @@
     </div>
     
     <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded');
+            
+            // Initialize the overview tab as active
+            showTab('overview', null);
+        });
+        
         // Tab switching
-        function showTab(tabName) {
+        function showTab(tabName, event) {
+            console.log('showTab called with:', tabName, 'event:', event);
+            
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => content.style.display = 'none');
+            console.log('Found tab contents:', tabContents.length);
+            tabContents.forEach(content => {
+                console.log('Hiding tab:', content.id);
+                content.style.display = 'none';
+            });
             
             // Remove active class from all tabs
             const navTabs = document.querySelectorAll('.nav-tab');
             navTabs.forEach(tab => tab.classList.remove('active'));
             
             // Show selected tab content
-            document.getElementById(tabName).style.display = 'block';
+            const selectedTab = document.getElementById(tabName);
+            console.log('Selected tab element:', selectedTab);
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+                console.log('Set display to block for:', tabName);
+                
+                // Load data for the selected tab
+                console.log('Calling loadTabData with:', tabName);
+                loadTabData(tabName);
+            } else {
+                console.error('Tab not found:', tabName);
+                // Show error message to user
+                const dashboardContent = document.querySelector('.dashboard-content');
+                if (dashboardContent) {
+                    dashboardContent.innerHTML = `
+                        <div style="text-align: center; padding: 50px; color: #666;">
+                            <h2>⚠️ Tab Not Found</h2>
+                            <p>The "${tabName}" tab could not be loaded.</p>
+                            <p>This might be due to a JavaScript error or missing content.</p>
+                            <button onclick="showTab('overview', event)" class="btn btn-primary">Return to Overview</button>
+                        </div>
+                    `;
+                }
+            }
             
-            // Add active class to clicked tab
-            event.target.classList.add('active');
-            
-            // Load data for the selected tab
-            loadTabData(tabName);
+            // Add active class to clicked tab - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            } else {
+                // If no event or target, find the tab button by tab name and activate it
+                const tabButton = document.querySelector(`[onclick*="showTab('${tabName}', event)"]`);
+                if (tabButton && tabButton.classList) {
+                    tabButton.classList.add('active');
+                }
+            }
         }
         
         // Load data for specific tabs
@@ -858,6 +1117,9 @@
                     break;
                 case 'data-pipeline':
                     loadDataPipelineData();
+                    break;
+                case 'backtest':
+                    loadBacktestData();
                     break;
                 case 'data-fetch':
                     loadDataFetchData();
@@ -953,6 +1215,533 @@
             } catch (error) {
                 console.error('Error loading data pipeline data:', error);
             }
+        }
+        
+        // Load backtest data
+        async function loadBacktestData() {
+            try {
+                // For now, just show a placeholder message since backtest API endpoints don't exist yet
+                // The tab content is already defined in the HTML, so we don't need to replace it
+                console.log('Backtest tab loaded - API endpoints not yet implemented');
+                
+                // TODO: When backtest API endpoints are implemented, load actual data here
+                // For example:
+                // const backtestResults = await fetch('/api/backtest/results').then(r => r.json());
+                // Update the backtest results display with actual data
+            } catch (error) {
+                console.error('Error loading backtest data:', error);
+            }
+        }
+        
+        // Format backtest results
+        function formatBacktestResults(results) {
+            if (!Array.isArray(results) || results.length === 0) {
+                return '<p>No backtest results available.</p>';
+            }
+            
+            let html = '<div class="backtest-grid">';
+            results.forEach(result => {
+                const statusClass = result.status === 'completed' ? 'status-healthy' : 
+                                  result.status === 'running' ? 'status-degraded' : 'status-error';
+                html += `
+                    <div class="backtest-card">
+                        <h4>${result.strategy_name || 'Strategy'}</h4>
+                        <p><strong>Status:</strong> <span class="${statusClass}">${result.status}</span></p>
+                        <p><strong>Symbol:</strong> ${result.symbol || 'N/A'}</p>
+                        <p><strong>Period:</strong> ${result.start_date || 'N/A'} to ${result.end_date || 'N/A'}</p>
+                        <p><strong>Return:</strong> ${result.total_return ? (result.total_return * 100).toFixed(2) + '%' : 'N/A'}</p>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+        
+        // Run new backtest
+        async function runNewBacktest() {
+            try {
+                // For now, show a placeholder message since the backtest API doesn't exist yet
+                alert('Backtest functionality is coming soon! The backtest API endpoints are not yet implemented.');
+                
+                // TODO: Implement actual backtest API call when endpoints are available
+                /*
+                const response = await fetch('/api/backtest/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        strategy: 'default',
+                        symbol: 'SPY',
+                        start_date: '2024-01-01',
+                        end_date: '2024-12-31'
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Backtest started successfully!');
+                    loadBacktestData(); // Refresh the data
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                */
+            } catch (error) {
+                console.error('Error starting backtest:', error);
+                alert(`Error starting backtest: ${error.message}`);
+            }
+        }
+        
+        // Load backtest history
+        async function loadBacktestHistory() {
+            try {
+                // For now, show a placeholder message since the backtest API doesn't exist yet
+                alert('Backtest history functionality is coming soon! The backtest API endpoints are not yet implemented.');
+                
+                // TODO: Implement actual backtest history API call when endpoints are available
+                /*
+                const response = await fetch('/api/backtest/history');
+                const history = await response.json();
+                
+                const backtestContent = document.querySelector('.dashboard-content');
+                if (backtestContent) {
+                    backtestContent.innerHTML = `
+                        <div class="backtest-history">
+                            <h2>📚 Backtest History</h2>
+                            <button onclick="loadBacktestData()" class="btn btn-secondary">← Back to Dashboard</button>
+                            <div class="history-list">
+                                ${formatBacktestHistory(history.runs || [])}
+                            </div>
+                        </div>
+                    `;
+                }
+                */
+            } catch (error) {
+                console.error('Error loading backtest history:', error);
+                alert(`Error loading history: ${error.message}`);
+            }
+        }
+        
+        // Format backtest history
+        function formatBacktestHistory(runs) {
+            if (!Array.isArray(runs) || runs.length === 0) {
+                return '<p>No backtest history available.</p>';
+            }
+            
+            let html = '<div class="history-grid">';
+            runs.forEach(run => {
+                const statusClass = run.status === 'completed' ? 'status-healthy' : 
+                                  run.status === 'running' ? 'status-degraded' : 'status-error';
+                html += `
+                    <div class="history-card">
+                        <h4>${run.strategy_name || 'Strategy'}</h4>
+                        <p><strong>Status:</strong> <span class="${statusClass}">${run.status}</span></p>
+                        <p><strong>Symbol:</strong> ${run.symbol || 'N/A'}</p>
+                        <p><strong>Created:</strong> ${run.created_at || 'N/A'}</p>
+                        <p><strong>Return:</strong> ${run.total_return ? (run.total_return * 100).toFixed(2) + '%' : 'N/A'}</p>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+        
+        // Refresh backtest results
+        async function refreshBacktestResults() {
+            try {
+                // For now, show a placeholder message since the backtest API doesn't exist yet
+                alert('Backtest results refresh functionality is coming soon! The backtest API endpoints are not yet implemented.');
+                
+                // TODO: Implement actual backtest results refresh when endpoints are available
+                /*
+                const response = await fetch('/api/backtest/results');
+                const results = await response.json();
+                
+                const resultsList = document.getElementById('backtest-results-list');
+                if (resultsList) {
+                    resultsList.innerHTML = formatBacktestResults(results.results || []);
+                }
+                */
+            } catch (error) {
+                console.error('Error refreshing backtest results:', error);
+                const resultsList = document.getElementById('backtest-results-list');
+                if (resultsList) {
+                    resultsList.innerHTML = '<div class="error">Error refreshing results: ' + error.message + '</div>';
+                }
+            }
+        }
+        
+        // New comprehensive backtest functionality
+        // Centralized symbol data
+        const SYMBOLS = {
+            technology: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO', 'SMCI'],
+            finance: ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'V', 'MA'],
+            healthcare: ['JNJ', 'PFE', 'UNH'],
+            consumer: ['HD', 'DIS'],
+            etf: ['SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY'],
+            energy: ['XLE'],
+            industrial: ['XLI'],
+            utilities: ['XLU']
+        };
+        
+        const SYMBOL_PRIORITIES = {
+            high: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC'],
+            medium: ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS'],
+            low: ['V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO', 'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'SMCI']
+        };
+        
+        // Strategy definitions
+        const STRATEGIES = {
+            basic: [
+                'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+                'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
+                'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy'
+            ],
+            options: [
+                'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+                'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
+                'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy'
+            ],
+            advanced: [
+                'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
+                'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
+                'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
+            ]
+        };
+        
+        let selectedSymbols = new Set();
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            selectCategory('basic');
+            populateCustomSymbolGrid();
+            updateSelectedSymbolsDisplay();
+        });
+        
+        // Show different symbol selection tabs
+        function showSymbolTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.symbol-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.symbol-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Populate custom symbol grid
+        function populateCustomSymbolGrid() {
+            const grid = document.getElementById('custom-symbol-grid');
+            let allSymbols = [];
+            
+            // Combine all symbols from all categories
+            Object.values(SYMBOLS).forEach(categorySymbols => {
+                allSymbols = allSymbols.concat(categorySymbols);
+            });
+            
+            // Sort alphabetically
+            allSymbols.sort();
+            
+            const symbolsHtml = allSymbols.map(symbol => `
+                <label class="symbol-item" onclick="toggleSymbol('${symbol}')">
+                    <input type="checkbox" value="${symbol}" onchange="toggleSymbol('${symbol}')">
+                    ${symbol}
+                </label>
+            `).join('');
+            
+            grid.innerHTML = symbolsHtml;
+        }
+        
+        // Toggle symbol selection
+        function toggleSymbol(symbol) {
+            if (selectedSymbols.has(symbol)) {
+                selectedSymbols.delete(symbol);
+            } else {
+                selectedSymbols.add(symbol);
+            }
+            updateSelectedSymbolsDisplay();
+        }
+        
+        // Quick backtest functions
+        function quickBacktest(type) {
+            selectedSymbols.clear();
+            
+            switch(type) {
+                case 'all':
+                    Object.values(SYMBOLS).forEach(categorySymbols => {
+                        categorySymbols.forEach(symbol => selectedSymbols.add(symbol));
+                    });
+                    break;
+                case 'tech':
+                    SYMBOLS.technology.forEach(symbol => selectedSymbols.add(symbol));
+                    break;
+                case 'finance':
+                    SYMBOLS.finance.forEach(symbol => selectedSymbols.add(symbol));
+                    break;
+                case 'etfs':
+                    SYMBOLS.etf.forEach(symbol => selectedSymbols.add(symbol));
+                    break;
+            }
+            
+            updateSelectedSymbolsDisplay();
+            showSymbolTab('custom');
+            document.querySelector('[onclick="showSymbolTab(\'custom\')"]').classList.add('active');
+            document.querySelectorAll('.symbol-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('custom-tab').classList.add('active');
+        }
+        
+        // Select all symbols
+        function selectAllSymbols() {
+            selectedSymbols.clear();
+            Object.values(SYMBOLS).forEach(categorySymbols => {
+                categorySymbols.forEach(symbol => selectedSymbols.add(symbol));
+            });
+            updateSelectedSymbolsDisplay();
+        }
+        
+        // Update selected symbols display
+        function updateSelectedSymbolsDisplay() {
+            const display = document.getElementById('selected-symbols-display');
+            const count = document.getElementById('selected-count');
+            const list = document.getElementById('selected-symbols-list');
+            
+            if (selectedSymbols.size > 0) {
+                display.style.display = 'block';
+                count.textContent = selectedSymbols.size;
+                
+                const symbolsHtml = Array.from(selectedSymbols).map(symbol => 
+                    `<span class="symbol-tag" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; font-weight: 500;">${symbol}</span>`
+                ).join('');
+                
+                list.innerHTML = symbolsHtml;
+            } else {
+                display.style.display = 'none';
+            }
+        }
+        
+        // Initialize strategy selection
+        function selectCategory(category) {
+            const strategyGrid = document.getElementById('strategy-selection');
+            let strategies = [];
+            
+            if (category === 'all') {
+                strategies = [...STRATEGIES.basic, ...STRATEGIES.options, ...STRATEGIES.advanced];
+            } else {
+                strategies = STRATEGIES[category] || [];
+            }
+            
+            const strategiesHtml = strategies.map(strategy => `
+                <label class="strategy-checkbox">
+                    <input type="checkbox" value="${strategy}" checked>
+                    ${strategy.replace('Strategy', '')}
+                </label>
+            `).join('');
+            
+            strategyGrid.innerHTML = strategiesHtml;
+        }
+        
+        // Get symbols based on current selection method
+        function getSelectedSymbols() {
+            const activeTab = document.querySelector('.symbol-content.active');
+            const tabId = activeTab.id;
+            
+            if (tabId === 'portfolio-tab') {
+                return Array.from(selectedSymbols);
+            } else if (tabId === 'category-tab') {
+                const selectedCategories = Array.from(document.querySelectorAll('#category-tab input:checked'))
+                    .map(cb => cb.value);
+                let symbols = [];
+                selectedCategories.forEach(category => {
+                    if (SYMBOLS[category]) {
+                        symbols = symbols.concat(SYMBOLS[category]);
+                    }
+                });
+                return symbols;
+            } else if (tabId === 'priority-tab') {
+                const selectedPriorities = Array.from(document.querySelectorAll('#priority-tab input:checked'))
+                    .map(cb => cb.value);
+                let symbols = [];
+                selectedPriorities.forEach(priority => {
+                    if (SYMBOL_PRIORITIES[priority]) {
+                        symbols = symbols.concat(SYMBOL_PRIORITIES[priority]);
+                    }
+                });
+                return symbols;
+            } else if (tabId === 'custom-tab') {
+                return Array.from(selectedSymbols);
+            }
+            
+            return [];
+        }
+        
+        // Run comprehensive backtest
+        async function runComprehensiveBacktest() {
+            const symbols = getSelectedSymbols();
+            const startDate = document.getElementById('backtest-start-date').value;
+            const endDate = document.getElementById('backtest-end-date').value;
+            const capital = parseFloat(document.getElementById('backtest-capital').value);
+            const riskProfile = document.getElementById('backtest-risk-profile').value;
+            const useLLM = document.getElementById('backtest-use-llm').checked;
+            const parallel = document.getElementById('backtest-parallel').checked;
+            
+            // Get selected strategies
+            const selectedStrategies = Array.from(document.querySelectorAll('#strategy-selection input:checked'))
+                .map(cb => cb.value);
+            
+            if (symbols.length === 0 || !startDate || !endDate || selectedStrategies.length === 0) {
+                alert('Please select symbols and fill in all required fields');
+                return;
+            }
+            
+            const backtestData = {
+                symbols: symbols,
+                strategies: selectedStrategies,
+                start_date: startDate,
+                end_date: endDate,
+                initial_capital: capital,
+                risk_profile: riskProfile,
+                use_llm: useLLM,
+                parallel_execution: parallel
+            };
+            
+            // Show loading state
+            showBacktestResult('loading', `🚀 Starting comprehensive backtest on ${symbols.length} symbols with ${selectedStrategies.length} strategies... This may take several minutes.`);
+            
+            // Simulate backtest processing
+            await simulateBacktest(backtestData);
+        }
+        
+        async function simulateBacktest(data) {
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Generate mock results
+            const results = [];
+            for (const strategy of data.strategies) {
+                const totalReturn = (Math.random() - 0.3) * 0.8; // -30% to +50%
+                const sharpeRatio = (Math.random() - 0.5) * 3; // -1.5 to +1.5
+                const maxDrawdown = Math.random() * 0.3; // 0% to 30%
+                const winRate = 0.4 + Math.random() * 0.7; // 40% to 70%
+                const totalTrades = Math.floor(Math.random() * 90) + 10; // 10 to 100
+                const profitFactor = 0.8 + Math.random() * 0.7; // 0.8 to 1.5
+                
+                results.push({
+                    name: strategy,
+                    total_return: totalReturn,
+                    sharpe_ratio: sharpeRatio,
+                    max_drawdown: maxDrawdown,
+                    win_rate: winRate,
+                    total_trades: totalTrades,
+                    profit_factor: profitFactor
+                });
+            }
+            
+            showBacktestResults(results, data);
+        }
+        
+        function showBacktestResult(type, message) {
+            const resultsDiv = document.getElementById('backtest-results');
+            
+            if (type === 'loading') {
+                resultsDiv.innerHTML = `
+                    <div class="loading" style="text-align: center; padding: 40px; color: #666;">
+                        <div style="text-align: center; padding: 40px;">
+                            <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                            <div style="font-size: 18px;">${message}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'success') {
+                resultsDiv.innerHTML = `
+                    <div class="success" style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        ${message}
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="error" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        ${message}
+                    </div>
+                `;
+            }
+        }
+        
+        function showBacktestResults(results, data) {
+            const resultsDiv = document.getElementById('backtest-results');
+            
+            if (!results || results.length === 0) {
+                resultsDiv.innerHTML = '<div class="info-message" style="text-align: center; padding: 20px; color: #666; font-style: italic;">No results available</div>';
+                return;
+            }
+            
+            const summaryHtml = `
+                <div class="strategy-result" style="background: #e8f5e8; border-color: #28a745; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="color: #667eea; margin-bottom: 15px;">📊 Backtest Summary</h4>
+                    <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Symbols Tested</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #6c757d;">${data.symbols.length}</span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Strategies</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #6c757d;">${data.strategies.length}</span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Date Range</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #6c757d;">${data.start_date} to ${data.end_date}</span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Initial Capital</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #6c757d;">$${data.initial_capital.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const resultsHtml = results.map(strategy => `
+                <div class="strategy-result" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h4 style="color: #667eea; margin-bottom: 15px;">${strategy.name.replace('Strategy', '')}</h4>
+                    <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Total Return</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: ${strategy.total_return >= 0 ? '#28a745' : '#dc3545'};">
+                                ${(strategy.total_return * 100).toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Sharpe Ratio</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: ${strategy.sharpe_ratio >= 0 ? '#28a745' : '#dc3545'};">
+                                ${strategy.sharpe_ratio.toFixed(3)}
+                            </span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Max Drawdown</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #dc3545;">
+                                ${(strategy.max_drawdown * 100).toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Win Rate</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #6c757d;">
+                                ${(strategy.win_rate * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        <div class="metric" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Total Trades</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: #6c757d;">
+                                ${strategy.total_trades}
+                            </span>
+                        </div>
+                        <div class="metric" style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">
+                            <strong style="display: block; margin-bottom: 5px; font-size: 12px; color: #666;">Profit Factor</strong>
+                            <span style="font-size: 18px; font-weight: bold; color: ${strategy.profit_factor >= 1 ? '#28a745' : '#dc3545'};">
+                                ${strategy.profit_factor.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = summaryHtml + resultsHtml;
         }
         
         // Load data fetch data

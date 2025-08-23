@@ -235,3 +235,4 @@ spec:
                 memory: "128Mi"
                 cpu: "100m"
           restartPolicy: OnFailure
+

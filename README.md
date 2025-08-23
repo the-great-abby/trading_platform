@@ -79,6 +79,23 @@ For more details, see: `docs/KUBERNETES_LEARNING_SUMMARY.md`
 
 ## 🚀 Launch Sequence (Quick Start)
 
+### 📖 **Makefile.simple System (Recommended)**
+
+The `Makefile.simple` is your **one-command solution** for managing the entire trading system. See the complete usage guide:
+
+- **📚 Usage Guide**: `docs/MAKEFILE_SIMPLE_USAGE_GUIDE.md`
+- **📝 Note-Taking Guide**: `docs/NOTE_TAKING_SYSTEM_GUIDE.md`
+- **🚀 Quick Start**: `make -f Makefile.simple deploy-vectorization-constrained`
+- **🔍 Help**: `make -f Makefile.simple help`
+- **📋 Rules**: `.cursor/rules/makefile-simple-notes.mdc`
+
+**Key Benefits:**
+- ✅ **One command startup** for the entire system
+- ✅ **Resource optimization** for constrained environments
+- ✅ **Progress tracking** and collaboration tools
+- ✅ **Service consolidation** and cleanup commands
+- ✅ **Troubleshooting workflows** built-in
+
 ### Prerequisites
 
 - Docker & Docker Compose

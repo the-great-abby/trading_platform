@@ -151,3 +151,4 @@ else
     echo ""
     echo "⚠️  Some symbols failed to update. Check the errors above."
 fi
+

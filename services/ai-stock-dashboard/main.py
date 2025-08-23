@@ -50,7 +50,7 @@ templates = Jinja2Templates(directory="templates")
 
 # Configuration - Real service URLs
 VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:80")
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://host.docker.internal:12001")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://host.docker.internal:32001")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11031")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:11084")

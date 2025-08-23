@@ -7,7 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-WATCHER_SCRIPT="$SCRIPT_DIR/port_watcher.py"
+WATCHER_SCRIPT="$SCRIPT_DIR/port_watcher_v2.py"
 LOG_DIR="$PROJECT_DIR/port_watcher_logs"
 
 echo "🚀 Starting Comprehensive Port Watcher..."

@@ -16,7 +16,7 @@ class VectorEmbedding(Base):
     id = Column(String(100), primary_key=True)
     content = Column(Text, nullable=False)
     embedding = Column(Text, nullable=False)  # JSON array of floats
-    metadata_json = Column(JSON, nullable=True)
+    meta_info = Column(JSON, nullable=True)
     vector_type = Column(String(50), nullable=False)  # "news", "market_data", "decision", "analysis"
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 

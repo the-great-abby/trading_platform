@@ -193,7 +193,7 @@ class HTMLReportGenerator:
         # JavaScript for interactivity
         self.js_script = """
         <script>
-        function showTab(tabName) {
+        function showTab(tabName, event) {
             // Hide all tab contents
             var tabContents = document.getElementsByClassName('tab-content');
             for (var i = 0; i < tabContents.length; i++) {
@@ -208,7 +208,11 @@ class HTMLReportGenerator:
             
             // Show the selected tab content and mark tab as active
             document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+            
+            // Add active class to clicked tab - safely handle undefined event
+            if (event && event.target && event.target.classList) {
+                event.target.classList.add('active');
+            }
         }
         
         // Initialize first tab as active
@@ -344,9 +348,9 @@ class HTMLReportGenerator:
                         <div class="section-header">Strategy Comparison</div>
                         <div class="section-content">
                             <div class="tabs">
-                                <button class="tab" onclick="showTab('comparison-tab')">Summary</button>
-                                <button class="tab" onclick="showTab('trades-tab')">Trade Details</button>
-                                <button class="tab" onclick="showTab('monthly-tab')">Monthly Analysis</button>
+                                                <button class="tab" onclick="showTab('comparison-tab', event)">Summary</button>
+                <button class="tab" onclick="showTab('trades-tab', event)">Trade Details</button>
+                <button class="tab" onclick="showTab('monthly-tab', event)">Monthly Analysis</button>
                             </div>
                             
                             <div id="comparison-tab" class="tab-content">

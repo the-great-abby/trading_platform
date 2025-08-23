@@ -327,3 +327,4 @@ class EarningsDataService:
             logger.error(f"❌ Error cleaning up old earnings data: {e}")
             return 0
 
+

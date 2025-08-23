@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Unified Trading Dashboard Service
-Combines trading, performance, and health dashboards into a single service
+Combines trading, performance, health dashboards, and Kubernetes RAG chat into a single service
 """
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +26,9 @@ import time
 import subprocess
 import threading
 import psutil
+import hashlib
+import aiohttp
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -56,6 +59,11 @@ ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://backtest-api:11101")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8000")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-local-forward.ollama-controller.svc.cluster.local:12001")
+
+# New dedicated vector databases
+KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector.postgres-infra.svc.cluster.local:5432/kubernetes_vector_db")
+FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector.postgres-infra.svc.cluster.local:5432/financial_vector_db")
 
 # Redis connection
 redis_client = None
@@ -83,6 +91,424 @@ def get_database_connection():
     except Exception as e:
         logger.error(f"Database connection error: {e}")
         return None
+
+# Kubernetes RAG Chat Models
+class ChatRequest(BaseModel):
+    question: str
+    context: Optional[str] = None
+    include_sources: bool = True
+    max_tokens: int = 1000
+    temperature: float = 0.3
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources: List[Dict[str, Any]]
+    confidence: float
+    timestamp: str
+    processing_time: float
+    request_id: Optional[str] = None
+    status_url: Optional[str] = None
+
+class KubernetesRAGChat:
+    """Specialized RAG chat for Kubernetes questions"""
+    
+    def __init__(self):
+        self.llm_proxy_url = LLM_PROXY_URL
+        
+        # Kubernetes-specific knowledge base
+        self.k8s_knowledge = self._load_k8s_knowledge()
+        
+    def _load_k8s_knowledge(self) -> Dict[str, Any]:
+        """Load Kubernetes-specific knowledge from docs"""
+        knowledge = {
+            "commands": {
+                "pod_management": [
+                    "kubectl get pods - List all pods",
+                    "kubectl describe pod <pod-name> - Detailed pod info",
+                    "kubectl logs <pod-name> - View pod logs",
+                    "kubectl exec -it <pod-name> -- /bin/bash - Interactive shell",
+                    "kubectl delete pod <pod-name> - Delete pod"
+                ],
+                "deployment_management": [
+                    "kubectl get deployments - List deployments",
+                    "kubectl scale deployment <name> --replicas=3 - Scale deployment",
+                    "kubectl rollout restart deployment <name> - Restart deployment",
+                    "kubectl rollout status deployment <name> - Check rollout status"
+                ],
+                "service_management": [
+                    "kubectl get services - List services",
+                    "kubectl describe service <service-name> - Service details",
+                    "kubectl port-forward svc/<service> 8080:80 - Port forward"
+                ],
+                "configuration": [
+                    "kubectl get configmaps - List configmaps",
+                    "kubectl create configmap <name> --from-file=<file> - Create configmap",
+                    "kubectl get secrets - List secrets",
+                    "kubectl create secret generic <name> --from-literal=<key>=<value> - Create secret"
+                ],
+                "debugging": [
+                    "kubectl get events - List events",
+                    "kubectl describe node <node-name> - Node details",
+                    "kubectl top pods - Resource usage",
+                    "kubectl get endpoints - Service endpoints"
+                ]
+            },
+            "concepts": {
+                "pods": "Smallest deployable units in Kubernetes",
+                "services": "Abstract way to expose applications",
+                "deployments": "Manage pod replicas and updates",
+                "configmaps": "Store non-sensitive configuration",
+                "secrets": "Store sensitive data",
+                "namespaces": "Virtual clusters within a cluster",
+                "persistent_volumes": "Storage resources",
+                "ingress": "External access to services"
+            },
+            "troubleshooting": {
+                "pod_pending": "Check node resources and scheduling",
+                "pod_crashloopbackoff": "Check logs and configuration",
+                "service_unreachable": "Check endpoints and labels",
+                "image_pull_backoff": "Check image name and registry"
+            }
+        }
+        return knowledge
+    
+    async def process_question(self, question: str, context: Optional[str] = None) -> ChatResponse:
+        """Process a Kubernetes question and return AI response with sources"""
+        try:
+            logger.info(f"Starting process_question for: {question[:50]}...")
+            
+            # Search for relevant Kubernetes knowledge
+            logger.info("Searching k8s knowledge...")
+            k8s_knowledge = await self._search_k8s_knowledge(question)
+            logger.info(f"Found {len(k8s_knowledge)} k8s knowledge items")
+            
+            # Search vector storage for additional context
+            logger.info("Searching vector storage...")
+            vector_results = await self._search_vector_storage(question)
+            logger.info(f"Found {len(vector_results)} vector results")
+            
+            # Build context from all sources
+            logger.info("Building context...")
+            context_str = self._build_context(question, k8s_knowledge, vector_results, context)
+            logger.info(f"Context built, length: {len(context_str)}")
+            
+            # Generate AI response
+            logger.info(f"About to call _generate_ai_response for question: {question[:50]}...")
+            ai_response = await self._generate_ai_response(question, context_str)
+            logger.info(f"AI response received: {ai_response}")
+            
+            # Calculate confidence
+            confidence = self._calculate_confidence(k8s_knowledge, vector_results)
+            
+            # Prepare sources
+            sources = []
+            for knowledge in k8s_knowledge:
+                sources.append({
+                    "type": "command",
+                    "category": knowledge.get("category", "general"),
+                    "content": knowledge.get("content", ""),
+                    "relevance": knowledge.get("relevance", 0.5)
+                })
+            
+            for result in vector_results:
+                sources.append({
+                    "type": "document",
+                    "category": result.get("category", "general"),
+                    "content": result.get("content", ""),
+                    "relevance": result.get("relevance", 0.5)
+                })
+            
+            return ChatResponse(
+                answer=ai_response.get("answer", "I'm sorry, I couldn't generate a response."),
+                sources=sources,
+                confidence=confidence,
+                timestamp=datetime.now().isoformat(),
+                processing_time=0.0,  # Will be set by the endpoint
+                request_id=ai_response.get("request_id"),
+                status_url=ai_response.get("status_url")
+            )
+            
+        except Exception as e:
+            logger.error(f"Error processing question: {e}")
+            return ChatResponse(
+                answer=f"I encountered an error while processing your question: {str(e)}",
+                sources=[],
+                confidence=0.0,
+                timestamp=datetime.now().isoformat(),
+                processing_time=0.0
+            )
+    
+    async def _search_k8s_knowledge(self, question: str) -> List[Dict[str, Any]]:
+        """Search Kubernetes-specific knowledge base"""
+        relevant_knowledge = []
+        question_lower = question.lower()
+        
+        # Search commands
+        for category, commands in self.k8s_knowledge["commands"].items():
+            for command in commands:
+                if any(keyword in question_lower for keyword in command.lower().split()):
+                    relevant_knowledge.append({
+                        "type": "command",
+                        "category": category,
+                        "content": command,
+                        "relevance": 0.8
+                    })
+        
+        # Search concepts
+        for concept, description in self.k8s_knowledge["concepts"].items():
+            if concept.replace("_", " ") in question_lower:
+                relevant_knowledge.append({
+                    "type": "concept",
+                    "category": "concepts",
+                    "content": f"{concept}: {description}",
+                    "relevance": 0.9
+                })
+        
+        # Search troubleshooting
+        for issue, solution in self.k8s_knowledge["troubleshooting"].items():
+            if issue.replace("_", " ") in question_lower:
+                relevant_knowledge.append({
+                    "type": "troubleshooting",
+                    "category": "troubleshooting",
+                    "content": f"{issue}: {solution}",
+                    "relevance": 0.7
+                })
+        
+        return relevant_knowledge
+    
+    async def _search_vector_storage(self, question: str) -> List[Dict[str, Any]]:
+        """Search vector storage for additional context - now question-aware"""
+        try:
+            # Determine which database to search based on question content
+            question_lower = question.lower()
+            
+            # Keywords that indicate Kubernetes/system questions
+            k8s_keywords = [
+                'kubernetes', 'k8s', 'pod', 'deployment', 'service', 'configmap', 
+                'secret', 'namespace', 'cluster', 'node', 'container', 'docker',
+                'helm', 'operator', 'crd', 'rbac', 'network policy', 'ingress',
+                'persistent volume', 'statefulset', 'daemonset', 'job', 'cronjob'
+            ]
+            
+            # Keywords that indicate financial/trading questions
+            financial_keywords = [
+                'stock', 'market', 'trading', 'portfolio', 'investment', 'price',
+                'earnings', 'financial', 'revenue', 'profit', 'loss', 'dividend',
+                'option', 'futures', 'forex', 'crypto', 'bond', 'etf', 'mutual fund',
+                'risk', 'volatility', 'beta', 'alpha', 'sharpe ratio', 'correlation'
+            ]
+            
+            # Count keyword matches
+            k8s_score = sum(1 for keyword in k8s_keywords if keyword in question_lower)
+            financial_score = sum(1 for keyword in financial_keywords if keyword in question_lower)
+            
+            # Determine which database to use
+            if k8s_score > financial_score:
+                db_url = KUBERNETES_VECTOR_DB_URL
+                vector_types = ['architecture_kubernetes', 'architecture_monitoring']
+                db_name = "Kubernetes"
+            else:
+                db_url = FINANCIAL_VECTOR_DB_URL
+                vector_types = ['architecture_trading', 'architecture_api', 'architecture_database', 'architecture_general']
+                db_name = "Financial"
+            
+            logger.info(f"Question '{question}' classified as {db_name} (k8s: {k8s_score}, financial: {financial_score})")
+            
+            # Search the appropriate database directly
+            results = []
+            for vector_type in vector_types:
+                try:
+                    # Connect to the appropriate database
+                    import psycopg2
+                    conn = psycopg2.connect(db_url)
+                    cursor = conn.cursor()
+                    
+                    # Search for similar content using vector similarity
+                    cursor.execute("""
+                        SELECT id, content, meta_info, 
+                               embedding <=> %s as distance
+                        FROM vector_embeddings 
+                        WHERE vector_type = %s
+                        ORDER BY embedding <=> %s
+                        LIMIT 3
+                    """, (self._get_question_embedding(question), vector_type, self._get_question_embedding(question)))
+                    
+                    type_results = cursor.fetchall()
+                    for record in type_results:
+                        id_val, content, meta_info, distance = record
+                        similarity = 1.0 / (1.0 + distance)  # Convert distance to similarity
+                        
+                        results.append({
+                            "type": "document",
+                            "category": meta_info.get("category", "general") if meta_info else "general",
+                            "content": content,
+                            "relevance": similarity,
+                            "source": meta_info.get("file_name", "Unknown") if meta_info else "Unknown",
+                            "file_path": meta_info.get("file_path", "") if meta_info else "",
+                            "vector_type": vector_type
+                        })
+                    
+                    cursor.close()
+                    conn.close()
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to search {vector_type} in {db_name} database: {e}")
+                    continue
+            
+            # Sort by relevance and return top results
+            results.sort(key=lambda x: x["relevance"], reverse=True)
+            return results[:5]
+                        
+        except Exception as e:
+            logger.warning(f"Vector storage search failed: {e}")
+            return []
+    
+    def _get_question_embedding(self, question: str) -> str:
+        """Get a simple embedding representation for the question"""
+        # For now, use a simple approach - in production you'd use a proper embedding model
+        # This is a placeholder that will be replaced with actual embedding logic
+        import hashlib
+        return hashlib.md5(question.encode()).hexdigest()[:32]  # Simple hash-based representation
+    
+    def _build_context(self, question: str, k8s_knowledge: List[Dict[str, Any]], 
+                      vector_results: List[Dict[str, Any]], context: Optional[str] = None) -> str:
+        """Build context string from all sources - now question-aware"""
+        context_parts = []
+        
+        if context:
+            context_parts.append(f"User Context: {context}")
+        
+        # Only include Kubernetes knowledge for Kubernetes questions
+        question_lower = question.lower()
+        k8s_keywords = ['kubernetes', 'k8s', 'pod', 'deployment', 'service', 'configmap', 
+                       'secret', 'namespace', 'cluster', 'node', 'container', 'docker']
+        
+        if any(keyword in question_lower for keyword in k8s_keywords) and k8s_knowledge:
+            context_parts.append("Kubernetes Knowledge:")
+            for knowledge in k8s_knowledge:
+                context_parts.append(f"- {knowledge['content']}")
+        
+        if vector_results:
+            # Determine the type of documents found
+            if vector_results and 'vector_type' in vector_results[0]:
+                vector_type = vector_results[0]['vector_type']
+                if 'kubernetes' in vector_type or 'monitoring' in vector_type:
+                    context_parts.append("Kubernetes System Documents:")
+                elif 'trading' in vector_type or 'api' in vector_type or 'database' in vector_type:
+                    context_parts.append("Trading System Documents:")
+                else:
+                    context_parts.append("Additional Documents:")
+            else:
+                context_parts.append("Additional Documents:")
+                
+            for result in vector_results:
+                context_parts.append(f"- {result['content']}")
+        
+        return "\n".join(context_parts)
+    
+    async def _generate_ai_response(self, question: str, context: str) -> Dict[str, Any]:
+        """Generate AI response using LLM proxy"""
+        try:
+            # Prepare the prompt with context - now question-aware
+            question_lower = question.lower()
+            k8s_keywords = ['kubernetes', 'k8s', 'pod', 'deployment', 'service', 'configmap', 
+                           'secret', 'namespace', 'cluster', 'node', 'container', 'docker']
+            financial_keywords = ['stock', 'market', 'trading', 'portfolio', 'investment', 'price',
+                                'earnings', 'financial', 'revenue', 'profit', 'loss', 'dividend']
+            
+            if any(keyword in question_lower for keyword in k8s_keywords):
+                role = "Kubernetes system administrator and instructor"
+                focus = "Kubernetes concepts, commands, and system administration"
+            elif any(keyword in question_lower for keyword in financial_keywords):
+                role = "financial analyst and trading system expert"
+                focus = "trading systems, market data, and financial analysis"
+            else:
+                role = "AI assistant with knowledge about trading systems and infrastructure"
+                focus = "providing helpful, accurate information"
+            
+            prompt = f"""You are a {role}. Your expertise is in {focus}.
+
+Question: {question}
+
+Context from knowledge base:
+{context}
+
+Please provide a helpful, accurate answer based on the context provided. If the context doesn't contain relevant information, say so clearly. Focus on being helpful and accurate.
+
+Answer:"""
+
+            # Send to LLM proxy
+            async with aiohttp.ClientSession() as session:
+                llm_request = {
+                    "model": "gpt-oss:20b",
+                    "prompt": prompt,
+                    "stream": False,
+                    "priority": 40,
+                    "timeout_seconds": 300,
+                    "request_id": str(uuid.uuid4()),
+                    "callback_url": f"http://unified-trading-dashboard:80/api/rag/callback/{str(uuid.uuid4())}",
+                    "callback_method": "POST"
+                }
+                
+                async with session.post(
+                    f"{self.llm_proxy_url}/api/generate",
+                    json=llm_request,
+                    timeout=aiohttp.ClientTimeout(total=60)
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        # Check for the async response format
+                        if "request_id" in result and result.get("status") == "queued":
+                            # This is an async request, we need to return a status response
+                            actual_request_id = result["request_id"]
+                            logger.info(f"Submitted request {actual_request_id} to external LLM service")
+                            
+                            # Return a response indicating the request is being processed
+                            status_url = f"/api/rag/status/{actual_request_id}"
+                            
+                            return {
+                                "answer": f"Your request is being processed by the AI service. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
+                                "model": "gpt-oss:20b",
+                                "request_id": actual_request_id,
+                                "status_url": status_url
+                            }
+                        else:
+                            logger.error(f"Unexpected LLM response format: {result}")
+                            return {"answer": "I'm having trouble processing the AI response. Please try again later."}
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"LLM request failed with status {response.status}: {error_text}")
+                        logger.error(f"Request that failed: {llm_request}")
+                        logger.error(f"Response headers: {dict(response.headers)}")
+                        return {"answer": "I'm having trouble connecting to the AI service. Please try again later."}
+                        
+        except Exception as e:
+            logger.error(f"AI response generation failed: {e}")
+            # Fallback response
+            if context:
+                return {
+                    "answer": f"Based on the available information: {context}",
+                    "request_id": hashlib.md5(f"{question}{time.time()}".encode()).hexdigest()[:8]
+                }
+            else:
+                return {
+                    "answer": "I'm sorry, I couldn't generate an AI response at this time. Please try rephrasing your question.",
+                    "request_id": None
+                }
+    
+    def _calculate_confidence(self, k8s_knowledge: List[Dict[str, Any]], 
+                            vector_results: List[Dict[str, Any]]) -> float:
+        """Calculate confidence score based on available sources"""
+        total_sources = len(k8s_knowledge) + len(vector_results)
+        if total_sources == 0:
+            return 0.0
+        
+        # Simple confidence calculation
+        confidence = min(0.9, 0.3 + (total_sources * 0.1))
+        return round(confidence, 2)
+
+# Initialize RAG chat
+rag_chat = KubernetesRAGChat()
 
 class DashboardConfig:
     """Dashboard configuration"""
@@ -1622,6 +2048,59 @@ async def get_paper_trading_performance():
             
     except Exception as e:
         logger.error(f"Error getting performance: {e}")
+        return {"status": "error", "message": str(e)}
+
+# RAG Chat Endpoints
+@app.post("/api/rag-chat/ask")
+async def ask_rag_chat(request: ChatRequest):
+    """Ask a question to the RAG chat"""
+    try:
+        start_time = time.time()
+        response = await rag_chat.process_question(request.question, request.context)
+        response.processing_time = time.time() - start_time
+        return response.dict()
+    except Exception as e:
+        logger.error(f"Error processing RAG chat question: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process RAG chat question: {str(e)}")
+
+@app.get("/api/rag-chat/health")
+async def rag_chat_health():
+    """Health check for RAG chat service"""
+    return {"status": "healthy", "service": "kubernetes-rag-chat"}
+
+@app.post("/api/rag/callback/{request_id}")
+async def handle_rag_callback(request_id: str, request: Dict[str, Any]):
+    """Handle callback from external LLM proxy when request completes"""
+    try:
+        logger.info(f"Received callback for RAG request {request_id}: {request}")
+        
+        # Store the completed request result (in a real implementation, you'd use a database)
+        # For now, we'll just log it
+        if request.get("status") == "completed" and request.get("result"):
+            logger.info(f"RAG request {request_id} completed successfully")
+            # Here you could store the result in a database or cache
+        elif request.get("status") == "failed":
+            logger.error(f"RAG request {request_id} failed: {request.get('error')}")
+        
+        return {"status": "received"}
+        
+    except Exception as e:
+        logger.error(f"Error handling callback for RAG request {request_id}: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/rag/status/{request_id}")
+async def check_rag_request_status(request_id: str):
+    """Check the status of a RAG request and display the result if completed"""
+    try:
+        # In a real implementation, you'd check a database or cache
+        # For now, return a placeholder response
+        return {
+            "request_id": request_id,
+            "status": "processing",
+            "message": "Request is being processed by the AI service"
+        }
+    except Exception as e:
+        logger.error(f"Error checking RAG request status: {e}")
         return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":

@@ -295,5 +295,81 @@ This rule ensures consistent use of the external LLM resource and prevents confu
 
 ---
 
+# Playwright MCP Testing Rule
+
+## Overview
+This rule ensures that all system changes are verified through actual browser testing using Playwright MCP, rather than just assuming they work based on code changes.
+
+## Critical Requirement
+**NEVER claim a fix is working without testing it via Playwright MCP first.**
+
+## Testing Protocol
+
+### When to Test
+- ✅ After fixing JavaScript errors
+- ✅ After updating HTML templates
+- ✅ After fixing CSS issues
+- ✅ After updating web application functionality
+- ✅ After fixing browser compatibility issues
+- ✅ After updating dashboard content
+
+### Testing Process
+1. **Navigate to the affected page** using `host.docker.internal` (not localhost)
+2. **Test the specific functionality** that was fixed
+3. **Check browser console** for any JavaScript errors
+4. **Verify the fix works** through actual user interaction
+5. **Only then report success**
+
+### URL Format
+**Always use `host.docker.internal` instead of `localhost`** when testing from within Docker containers:
+- ✅ `http://host.docker.internal:11114/` (Analytics Dashboard)
+- ✅ `http://host.docker.internal:11115/` (Trading Dashboard)
+- ✅ `http://host.docker.internal:11113/` (News Dashboard)
+- ❌ `http://localhost:11114/` (will fail in Docker)
+
+### Example Testing Sequence
+```javascript
+// Navigate to the page
+await page.goto('http://host.docker.internal:11114/');
+
+// Test the specific functionality
+await page.getByRole('button', { name: '🤖 AI Stock Analysis' }).click();
+
+// Check for errors
+const consoleMessages = await page.evaluate(() => {
+    return window.console.messages || [];
+});
+
+// Verify the fix works
+if (consoleMessages.some(msg => msg.includes('error'))) {
+    throw new Error('JavaScript errors still present');
+}
+```
+
+### What NOT to Do
+- ❌ Claim a fix works without testing it
+- ❌ Use `localhost` instead of `host.docker.internal`
+- ❌ Assume code changes automatically fix runtime issues
+- ❌ Skip browser testing for web application fixes
+
+### What TO Do
+- ✅ Always test fixes via Playwright MCP
+- ✅ Use `host.docker.internal` for URLs
+- ✅ Verify functionality through actual user interaction
+- ✅ Check browser console for errors
+- ✅ Only report success after confirmed testing
+
+## Success Criteria
+A fix is only considered successful when:
+1. ✅ The page loads without errors
+2. ✅ The specific functionality works as expected
+3. ✅ No JavaScript errors appear in console
+4. ✅ User interactions complete successfully
+5. ✅ The fix has been tested in a real browser environment
+
+This rule ensures that all fixes are actually working, not just theoretically fixed.
+
+---
+
 These rules ensure consistent, reliable operation of the trading system infrastructure and prevent common configuration errors.
 

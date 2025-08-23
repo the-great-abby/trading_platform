@@ -12,5 +12,5 @@ class VectorSearchResult:
     id: str
     content: str
     similarity: float
-    metadata_json: Dict[str, Any]
+    meta_info: Dict[str, Any]
     vector_type: str 

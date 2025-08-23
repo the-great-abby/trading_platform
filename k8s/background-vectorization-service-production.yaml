@@ -256,3 +256,4 @@ spec:
   selector:
     matchLabels:
       app: background-vectorization-service
+
