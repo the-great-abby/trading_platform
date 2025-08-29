@@ -367,7 +367,7 @@
             <button class="nav-tab" onclick="showTab('trading', event)">Trading</button>
             <button class="nav-tab" onclick="showTab('performance', event)">Performance</button>
             <button class="nav-tab" onclick="showTab('paper-trading', event)">🚀 Paper Trading</button>
-            <button class="nav-tab" onclick="showTab('live-trading', event)">💰 Live Trading</button>
+                            <button class="nav-tab" onclick="showTab('live-trading', event)">📊 Backtest Results</button>
             <button class="nav-tab" onclick="showTab('health', event)">Health</button>
             <button class="nav-tab" onclick="showTab('k8s-chat', event)">☸️ K8s Chat</button>
         </div>
@@ -475,10 +475,14 @@
             </div>
             
             <div id="live-trading" class="tab-content" style="display: none;">
-                <h2>💰 Live Trading Monitor</h2>
+                <h2>📊 Backtest Results Monitor</h2>
+                <div class="alert alert-info" style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 5px; color: #1976d2;">
+                    <strong>ℹ️ Note:</strong> This section displays <strong>backtest simulation results</strong>, not live trading activity. 
+                    The data shows how trading strategies performed under simulated market conditions for testing and analysis purposes.
+                </div>
                 <div class="dashboard-grid">
                     <div class="card">
-                        <h3>📊 Trading Status</h3>
+                        <h3>📊 Backtest Status</h3>
                         <div id="live-trading-status">
                             <div class="loading">Loading live trading status...</div>
                         </div>
@@ -486,27 +490,27 @@
                     </div>
                     
                     <div class="card">
-                        <h3>📈 Performance Metrics</h3>
+                        <h3>📈 Backtest Performance</h3>
                         <div id="live-performance-metrics">
                             <div class="loading">Loading performance metrics...</div>
                         </div>
-                        <button class="btn btn-primary" onclick="loadLivePerformance()" style="margin-top: 10px;">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="loadBacktestPerformance()" style="margin-top: 10px;">🔄 Refresh</button>
                     </div>
                     
                     <div class="card">
-                        <h3>💼 Recent Trades</h3>
+                        <h3>💼 Recent Backtest Trades</h3>
                         <div id="live-recent-trades">
                             <div class="loading">Loading recent trades...</div>
                         </div>
-                        <button class="btn btn-primary" onclick="loadLiveTrades()" style="margin-top: 10px;">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="loadBacktestTrades()" style="margin-top: 10px;">🔄 Refresh</button>
                     </div>
                     
                     <div class="card">
-                        <h3>🎯 Active Positions</h3>
+                        <h3>🎯 Simulated Positions</h3>
                         <div id="live-active-positions">
                             <div class="loading">Loading active positions...</div>
                         </div>
-                        <button class="btn btn-primary" onclick="loadLivePositions()" style="margin-top: 10px;">🔄 Refresh</button>
+                        <button class="btn btn-primary" onclick="loadBacktestPositions()" style="margin-top: 10px;">🔄 Refresh</button>
                     </div>
                 </div>
             </div>
@@ -1065,15 +1069,15 @@
         async function loadLiveTradingData() {
             await Promise.all([
                 loadLiveTradingStatus(),
-                loadLivePerformance(),
-                loadLiveTrades(),
-                loadLivePositions()
+                            loadBacktestPerformance(),
+            loadBacktestTrades(),
+            loadBacktestPositions()
             ]);
         }
         
         async function loadLiveTradingStatus() {
             try {
-                const response = await fetch('http://localhost:11116/api/status');
+                const response = await fetch('/api/health/status');
                 const status = await response.json();
                 
                 const statusDiv = document.getElementById('live-trading-status');
@@ -1139,9 +1143,9 @@
             }
         }
         
-        async function loadLivePerformance() {
+        async function loadBacktestPerformance() {
             try {
-                const response = await fetch('http://localhost:11116/api/performance');
+                const response = await fetch('/api/performance/metrics');
                 const performance = await response.json();
                 
                 const metricsDiv = document.getElementById('live-performance-metrics');
@@ -1173,15 +1177,16 @@
             }
         }
         
-        async function loadLiveTrades() {
+        async function loadBacktestTrades() {
             try {
-                const response = await fetch('http://localhost:11116/api/trades?limit=5');
-                const trades = await response.json();
+                const response = await fetch('/api/trades/recent');
+                const data = await response.json();
+                const trades = data.trades || [];
                 
                 const tradesDiv = document.getElementById('live-recent-trades');
                 
                 if (trades.length === 0) {
-                    tradesDiv.innerHTML = '<p>No trades yet</p>';
+                    tradesDiv.innerHTML = '<p>No backtest trades available</p>';
                     return;
                 }
                 
@@ -1228,10 +1233,11 @@
             }
         }
         
-        async function loadLivePositions() {
+        async function loadBacktestPositions() {
             try {
-                const response = await fetch('http://localhost:11116/api/positions');
-                const positions = await response.json();
+                const response = await fetch('/api/positions/active');
+                const data = await response.json();
+                const positions = data.positions || [];
                 
                 const positionsDiv = document.getElementById('live-active-positions');
                 

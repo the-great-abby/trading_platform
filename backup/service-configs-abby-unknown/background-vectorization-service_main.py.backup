@@ -51,7 +51,7 @@ app.add_middleware(
 app.include_router(webhook_router)
 
 # Configuration
-VECTOR_STORAGE_URL = os.environ.get("VECTOR_STORAGE_URL", "http://localhost:11151")
+VECTOR_STORAGE_URL = os.environ.get("VECTOR_STORAGE_URL", "http://postgres-vector-storage:80")
 LLM_PROXY_URL = os.environ.get("LLM_PROXY_URL", "http://llm-proxy:12001")
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb:5432/trading_bot")
 

@@ -4,6 +4,7 @@
 htmlcov/
 
 .venv/
+migration-env/
 
 __pycache__/
 *.py[cod]
@@ -33,6 +34,15 @@ env/
 ENV/
 env.bak/
 venv.bak/
+migration-env/
+
+# Python virtual environment files
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
 
 
 # Environment variables
@@ -84,3 +94,5 @@ test-data/
 k8s/generated/
 k8s/archived/
 k8s-job-generator-env/
+
+*.sql.gz

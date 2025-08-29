@@ -22,7 +22,7 @@ class ArchitectureVectorizer:
     """Service to vectorize architecture documentation"""
     
     def __init__(self):
-        self.vector_storage_url = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:11006")
+        self.vector_storage_url = os.getenv("VECTOR_STORAGE_URL", "http://localhost:11151")
         self.repo_root = os.getenv("REPO_ROOT", "/app")
         self.docs_patterns = [
             "**/*.md",           # Markdown files

@@ -58,12 +58,12 @@ BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11101")
 ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://backtest-api:11101")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8000")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:11150/trading")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-local-forward.ollama-controller.svc.cluster.local:12001")
 
 # New dedicated vector databases
-KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@localhost:11151/trading")
-FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@localhost:11151/trading")
+KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector.postgres-infra.svc.cluster.local:5432/kubernetes_vector_db")
+FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector.postgres-infra.svc.cluster.local:5432/financial_vector_db")
 
 # Redis connection
 redis_client = None
@@ -524,90 +524,15 @@ class UnifiedTradingDashboard:
         self.analytics_api_url = ANALYTICS_API_URL
         
     async def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics from local database"""
+        """Get performance metrics from backtest API"""
         try:
-            # Connect to database
-            engine = get_database_connection()
-            if not engine:
-                return {"error": "Database connection failed"}
-            
-            with engine.connect() as conn:
-                # Get performance data from trades
-                result = conn.execute(text("""
-                    SELECT 
-                        COUNT(*) as total_trades,
-                        SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
-                        SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
-                        SUM(pnl) as total_pnl,
-                        AVG(pnl) as avg_pnl,
-                        MAX(pnl) as best_trade,
-                        MIN(pnl) as worst_trade,
-                        SUM(value) as total_volume
-                    FROM trades 
-                    WHERE timestamp >= NOW() - INTERVAL '30 days'
-                """))
-                performance_data = result.fetchone()
-                
-                if not performance_data or performance_data[0] == 0:
-                    return {
-                        "total_trades": 0,
-                        "winning_trades": 0,
-                        "losing_trades": 0,
-                        "win_rate": 0.0,
-                        "total_pnl": 0.0,
-                        "avg_pnl": 0.0,
-                        "best_trade": 0.0,
-                        "worst_trade": 0.0,
-                        "total_volume": 0.0,
-                        "profit_factor": 0.0,
-                        "avg_win": 0.0,
-                        "avg_loss": 0.0,
-                        "message": "No recent trades for performance analysis"
-                    }
-                
-                total_trades = performance_data[0]
-                winning_trades = performance_data[1]
-                losing_trades = performance_data[2]
-                total_pnl = performance_data[3] or 0.0
-                avg_pnl = performance_data[4] or 0.0
-                best_trade = performance_data[5] or 0.0
-                worst_trade = performance_data[6] or 0.0
-                total_volume = performance_data[7] or 0.0
-                
-                # Calculate derived metrics
-                win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
-                
-                # Get average win/loss
-                win_result = conn.execute(text("""
-                    SELECT AVG(pnl) as avg_win FROM trades 
-                    WHERE pnl > 0 AND timestamp >= NOW() - INTERVAL '30 days'
-                """))
-                avg_win = win_result.fetchone()[0] or 0.0
-                
-                loss_result = conn.execute(text("""
-                    SELECT AVG(pnl) as avg_loss FROM trades 
-                    WHERE pnl < 0 AND timestamp >= NOW() - INTERVAL '30 days'
-                """))
-                avg_loss = abs(loss_result.fetchone()[0] or 0.0)
-                
-                profit_factor = (avg_win / avg_loss) if avg_loss > 0 else 0.0
-                
-                return {
-                    "total_trades": total_trades,
-                    "winning_trades": winning_trades,
-                    "losing_trades": losing_trades,
-                    "win_rate": round(win_rate, 2),
-                    "total_pnl": round(total_pnl, 2),
-                    "avg_pnl": round(avg_pnl, 2),
-                    "best_trade": round(best_trade, 2),
-                    "worst_trade": round(worst_trade, 2),
-                    "total_volume": round(total_volume, 2),
-                    "profit_factor": round(profit_factor, 2),
-                    "avg_win": round(avg_win, 2),
-                    "avg_loss": round(avg_loss, 2),
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-                
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{self.backtest_api_url}/api/v1/runs")
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    logger.error(f"Backtest API returned {response.status_code}")
+                    return {"error": f"HTTP {response.status_code}"}
         except Exception as e:
             logger.error(f"Error getting performance metrics: {e}")
             return {"error": str(e)}

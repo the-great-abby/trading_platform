@@ -51,7 +51,7 @@ templates = Jinja2Templates(directory="templates")
 RSS_SERVICE_URL = os.getenv("RSS_SERVICE_URL", "http://rss-feed-service:11004")
 STRATEGY_SERVICE_URL = os.getenv("STRATEGY_SERVICE_URL", "http://strategy-service:11103")
 REFRESH_INTERVAL = int(os.getenv("REFRESH_INTERVAL", "30"))  # seconds
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:11150/trading")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot")
 
 # Database connection
 def get_database_connection():

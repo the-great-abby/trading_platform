@@ -24,7 +24,7 @@ app = FastAPI(title="AI Analysis Service", version="1.0.0")
 # Configuration
 LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://localhost:12001")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://localhost:8002")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:11150/trading")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/trading")
 
 # Default stock list - can be configured via environment
 DEFAULT_STOCKS = [
