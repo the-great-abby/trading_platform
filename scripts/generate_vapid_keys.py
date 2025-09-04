@@ -1,82 +1,77 @@
 #!/usr/bin/env python3
 """
-Generate VAPID keys for Web Push Notifications
+Generate proper VAPID keys for web push notifications
 """
 
 import base64
-import json
+import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, PrivateFormat, NoEncryption
 
 def generate_vapid_keys():
-    """Generate VAPID key pair for web push notifications"""
-    
-    # Generate private key
-    private_key = ec.generate_private_key(
-        ec.SECP256R1()  # P-256 curve
-    )
-    
-    # Get public key
-    public_key = private_key.public_key()
-    
-    # Serialize public key to bytes
-    public_key_bytes = public_key.public_bytes(
-        encoding=Encoding.X962,
-        format=PublicFormat.CompressedPoint
-    )
-    
-    # Convert to base64 URL-safe string (without padding)
-    public_key_b64 = base64.urlsafe_b64encode(public_key_bytes).decode('utf-8').rstrip('=')
-    
-    # Serialize private key to bytes
-    private_key_bytes = private_key.private_bytes(
-        encoding=Encoding.DER,
-        format=PrivateFormat.PKCS8,
-        encryption_algorithm=NoEncryption()
-    )
-    
-    # Convert to base64 URL-safe string
-    private_key_b64 = base64.urlsafe_b64encode(private_key_bytes).decode('utf-8').rstrip('=')
-    
-    return {
-        'public_key': public_key_b64,
-        'private_key': private_key_b64
-    }
-
-def main():
-    """Generate and display VAPID keys"""
-    print("🔑 Generating VAPID keys for Web Push Notifications...")
-    
+    """Generate VAPID keys for web push notifications"""
     try:
-        keys = generate_vapid_keys()
+        # Generate private key
+        private_key = ec.generate_private_key(ec.SECP256R1())
         
-        print("\n✅ VAPID Keys Generated Successfully!")
-        print("\n📋 Public Key (applicationServerKey):")
-        print(f"'{keys['public_key']}'")
+        # Get public key
+        public_key = private_key.public_key()
         
-        print("\n🔒 Private Key (for server-side):")
-        print(f"'{keys['private_key']}'")
+        # Serialize keys
+        private_key_bytes = private_key.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=NoEncryption()
+        )
         
-        print("\n📝 Environment Variables:")
-        print(f"VAPID_PUBLIC_KEY={keys['public_key']}")
-        print(f"VAPID_PRIVATE_KEY={keys['private_key']}")
+        public_key_bytes = public_key.public_bytes(
+            encoding=Encoding.DER,
+            format=PublicFormat.SubjectPublicKeyInfo
+        )
         
-        print("\n💡 Usage Instructions:")
-        print("1. Copy the public key to your JavaScript code")
-        print("2. Store the private key securely in your environment variables")
-        print("3. Use the private key in your server-side push notification code")
+        # Convert to base64 URL-safe strings
+        private_key_b64 = base64.urlsafe_b64encode(private_key_bytes).decode('utf-8').rstrip('=')
+        public_key_b64 = base64.urlsafe_b64encode(public_key_bytes).decode('utf-8').rstrip('=')
         
-        # Save to file
-        with open('vapid_keys.json', 'w') as f:
-            json.dump(keys, f, indent=2)
-        print("\n💾 Keys saved to 'vapid_keys.json'")
+        return public_key_b64, private_key_b64
         
     except Exception as e:
-        print(f"❌ Error generating VAPID keys: {e}")
-        return 1
-    
-    return 0
+        print(f"Error generating VAPID keys: {e}")
+        return None, None
+
+def validate_vapid_key(key: str) -> bool:
+    """Validate VAPID key format"""
+    try:
+        import re
+        if not re.match(r'^[A-Za-z0-9_-]+$', key):
+            return False
+        
+        # Check length (should be 87 characters for base64 URL-safe)
+        if len(key) != 87:
+            return False
+            
+        return True
+    except:
+        return False
 
 if __name__ == "__main__":
-    exit(main()) 
+    print("🔑 Generating VAPID keys for web push notifications...")
+    
+    public_key, private_key = generate_vapid_keys()
+    
+    if public_key and private_key:
+        print("✅ VAPID keys generated successfully!")
+        print(f"Public Key: {public_key}")
+        print(f"Private Key: {private_key}")
+        
+        if validate_vapid_key(public_key):
+            print("✅ Public key format is valid")
+        else:
+            print("❌ Public key format is invalid")
+            
+        print("\n📋 For use in your application:")
+        print(f'VAPID_PUBLIC_KEY = "{public_key}"')
+        print(f'VAPID_PRIVATE_KEY = "{private_key}"')
+    else:
+        print("❌ Failed to generate VAPID keys") 

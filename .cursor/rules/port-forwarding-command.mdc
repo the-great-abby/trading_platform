@@ -1,6 +1,6 @@
-description: Automatic port forwarding management based on user commands
-globs: []
-alwaysApply: true
+---
+description: Automatic port forwarding management
+alwaysApply: false
 ---
 # Port Forwarding Command Rule
 

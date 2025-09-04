@@ -1,0 +1,255 @@
+# Simple Collaboration Makefile
+# For 2-person development team - Core collaboration and status commands
+
+# =====================================================================
+# 🚀 CORE COLLABORATION COMMANDS
+# =====================================================================
+
+.PHONY: help status sync startup progress learning blocker session-summary daily-sync fix-bug test-priority dynamic-health ai-review ai-refactor ai-test ai-docs ai-optimize ai-security ai-setup ai-debug ai-workflow ai-help
+
+# Colors for output
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+help: ## Show this help message
+	@echo "$(GREEN)🚀 Trading Platform Development Commands$(NC)"
+	@echo "$(YELLOW)==========================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Project Status:$(NC)"
+	@echo "  status         - Show current project status and progress"
+	@echo "  sync           - Quick team sync with current status"
+	@echo "  startup        - Quick session startup"
+	@echo "  progress       - Show detailed progress on all areas"
+	@echo "  learning       - Show learning progress and next steps"
+	@echo "  blocker        - Report and track blockers"
+	@echo "  session-summary - Get summary of current session work"
+	@echo "  daily-sync     - Daily sync routine"
+	@echo ""
+	@echo "$(GREEN)Development Workflow:$(NC)"
+	@echo "  fix-bug        - Quick workflow for fixing a bug"
+	@echo "  test-priority  - Show testing priorities"
+	@echo "  dynamic-health - Run dynamic health check (tests real connectivity)"
+	@echo ""
+	@echo "$(GREEN)AI-Assisted Development:$(NC)"
+	@echo "  ai-review      - AI code review with context from all rules"
+	@echo "  ai-refactor    - AI-assisted refactoring using style rules"
+	@echo "  ai-test        - AI test generation with comprehensive coverage"
+	@echo "  ai-docs        - AI documentation updates and improvements"
+	@echo "  ai-optimize    - AI performance optimization suggestions"
+	@echo "  ai-security    - AI security scanning and best practices"
+	@echo "  ai-setup       - AI-assisted new service setup with all relevant rules"
+	@echo "  ai-debug       - AI-assisted debugging with comprehensive analysis"
+	@echo "  ai-workflow    - AI-assisted development workflow optimization"
+	@echo "  ai-help        - Show all AI-assisted development commands"
+	@echo ""
+	@echo "$(BLUE)💡 Use 'make <target>' to run any command$(NC)"
+	@echo "$(BLUE)💡 Use 'make -n <target>' to see what a command would do$(NC)"
+	@echo ""
+	@echo "$(YELLOW)📋 For other operations, use specialized Makefiles:$(NC)"
+	@echo "  make -f Makefile.services <target>  - Service management"
+	@echo "  make -f Makefile.kubernetes <target> - Kubernetes operations"
+	@echo "  make -f Makefile.port-forward <target> - Port forwarding"
+
+# =====================================================================
+# 📊 PROJECT STATUS & COLLABORATION
+# =====================================================================
+
+status: ## Show current status (dynamic health check)
+	@echo "$(GREEN)🔍 RUNNING DYNAMIC HEALTH CHECK...$(NC)"
+	@echo "$(YELLOW)=====================================$(NC)"
+	@echo "$(BLUE)⏳ Testing real connectivity (not just pod status)...$(NC)"
+	@echo ""
+	@cd scripts && python3 -m pip install -r requirements_health_check.txt --quiet > /dev/null 2>&1 || true
+	@cd scripts && python3 dynamic_health_check.py
+	@echo ""
+	@echo "$(YELLOW)💡 TIP: Use 'make dynamic-health' for detailed health reports$(NC)"
+	@echo "$(BLUE)📊 This status shows REAL connectivity, not just deployment status$(NC)"
+
+sync: ## Quick sync questions
+	@echo "$(GREEN)🤝 Quick sync questions...$(NC)"
+	docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py sync
+
+startup: ## Quick session startup
+	@echo "$(GREEN)🚀 Starting new session...$(NC)"
+	docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/session_startup.py
+
+progress: ## Log progress (usage: make progress task="Task Name" status="Status")
+	@echo "$(GREEN)📝 Logging progress...$(NC)"
+	@docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py progress "$(task)" "$(status)"
+
+learning: ## Log learning (usage: make learning topic="Topic" discovery="Discovery")
+	@echo "$(GREEN)💡 Logging learning...$(NC)"
+	@docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py learning "$(topic)" "$(discovery)"
+
+blocker: ## Log blocker (usage: make blocker task="Task" blocker="Blocker")
+	@echo "$(GREEN)🚨 Logging blocker...$(NC)"
+	@docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py blocker "$(task)" "$(blocker)"
+
+session-summary: ## Get summary of current session work
+	@echo "$(GREEN)📋 Session Summary:$(NC)"
+	@docker-compose -f docker-compose.dev.yml run --rm trading-cli python scripts/simple_collaboration.py session_summary
+
+daily-sync: ## Daily sync routine
+	@echo "$(GREEN)🤝 Daily Sync Routine:$(NC)"
+	@echo "1. What did you accomplish yesterday?"
+	@echo "2. What are you working on today?"
+	@echo "3. Any blockers or issues?"
+	@echo "4. Any discoveries or learnings?"
+	@echo "5. What's your next priority?"
+
+# =====================================================================
+# 🔧 DEVELOPMENT WORKFLOW
+# =====================================================================
+
+fix-bug: ## Quick workflow for fixing a bug
+	@echo "$(GREEN)🐛 Bug fixing workflow:$(NC)"
+	@echo "1. Reproduce the bug"
+	@echo "2. Use differential coverage to find location"
+	@echo "3. Write minimal test case"
+	@echo "4. Fix the bug"
+	@echo "5. Verify fix works"
+	@echo "6. Document the fix"
+
+test-priority: ## Show testing priorities
+	@echo "$(GREEN)🎯 Testing Priorities:$(NC)"
+	@echo "1. Trading Engine (Priority: 10/10)"
+	@echo "2. Risk Management (Priority: 9/10)"
+	@echo "3. Authentication (Priority: 9/10)"
+	@echo "4. Order Execution (Priority: 8/10)"
+	@echo "5. Market Data (Priority: 7/10)"
+
+dynamic-health: ## Run dynamic health check (tests real connectivity, not just pod status)
+	@echo "🔍 Running dynamic health check (tests real connectivity)..."
+	@cd scripts && python3 -m pip install -r requirements_health_check.txt --quiet
+	@cd scripts && python3 dynamic_health_check.py
+
+# =====================================================================
+# 🤖 AI-ASSISTED DEVELOPMENT COMMANDS
+# =====================================================================
+# Making AI a first-class citizen in the development process
+
+ai-review: ## AI-assisted code review with context from all rules
+	@echo "$(GREEN)🤖 AI Code Review - Making AI a First-Class Citizen$(NC)"
+	@echo "$(YELLOW)==================================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI code review...$(NC)"
+	@echo "$(YELLOW)💡 AI will analyze your current working directory and suggest improvements$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Core Rules + AI Development Assistant + Domain Rules$(NC)"
+	@echo ""
+	@if [ -f "scripts/ai_code_review.py" ]; then \
+		python3 scripts/ai_code_review.py --path . --rules all --ollama-url http://localhost:12001 --callback-port 11999; \
+	else \
+		echo "$(RED)❌ AI Code Review script not found. Creating it now...$(NC)"; \
+		echo "$(YELLOW)💡 Run 'make ai-review' again after the script is created.$(NC)"; \
+	fi
+
+ai-refactor: ## AI-assisted refactoring using style rules and best practices
+	@echo "$(GREEN)🔧 AI-Assisted Refactoring$(NC)"
+	@echo "$(YELLOW)=========================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI refactoring analysis...$(NC)"
+	@echo "$(YELLOW)💡 AI will examine your code and suggest refactoring opportunities$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Styles + Python + AI Development Assistant$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Refactoring Analysis Complete! Review suggestions above$(NC)"
+
+ai-test: ## AI test generation with comprehensive coverage
+	@echo "$(GREEN)🧪 AI Test Generation$(NC)"
+	@echo "$(YELLOW)=====================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI test generation...$(NC)"
+	@echo "$(YELLOW)💡 AI will analyze your code and generate test strategies$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Testing + AI Development Assistant + Domain Rules$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Test Generation Complete! Review test suggestions above$(NC)"
+
+ai-docs: ## AI documentation updates and improvements
+	@echo "$(GREEN)📚 AI Documentation Assistant$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI documentation update...$(NC)"
+	@echo "$(YELLOW)💡 AI will analyze your code and update documentation$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Documentation + AI Development Assistant$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Documentation Update Complete! Check for updated docs$(NC)"
+
+ai-optimize: ## AI performance optimization suggestions
+	@echo "$(GREEN)⚡ AI Performance Optimization$(NC)"
+	@echo "$(YELLOW)==============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI performance analysis...$(NC)"
+	@echo "$(YELLOW)💡 AI will examine your system and suggest optimizations$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Resource Constraints + Infrastructure + AI Development Assistant$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Performance Analysis Complete! Review optimization suggestions above$(NC)"
+
+ai-security: ## AI security scanning and best practices
+	@echo "$(GREEN)🔒 AI Security Scanner$(NC)"
+	@echo "$(YELLOW)========================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI security scan...$(NC)"
+	@echo "$(YELLOW)💡 AI will analyze your code for security concerns$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Security + AI Development Assistant + Infrastructure$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Security Scan Complete! Review security recommendations above$(NC)"
+
+ai-setup: ## AI-assisted new service setup with all relevant rules
+	@echo "$(GREEN)🚀 AI New Service Setup$(NC)"
+	@echo "$(YELLOW)========================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI service setup...$(NC)"
+	@echo "$(YELLOW)💡 AI will guide you through creating a new service$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Infrastructure + Port Mapping + Resource Constraints + AI Development Assistant$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Service Setup Complete! Follow the guidance above$(NC)"
+
+ai-debug: ## AI-assisted debugging with comprehensive analysis
+	@echo "$(GREEN)🐛 AI Debugging Assistant$(NC)"
+	@echo "$(YELLOW)==========================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI debugging analysis...$(NC)"
+	@echo "$(YELLOW)💡 AI will help you debug issues systematically$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Error Handling + AI Development Assistant + Domain Rules$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Debugging Analysis Complete! Follow debugging guidance above$(NC)"
+
+ai-workflow: ## AI-assisted development workflow optimization
+	@echo "$(GREEN)🔄 AI Workflow Optimization$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)🔄 Starting AI workflow analysis...$(NC)"
+	@echo "$(YELLOW)💡 AI will examine your development process and suggest improvements$(NC)"
+	@echo "$(BLUE)📚 AI will reference: Development Workflow + AI Development Assistant + Makefile Simple Notes$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ AI Workflow Analysis Complete! Review workflow suggestions above$(NC)"
+
+ai-help: ## Show all AI-assisted development commands
+	@echo "$(GREEN)🤖 AI-Assisted Development Commands$(NC)"
+	@echo "$(YELLOW)=====================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Code Quality:$(NC)"
+	@echo "  ai-review      - AI code review with context from all rules"
+	@echo "  ai-refactor    - AI-assisted refactoring using style rules"
+	@echo "  ai-test        - AI test generation with comprehensive coverage"
+	@echo ""
+	@echo "$(GREEN)Documentation & Maintenance:$(NC)"
+	@echo "  ai-docs        - AI documentation updates and improvements"
+	@echo "  ai-optimize    - AI performance optimization suggestions"
+	@echo "  ai-security    - AI security scanning and best practices"
+	@echo ""
+	@echo "$(GREEN)Development Process:$(NC)"
+	@echo "  ai-setup       - AI-assisted new service setup with all relevant rules"
+	@echo "  ai-debug       - AI-assisted debugging with comprehensive analysis"
+	@echo "  ai-workflow    - AI-assisted development workflow optimization"
+	@echo ""
+	@echo "$(BLUE)💡 AI automatically activates based on development context$(NC)"
+	@echo "$(BLUE)💡 AI coordinates with all your existing rules for comprehensive guidance$(NC)"
+	@echo "$(BLUE)💡 AI learns from your team's preferences and patterns$(NC)"
+	@echo ""
+	@echo "$(GREEN)🎯 Making AI a First-Class Citizen in Your Development Process!$(NC)"
+
+# Default target
+.DEFAULT_GOAL := help

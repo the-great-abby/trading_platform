@@ -41,13 +41,18 @@ backtest_request_duration_seconds = Histogram('backtest_request_duration_seconds
 
 # Database connection
 def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST", "postgres-dev"),
-        database=os.getenv("DB_NAME", "trading_bot"),
-        user=os.getenv("DB_USER", "trading_user"),
-        password=os.getenv("DB_PASSWORD", "trading_pass"),
-        port=os.getenv("DB_PORT", "5432")
-    )
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return psycopg2.connect(database_url)
+    else:
+        # Fallback to individual environment variables for backward compatibility
+        return psycopg2.connect(
+            host=os.getenv("DB_HOST", "postgres-dev"),
+            database=os.getenv("DB_NAME", "trading_bot"),
+            user=os.getenv("DB_USER", "trading_user"),
+            password=os.getenv("DB_PASSWORD", "trading_pass"),
+            port=os.getenv("DB_PORT", "5432")
+        )
 
 @app.get("/")
 async def root():

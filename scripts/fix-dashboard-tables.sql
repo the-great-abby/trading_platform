@@ -268,3 +268,4 @@ SELECT 'portfolio_positions' as table_name, COUNT(*) as record_count FROM portfo
 SELECT 'strategy_events' as table_name, COUNT(*) as record_count FROM strategy_events;
 SELECT 'backtest_trades' as table_name, COUNT(*) as record_count FROM backtest_trades;
 SELECT 'backtest_runs' as table_name, COUNT(*) as record_count FROM backtest_runs;
+

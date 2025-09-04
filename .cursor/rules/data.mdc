@@ -1,3 +1,7 @@
+---
+description: Data handling and management guidelines
+alwaysApply: false
+---
 # Data Management Rules
 
 ## Database Schema Changes
@@ -62,7 +66,69 @@
 - **Use least privilege principle** for database permissions
 - **Audit database access** and monitor for suspicious activity
 - **Implement data retention policies** for compliance
-description:
-globs:
-alwaysApply: false
----
+
+# Data Management Rules
+
+## Database Schema Changes
+- **Always use Alembic migrations** for database schema changes
+- **Never run direct SQL commands** on the database using kubectl exec
+- **Create migrations for all schema modifications** with descriptive names
+- **Test migrations** on development data before production
+- **Include rollback logic** in migrations when possible
+
+## Migration Best Practices
+- **Use descriptive migration names** that explain the change
+- **Include both upgrade and downgrade operations**
+- **Test migrations in both directions** to ensure reversibility
+- **Document complex migration logic** with comments
+- **Use transactions** for multi-step migrations
+
+## Database Operations
+- **Execute migrations via containers** in Kubernetes namespace
+- **Use Makefile targets** (`make db-shell`, `make db-backup`) instead of direct kubectl commands
+- **Always append `| cat`** to psql commands for non-interactive, AI-friendly output
+- **Use connection pooling** for production applications
+- **Implement proper connection cleanup** and error handling
+
+## Data Management
+- **Use environment variables** for database credentials
+- **Implement proper connection string handling** with validation
+- **Use parameterized queries** to prevent SQL injection
+- **Implement proper error handling** for database operations
+- **Use appropriate data types** for columns and constraints
+
+## Trading Data Management
+- **Use established market data services** for data retrieval
+- **Implement proper data caching strategies** to reduce API calls
+- **Use the options data service** for options-related operations
+- **Implement data validation** and quality checks
+- **Monitor data freshness** and availability
+
+## Data Processing
+- **Use pandas for data manipulation** with proper memory management
+- **Implement data validation** at ingestion points
+- **Use appropriate data structures** for different data types
+- **Implement data versioning** for historical analysis
+- **Monitor data processing performance** and optimize bottlenecks
+
+## Performance Optimization
+- **Create indexes** for frequently queried columns
+- **Use appropriate constraints** (foreign keys, unique constraints)
+- **Monitor query performance** and optimize slow queries
+- **Use database-specific optimizations** when needed
+- **Implement proper connection pooling** and resource management
+
+## Backup and Recovery
+- **Implement regular backup procedures** with automated scheduling
+- **Test backup restoration procedures** regularly
+- **Use point-in-time recovery** when possible
+- **Document disaster recovery procedures** and test them
+- **Monitor backup success** and completion status
+
+## Data Security
+- **Encrypt sensitive data** at rest and in transit
+- **Implement proper access controls** for database users
+- **Use least privilege principle** for database permissions
+- **Audit database access** and monitor for suspicious activity
+- **Implement data retention policies** for compliance
+

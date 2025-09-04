@@ -60,3 +60,4 @@ async def create_order_queues():
 
 if __name__ == "__main__":
     asyncio.run(create_order_queues())
+

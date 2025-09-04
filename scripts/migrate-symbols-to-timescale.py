@@ -107,3 +107,4 @@ if __name__ == "__main__":
     logger.info("🚀 Starting symbols migration to TimescaleDB external...")
     migrate_symbols_to_timescale()
     logger.info("✨ Migration complete!")
+

@@ -1,0 +1,73 @@
+# Backtesting Makefile
+# Clean, organized backtesting commands
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+.PHONY: help backtest-run backtest-fast backtest-status backtest-logs backtest-delete backtest-cleanup
+
+backtest-help: ## Show backtesting help
+	@echo "$(GREEN)🧪 Backtesting$(NC)"
+	@echo "$(YELLOW)============$(NC)"
+	@echo ""
+	@echo "$(GREEN)Basic Operations:$(NC)"
+	@echo "  backtest-run     - Run backtest"
+	@echo "  backtest-fast    - Run fast backtest"
+	@echo "  backtest-status  - Show backtest status"
+	@echo "  backtest-logs    - Show backtest logs"
+	@echo "  backtest-delete  - Delete backtest job"
+	@echo "  backtest-cleanup - Clean up old backtest jobs"
+	@echo ""
+
+backtest-run: ## Run backtest
+	@echo "$(GREEN)🚀 Running Backtest...$(NC)"
+	@echo "Available backtest configurations:"
+	@ls k8s/backtest-*.yaml | head -10
+	@echo ""
+	@echo "Usage: kubectl apply -f k8s/backtest-<type>.yaml"
+
+backtest-fast: ## Run fast backtest
+	@echo "$(GREEN)⚡ Running Fast Backtest...$(NC)"
+	@echo "Deploying fast backtest job..."
+	kubectl apply -f k8s/backtest-fast-optimized.yaml
+	@echo "📊 Monitoring fast backtest job..."
+	kubectl get jobs -n trading-system backtest-fast-optimized -w
+
+backtest-status: ## Show backtest status
+	@echo "$(GREEN)📊 Backtest Status$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Active Jobs:"
+	kubectl get jobs -n trading-system | grep backtest
+	@echo ""
+	@echo "Recent Pods:"
+	kubectl get pods -n trading-system | grep backtest | head -10
+
+backtest-logs: ## Show backtest logs
+	@echo "$(GREEN)📋 Backtest Logs$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Available backtest jobs:"
+	kubectl get jobs -n trading-system | grep backtest
+	@echo ""
+	@echo "Usage: kubectl logs -n trading-system job/<job-name> --follow"
+
+backtest-delete: ## Delete backtest job
+	@echo "$(RED)🗑️  Delete Backtest Job$(NC)"
+	@echo "$(YELLOW)===================$(NC)"
+	@echo ""
+	@echo "Available backtest jobs:"
+	kubectl get jobs -n trading-system | grep backtest
+	@echo ""
+	@echo "Usage: kubectl delete job <job-name> -n trading-system"
+
+backtest-cleanup: ## Clean up old backtest jobs
+	@echo "$(YELLOW)🧹 Cleaning Up Old Backtest Jobs...$(NC)"
+	@echo "Deleting completed jobs..."
+	kubectl delete jobs -n trading-system --field-selector=status.successful=1
+	@echo "Deleting failed jobs..."
+	kubectl delete jobs -n trading-system --field-selector=status.successful=0
+	@echo "✅ Backtest cleanup completed"

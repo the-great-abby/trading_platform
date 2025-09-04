@@ -1,0 +1,146 @@
+---
+description: Deployment management and tracking
+globs: k8s/*.yaml, services/*/Dockerfile, DEPLOY_MAP.md
+---
+
+# Deployment Management Rule
+
+## Overview
+This rule ensures that the DEPLOY_MAP.md file is kept up to date whenever deployment changes are made to the trading system.
+
+## When to Update DEPLOY_MAP.md
+- After deploying new services with `kubectl apply`
+- After moving deployment files to `k8s/deprecated/`
+- After rebuilding and pushing Docker images
+- After scaling deployments up or down
+- After changing deployment configurations
+- After identifying new deployment patterns
+
+## Update Process
+1. **Check Current Deployment Status**
+   ```bash
+   kubectl get deployments -n trading-system
+   kubectl get pods -n trading-system | grep -E "(ErrImageNeverPull|ImagePullBackOff|CrashLoopBackOff)"
+   kubectl get services -n trading-system
+   ```
+
+2. **Update DEPLOY_MAP.md Sections**
+   - Update "ACTIVE DEPLOYMENTS" section with current running deployments
+   - Update "DEPLOYED BUT FAILING" section with any failing pods
+   - Update "DEPRECATED DEPLOYMENTS" section when files are moved to deprecated/
+   - Update "MINIMAL DEPLOYMENTS" section when minimal patterns are deprecated
+   - Update "AVAILABLE BUT NOT DEPLOYED" section with available services
+   - Update "Missing Images" section after rebuilding images
+
+3. **Update Status Indicators**
+   - ✅ Active: Currently deployed and running
+   - ❌ Not Deployed: Available but not deployed
+   - ⚠️ Deprecated: Should not be used
+   - 🔄 Deployed but Failing: Deployed but has issues
+   - 🔧 Maintenance: Down for maintenance
+
+4. **Update Timestamps**
+   - Update "Last Updated" timestamp
+   - Add entries to "Recent Changes" section
+
+## Deployment Pattern Standards
+
+### **Standard Pattern (Recommended)**
+- **File Naming**: `{service-name}.yaml`
+- **Image Tagging**: `localhost:32000/{service-name}:latest`
+- **Resource Limits**: Defined with requests and limits
+- **Health Checks**: Readiness and liveness probes
+- **Status**: ✅ Production Ready
+
+### **Minimal Pattern (Deprecated)**
+- **File Naming**: `{service-name}-minimal.yaml`
+- **Image Tagging**: `localhost:32000/{service-name}:latest`
+- **Resource Limits**: Minimal or none
+- **Health Checks**: Basic or none
+- **Status**: ⚠️ Should be deprecated
+
+### **Simple Pattern (Deprecated)**
+- **File Naming**: `{service-name}-simple.yaml`
+- **Image Tagging**: `localhost:32000/{service-name}:latest`
+- **Resource Limits**: Basic
+- **Health Checks**: Basic
+- **Status**: ⚠️ Moved to deprecated/
+
+## Required Updates
+
+### **After Deploying Services**
+```bash
+# Deploy service
+kubectl apply -f k8s/{service-name}.yaml
+
+# Update DEPLOY_MAP.md
+# - Add to "ACTIVE DEPLOYMENTS" if successful
+# - Add to "DEPLOYED BUT FAILING" if has issues
+# - Update timestamp and recent changes
+```
+
+### **After Moving to Deprecated**
+```bash
+# Move deprecated files
+mv k8s/{service-name}-simple.yaml k8s/deprecated/
+
+# Update DEPLOY_MAP.md
+# - Move from active to "DEPRECATED DEPLOYMENTS"
+# - Update timestamp and recent changes
+```
+
+### **After Rebuilding Images**
+```bash
+# Rebuild image
+cd services/{service-name}
+docker build -t {service-name}:latest .
+docker tag {service-name}:latest localhost:32000/{service-name}:latest
+docker push localhost:32000/{service-name}:latest
+
+# Update DEPLOY_MAP.md
+# - Remove from "Missing Images" section
+# - Update timestamp and recent changes
+```
+
+### **After Scaling Deployments**
+```bash
+# Scale deployment
+kubectl scale deployment {service-name} --replicas=0 -n trading-system
+
+# Update DEPLOY_MAP.md
+# - Update status to "🔧 Maintenance" or "❌ Not Deployed"
+# - Update timestamp and recent changes
+```
+
+## Commands to Remember
+```bash
+# Check deployment status
+kubectl get deployments -n trading-system
+
+# Check pods with issues
+kubectl get pods -n trading-system | grep -E "(ErrImageNeverPull|ImagePullBackOff|CrashLoopBackOff)"
+
+# Check services
+kubectl get services -n trading-system
+
+# Check registry images
+curl -s http://localhost:32000/v2/_catalog
+```
+
+## File Locations
+- Main deployment map: `DEPLOY_MAP.md`
+- Deployment files: `k8s/*.yaml`
+- Deprecated deployments: `k8s/deprecated/*.yaml`
+- Service source code: `services/*/`
+- This rule: `.cursor/rules/deployment-management.mdc`
+
+## Example Update Workflow
+1. **Deploy new service**: `kubectl apply -f k8s/new-service.yaml`
+2. **Check status**: `kubectl get pods -n trading-system | grep new-service`
+3. **Update DEPLOY_MAP.md**:
+   - Add to appropriate section based on status
+   - Update timestamp: `2025-09-03 20:10:00 EEST`
+   - Add to recent changes: `"2025-09-03": Deployed new-service`
+4. **Test deployment**: `curl -s http://localhost:{port}/health`
+
+This ensures the deployment map stays synchronized with the actual system state and provides accurate tracking of all deployment patterns and their status.

@@ -1,0 +1,140 @@
+# Port Forwarding Makefile
+# Clean, organized port forwarding commands
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+.PHONY: help port-start port-stop port-status port-check port-start-dashboards port-start-analytics port-start-monitoring port-start-unified-dashboards port-restart port-cleanup port-health-check
+
+port-help: ## Show port forwarding help
+	@echo "$(GREEN)🔌 Port Forwarding$(NC)"
+	@echo "$(YELLOW)=================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Basic Operations:$(NC)"
+	@echo "  port-start      - Start all port forwards"
+	@echo "  port-stop       - Stop all port forwards"
+	@echo "  port-status     - Show port forwarding status"
+	@echo "  port-check      - Check if essential ports are responding"
+	@echo "  port-restart    - Restart all port forwards"
+	@echo "  port-cleanup    - Clean up old port forwards"
+	@echo ""
+	@echo "$(GREEN)Service Categories:$(NC)"
+	@echo "  port-start-dashboards - Start dashboard port forwards"
+	@echo "  port-start-analytics - Start analytics port forwards"
+	@echo "  port-start-monitoring - Start monitoring port forwards"
+	@echo "  port-start-unified-dashboards - Start unified dashboard port forwards"
+	@echo ""
+	@echo "$(GREEN)Health & Monitoring:$(NC)"
+	@echo "  port-health-check - Check health of all forwarded ports"
+	@echo ""
+
+# Basic Operations
+port-start: ## Start all port forwards
+	@echo "$(GREEN)🔌 Starting All Port Forwards...$(NC)"
+	@echo "Starting registry port forward..."
+	kubectl port-forward -n default service/registry 32000:5000 &
+	@echo "Starting unified analytics dashboard..."
+	kubectl port-forward -n trading-system service/unified-analytics-dashboard 11114:8000 &
+	@echo "Starting unified trading dashboard..."
+	kubectl port-forward -n trading-system service/unified-trading-dashboard 11115:8000 &
+	@echo "Starting market data service..."
+	kubectl port-forward -n trading-system service/market-data-service 11113:8000 &
+	@echo "Starting AI analysis service..."
+	kubectl port-forward -n trading-system service/ai-analysis-service 11084:8000 &
+	@echo "Starting analytics service..."
+	kubectl port-forward -n trading-system service/analytics-service 11081:8000 &
+	@echo "✅ All port forwards started!"
+	@echo "📋 Run 'make port-status' to check status"
+
+port-stop: ## Stop all port forwards
+	@echo "$(RED)🛑 Stopping All Port Forwards...$(NC)"
+	pkill -f "kubectl port-forward" || echo "No port forwards to stop"
+	@echo "✅ All port forwards stopped"
+
+port-status: ## Show port forwarding status
+	@echo "$(GREEN)🔌 Port Forwarding Status$(NC)"
+	@echo "$(YELLOW)=======================$(NC)"
+	@echo ""
+	@echo "Active Port Forwards:"
+	@ps aux | grep "kubectl port-forward" | grep -v grep || echo "  No active port forwards"
+	@echo ""
+	@echo "📋 For detailed port mapping, see: PORT_MAP.md"
+
+port-check: ## Check if essential ports are responding
+	@echo "$(GREEN)🔍 Port Health Check$(NC)"
+	@echo "$(YELLOW)==================$(NC)"
+	@echo ""
+	@echo "Note: Database ports (11140, 11379, 11144, 11180) are DEPRECATED - moved to external sources"
+	@echo ""
+	@for port in 11114 11115 11113 11084 11081; do \
+		printf "Port %s: " $$port; \
+		curl -s --connect-timeout 2 http://localhost:$$port/health > /dev/null 2>&1 && echo "✅ Active" || echo "❌ Not responding"; \
+	done
+
+port-restart: ## Restart all port forwards
+	@echo "$(YELLOW)🔄 Restarting Port Forwards...$(NC)"
+	make port-stop
+	sleep 2
+	make port-start
+
+port-cleanup: ## Clean up old port forwards
+	@echo "$(YELLOW)🧹 Cleaning Up Port Forwards...$(NC)"
+	pkill -f "kubectl port-forward" || echo "No port forwards to clean up"
+	@echo "✅ Port forwards cleaned up"
+
+# Service Categories
+port-start-dashboards: ## Start dashboard port forwards
+	@echo "$(GREEN)📊 Starting Dashboard Port Forwards...$(NC)"
+	@echo "Starting unified analytics dashboard..."
+	kubectl port-forward -n trading-system service/unified-analytics-dashboard 11114:8000 &
+	@echo "Starting unified trading dashboard..."
+	kubectl port-forward -n trading-system service/unified-trading-dashboard 11115:8000 &
+	@echo "Starting performance dashboard..."
+	kubectl port-forward -n trading-system service/performance-dashboard 11116:8000 &
+	@echo "✅ Dashboard port forwards started!"
+
+port-start-analytics: ## Start analytics port forwards
+	@echo "$(GREEN)🔍 Starting Analytics Port Forwards...$(NC)"
+	@echo "Starting AI analysis service..."
+	kubectl port-forward -n trading-system service/ai-analysis-service 11084:8000 &
+	@echo "Starting analytics service..."
+	kubectl port-forward -n trading-system service/analytics-service 11081:8000 &
+	@echo "Starting data analysis service..."
+	kubectl port-forward -n trading-system service/data-analysis-service 11082:8000 &
+	@echo "✅ Analytics port forwards started!"
+
+port-start-monitoring: ## Start monitoring port forwards
+	@echo "$(GREEN)📊 Starting Monitoring Port Forwards...$(NC)"
+	@echo "Starting node exporter..."
+	kubectl port-forward -n trading-system service/node-exporter 9100:9100 &
+	@echo "Starting trading monitor..."
+	kubectl port-forward -n trading-system service/trading-monitor 11083:8000 &
+	@echo "✅ Monitoring port forwards started!"
+
+port-start-unified-dashboards: ## Start unified dashboard port forwards
+	@echo "$(GREEN)🎯 Starting Unified Dashboard Port Forwards...$(NC)"
+	@echo "Starting unified analytics dashboard..."
+	kubectl port-forward -n trading-system service/unified-analytics-dashboard 11114:8000 &
+	@echo "Starting unified trading dashboard..."
+	kubectl port-forward -n trading-system service/unified-trading-dashboard 11115:8000 &
+	@echo "✅ Unified dashboard port forwards started!"
+
+# Health & Monitoring
+port-health-check: ## Check health of all forwarded ports
+	@echo "$(GREEN)💓 Port Health Check$(NC)"
+	@echo "$(YELLOW)==================$(NC)"
+	@echo ""
+	@echo "🔌 Active Port Forwards:"
+	@ps aux | grep "kubectl port-forward" | grep -v grep | wc -l | xargs -I {} echo "  Active: {}"
+	@echo ""
+	@echo "🌐 Port Response Check:"
+	@for port in 11114 11115 11113 11084 11081; do \
+		printf "Port %s: " $$port; \
+		curl -s --connect-timeout 2 http://localhost:$$port/health > /dev/null 2>&1 && echo "✅ Active" || echo "❌ Not responding"; \
+	done
+	@echo ""
+	@echo "📋 Registry Status:"
+	@curl -s http://localhost:32000/v2/_catalog > /dev/null 2>&1 && echo "  ✅ Registry active" || echo "  ❌ Registry down"

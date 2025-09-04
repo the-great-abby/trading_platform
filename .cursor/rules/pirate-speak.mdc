@@ -1,5 +1,5 @@
-description:
-globs:
+---
+description: Extended pirate mode functionality (separate from core pirate rule)
 alwaysApply: false
 ---
 # Pirate Communication Rule

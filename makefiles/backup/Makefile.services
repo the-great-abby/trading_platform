@@ -1,0 +1,240 @@
+# Service Management Operations Makefile
+# Usage: make -f Makefile.services <target>
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+DOCKER_COMPOSE := docker-compose
+
+.PHONY: help service-start service-stop service-status service-restart start stop start-dashboards start-trading start-analytics start-monitoring scale-for-constrained ensure-single-pod optimize-resources cleanup-cronjob-pods consolidate-services consolidate-dashboards consolidate-analytics consolidate-trading consolidate-high-resource consolidate-all consolidation-status core-services-status
+
+help: ## Show this help message
+	@echo "$(GREEN)🚀 Service Management Operations$(NC)"
+	@echo "$(YELLOW)==============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Basic Service Operations:$(NC)"
+	@echo "  service-start   - Start all services (Docker Compose)"
+	@echo "  service-stop    - Stop all services (Docker Compose)"
+	@echo "  service-status  - Show status of all services"
+	@echo "  service-restart - Restart all services"
+	@echo ""
+	@echo "$(GREEN)Kubernetes Service Management:$(NC)"
+	@echo "  start           - Start all essential services for trading system"
+	@echo "  start-dashboards - Start essential dashboard services"
+	@echo "  start-trading   - Start core trading services"
+	@echo "  start-analytics - Start analytics and worker services"
+	@echo "  start-monitoring - Start monitoring and health services"
+	@echo "  start-help      - Show all startup options and service categories"
+	@echo ""
+	@echo "$(GREEN)Resource Management:$(NC)"
+	@echo "  scale-for-constrained - Scale all services to 1 pod each for resource-constrained environments"
+	@echo "  ensure-single-pod - Ensure all services run with exactly 1 pod"
+	@echo "  optimize-resources - Optimize resource usage for constrained machine"
+	@echo "  cleanup-cronjob-pods - Clean up old completed cronjob pods to save resources"
+	@echo ""
+	@echo "$(GREEN)Service Consolidation:$(NC)"
+	@echo "  consolidate-services - Start service consolidation process"
+	@echo "  consolidate-dashboards - Consolidate all dashboard services into one"
+	@echo "  consolidate-analytics - Consolidate analytics services"
+	@echo "  consolidate-trading - Consolidate trading core services"
+	@echo "  consolidate-high-resource - Scale down high-resource services"
+	@echo "  consolidate-all - Run all consolidation steps"
+	@echo "  consolidation-status - Show consolidation progress and resource usage"
+	@echo ""
+
+# Basic Docker Compose Operations
+service-start: ## Start all services using Docker Compose
+	@echo '🚀 Starting all services...'
+	$(DOCKER_COMPOSE) up -d
+
+service-stop: ## Stop all services using Docker Compose
+	@echo '🛑 Stopping all services...'
+	$(DOCKER_COMPOSE) down
+
+service-status: ## Show status of all services
+	@echo '📊 Service Status:'
+	$(DOCKER_COMPOSE) ps
+
+service-restart: ## Restart all services
+	@echo '🔄 Restarting all services...'
+	$(DOCKER_COMPOSE) restart
+
+# Kubernetes Service Management
+start: ## Start all essential services for trading system
+	@echo '🚀 Starting Essential Trading System Services...'
+	@echo 'Phase 1: Core Infrastructure...'
+	kubectl scale deployment kubernetes-rag-chat-rs --replicas=1 -n trading-system
+	kubectl scale deployment node-exporter --replicas=1 -n trading-system
+	@echo 'Phase 2: Market Data...'
+	kubectl scale deployment market-data-service --replicas=1 -n trading-system
+	@echo 'Phase 3: Trading Core...'
+	kubectl scale deployment trading-service --replicas=1 -n trading-system
+	kubectl scale deployment trading-engine --replicas=1 -n trading-system
+	kubectl scale deployment order-service --replicas=1 -n trading-system
+	kubectl scale deployment risk-service --replicas=1 -n trading-system
+	@echo 'Phase 4: Analytics & Workers...'
+	kubectl scale deployment analytics-service --replicas=1 -n trading-system
+	kubectl scale deployment ai-analysis-service --replicas=1 -n trading-system
+	@echo 'Phase 5: Dashboards...'
+	kubectl scale deployment unified-analytics-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment unified-trading-dashboard --replicas=1 -n trading-system
+	@echo '✅ All essential services started!'
+	@echo '📊 Current running pods:'
+	kubectl get pods -n trading-system | grep Running | wc -l
+
+start-dashboards: ## Start essential dashboard services
+	@echo '📊 Starting Dashboard Services...'
+	kubectl scale deployment unified-analytics-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment unified-trading-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment performance-dashboard --replicas=1 -n trading-system
+	kubectl scale deployment data-pipeline-dashboard --replicas=1 -n trading-system
+	@echo '✅ Dashboard services started!'
+
+start-trading: ## Start core trading services
+	@echo '📈 Starting Core Trading Services...'
+	kubectl scale deployment trading-service --replicas=1 -n trading-system
+	kubectl scale deployment trading-engine --replicas=1 -n trading-system
+	kubectl scale deployment order-service --replicas=1 -n trading-system
+	kubectl scale deployment risk-service --replicas=1 -n trading-system
+	kubectl scale deployment strategy-service --replicas=1 -n trading-system
+	kubectl scale deployment signal-management-service --replicas=1 -n trading-system
+	@echo '✅ Trading services started!'
+
+start-analytics: ## Start analytics and worker services
+	@echo '🔍 Starting Analytics Services...'
+	kubectl scale deployment analytics-service --replicas=1 -n trading-system
+	kubectl scale deployment ai-analysis-service --replicas=1 -n trading-system
+	kubectl scale deployment data-analysis-service --replicas=1 -n trading-system
+	kubectl scale deployment background-vectorization-service --replicas=1 -n trading-system
+	@echo '✅ Analytics services started!'
+
+start-monitoring: ## Start monitoring and health services
+	@echo '📊 Starting Monitoring Services...'
+	kubectl scale deployment node-exporter --replicas=1 -n trading-system
+	kubectl scale deployment trading-monitor --replicas=1 -n trading-system
+	@echo '✅ Monitoring services started!'
+
+start-help: ## Show all startup options and service categories
+	@echo '🚀 Trading System Startup Options'
+	@echo '================================='
+	@echo ''
+	@echo '  make start                    - Start ALL essential services (phased approach)'
+	@echo '  make start-dashboards         - Start essential dashboards'
+	@echo '  make start-trading            - Start core trading services'
+	@echo '  make start-analytics          - Start analytics and worker services'
+	@echo '  make start-monitoring         - Start monitoring and health services'
+	@echo ''
+	@echo 'Service Categories:'
+	@echo '  📊 Dashboards: unified-analytics-dashboard, unified-trading-dashboard, performance-dashboard'
+	@echo '  📈 Trading: trading-service, trading-engine, order-service, risk-service, strategy-service'
+	@echo '  🔍 Analytics: analytics-service, ai-analysis-service, data-analysis-service'
+	@echo '  📊 Monitoring: node-exporter, trading-monitor'
+	@echo '  🏗️  Infrastructure: kubernetes-rag-chat-rs, market-data-service'
+	@echo ''
+
+# Resource Management
+scale-for-constrained: ## Scale all services to 1 pod each for resource-constrained environments
+	@echo '🔧 Scaling services for constrained environment...'
+	kubectl scale deployment --replicas=1 --all -n trading-system
+	@echo '✅ All services scaled to 1 pod each'
+
+ensure-single-pod: ## Ensure all services run with exactly 1 pod
+	@echo '🔧 Ensuring single pod per service...'
+	kubectl get deployments -n trading-system -o name | xargs -I {} kubectl scale {} --replicas=1 -n trading-system
+	@echo '✅ All services set to 1 pod'
+
+optimize-resources: ## Optimize resource usage for constrained machine
+	@echo '🔧 Optimizing resources for constrained machine...'
+	@echo 'Scaling down high-resource services...'
+	kubectl scale deployment background-vectorization-service --replicas=0 -n trading-system
+	kubectl scale deployment data-transformation-pipeline --replicas=0 -n trading-system
+	@echo 'Ensuring single pod for remaining services...'
+	make ensure-single-pod
+	@echo '✅ Resources optimized for constrained environment'
+
+cleanup-cronjob-pods: ## Clean up old completed cronjob pods to save resources
+	@echo '🧹 Cleaning up old cronjob pods...'
+	kubectl delete pods --field-selector=status.phase=Succeeded -n trading-system
+	kubectl delete pods --field-selector=status.phase=Failed -n trading-system
+	@echo '✅ Old cronjob pods cleaned up'
+
+# Service Consolidation
+consolidate-services: ## Start service consolidation process
+	@echo '🔧 Starting service consolidation...'
+	@echo 'This will consolidate similar services to reduce resource usage'
+	make consolidate-dashboards
+	make consolidate-analytics
+	make consolidate-trading
+	@echo '✅ Service consolidation completed'
+
+consolidate-dashboards: ## Consolidate all dashboard services into one
+	@echo 'Consolidating dashboard services...'
+	kubectl scale deployment performance-dashboard --replicas=0 -n trading-system
+	kubectl scale deployment data-pipeline-dashboard --replicas=0 -n trading-system
+	@echo 'Dashboard services consolidated to unified-analytics-dashboard and unified-trading-dashboard'
+
+consolidate-analytics: ## Consolidate analytics services
+	@echo 'Consolidating analytics services...'
+	kubectl scale deployment data-analysis-service --replicas=0 -n trading-system
+	kubectl scale deployment background-vectorization-service --replicas=0 -n trading-system
+	@echo 'Analytics services consolidated to ai-analysis-service and analytics-service'
+
+consolidate-trading: ## Consolidate trading core services
+	@echo 'Consolidating trading services...'
+	kubectl scale deployment signal-management-service --replicas=0 -n trading-system
+	kubectl scale deployment strategy-service --replicas=0 -n trading-system
+	@echo 'Trading services consolidated to core trading-service, trading-engine, order-service, risk-service'
+
+consolidate-high-resource: ## Scale down high-resource services
+	@echo 'Scaling down high-resource services...'
+	kubectl scale deployment background-vectorization-service --replicas=0 -n trading-system
+	kubectl scale deployment data-transformation-pipeline --replicas=0 -n trading-system
+	@echo 'High-resource services scaled down'
+
+consolidate-all: ## Run all consolidation steps
+	@echo '🔧 Running complete service consolidation...'
+	make consolidate-dashboards
+	make consolidate-analytics
+	make consolidate-trading
+	make consolidate-high-resource
+	@echo '✅ Complete service consolidation finished'
+
+consolidation-status: ## Show consolidation progress and resource usage
+	@echo '📊 Service Consolidation Status'
+	@echo '=============================='
+	@echo ''
+	@echo 'Active Services:'
+	kubectl get deployments -n trading-system | grep -v "0/0"
+	@echo ''
+	@echo 'Scaled Down Services:'
+	kubectl get deployments -n trading-system | grep "0/0"
+	@echo ''
+	@echo 'Resource Usage:'
+	kubectl top pods -n trading-system 2>/dev/null || echo "Metrics not available"
+
+core-services-status: ## Show status of core services
+	@echo '📊 Core Services Status'
+	@echo '======================'
+	@echo ''
+	@echo 'Infrastructure:'
+	kubectl get pods -n trading-system -l app=kubernetes-rag-chat-rs
+	kubectl get pods -n trading-system -l app=node-exporter
+	@echo ''
+	@echo 'Market Data:'
+	kubectl get pods -n trading-system -l app=market-data-service
+	@echo ''
+	@echo 'Trading Core:'
+	kubectl get pods -n trading-system -l app=trading-service
+	kubectl get pods -n trading-system -l app=trading-engine
+	kubectl get pods -n trading-system -l app=order-service
+	kubectl get pods -n trading-system -l app=risk-service
+	@echo ''
+	@echo 'Analytics:'
+	kubectl get pods -n trading-system -l app=analytics-service
+	kubectl get pods -n trading-system -l app=ai-analysis-service
+	@echo ''
+	@echo 'Dashboards:'
+	kubectl get pods -n trading-system -l app=unified-analytics-dashboard
+	kubectl get pods -n trading-system -l app=unified-trading-dashboard

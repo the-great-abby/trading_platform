@@ -4,6 +4,7 @@ Backtest Results Database Service
 
 import json
 import logging
+import os
 from datetime import datetime, date
 from typing import List, Dict, Optional, Any
 from sqlalchemy import create_engine, text
@@ -22,7 +23,7 @@ class BacktestResultsService:
     
     def __init__(self, database_url: Optional[str] = None):
         if database_url is None:
-            database_url = "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+            database_url = os.getenv("DATABASE_URL", "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot")
         
         self.database_url = database_url
         

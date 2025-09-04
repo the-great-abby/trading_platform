@@ -1,0 +1,48 @@
+# Main Trading System Makefile
+# Clean, organized, no duplicate targets
+
+# Color definitions
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+.PHONY: help status sync critical port-status port-check
+
+help: ## Show main help message
+	@echo "$(GREEN)🚀 Trading System - Main Commands$(NC)"
+	@echo "$(YELLOW)==============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)📋 Quick Commands:$(NC)"
+	@echo "  status         - Quick project status"
+	@echo "  sync           - Team sync"
+	@echo "  critical       - Testing priorities"
+	@echo ""
+	@echo "$(GREEN)🔌 Port Management:$(NC)"
+	@echo "  port-status    - Check current port forwarding status"
+	@echo "  port-check     - Check if essential ports are responding"
+	@echo ""
+	@echo "$(GREEN)📚 Specialized Commands:$(NC)"
+	@echo "  make services-help    - Service management commands"
+	@echo "  make k8s-help         - Kubernetes commands"
+	@echo "  make port-help        - Port forwarding commands"
+	@echo "  make backtest-help    - Backtesting commands"
+	@echo "  make build-help       - Build commands"
+	@echo "  make test-help        - Testing commands"
+	@echo ""
+
+# Quick status commands (aliases for simple commands)
+status: ## Quick project status
+	@make -f makefiles/Makefile.simple simple-status
+
+sync: ## Team sync
+	@make -f makefiles/Makefile.simple simple-sync
+
+critical: ## Testing priorities
+	@make -f makefiles/Makefile.simple simple-critical
+
+# Port management commands are now handled by Makefile.port-forward
+
+# Help commands for specialized Makefiles
+# These are now handled by the specialized Makefiles directly

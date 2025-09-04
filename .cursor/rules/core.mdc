@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Core Rules - Always Active
 
 ## AI Assistant Identity
@@ -65,7 +69,101 @@
 - **Use appropriate data structures** for the task
 - **Avoid premature optimization** but plan for scalability
 - **Profile code** when performance is critical
-description:
-globs:
-alwaysApply: false
----
+
+## Pirate Mode - Yarr Matey! 🏴‍☠️
+- **When user says "Talk like a pirate" or "Yarr"**: Switch to pirate speech mode
+- **Use pirate vocabulary**: 
+  - "Aye aye!" instead of "Yes"
+  - "Matey" instead of "friend" or "user"
+  - "Yarr!" for excitement
+  - "Shiver me timbers!" for surprise
+  - "Avast!" for attention
+  - "Yo ho ho!" for success
+- **Keep technical accuracy**: Maintain all technical precision while adding pirate flair
+- **Pirate greetings**: Start responses with "Ahoy matey!" or "Yarr there!"
+- **Pirate farewells**: End with "Fair winds and following seas!" or "Until we meet again, ye scurvy dog!"
+- **Code comments**: Add pirate-themed comments when appropriate (e.g., "// This be the treasure map to success!")
+- **Error messages**: "Blimey! Something went wrong in the code, matey!"
+- **Success messages**: "Yo ho ho! The code be working like a charm!"
+- **Return to normal**: When user says "Stop talking like a pirate" or similar, return to standard professional tone
+
+## Related Rules 📚
+This core file works with other specialized rule files. See `.cursor/rules/` for complete coverage:
+
+### AI & Development Assistant
+- **[AI Development Assistant](.cursor/rules/ai-development-assistant.mdc)** - Making AI a first-class citizen in development
+  - **Use when**: Complex features, new services, performance issues, security concerns, migration tasks
+  - **Examples**: AI code review, refactoring assistance, test generation, documentation updates, performance optimization
+
+### Development & Workflow
+- **[Port Mapping](.cursor/rules/port-mapping.mdc)** - Port forwarding standards and workflows
+  - **Use when**: Setting up new services, troubleshooting connectivity, documenting port usage
+  - **Examples**: `kubectl port-forward` commands, updating PORT_MAP.md, resolving port conflicts
+- **[Port Forwarding Commands](.cursor/rules/port-forwarding-command.mdc)** - Automatic port forwarding management
+  - **Use when**: Ports go down, after Grafana updates, when user says "Shields are down!"
+  - **Examples**: Automatic restart after `kubectl rollout restart deployment/grafana`, health checks
+- **[Makefile Simple Notes](.cursor/rules/makefile-simple-notes.mdc)** - Simplified Makefile usage patterns
+  - **Use when**: Quick status checks, team syncs, identifying testing priorities
+  - **Examples**: `make -f Makefile.simple status`, `make -f Makefile.simple sync`, `make -f Makefile.simple critical`
+- **[Python](.cursor/rules/python.mdc)** - Python-specific development guidelines
+  - **Use when**: Writing Python code, setting up virtual environments, managing dependencies
+  - **Examples**: Code formatting, import organization, virtual environment setup
+- **[Trading](.cursor/rules/trading.mdc)** - Trading system specific rules
+  - **Use when**: Working with trading strategies, backtesting, market data
+  - **Examples**: Strategy implementation, backtest configuration, market data handling
+- **[Documentation Reference](.cursor/rules/documentation-reference.mdc)** - Using docs/ and md/ directories for reference/storage
+  - **Use when**: Creating new features, editing existing features, architecture decisions, troubleshooting
+  - **Examples**: Pre-development research, feature documentation, knowledge preservation, cross-reference validation
+
+### Infrastructure & Data
+- **[Infrastructure](.cursor/rules/infrastructure.mdc)** - System architecture and deployment rules
+  - **Use when**: Kubernetes deployments, Docker containers, system architecture decisions
+  - **Examples**: `kubectl apply` commands, container optimization, deployment strategies
+- **[Data](.cursor/rules/data.mdc)** - Data handling and management guidelines
+  - **Use when**: Database operations, data migrations, data structure design
+  - **Examples**: Alembic migrations, database schema changes, data validation
+- **[Resource Constraints](.cursor/rules/resource-constraints.mdc)** - Performance optimization for limited resources
+  - **Use when**: Working on resource-limited systems, optimizing performance, memory management
+  - **Examples**: Container resource limits, memory optimization, CPU usage tuning
+- **[Resource Constrained MacBook](.cursor/rules/resource-constrained-macbook.mdc)** - MacBook-specific optimization rules
+  - **Use when**: Developing on MacBook, optimizing for local development, managing local resources
+  - **Examples**: Docker Desktop settings, local Kubernetes, development environment optimization
+
+### Style & Presentation
+- **[Styles](.cursor/rules/styles.mdc)** - Code formatting and style guidelines
+  - **Use when**: Code reviews, setting up new projects, maintaining consistency
+  - **Examples**: Linting rules, code formatting standards, naming conventions
+- **[Quick Styles](.cursor/rules/quick-styles.mdc)** - Quick reference for common styling patterns
+  - **Use when**: Need quick style reference, setting up new files, quick formatting fixes
+  - **Examples**: File headers, comment styles, quick formatting templates
+- **[Visual Overview](.cursor/rules/visual-overview.mdc)** - Visual representation of rule relationships
+  - **Use when**: Understanding rule interactions, onboarding new team members, rule architecture
+  - **Examples**: Rule dependency mapping, visual rule hierarchy, onboarding documentation
+- **[Diagrams](.cursor/rules/diagrams.md)** - Diagram and visualization guidelines
+  - **Use when**: Creating system diagrams, documenting architecture, visual documentation
+  - **Examples**: System architecture diagrams, workflow charts, component relationships
+
+### Special Features
+- **[Pirate Speak](.cursor/rules/pirate-speak.mdc)** - Extended pirate mode functionality (separate from core pirate rule)
+  - **Use when**: Extended pirate interactions, complex pirate scenarios, advanced pirate features
+  - **Examples**: Multi-turn pirate conversations, pirate-themed code generation, extended pirate vocabulary
+
+### Rule Usage Guidelines
+- **Core rules** (this file) are always active and provide foundation
+- **AI Development Assistant** activates automatically based on development context
+- **Specialized rules** activate based on context or user requests
+- **Cross-reference** between rules for comprehensive guidance
+- **Update related rules** when making changes to maintain consistency
+
+### When to Reference Multiple Rules
+- **New service setup**: AI Development Assistant + Infrastructure + Port Mapping + Resource Constraints
+- **Code review**: AI Development Assistant + Styles + Python + Trading
+- **Performance issues**: AI Development Assistant + Resource Constraints + Infrastructure + Data
+- **Port problems**: AI Development Assistant + Port Mapping + Port Forwarding Commands
+- **Development workflow**: AI Development Assistant + Makefile Simple Notes + Python + Styles
+- **AI-assisted development**: AI Development Assistant + relevant domain rules
+
+
+
+
+

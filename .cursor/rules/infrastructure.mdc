@@ -1,3 +1,7 @@
+---
+description: System architecture and deployment rules
+alwaysApply: false
+---
 # Infrastructure & Deployment Rules
 
 ## Docker & Containerization
@@ -50,7 +54,57 @@
 - **Implement distributed tracing** for request flows
 - **Set up alerting** for critical system events
 - **Monitor resource usage** and performance metrics
-description:
-globs:
-alwaysApply: false
----
+
+# Infrastructure & Deployment Rules
+
+## Docker & Containerization
+- **Always tag Docker images** when building to avoid pulling old images
+- **Push to local registry** at `localhost:5000` with 'latest' tag
+- **Use multi-stage builds** for production images
+- **Optimize image layers** for caching and smaller sizes
+- **Use non-root users** in containers for security
+- **Set appropriate resource limits** and health checks
+
+## Kubernetes Operations
+- **Execute algo trading bot operations through Kubernetes** rather than directly on host
+- **Use Makefile targets** (`make db-shell`, `make db-backup`) instead of direct kubectl commands
+- **Use modular Makefiles** (Makefile.docker, Makefile.kubernetes) instead of monolithic Makefile
+- **Prefix Makefile targets** with categories (docker-, security-, etc.) to avoid conflicts
+- **Execute Alembic migrations** via containers in Kubernetes namespace
+
+## Deployment Strategy
+- **Use rolling updates** for zero-downtime deployments
+- **Implement health checks** and readiness probes
+- **Use ConfigMaps and Secrets** for configuration management
+- **Set resource requests and limits** appropriately
+- **Use namespaces** for environment separation
+
+## Security Practices
+- **Use RBAC** for access control and permissions
+- **Implement network policies** for pod-to-pod communication
+- **Use secrets** for sensitive data (never in ConfigMaps)
+- **Scan images** for vulnerabilities before deployment
+- **Implement proper authentication** and authorization
+- **Use service mesh** for inter-service communication security
+
+## Service Management
+- **Implement proper load balancing** and service discovery
+- **Use ingress controllers** for external access management
+- **Monitor service health** and performance metrics
+- **Implement proper logging** and distributed tracing
+- **Use service mesh** for advanced traffic management
+
+## Configuration Management
+- **Use environment variables** for configuration
+- **Implement proper secret management** (HashiCorp Vault, Kubernetes Secrets)
+- **Use configuration validation** to catch errors early
+- **Implement configuration versioning** and rollback capabilities
+- **Use GitOps** for infrastructure as code
+
+## Monitoring & Observability
+- **Implement comprehensive logging** with structured log formats
+- **Use metrics collection** (Prometheus, Grafana)
+- **Implement distributed tracing** for request flows
+- **Set up alerting** for critical system events
+- **Monitor resource usage** and performance metrics
+

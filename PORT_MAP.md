@@ -1,97 +1,111 @@
-# 🚀 Current Port Mapping Guide
+# 🚀 Port Mapping Guide - Trading System
 
-## 📊 Active Port Forwards
+## 📊 Current Status
 
-### **Currently Active Port Forwards**
-| Service | External Port | Internal Port | Status | URL |
-|---------|---------------|---------------|--------|-----|
-| Unified Analytics Dashboard | 11141 | 80 | ✅ Active | http://localhost:11141/ |
-| AI Analysis Service | 11085 | 11085 | ✅ Active | http://localhost:11085/ |
-| LLM Proxy | 11081 | 11081 | ✅ Active | http://localhost:11081/ |
-| LLM Service | 11109 | 11109 | ✅ Active | http://localhost:11109/ |
-| Market Data Service | 11084 | 11084 | ✅ Active | http://localhost:11084/ |
+**Last Updated**: 2025-09-03 21:30:00 EEST  
+**Active Port Forwards**: 8  
+**Total Services**: 50+  
 
-## 🎯 Service Categories
+## 🎯 Currently Active Port Forwards
 
-### **�� Dashboard Services (11000-11099)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| Central Hub | 11080 | http://localhost:11080/ | ❌ Not Forwarded | Main navigation hub |
-| Performance | 11000 | http://localhost:11000/dashboard | ❌ Not Forwarded | Performance analytics |
-| Health | 11002 | http://localhost:11002/dashboard | ❌ Not Forwarded | System health monitoring |
-| RSS Dashboard | 11003 | http://localhost:11003/ | ❌ Not Forwarded | RSS feed viewer |
-| AI Stock | 11086 | http://localhost:11086/ | ❌ Not Forwarded | AI stock analysis |
+| Service | External Port | Internal Port | Status | URL | Last Checked |
+|---------|---------------|---------------|--------|-----|--------------|
+| Registry | 32000 | 5000 | ✅ Active | http://localhost:32000/ | 2025-09-03 21:30 |
+| Unified Analytics Dashboard | 11114 | 80 | ✅ Active | http://localhost:11114/ | 2025-09-03 21:30 |
+| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-03 21:30 |
+| Unified News Dashboard | 11116 | 80 | ✅ Active | http://localhost:11116/ | 2025-09-03 21:30 |
+| MCP Service | 11117 | 8000 | ✅ Active | http://localhost:11117/ | 2025-09-04 05:41 |
+| PostgreSQL Timescale | 13001 | 5432 | ✅ Active | localhost:13001 | 2025-09-03 21:30 |
+| PostgreSQL Age | 13002 | 5432 | ✅ Active | localhost:13002 | 2025-09-03 21:30 |
+| PostgreSQL Vector | 13003 | 5432 | ✅ Active | localhost:13003 | 2025-09-03 21:30 |
+| PostgreSQL Regular | 13004 | 5432 | ✅ Active | localhost:13004 | 2025-09-03 21:30 |
 
-### **📈 Unified Dashboards (11110-11119)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| Unified Analytics | 11141 | http://localhost:11141/ | ✅ Active | **Main analytics dashboard with enhanced status tracking** |
-| Unified Trading | 11114 | http://localhost:11114/ | ❌ Not Forwarded | Trading interface |
-| Unified News | 11113 | http://localhost:11113/ | ❌ Not Forwarded | News dashboard |
+## 📋 Service Categories & Port Assignments
 
-### **💼 Trading Services (11099-11109)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| Trading Ultra | 11099 | http://localhost:11099/ | ❌ Not Forwarded | All-in-one trading service |
-| Market Data | 11084 | http://localhost:11084/ | ✅ Active | Market data service |
-| Backtest API | 11101 | http://localhost:11101/ | ❌ Not Forwarded | Backtesting service |
+### **🔧 Core Infrastructure (11000-11099)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| TimescaleDB | 11140 | 5432 | ⚠️ **DEPRECATED** | localhost:11140 | **DEPRECATED** - Moved to external database |
+| Redis | 11379 | 6379 | ❌ Not Forwarded | localhost:11379 | redis |
+| RabbitMQ | 11144 | 5672 | ❌ Not Forwarded | localhost:11144 | internal message queue |
+| PostgreSQL Vector | 11180 | 5432 | ⚠️ **DEPRECATED** | localhost:11180 | **DEPRECATED** - Moved to external vector storage |
 
-### **📈 Monitoring Services (11190-11199)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| Grafana | 11102 | http://localhost:11102/ | ❌ Not Forwarded | Monitoring dashboards |
-| Prometheus | 11190 | http://localhost:11190/ | ❌ Not Forwarded | Metrics collection |
-| Postgres Exporter | 11191 | localhost:11191 | ❌ Not Forwarded | Database metrics |
-| RabbitMQ Exporter | 11192 | localhost:11192 | ❌ Not Forwarded | Message queue metrics |
-| Node Exporter | 11193 | localhost:11193 | ❌ Not Forwarded | System metrics |
+### **📊 Unified Dashboards (11110-11119)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| Unified Analytics | 11114 | 80 | ✅ Active | http://localhost:11114/ | Main analytics dashboard |
+| Unified Trading | 11115 | 80 | ✅ Active | http://localhost:11115/ | Trading interface (includes performance metrics) |
+| Unified News | 11116 | 80 | ✅ Active | http://localhost:11116/ | News dashboard |
+| MCP Service | 11117 | 8000 | ✅ Active | http://localhost:11117/ | Model Context Protocol service |
+| Performance Dashboard | 11116 | 80 | ⚠️ **DEPRECATED** | http://localhost:11116/ | **DEPRECATED** - Functionality moved to unified-trading-dashboard |
 
-### **🔄 Data Processing Services (11100-11119)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| Data Processing | 11095 | localhost:11095 | ❌ Not Forwarded | Data processing pipeline |
-| Data Transformation | 11135 | localhost:11135 | ❌ Not Forwarded | Data transformation |
-| Data Analysis | 11136 | localhost:11136 | ❌ Not Forwarded | Data analysis service |
-| Metrics Test | 11100 | localhost:11100 | ❌ Not Forwarded | Metrics testing |
+### **💼 Trading Services (11080-11099)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| Market Data Service | 11084 | 11084 | ❌ Not Forwarded | http://localhost:11084/ | Market data API |
+| Backtest API | 11101 | 10001 | ❌ Not Forwarded | http://localhost:11101/ | Backtesting service |
+| Trading Engine | 11080 | 8080 | ❌ Not Forwarded | http://localhost:11080/ | Core trading engine |
 
 ### **🤖 AI/ML Services (11120-11139)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| Ollama | 11120 | http://localhost:11120/ | ❌ Not Forwarded | LLM service |
-| LLM Proxy | 11121 | http://localhost:11121/ | ❌ Not Forwarded | LLM proxy service |
-| Analytics Service | 11122 | http://localhost:11122/ | ❌ Not Forwarded | Analytics API |
-| Postgres Vector | 11123 | http://localhost:11123/ | ❌ Not Forwarded | Vector storage |
-| Report Viewer | 11124 | http://localhost:11124/ | ❌ Not Forwarded | Report viewing |
-| Notification | 11125 | localhost:11125 | ❌ Not Forwarded | Notification service |
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| LLM Proxy | 11081 | 11081 | ❌ Not Forwarded | http://localhost:11081/ | LLM proxy service |
+| AI Analysis Service | 11085 | 11085 | ❌ Not Forwarded | http://localhost:11085/ | AI analysis API |
+| LLM Service | 11109 | 11109 | ❌ Not Forwarded | http://localhost:11109/ | LLM service |
 
-### **🗄️ Database Services (11140-11149)**
-| Service | Port | URL | Status | Description |
-|---------|------|-----|--------|-------------|
-| TimescaleDB | 11140 | localhost:11140 | ❌ Not Forwarded | Time-series database |
-| PostgreSQL | 11141 | localhost:11141 | ❌ Not Forwarded | Legacy database |
-| Redis | 11142 | localhost:11142 | ❌ Not Forwarded | Cache database |
-| Redis Dev | 11143 | localhost:11143 | ❌ Not Forwarded | Development cache |
-| RabbitMQ | 11144 | localhost:11144 | ❌ Not Forwarded | Message queue |
+### **📈 Monitoring Services (11190-11199)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| Prometheus | 11190 | 9090 | ❌ Not Forwarded | http://localhost:11190/ | Metrics collection |
+| Grafana | 11102 | 3000 | ⚠️ **DEPRECATED** | http://localhost:11102/ |  **DEPRECATED** Monitoring dashboards |
+| Postgres Exporter | 11191 | 9187 | ❌ Not Forwarded | localhost:11191 | Database metrics |
+| RabbitMQ Exporter | 11192 | 9419 | ❌ Not Forwarded | localhost:11192 | Message queue metrics |
+| Node Exporter | 11193 | 9100 | ❌ Not Forwarded | localhost:11193 | System metrics |
+
+### **🔄 Data Processing Services (11100-11119)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| Data Processing | 11095 | 11095 | ❌ Not Forwarded | localhost:11095 | Data processing pipeline |
+| Data Transformation | 11135 | 11135 | ❌ Not Forwarded | localhost:11135 | Data transformation |
+| Data Analysis | 11136 | 11136 | ❌ Not Forwarded | localhost:11136 | Data analysis service |
+
+### **📰 RSS & News Services (11150-11169)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| RSS Feed Service | 11150 | 11150 | ❌ Not Forwarded | localhost:11150 | RSS feed processing |
+| News Scanning | 11151 | 11151 | ❌ Not Forwarded | localhost:11151 | News scanning service |
+
+### **🔑 Authentication & Security (11170-11179)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| VAPID Service | 11170 | 11170 | ❌ Not Forwarded | localhost:11170 | VAPID key management |
 
 ## 🚀 Quick Commands
 
+### **Check Current Status**
+```bash
+# Check active port forwards
+ps aux | grep "kubectl port-forward" | grep -v grep
+
+# Run health check
+make simple-status
+```
+
 ### **Start Essential Services**
 ```bash
-# Start main dashboard
-kubectl port-forward -n trading-system service/unified-analytics-dashboard 11141:80 &
+# Start core infrastructure
+kubectl port-forward -n trading-system service/timescaledb 11140:5432 &
+kubectl port-forward -n trading-system service/redis 11379:6379 &
+kubectl port-forward -n trading-system service/rabbitmq 11144:5672 &
+
+# Start unified dashboards
+kubectl port-forward -n trading-system service/unified-analytics-dashboard 11114:80 &
+kubectl port-forward -n trading-system service/unified-trading-dashboard 11115:80 &
+kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
 
 # Start AI services
-kubectl port-forward -n trading-system service/ai-analysis-service 11085:11085 &
 kubectl port-forward -n trading-system service/llm-proxy 11081:11081 &
-kubectl port-forward -n trading-system service/llm-service 11109:11109 &
-
-# Start data services
-kubectl port-forward -n trading-system service/market-data-service 11084:11084 &
-kubectl port-forward -n trading-system service/data-transformation-pipeline 11135:11135 &
-kubectl port-forward -n trading-system service/data-analysis-service 11136:11136 &
-
-# Start monitoring
-kubectl port-forward -n trading-system service/grafana 11102:3000 &
-kubectl port-forward -n trading-system service/prometheus 11190:9090 &
+kubectl port-forward -n trading-system service/ai-analysis-service 11085:11085 &
 ```
 
 ### **Stop All Port Forwards**
@@ -99,49 +113,92 @@ kubectl port-forward -n trading-system service/prometheus 11190:9090 &
 pkill -f "kubectl port-forward"
 ```
 
-### **Check Active Port Forwards**
+### **Test Port Forwards**
 ```bash
-ps aux | grep "kubectl port-forward" | grep -v grep
+# Test specific service
+curl -s http://localhost:11114/health
+
+# Test multiple services
+for port in 11114 11115 11113; do
+  echo "Testing port $port..."
+  curl -s http://localhost:$port/health || echo "Port $port not responding"
+done
 ```
 
-## 📝 Notes
+## 📝 Status Indicators
 
 - **✅ Active**: Currently port-forwarded and accessible
 - **⏸️ LoadBalancer**: Using LoadBalancer instead of port-forward
 - **❌ Not Forwarded**: Available but not currently port-forwarded
-- **Port Range**: All external ports use 11000-11999 range to avoid conflicts
-- **Last Updated**: 2025-08-05
+- **⚠️ DEPRECATED**: Service has been moved to external sources
+- **🔧 Maintenance**: Service is down for maintenance
+- **🚨 Issues**: Service has known issues
 
 ## 🔄 Update Process
 
-After any port forwarding changes:
-1. Update this document with new port mappings
-2. Update any relevant configuration files
-3. Test the new port forwards
-4. Update the PORT_FORWARDING_GUIDE.md if needed
+Following the **Port Mapping Management Rule** (`.cursor/rules/port-mapping.mdc`):
 
-## 🆕 Enhanced Dashboard Features
+1. **Before making changes**: Check current active port forwards
+   ```bash
+   ps aux | grep "kubectl port-forward" | grep -v grep
+   ```
 
-The **Unified Analytics Dashboard** now includes:
+2. **After making changes**: Update this document with:
+   - Current active port forwards
+   - Service status (✅ Active, ❌ Not Forwarded, ⏸️ LoadBalancer)
+   - Last updated timestamp
 
-### **Enhanced Central Hub Status:**
-- **Worker Queue Status**: Shows active queues, consumers, and pending messages
-- **Real-time Activity**: Tracks worker processing, market data, and pipeline activity
-- **Data Coverage**: Shows actual symbols and coverage statistics
-- **Polygon Status**: Detailed status with data source information
+3. **Test changes**: Verify port forwards are working
+   ```bash
+   curl -s http://localhost:<port>/health
+   ```
 
-### **Worker Queue Information:**
-- **Active Queues**: 8 LLM worker queues (llm.sentiment, llm.signal, etc.)
-- **Active Consumers**: 10 total consumers across all queues
-- **Pending Messages**: Real-time message count
-- **Queue States**: Running status for each queue
+4. **Document changes**: Update relevant documentation
 
-### **Recent Activity Tracking:**
-- **Worker Activity**: LLM worker processing status
-- **Market Data**: Real-time market data service status
-- **Processing**: Data transformation pipeline activity
-- **Error Reporting**: Detailed error messages and status
+## 🎯 Port Range Standards
+
+- **External Ports**: 11000-11999 (project standard)
+- **Internal Ports**: Service-specific ports
+- **Avoid Conflicts**: No default ports (3000, 5432, 6379, 8080, 9090)
+- **Consistent Mapping**: Same external port for same service
+
+## 🗄️ External Database Configuration
+
+**Important**: Internal databases have been **DEPRECATED** and moved to external sources.
+
+### **External Database Services:**
+- **TimescaleDB**: Moved to external managed database service
+- **Redis**: Moved to external managed cache service  
+- **RabbitMQ**: Moved to external managed message queue service
+- **PostgreSQL Vector**: Moved to external managed vector database service
+
+### **Configuration:**
+- Database connections are configured via environment variables
+- Services connect directly to external databases (no port forwarding needed)
+- Internal database services should be scaled down or removed
+- See `docs/EXTERNAL_DATABASE_CONFIGURATION.md` for detailed setup
+
+### **Migration Status:**
+- ✅ **Completed**: All services migrated to external databases
+- ⚠️ **Deprecated**: Internal database services (TimescaleDB, Redis, RabbitMQ, PostgreSQL Vector)
+- 🔄 **In Progress**: Cleanup of internal database deployments
+
+## 🔗 Related Documentation
+
+- **Port Forwarding Guide**: `docs/PORT_FORWARDING_GUIDE.md`
+- **Port Mapping Rule**: `.cursor/rules/port-mapping.mdc`
+- **Service Architecture**: `docs/ARCHITECTURE_DIAGRAM.md`
+- **Makefile Commands**: `make port-*` (see main Makefile)
+
+## 🆕 Recent Changes
+
+- **2025-09-03**: Created standardized PORT_MAP.md following new rules format
+- **2025-09-03**: Moved from `md/PORT_MAP.md` to root directory
+- **2025-09-03**: Added comprehensive service categories and port assignments
+- **2025-09-03**: Integrated with new rules system and update process
+- **2025-09-03**: **IMPORTANT**: Marked internal databases as DEPRECATED - moved to external sources
+- **2025-09-03**: Added external database configuration section and migration status
 
 ---
 
-*This document is automatically updated when port forwarding changes are made.*
+*This document follows the Port Mapping Management Rule and is automatically updated when port forwarding changes are made.*

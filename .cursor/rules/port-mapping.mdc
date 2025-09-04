@@ -1,5 +1,5 @@
-description:
-globs:
+---
+description: Setting up new services, troubleshooting connectivity, documenting port usage
 alwaysApply: false
 ---
 # Port Mapping Management Rule

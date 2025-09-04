@@ -1,0 +1,294 @@
+---
+description: Using docs and md directories for reference/storage when creating/editing features
+alwaysApply: false
+---
+# Documentation Reference System 📚
+Leveraging docs/ and md/ directories for comprehensive feature development
+
+## Core Documentation Principles
+- **Documentation-first development** - Reference existing docs before creating new features
+- **Living documentation** - Update docs as features evolve
+- **Context-aware referencing** - Use relevant docs based on current development phase
+- **Knowledge preservation** - Store learnings and decisions in appropriate docs
+- **Cross-reference validation** - Ensure consistency across documentation
+
+## Auto-Activation Triggers
+Documentation Reference activates when:
+- **New feature development** - Creating new services, strategies, or components
+- **Feature modifications** - Significant changes to existing functionality
+- **Architecture decisions** - System design or integration planning
+- **Troubleshooting** - Debugging complex issues or performance problems
+- **Knowledge gaps** - Missing or outdated documentation
+- **Team onboarding** - New team members or context switching
+
+## Documentation Directory Structure
+
+### Primary Documentation (`docs/`)
+**Purpose**: Comprehensive guides, architecture docs, and detailed references
+- **Architecture & Design**: `ARCHITECTURE_*.md`, `APPLICATION_*.md`
+- **Feature Guides**: `*_GUIDE.md`, `*_STRATEGY_GUIDE.md`
+- **System Operations**: `KUBERNETES_*.md`, `DEPLOYMENT.md`
+- **Quick References**: `QUICK_REFERENCE*.md`, `*_REFERENCE.md`
+- **Status & Progress**: `CURRENT_STATUS_*.md`, `TODO.md`
+
+### Secondary Documentation (`md/`)
+**Purpose**: Summaries, reports, and focused documentation
+- **Implementation Summaries**: `*_SUMMARY.md`, `*_REPORT.md`
+- **Learning Materials**: `*_LEARNING_*.md`, `*_QUICKSTART.md`
+- **Configuration Guides**: `*_CONFIGURATION.md`, `*_SETUP.md`
+- **Integration Docs**: `*_INTEGRATION.md`, `*_USAGE.md`
+
+## Documentation Reference Workflows
+
+### 1. Pre-Development Research
+**Auto-trigger**: Before starting new features or significant changes
+**What to do**:
+- **Search existing docs** for related functionality
+- **Review architecture docs** for system context
+- **Check implementation guides** for established patterns
+- **Identify knowledge gaps** that need documentation
+- **Plan documentation updates** for new features
+
+**Key Commands**:
+```bash
+# Search for relevant documentation
+find docs/ md/ -name "*.md" -exec grep -l "keyword" {} \;
+
+# Review architecture and design docs
+ls docs/ARCHITECTURE_*.md docs/APPLICATION_*.md
+
+# Check existing guides for similar features
+ls docs/*_GUIDE.md md/*_GUIDE.md
+```
+
+### 2. Feature Development Documentation
+**Auto-trigger**: During active feature development
+**What to do**:
+- **Reference existing patterns** from similar features
+- **Update relevant guides** as implementation progresses
+- **Document decisions** and rationale
+- **Create implementation notes** for complex logic
+- **Maintain consistency** with existing documentation
+
+**Documentation Updates**:
+- **Architecture changes** → Update `docs/ARCHITECTURE_*.md`
+- **New services** → Update `docs/SERVICE_*.md` or create new guide
+- **API changes** → Update `docs/APPLICATION_ENDPOINTS_MAP.md`
+- **Configuration changes** → Update relevant config guides
+- **New strategies** → Update `docs/*_STRATEGY_GUIDE.md`
+
+### 3. Post-Development Documentation
+**Auto-trigger**: After feature completion or significant milestones
+**What to do**:
+- **Create comprehensive guides** for new features
+- **Update quick references** with new information
+- **Document lessons learned** and best practices
+- **Create troubleshooting guides** for common issues
+- **Update status documents** with progress
+
+**Documentation Creation**:
+- **Feature guides** → `docs/FEATURE_NAME_GUIDE.md`
+- **Implementation summaries** → `md/FEATURE_NAME_SUMMARY.md`
+- **Quick references** → Update `docs/QUICK_REFERENCE*.md`
+- **Status updates** → Update `docs/CURRENT_STATUS_*.md`
+
+## Documentation Search and Discovery
+
+### Smart Documentation Search
+**Use semantic search** to find relevant documentation:
+```bash
+# Search by feature type
+find docs/ md/ -name "*STRATEGY*" -o -name "*TRADING*"
+
+# Search by technology
+find docs/ md/ -name "*KUBERNETES*" -o -name "*DOCKER*"
+
+# Search by functionality
+find docs/ md/ -name "*API*" -o -name "*DATABASE*"
+```
+
+### Documentation Categories
+**Architecture & Design**:
+- `docs/ARCHITECTURE_*.md` - System architecture and design
+- `docs/APPLICATION_*.md` - Application-specific architecture
+- `docs/EVENT_DRIVEN_*.md` - Event-driven architecture patterns
+
+**Feature Development**:
+- `docs/*_GUIDE.md` - Comprehensive feature guides
+- `docs/*_STRATEGY_GUIDE.md` - Trading strategy documentation
+- `docs/*_INTEGRATION_GUIDE.md` - Integration patterns
+
+**Operations & Deployment**:
+- `docs/KUBERNETES_*.md` - Kubernetes operations
+- `docs/DEPLOYMENT.md` - Deployment procedures
+- `docs/MONITOR_*.md` - Monitoring and observability
+
+**Quick References**:
+- `docs/QUICK_REFERENCE*.md` - Quick command references
+- `docs/MAKEFILE_*.md` - Makefile usage guides
+- `md/*_QUICKSTART.md` - Quick start guides
+
+## Documentation Maintenance
+
+### Regular Documentation Updates
+**Weekly maintenance**:
+- **Review outdated docs** and update as needed
+- **Check for missing documentation** on new features
+- **Validate cross-references** between documents
+- **Update status documents** with current progress
+
+**Feature completion**:
+- **Create comprehensive guides** for new features
+- **Update architecture docs** if system changes
+- **Document troubleshooting steps** for common issues
+- **Create quick reference entries** for new commands
+
+### Documentation Quality Standards
+**Content requirements**:
+- **Clear structure** with consistent formatting
+- **Up-to-date information** reflecting current system state
+- **Cross-references** to related documentation
+- **Practical examples** and code snippets
+- **Troubleshooting sections** for common issues
+
+**Format standards**:
+- **Consistent naming** conventions for files
+- **Standard headers** with purpose and scope
+- **Table of contents** for longer documents
+- **Code blocks** with syntax highlighting
+- **Status indicators** for document currency
+
+## Integration with Development Workflow
+
+### Pre-Development Checklist
+1. **Search existing docs** for related functionality
+2. **Review architecture docs** for system context
+3. **Check implementation guides** for patterns
+4. **Identify documentation gaps** to address
+5. **Plan documentation updates** for new features
+
+### During Development
+1. **Reference existing patterns** from docs
+2. **Update relevant guides** as implementation progresses
+3. **Document decisions** and rationale
+4. **Create implementation notes** for complex logic
+5. **Maintain consistency** with existing documentation
+
+### Post-Development
+1. **Create comprehensive guides** for new features
+2. **Update quick references** with new information
+3. **Document lessons learned** and best practices
+4. **Create troubleshooting guides** for common issues
+5. **Update status documents** with progress
+
+## Documentation Tools and Commands
+
+### Search and Discovery
+```bash
+# Find documentation by keyword
+grep -r "keyword" docs/ md/ --include="*.md"
+
+# List all guides
+ls docs/*_GUIDE.md md/*_GUIDE.md
+
+# Find architecture docs
+ls docs/ARCHITECTURE_*.md docs/APPLICATION_*.md
+
+# Search for specific topics
+find docs/ md/ -name "*.md" -exec grep -l "topic" {} \;
+```
+
+### Documentation Management
+```bash
+# Check for outdated references
+grep -r "TODO\|FIXME\|DEPRECATED" docs/ md/
+
+# Validate cross-references
+grep -r "\[.*\](" docs/ md/ --include="*.md"
+
+# Check documentation completeness
+find docs/ md/ -name "*.md" -exec wc -l {} \; | sort -n
+```
+
+### Quick Documentation Access
+```bash
+# Open relevant docs for current feature
+code docs/FEATURE_NAME_GUIDE.md
+
+# View quick reference
+code docs/QUICK_REFERENCE.md
+
+# Check current status
+code docs/CURRENT_STATUS_AND_NEXT_STEPS.md
+```
+
+## Documentation Best Practices
+
+### Writing Effective Documentation
+- **Start with purpose** - Clearly state what the document covers
+- **Use consistent structure** - Follow established patterns
+- **Include practical examples** - Show real usage scenarios
+- **Provide troubleshooting** - Address common issues
+- **Keep it current** - Update as system evolves
+
+### Documentation Organization
+- **Logical grouping** - Related docs in same directory
+- **Clear naming** - Descriptive file names
+- **Consistent formatting** - Standard headers and structure
+- **Cross-references** - Link to related documentation
+- **Status tracking** - Indicate document currency
+
+### Knowledge Preservation
+- **Document decisions** - Why choices were made
+- **Record lessons learned** - What worked and what didn't
+- **Maintain context** - Historical information for future reference
+- **Share knowledge** - Make information accessible to team
+- **Update regularly** - Keep documentation current
+
+## Troubleshooting Documentation Issues
+
+### Common Problems
+- **Outdated information** - Docs not reflecting current system
+- **Missing documentation** - New features without guides
+- **Inconsistent formatting** - Different styles across docs
+- **Broken cross-references** - Links to non-existent docs
+- **Incomplete information** - Missing critical details
+
+### Solutions
+- **Regular reviews** - Schedule documentation maintenance
+- **Automated checks** - Scripts to validate documentation
+- **Template usage** - Consistent formatting standards
+- **Link validation** - Check cross-references regularly
+- **Peer review** - Team review of documentation changes
+
+## Success Metrics
+
+### Documentation Quality
+- **Completeness** - All features have documentation
+- **Accuracy** - Information reflects current system state
+- **Usability** - Easy to find and understand information
+- **Consistency** - Uniform formatting and structure
+- **Currency** - Regular updates and maintenance
+
+### Development Impact
+- **Reduced onboarding time** - New team members get up to speed faster
+- **Fewer support questions** - Self-service documentation
+- **Better decision making** - Historical context and rationale
+- **Improved consistency** - Established patterns and practices
+- **Knowledge preservation** - Institutional knowledge retention
+
+## Future Enhancements
+
+### Advanced Documentation Features
+- **Automated documentation** - Generate docs from code
+- **Interactive examples** - Live code samples and demos
+- **Search optimization** - Better discovery and navigation
+- **Version control** - Track documentation changes
+- **Collaboration tools** - Team editing and review
+
+### Integration Improvements
+- **IDE integration** - Documentation access from development environment
+- **Automated updates** - Sync docs with code changes
+- **Smart suggestions** - Recommend relevant documentation
+- **Usage tracking** - Monitor documentation effectiveness
+- **Feedback systems** - Collect and act on user feedback

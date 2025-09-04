@@ -1,0 +1,68 @@
+# Build Makefile
+# Clean, organized build commands
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+.PHONY: help build-all build-service build-push build-registry build-clean build-list
+
+build-help: ## Show build help
+	@echo "$(GREEN)🔨 Build Commands$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Basic Operations:$(NC)"
+	@echo "  build-all      - Build all services"
+	@echo "  build-service  - Build specific service"
+	@echo "  build-push     - Build and push to registry"
+	@echo "  build-registry - Check registry status"
+	@echo "  build-clean    - Clean build artifacts"
+	@echo "  build-list     - List available services"
+	@echo ""
+
+build-all: ## Build all services
+	@echo "$(GREEN)🔨 Building All Services...$(NC)"
+	@echo "Available services:"
+	@ls services/ | head -10
+	@echo ""
+	@echo "Usage: make build-service SERVICE=<service-name>"
+
+build-service: ## Build specific service
+	@echo "$(GREEN)🔨 Building Service...$(NC)"
+	@echo "Usage: make build-service SERVICE=<service-name>"
+	@echo ""
+	@echo "Example: make build-service SERVICE=ai-analysis-service"
+
+build-push: ## Build and push to registry
+	@echo "$(GREEN)🚀 Build and Push to Registry...$(NC)"
+	@echo "Usage: make build-push SERVICE=<service-name>"
+	@echo ""
+	@echo "Example: make build-push SERVICE=ai-analysis-service"
+
+build-registry: ## Check registry status
+	@echo "$(GREEN)🐳 Registry Status$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Registry URL: localhost:32000"
+	@echo "Status: $(shell curl -s http://localhost:32000/v2/_catalog > /dev/null 2>&1 && echo "✅ Active" || echo "❌ Down")"
+	@echo ""
+	@echo "Available images:"
+	@curl -s http://localhost:32000/v2/_catalog 2>/dev/null | jq '.repositories | length' 2>/dev/null || echo "Unknown"
+
+build-clean: ## Clean build artifacts
+	@echo "$(YELLOW)🧹 Cleaning Build Artifacts...$(NC)"
+	@echo "Cleaning Docker images..."
+	docker system prune -f
+	@echo "✅ Build artifacts cleaned"
+
+build-list: ## List available services
+	@echo "$(GREEN)📋 Available Services$(NC)"
+	@echo "$(YELLOW)===================$(NC)"
+	@echo ""
+	@echo "Services directory:"
+	@ls services/ | wc -l | xargs -I {} echo "Total: {} services"
+	@echo ""
+	@echo "First 10 services:"
+	@ls services/ | head -10

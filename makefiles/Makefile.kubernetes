@@ -1,0 +1,258 @@
+# Kubernetes Management Makefile
+# Clean, organized Kubernetes commands
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+.PHONY: help k8s-status k8s-logs k8s-deploy k8s-delete k8s-restart k8s-scale k8s-describe k8s-events k8s-top k8s-namespace k8s-secrets k8s-configmaps k8s-services k8s-ingress k8s-pods k8s-deployments k8s-jobs k8s-cronjobs k8s-pvc k8s-nodes k8s-context k8s-cluster-info
+
+k8s-help: ## Show Kubernetes help
+	@echo "$(GREEN)☸️  Kubernetes Management$(NC)"
+	@echo "$(YELLOW)======================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Basic Operations:$(NC)"
+	@echo "  k8s-status      - Show cluster status"
+	@echo "  k8s-logs        - Show service logs"
+	@echo "  k8s-deploy      - Deploy services"
+	@echo "  k8s-delete      - Delete services"
+	@echo "  k8s-restart     - Restart services"
+	@echo "  k8s-scale       - Scale services"
+	@echo ""
+	@echo "$(GREEN)Resource Information:$(NC)"
+	@echo "  k8s-describe    - Describe resources"
+	@echo "  k8s-events      - Show events"
+	@echo "  k8s-top         - Show resource usage"
+	@echo "  k8s-namespace   - Show namespace info"
+	@echo "  k8s-secrets     - Show secrets"
+	@echo "  k8s-configmaps  - Show configmaps"
+	@echo "  k8s-services    - Show services"
+	@echo "  k8s-ingress     - Show ingress"
+	@echo ""
+	@echo "$(GREEN)Resource Types:$(NC)"
+	@echo "  k8s-pods        - Show pods"
+	@echo "  k8s-deployments - Show deployments"
+	@echo "  k8s-jobs        - Show jobs"
+	@echo "  k8s-cronjobs    - Show cronjobs"
+	@echo "  k8s-pvc         - Show persistent volume claims"
+	@echo "  k8s-nodes       - Show nodes"
+	@echo ""
+	@echo "$(GREEN)Cluster Info:$(NC)"
+	@echo "  k8s-context     - Show current context"
+	@echo "  k8s-cluster-info - Show cluster information"
+	@echo ""
+
+# Basic Operations
+k8s-status: ## Show cluster status
+	@echo "$(GREEN)📊 Kubernetes Cluster Status$(NC)"
+	@echo "$(YELLOW)===========================$(NC)"
+	@echo ""
+	@echo "Context:"
+	kubectl config current-context
+	@echo ""
+	@echo "Namespace: trading-system"
+	@echo ""
+	@echo "Deployments:"
+	kubectl get deployments -n trading-system
+	@echo ""
+	@echo "Pods:"
+	kubectl get pods -n trading-system | grep -v Completed
+	@echo ""
+	@echo "Services:"
+	kubectl get services -n trading-system
+
+k8s-logs: ## Show service logs
+	@echo "$(GREEN)📋 Service Logs$(NC)"
+	@echo "$(YELLOW)==============$(NC)"
+	@echo ""
+	@echo "Available services:"
+	kubectl get pods -n trading-system | grep Running | awk '{print $$1}' | head -10
+	@echo ""
+	@echo "Usage: kubectl logs -n trading-system <pod-name> --follow"
+
+k8s-deploy: ## Deploy services
+	@echo "$(GREEN)🚀 Deploy Services$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Available deployment files:"
+	@ls k8s/*.yaml | head -10
+	@echo ""
+	@echo "Usage: kubectl apply -f k8s/<service-name>.yaml"
+
+k8s-delete: ## Delete services
+	@echo "$(RED)🗑️  Delete Services$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Current deployments:"
+	kubectl get deployments -n trading-system
+	@echo ""
+	@echo "Usage: kubectl delete deployment <deployment-name> -n trading-system"
+
+k8s-restart: ## Restart services
+	@echo "$(YELLOW)🔄 Restart Services$(NC)"
+	@echo "$(YELLOW)==================$(NC)"
+	@echo ""
+	@echo "Current deployments:"
+	kubectl get deployments -n trading-system
+	@echo ""
+	@echo "Usage: kubectl rollout restart deployment/<deployment-name> -n trading-system"
+
+k8s-scale: ## Scale services
+	@echo "$(YELLOW)📏 Scale Services$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Current deployments:"
+	kubectl get deployments -n trading-system
+	@echo ""
+	@echo "Usage: kubectl scale deployment <deployment-name> --replicas=<number> -n trading-system"
+
+# Resource Information
+k8s-describe: ## Describe resources
+	@echo "$(GREEN)📖 Describe Resources$(NC)"
+	@echo "$(YELLOW)===================$(NC)"
+	@echo ""
+	@echo "Usage: kubectl describe <resource-type> <resource-name> -n trading-system"
+	@echo ""
+	@echo "Examples:"
+	@echo "  kubectl describe pod <pod-name> -n trading-system"
+	@echo "  kubectl describe deployment <deployment-name> -n trading-system"
+	@echo "  kubectl describe service <service-name> -n trading-system"
+
+k8s-events: ## Show events
+	@echo "$(GREEN)📅 Recent Events$(NC)"
+	@echo "$(YELLOW)===============$(NC)"
+	@echo ""
+	kubectl get events -n trading-system --sort-by='.lastTimestamp' | tail -20
+
+k8s-top: ## Show resource usage
+	@echo "$(GREEN)📊 Resource Usage$(NC)"
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "Pod Resource Usage:"
+	kubectl top pods -n trading-system 2>/dev/null || echo "Metrics not available"
+	@echo ""
+	@echo "Node Resource Usage:"
+	kubectl top nodes 2>/dev/null || echo "Metrics not available"
+
+k8s-namespace: ## Show namespace info
+	@echo "$(GREEN)📁 Namespace Information$(NC)"
+	@echo "$(YELLOW)=======================$(NC)"
+	@echo ""
+	@echo "Current namespace: trading-system"
+	@echo ""
+	@echo "Namespace details:"
+	kubectl describe namespace trading-system
+
+k8s-secrets: ## Show secrets
+	@echo "$(GREEN)🔐 Secrets$(NC)"
+	@echo "$(YELLOW)========$(NC)"
+	@echo ""
+	kubectl get secrets -n trading-system
+	@echo ""
+	@echo "Usage: kubectl describe secret <secret-name> -n trading-system"
+
+k8s-configmaps: ## Show configmaps
+	@echo "$(GREEN)⚙️  ConfigMaps$(NC)"
+	@echo "$(YELLOW)============$(NC)"
+	@echo ""
+	kubectl get configmaps -n trading-system
+	@echo ""
+	@echo "Usage: kubectl describe configmap <configmap-name> -n trading-system"
+
+k8s-services: ## Show services
+	@echo "$(GREEN)🌐 Services$(NC)"
+	@echo "$(YELLOW)==========$(NC)"
+	@echo ""
+	kubectl get services -n trading-system
+	@echo ""
+	@echo "Service details:"
+	kubectl describe services -n trading-system
+
+k8s-ingress: ## Show ingress
+	@echo "$(GREEN)🚪 Ingress$(NC)"
+	@echo "$(YELLOW)=========$(NC)"
+	@echo ""
+	kubectl get ingress -n trading-system
+	@echo ""
+	@echo "Ingress details:"
+	kubectl describe ingress -n trading-system
+
+# Resource Types
+k8s-pods: ## Show pods
+	@echo "$(GREEN)🪙 Pods$(NC)"
+	@echo "$(YELLOW)=====$(NC)"
+	@echo ""
+	kubectl get pods -n trading-system -o wide
+	@echo ""
+	@echo "Pod status summary:"
+	kubectl get pods -n trading-system | awk '{print $$3}' | sort | uniq -c
+
+k8s-deployments: ## Show deployments
+	@echo "$(GREEN)🚀 Deployments$(NC)"
+	@echo "$(YELLOW)=============$(NC)"
+	@echo ""
+	kubectl get deployments -n trading-system -o wide
+	@echo ""
+	@echo "Deployment status:"
+	kubectl get deployments -n trading-system | awk '{print $$2, $$3, $$4, $$5}' | column -t
+
+k8s-jobs: ## Show jobs
+	@echo "$(GREEN)💼 Jobs$(NC)"
+	@echo "$(YELLOW)=====$(NC)"
+	@echo ""
+	kubectl get jobs -n trading-system
+	@echo ""
+	@echo "Job details:"
+	kubectl describe jobs -n trading-system
+
+k8s-cronjobs: ## Show cronjobs
+	@echo "$(GREEN)⏰ CronJobs$(NC)"
+	@echo "$(YELLOW)==========$(NC)"
+	@echo ""
+	kubectl get cronjobs -n trading-system
+	@echo ""
+	@echo "CronJob details:"
+	kubectl describe cronjobs -n trading-system
+
+k8s-pvc: ## Show persistent volume claims
+	@echo "$(GREEN)💾 Persistent Volume Claims$(NC)"
+	@echo "$(YELLOW)==========================$(NC)"
+	@echo ""
+	kubectl get pvc -n trading-system
+	@echo ""
+	@echo "PVC details:"
+	kubectl describe pvc -n trading-system
+
+k8s-nodes: ## Show nodes
+	@echo "$(GREEN)🖥️  Nodes$(NC)"
+	@echo "$(YELLOW)=======$(NC)"
+	@echo ""
+	kubectl get nodes -o wide
+	@echo ""
+	@echo "Node status:"
+	kubectl get nodes | awk '{print $$2}' | sort | uniq -c
+
+# Cluster Info
+k8s-context: ## Show current context
+	@echo "$(GREEN)🎯 Current Context$(NC)"
+	@echo "$(YELLOW)=================$(NC)"
+	@echo ""
+	kubectl config current-context
+	@echo ""
+	@echo "Available contexts:"
+	kubectl config get-contexts
+
+k8s-cluster-info: ## Show cluster information
+	@echo "$(GREEN)🏗️  Cluster Information$(NC)"
+	@echo "$(YELLOW)======================$(NC)"
+	@echo ""
+	@echo "Cluster info:"
+	kubectl cluster-info
+	@echo ""
+	@echo "API versions:"
+	kubectl api-versions | head -20
+	@echo ""
+	@echo "Node information:"
+	kubectl get nodes -o wide

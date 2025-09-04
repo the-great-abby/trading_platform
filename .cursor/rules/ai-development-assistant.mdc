@@ -1,0 +1,496 @@
+---
+description: Complex features, new services, performance issues, security concerns, migration tasks
+alwaysApply: false
+---
+# AI Development Assistant 🚀
+Making AI a first-class citizen in the development process
+
+## Core AI Principles
+- **AI is a team member** - Treat AI as a collaborative partner, not just a tool
+- **Context-aware assistance** - AI understands current development phase and context
+- **Rule coordination** - AI suggests relevant rule combinations and best practices
+- **Continuous learning** - AI adapts to team patterns and preferences
+- **Human oversight** - AI assists and suggests, humans make final decisions
+
+## Auto-Activation Triggers
+AI automatically activates when:
+- **Complex features** - Working on features with >100 lines of code
+- **New services** - Setting up new Kubernetes services or containers
+- **Performance issues** - CPU/memory usage above thresholds
+- **Security concerns** - Working with sensitive data or external APIs
+- **Migration tasks** - Database or system migrations
+- **Testing scenarios** - Complex test cases or edge cases
+- **Documentation gaps** - Missing or outdated documentation
+
+## AI-Assisted Development Workflows
+
+### 1. AI Code Review
+- **Auto-trigger**: After significant code changes (>50 lines)
+- **What AI does**:
+  - Apply relevant style and quality rules
+  - Check for security vulnerabilities
+  - Suggest performance optimizations
+  - Identify potential bugs or edge cases
+  - Ensure consistency with existing patterns
+- **Human oversight**: Review AI suggestions and approve/reject
+
+### 2. AI-Assisted Refactoring
+- **Auto-trigger**: When code complexity metrics exceed thresholds
+- **What AI does**:
+  - Analyze code structure and suggest improvements
+  - Identify duplicate code and suggest consolidation
+  - Suggest better design patterns
+  - Maintain functionality while improving quality
+- **Human oversight**: Verify refactoring maintains business logic
+
+### 3. AI Test Generation
+- **Auto-trigger**: New features, bug fixes, or complex logic
+- **What AI does**:
+  - Generate comprehensive test cases
+  - Identify edge cases and boundary conditions
+  - Suggest test data and scenarios
+  - Ensure test coverage for critical paths
+- **Human oversight**: Review test relevance and business logic
+
+### 4. AI Documentation
+- **Auto-trigger**: New features, API changes, or documentation gaps
+- **What AI does**:
+  - Update relevant documentation files
+  - Generate API documentation
+  - Create usage examples and tutorials
+  - Maintain consistency across documentation
+- **Human oversight**: Verify accuracy and completeness
+
+### 5. AI Performance Optimization
+- **Auto-trigger**: Performance issues or resource constraints
+- **What AI does**:
+  - Analyze performance bottlenecks
+  - Suggest optimization strategies
+  - Recommend resource allocation improvements
+  - Monitor performance metrics
+- **Human oversight**: Approve optimization strategies
+
+### 6. AI Security Scanning
+- **Auto-trigger**: Security-sensitive operations or external integrations
+- **What AI does**:
+  - Identify potential security vulnerabilities
+  - Suggest security best practices
+  - Check for secure coding patterns
+  - Monitor for security-related issues
+- **Human oversight**: Review security recommendations
+
+## AI Context Awareness
+
+### Development Phase Detection
+AI automatically detects and adapts to:
+- **Planning phase** - Feature design and architecture
+- **Development phase** - Active coding and implementation
+- **Testing phase** - Test creation and validation
+- **Review phase** - Code review and quality checks
+- **Deployment phase** - Deployment and monitoring
+- **Maintenance phase** - Bug fixes and improvements
+
+### Project Context Understanding
+AI maintains awareness of:
+- **Current file types** and appropriate rules
+- **Active services** and their configurations
+- **Recent changes** and their impact
+- **Team patterns** and preferences
+- **Performance metrics** and constraints
+- **Security requirements** and compliance
+
+## AI Rule Coordination
+
+### Smart Rule Suggestions
+AI suggests relevant rule combinations:
+- **New service setup**: Infrastructure + Port Mapping + Resource Constraints
+- **Code review**: Styles + Python + Trading + AI Code Review
+- **Performance issues**: Resource Constraints + Infrastructure + AI Performance
+- **Security concerns**: Security + AI Security + Infrastructure
+- **Testing scenarios**: Testing + AI Test Generation + Quality
+
+### Context-Aware Rule Activation
+AI activates rules based on:
+- **File content** and complexity
+- **User actions** and intentions
+- **Project state** and requirements
+- **Team feedback** and preferences
+- **Performance metrics** and constraints
+
+## AI Human Collaboration
+
+### AI Suggestion Format
+All AI suggestions follow this format:
+```
+🤖 AI Suggestion: [Brief description]
+📋 What: [Detailed explanation]
+🔧 How: [Implementation steps]
+⚠️ Considerations: [Important notes]
+✅ Benefits: [Expected improvements]
+```
+
+### Human Decision Points
+AI always provides clear decision points:
+- **Approve/Reject** - Simple accept or decline
+- **Modify** - Suggest modifications to AI proposals
+- **Defer** - Postpone decision for later review
+- **Collaborate** - Work together on complex solutions
+
+### AI Learning and Adaptation
+AI continuously learns from:
+- **Accepted suggestions** - What works well
+- **Rejected suggestions** - What doesn't fit team preferences
+- **Modifications** - How suggestions can be improved
+- **Team feedback** - Direct feedback on AI assistance
+- **Performance metrics** - Impact of AI suggestions
+
+## AI Quality Assurance
+
+### Suggestion Quality Metrics
+AI tracks and improves:
+- **Acceptance rate** - Percentage of suggestions accepted
+- **Modification rate** - How often suggestions are modified
+- **Impact metrics** - Performance and quality improvements
+- **Team satisfaction** - Feedback on AI assistance
+- **Learning progress** - Adaptation to team patterns
+
+### Continuous Improvement
+AI regularly:
+- **Analyzes patterns** in accepted/rejected suggestions
+- **Adapts strategies** based on team feedback
+- **Updates knowledge** from new patterns and preferences
+- **Refines suggestions** for better fit and relevance
+- **Maintains consistency** with evolving team standards
+
+## Integration with Existing Rules
+
+### Rule Priority System
+1. **Core Rules** - Always active foundation
+2. **AI Development Assistant** - Context-aware activation
+3. **Specialized Rules** - Domain-specific guidance
+4. **AI Suggestions** - Intelligent recommendations
+
+### Rule Conflict Resolution
+When rules conflict, AI:
+- **Identifies conflicts** and their impact
+- **Suggests resolutions** based on context
+- **Maintains consistency** with team preferences
+- **Documents decisions** for future reference
+- **Learns from resolutions** to improve future suggestions
+
+## Getting Started with AI Development
+
+### First-Time Setup
+1. **Enable AI assistance** in your development environment
+2. **Review AI suggestions** and provide feedback
+3. **Customize AI behavior** based on team preferences
+4. **Establish workflows** for AI collaboration
+5. **Monitor and adjust** AI assistance levels
+
+### Team Onboarding
+1. **Introduce AI capabilities** and benefits
+2. **Demonstrate AI workflows** with real examples
+3. **Establish feedback loops** for continuous improvement
+4. **Set expectations** for AI-human collaboration
+5. **Monitor adoption** and address concerns
+
+### Continuous Improvement
+1. **Regular feedback sessions** on AI assistance
+2. **Performance reviews** of AI suggestions
+3. **Workflow optimization** based on team needs
+4. **Rule refinement** and AI learning
+5. **Team training** on effective AI collaboration
+
+## Success Metrics
+
+### Team Productivity
+- **Development velocity** - Features delivered per sprint
+- **Code quality** - Bug rates and technical debt
+- **Review efficiency** - Time spent on code reviews
+- **Documentation quality** - Completeness and accuracy
+- **Team satisfaction** - Feedback on development experience
+
+### AI Effectiveness
+- **Suggestion acceptance rate** - Quality of AI recommendations
+- **Time savings** - Reduced manual tasks and reviews
+- **Quality improvements** - Measurable quality enhancements
+- **Learning progress** - AI adaptation to team patterns
+- **Team adoption** - Regular use of AI assistance
+
+## Troubleshooting AI Assistance
+
+### Common Issues
+- **Over-suggestions** - Too many AI recommendations
+- **Irrelevant suggestions** - AI not understanding context
+- **Performance impact** - AI slowing down development
+- **Learning problems** - AI not adapting to team preferences
+- **Integration issues** - AI not working with existing tools
+
+### Solutions
+- **Adjust sensitivity** - Fine-tune AI activation triggers
+- **Improve context** - Better project and team information
+- **Optimize performance** - Streamline AI operations
+- **Enhance learning** - Provide better feedback and examples
+- **Fix integrations** - Resolve tool compatibility issues
+
+## Future Enhancements
+
+### Advanced AI Capabilities
+- **Predictive assistance** - Anticipate developer needs
+- **Automated refactoring** - AI-driven code improvements
+- **Intelligent testing** - AI-generated test strategies
+- **Performance prediction** - AI performance impact analysis
+- **Security automation** - AI security scanning and fixes
+
+### Integration Expansion
+- **CI/CD integration** - AI-assisted deployment and monitoring
+- **Monitoring integration** - AI performance and security monitoring
+- **Team collaboration** - AI-assisted pair programming and reviews
+- **Knowledge management** - AI-driven documentation and training
+- **Process optimization** - AI workflow and process improvements
+# AI Development Assistant 🚀
+Making AI a first-class citizen in the development process
+
+## Core AI Principles
+- **AI is a team member** - Treat AI as a collaborative partner, not just a tool
+- **Context-aware assistance** - AI understands current development phase and context
+- **Rule coordination** - AI suggests relevant rule combinations and best practices
+- **Continuous learning** - AI adapts to team patterns and preferences
+- **Human oversight** - AI assists and suggests, humans make final decisions
+
+## Auto-Activation Triggers
+AI automatically activates when:
+- **Complex features** - Working on features with >100 lines of code
+- **New services** - Setting up new Kubernetes services or containers
+- **Performance issues** - CPU/memory usage above thresholds
+- **Security concerns** - Working with sensitive data or external APIs
+- **Migration tasks** - Database or system migrations
+- **Testing scenarios** - Complex test cases or edge cases
+- **Documentation gaps** - Missing or outdated documentation
+
+## AI-Assisted Development Workflows
+
+### 1. AI Code Review
+- **Auto-trigger**: After significant code changes (>50 lines)
+- **What AI does**:
+  - Apply relevant style and quality rules
+  - Check for security vulnerabilities
+  - Suggest performance optimizations
+  - Identify potential bugs or edge cases
+  - Ensure consistency with existing patterns
+- **Human oversight**: Review AI suggestions and approve/reject
+
+### 2. AI-Assisted Refactoring
+- **Auto-trigger**: When code complexity metrics exceed thresholds
+- **What AI does**:
+  - Analyze code structure and suggest improvements
+  - Identify duplicate code and suggest consolidation
+  - Suggest better design patterns
+  - Maintain functionality while improving quality
+- **Human oversight**: Verify refactoring maintains business logic
+
+### 3. AI Test Generation
+- **Auto-trigger**: New features, bug fixes, or complex logic
+- **What AI does**:
+  - Generate comprehensive test cases
+  - Identify edge cases and boundary conditions
+  - Suggest test data and scenarios
+  - Ensure test coverage for critical paths
+- **Human oversight**: Review test relevance and business logic
+
+### 4. AI Documentation
+- **Auto-trigger**: New features, API changes, or documentation gaps
+- **What AI does**:
+  - Update relevant documentation files
+  - Generate API documentation
+  - Create usage examples and tutorials
+  - Maintain consistency across documentation
+- **Human oversight**: Verify accuracy and completeness
+
+### 5. AI Performance Optimization
+- **Auto-trigger**: Performance issues or resource constraints
+- **What AI does**:
+  - Analyze performance bottlenecks
+  - Suggest optimization strategies
+  - Recommend resource allocation improvements
+  - Monitor performance metrics
+- **Human oversight**: Approve optimization strategies
+
+### 6. AI Security Scanning
+- **Auto-trigger**: Security-sensitive operations or external integrations
+- **What AI does**:
+  - Identify potential security vulnerabilities
+  - Suggest security best practices
+  - Check for secure coding patterns
+  - Monitor for security-related issues
+- **Human oversight**: Review security recommendations
+
+## AI Context Awareness
+
+### Development Phase Detection
+AI automatically detects and adapts to:
+- **Planning phase** - Feature design and architecture
+- **Development phase** - Active coding and implementation
+- **Testing phase** - Test creation and validation
+- **Review phase** - Code review and quality checks
+- **Deployment phase** - Deployment and monitoring
+- **Maintenance phase** - Bug fixes and improvements
+
+### Project Context Understanding
+AI maintains awareness of:
+- **Current file types** and appropriate rules
+- **Active services** and their configurations
+- **Recent changes** and their impact
+- **Team patterns** and preferences
+- **Performance metrics** and constraints
+- **Security requirements** and compliance
+
+## AI Rule Coordination
+
+### Smart Rule Suggestions
+AI suggests relevant rule combinations:
+- **New service setup**: Infrastructure + Port Mapping + Resource Constraints
+- **Code review**: Styles + Python + Trading + AI Code Review
+- **Performance issues**: Resource Constraints + Infrastructure + AI Performance
+- **Security concerns**: Security + AI Security + Infrastructure
+- **Testing scenarios**: Testing + AI Test Generation + Quality
+
+### Context-Aware Rule Activation
+AI activates rules based on:
+- **File content** and complexity
+- **User actions** and intentions
+- **Project state** and requirements
+- **Team feedback** and preferences
+- **Performance metrics** and constraints
+
+## AI Human Collaboration
+
+### AI Suggestion Format
+All AI suggestions follow this format:
+```
+🤖 AI Suggestion: [Brief description]
+📋 What: [Detailed explanation]
+🔧 How: [Implementation steps]
+⚠️ Considerations: [Important notes]
+✅ Benefits: [Expected improvements]
+```
+
+### Human Decision Points
+AI always provides clear decision points:
+- **Approve/Reject** - Simple accept or decline
+- **Modify** - Suggest modifications to AI proposals
+- **Defer** - Postpone decision for later review
+- **Collaborate** - Work together on complex solutions
+
+### AI Learning and Adaptation
+AI continuously learns from:
+- **Accepted suggestions** - What works well
+- **Rejected suggestions** - What doesn't fit team preferences
+- **Modifications** - How suggestions can be improved
+- **Team feedback** - Direct feedback on AI assistance
+- **Performance metrics** - Impact of AI suggestions
+
+## AI Quality Assurance
+
+### Suggestion Quality Metrics
+AI tracks and improves:
+- **Acceptance rate** - Percentage of suggestions accepted
+- **Modification rate** - How often suggestions are modified
+- **Impact metrics** - Performance and quality improvements
+- **Team satisfaction** - Feedback on AI assistance
+- **Learning progress** - Adaptation to team patterns
+
+### Continuous Improvement
+AI regularly:
+- **Analyzes patterns** in accepted/rejected suggestions
+- **Adapts strategies** based on team feedback
+- **Updates knowledge** from new patterns and preferences
+- **Refines suggestions** for better fit and relevance
+- **Maintains consistency** with evolving team standards
+
+## Integration with Existing Rules
+
+### Rule Priority System
+1. **Core Rules** - Always active foundation
+2. **AI Development Assistant** - Context-aware activation
+3. **Specialized Rules** - Domain-specific guidance
+4. **AI Suggestions** - Intelligent recommendations
+
+### Rule Conflict Resolution
+When rules conflict, AI:
+- **Identifies conflicts** and their impact
+- **Suggests resolutions** based on context
+- **Maintains consistency** with team preferences
+- **Documents decisions** for future reference
+- **Learns from resolutions** to improve future suggestions
+
+## Getting Started with AI Development
+
+### First-Time Setup
+1. **Enable AI assistance** in your development environment
+2. **Review AI suggestions** and provide feedback
+3. **Customize AI behavior** based on team preferences
+4. **Establish workflows** for AI collaboration
+5. **Monitor and adjust** AI assistance levels
+
+### Team Onboarding
+1. **Introduce AI capabilities** and benefits
+2. **Demonstrate AI workflows** with real examples
+3. **Establish feedback loops** for continuous improvement
+4. **Set expectations** for AI-human collaboration
+5. **Monitor adoption** and address concerns
+
+### Continuous Improvement
+1. **Regular feedback sessions** on AI assistance
+2. **Performance reviews** of AI suggestions
+3. **Workflow optimization** based on team needs
+4. **Rule refinement** and AI learning
+5. **Team training** on effective AI collaboration
+
+## Success Metrics
+
+### Team Productivity
+- **Development velocity** - Features delivered per sprint
+- **Code quality** - Bug rates and technical debt
+- **Review efficiency** - Time spent on code reviews
+- **Documentation quality** - Completeness and accuracy
+- **Team satisfaction** - Feedback on development experience
+
+### AI Effectiveness
+- **Suggestion acceptance rate** - Quality of AI recommendations
+- **Time savings** - Reduced manual tasks and reviews
+- **Quality improvements** - Measurable quality enhancements
+- **Learning progress** - AI adaptation to team patterns
+- **Team adoption** - Regular use of AI assistance
+
+## Troubleshooting AI Assistance
+
+### Common Issues
+- **Over-suggestions** - Too many AI recommendations
+- **Irrelevant suggestions** - AI not understanding context
+- **Performance impact** - AI slowing down development
+- **Learning problems** - AI not adapting to team preferences
+- **Integration issues** - AI not working with existing tools
+
+### Solutions
+- **Adjust sensitivity** - Fine-tune AI activation triggers
+- **Improve context** - Better project and team information
+- **Optimize performance** - Streamline AI operations
+- **Enhance learning** - Provide better feedback and examples
+- **Fix integrations** - Resolve tool compatibility issues
+
+## Future Enhancements
+
+### Advanced AI Capabilities
+- **Predictive assistance** - Anticipate developer needs
+- **Automated refactoring** - AI-driven code improvements
+- **Intelligent testing** - AI-generated test strategies
+- **Performance prediction** - AI performance impact analysis
+- **Security automation** - AI security scanning and fixes
+
+### Integration Expansion
+- **CI/CD integration** - AI-assisted deployment and monitoring
+- **Monitoring integration** - AI performance and security monitoring
+- **Team collaboration** - AI-assisted pair programming and reviews
+- **Knowledge management** - AI-driven documentation and training
+- **Process optimization** - AI workflow and process improvements

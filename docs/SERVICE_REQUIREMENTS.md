@@ -193,3 +193,4 @@ kubectl logs deployment/<service-name> -n trading-system
 
 
 
+

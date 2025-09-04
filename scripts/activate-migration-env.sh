@@ -45,3 +45,4 @@ else
     echo -e "${RED}❌ Failed to activate virtual environment${NC}"
     exit 1
 fi
+
