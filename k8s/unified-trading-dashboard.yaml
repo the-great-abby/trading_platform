@@ -27,7 +27,7 @@ spec:
         - name: ANALYTICS_API_URL
           value: "http://analytics-service:11104"
         - name: REDIS_URL
-          value: "redis://redis-dev:6379"
+          value: "redis://redis.redis.svc.cluster.local:6379"
         - name: DATABASE_URL
           value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
         - name: MARKET_DATA_URL

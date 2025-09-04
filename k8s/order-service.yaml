@@ -28,7 +28,7 @@ spec:
               name: db-secret
               key: write-url
         - name: REDIS_URL
-          value: "redis://redis-dev:6379"
+          value: "redis://redis.redis.svc.cluster.local:6379"
         - name: RABBITMQ_URL
           value: "amqp://rabbitmq:5672"
         - name: LOG_LEVEL

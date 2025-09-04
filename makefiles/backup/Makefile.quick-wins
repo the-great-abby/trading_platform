@@ -53,7 +53,7 @@ quick-shell: quick-build ## Open shell in quick wins container
 		-v $(PWD)/tests:/app/tests:ro \
 		-v $(PWD)/logs:/app/logs \
 		-e PYTHONPATH=/app/src \
-		-e REDIS_URL=redis://redis:6379 \
+		-e REDIS_URL=redis://redis.redis.svc.cluster.local:6379 \
 		quick-wins:latest /bin/bash
 
 quick-demo-bg: quick-build ## Run demo in background

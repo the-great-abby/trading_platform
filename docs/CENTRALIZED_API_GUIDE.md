@@ -423,7 +423,7 @@ USER_SERVICE_URL=http://user-service:8000
 BACKTEST_API_URL=http://backtest-api:8000
 
 # Redis
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://redis.redis.svc.cluster.local:6379
 
 # Security
 JWT_SECRET=your-secret-key

@@ -15,7 +15,7 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - LOG_DIR=/app/logs
@@ -47,7 +47,7 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
       - LOG_DIR=/app/logs
@@ -90,7 +90,7 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - LOG_DIR=/app/logs

@@ -59,7 +59,7 @@ data:
 data:
   database_url: "postgresql://trading_user:trading_pass@timescaledb:5432/trading_bot"
   rabbitmq_url: "amqp://trading:trading_pass@rabbitmq:5672/trading_vhost"
-  redis_url: "redis://redis:6379"
+  redis_url: "redis://redis.redis.svc.cluster.local:6379"
   polygon_api_key: "your-polygon-key"
   alpha_vantage_api_key: "your-alpha-vantage-key"
 ```

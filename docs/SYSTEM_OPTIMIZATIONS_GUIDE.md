@@ -311,7 +311,7 @@ DB_QUERY_TIMEOUT=30
 
 # Caching
 CACHE_ENABLED=true
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://redis.redis.svc.cluster.local:6379
 CACHE_TTL=3600
 MAX_CACHE_SIZE_MB=1024
 

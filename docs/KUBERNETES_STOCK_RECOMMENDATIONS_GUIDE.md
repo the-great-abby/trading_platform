@@ -365,7 +365,7 @@ env:
 - name: DATABASE_URL
   value: "postgresql://trading_user:trading_pass@postgres:5432/trading_bot"
 - name: REDIS_URL
-  value: "redis://redis:6379"
+  value: "redis://redis.redis.svc.cluster.local:6379"
 - name: OLLAMA_URL
   value: "http://host.docker.internal:11434"
 - name: LOG_LEVEL

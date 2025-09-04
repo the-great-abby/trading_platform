@@ -56,7 +56,7 @@ data:
   rabbitmq_url: "amqp://trading:trading_pass@rabbitmq:5672/trading_vhost"
   
   # Redis
-  redis_url: "redis://redis:6379"
+  redis_url: "redis://redis.redis.svc.cluster.local:6379"
   
   # API Keys
   polygon_api_key: "your-polygon-key"

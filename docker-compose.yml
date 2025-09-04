@@ -39,7 +39,7 @@ services:
       - "8002:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:password@read-db:5432/trading_read
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
     depends_on:
       - read-db
       - redis
@@ -67,7 +67,7 @@ services:
     build: ./services/market-data-service
     environment:
       - DATABASE_URL=postgresql://postgres:password@read-db:5432/trading_read
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - PUBLIC_API_URL=http://public-api:8000
       - INFLUXDB_URL=http://influxdb:8086
     depends_on:
@@ -83,7 +83,7 @@ services:
     build: ./services/portfolio-service
     environment:
       - DATABASE_URL=postgresql://postgres:password@read-db:5432/trading_read
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
     depends_on:
       - read-db
       - redis
@@ -137,7 +137,7 @@ services:
     build: ./services/analytics-service
     environment:
       - DATABASE_URL=postgresql://postgres:password@read-db:5432/trading_read
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - INFLUXDB_URL=http://influxdb:8086
     depends_on:
       - read-db

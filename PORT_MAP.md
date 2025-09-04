@@ -26,7 +26,7 @@
 | Service | External Port | Internal Port | Status | URL | Description |
 |---------|---------------|---------------|--------|-----|-------------|
 | TimescaleDB | 11140 | 5432 | ⚠️ **DEPRECATED** | localhost:11140 | **DEPRECATED** - Moved to external database |
-| Redis | 11379 | 6379 | ❌ Not Forwarded | localhost:11379 | redis |
+| Redis | 11379 | 6379 | ⚠️ **DEPRECATED** | localhost:11379 | **DEPRECATED** - Moved to external Redis service |
 | RabbitMQ | 11144 | 5672 | ❌ Not Forwarded | localhost:11144 | internal message queue |
 | PostgreSQL Vector | 11180 | 5432 | ⚠️ **DEPRECATED** | localhost:11180 | **DEPRECATED** - Moved to external vector storage |
 
@@ -168,7 +168,7 @@ Following the **Port Mapping Management Rule** (`.cursor/rules/port-mapping.mdc`
 
 ### **External Database Services:**
 - **TimescaleDB**: Moved to external managed database service
-- **Redis**: Moved to external managed cache service  
+- **Redis**: Moved to external managed cache service (redis://redis.redis.svc.cluster.local:6379)
 - **RabbitMQ**: Moved to external managed message queue service
 - **PostgreSQL Vector**: Moved to external managed vector database service
 

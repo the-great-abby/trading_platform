@@ -17,7 +17,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -64,7 +64,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -94,7 +94,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -123,7 +123,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -152,7 +152,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -181,7 +181,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -211,7 +211,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -240,7 +240,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -269,7 +269,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113
@@ -297,7 +297,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
       - DATABASE_URL=postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot
-      - REDIS_URL=redis://redis-dev:6379
+      - REDIS_URL=redis://redis.redis.svc.cluster.local:6379
       - RABBITMQ_URL=amqp://trading_user:trading_pass@rabbitmq-dev:5672/trading_vhost
       - KAFKA_BOOTSTRAP_SERVERS=kafka-dev:9092
       - EVENTSTORE_URL=esdb://eventstore-dev:2113

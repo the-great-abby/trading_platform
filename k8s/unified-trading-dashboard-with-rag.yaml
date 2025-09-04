@@ -28,7 +28,7 @@ spec:
         - name: MARKET_DATA_URL
           value: "http://market-data-service:8000"
         - name: REDIS_URL
-          value: "redis://redis:6379"
+          value: "redis://redis.redis.svc.cluster.local:6379"
         - name: DATABASE_URL
           value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
         - name: LLM_PROXY_URL

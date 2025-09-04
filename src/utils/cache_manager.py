@@ -89,7 +89,7 @@ class AdvancedCacheManager:
     def __init__(self, redis_url: Optional[str] = None, 
                  l1_max_size: int = 1000, l1_ttl: int = 300):
         # Get Redis URL from environment if not provided
-        self.redis_url = redis_url or os.environ.get('REDIS_URL', 'redis://localhost:6379')
+        self.redis_url = redis_url or os.environ.get('REDIS_URL', 'redis://redis.redis.svc.cluster.local:6379')
         self.redis_client: Optional[Any] = None
         
         # L1 Cache (In-memory)

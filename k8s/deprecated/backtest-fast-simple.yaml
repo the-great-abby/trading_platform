@@ -26,7 +26,7 @@ spec:
               name: trading-secrets
               key: database-url
         - name: REDIS_URL
-          value: "redis://redis-dev:6379"
+          value: "redis://redis.redis.svc.cluster.local:6379"
         - name: RABBITMQ_URL
           value: "amqp://guest:guest@rabbitmq-service:5672/"
         - name: OLLAMA_BASE_URL

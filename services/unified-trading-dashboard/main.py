@@ -57,7 +57,7 @@ templates = Jinja2Templates(directory="templates")
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11101")
 ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://backtest-api:11101")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8000")
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis.redis.svc.cluster.local:6379")
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:11150/trading")
 LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-local-forward.ollama-controller.svc.cluster.local:12001")
 

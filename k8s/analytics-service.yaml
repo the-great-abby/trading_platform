@@ -28,7 +28,7 @@ spec:
               name: db-secret
               key: read-url
         - name: REDIS_URL
-          value: "redis://redis-dev:6379"
+          value: "redis://redis.redis.svc.cluster.local:6379"
         - name: LOG_LEVEL
           value: "INFO"
         - name: ENVIRONMENT

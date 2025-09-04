@@ -161,7 +161,7 @@ EVENT_STORE_URL=eventstore:2113
 KAFKA_BROKERS=kafka:9092
 
 # Cache
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://redis.redis.svc.cluster.local:6379
 
 # Time Series Database
 INFLUXDB_URL=http://influxdb:8086
