@@ -90,3 +90,4 @@ echo -e "  make simple-status"
 echo -e "  make port-status"
 echo ""
 echo -e "${GREEN}🏴‍☠️ Yo ho ho! The trading system is ready to sail!${NC}"
+

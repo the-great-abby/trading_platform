@@ -7,7 +7,7 @@ RED := \033[0;31m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help simple-status simple-sync simple-critical simple-startup simple-progress simple-learning simple-blocker simple-session-summary simple-daily-sync simple-fix-bug simple-test-priority simple-dynamic-health simple-ai-review simple-ai-refactor simple-ai-test simple-ai-docs simple-ai-optimize simple-ai-security simple-ai-setup simple-ai-debug simple-ai-workflow simple-ai-help
+.PHONY: help simple-status simple-sync simple-critical simple-startup simple-progress simple-learning simple-blocker simple-session-summary simple-daily-sync simple-fix-bug simple-test-priority simple-dynamic-health simple-ai-review simple-ai-refactor simple-ai-test simple-ai-docs simple-ai-optimize simple-ai-security simple-ai-setup simple-ai-debug simple-ai-workflow simple-ai-help discord-setup discord-test discord-status
 
 simple-help: ## Show simple commands help
 	@echo "$(GREEN)📋 Simple Commands$(NC)"
@@ -350,4 +350,102 @@ simple-ai-help: ## AI assistant help
 	@echo "  - simple-ai-debug     - Debugging assistance"
 	@echo "  - simple-ai-workflow  - Workflow optimization"
 	@echo ""
+	@echo "$(GREEN)Discord Integration:$(NC)"
+	@echo "  discord-setup    - Set up Discord webhook URL"
+	@echo "  discord-test     - Test Discord notifications"
+	@echo "  discord-status   - Check Discord webhook status"
+	@echo ""
 	@echo "💬 To use AI assistance, simply ask Orion for help with any of these areas!"
+
+# Discord Integration Commands
+discord-setup: ## Set up Discord webhook URL
+	@echo "$(GREEN)🔧 Discord Webhook Setup$(NC)"
+	@echo "$(YELLOW)========================$(NC)"
+	@echo ""
+	@echo "1. Go to your Discord server"
+	@echo "2. Server Settings → Integrations → Webhooks"
+	@echo "3. Create a new webhook"
+	@echo "4. Copy the webhook URL"
+	@echo ""
+	@echo "$(BLUE)Enter your Discord webhook URL:$(NC)"
+	@read -p "Webhook URL: " webhook_url; \
+	if [ -n "$$webhook_url" ]; then \
+		echo "Adding Discord webhook to Kubernetes secret..."; \
+		kubectl patch secret trading-secrets -n trading-system --type='json' \
+			-p='[{"op": "add", "path": "/data/discord-webhook-url", "value": "'$$(echo -n "$$webhook_url" | base64)'"}]' 2>/dev/null || \
+		kubectl patch secret trading-secrets -n trading-system --type='json' \
+			-p='[{"op": "replace", "path": "/data/discord-webhook-url", "value": "'$$(echo -n "$$webhook_url" | base64)'"}]'; \
+		echo "$(GREEN)✅ Discord webhook URL added to Kubernetes secret$(NC)"; \
+		echo "Restarting CQRS API to pick up new environment variable..."; \
+		kubectl rollout restart deployment/cqrs-api -n trading-system; \
+		echo "$(GREEN)✅ CQRS API restarted$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)Test the integration with: make discord-test$(NC)"; \
+	else \
+		echo "$(RED)❌ No webhook URL provided$(NC)"; \
+	fi
+
+discord-test: ## Test Discord notifications
+	@echo "$(GREEN)🧪 Testing Discord Notifications$(NC)"
+	@echo "$(YELLOW)===============================$(NC)"
+	@echo ""
+	@echo "Testing order placement with Discord notification..."
+	@echo ""
+	@curl -s -X POST "http://localhost:11080/api/trading/test/orders" \
+		-H "Content-Type: application/json" \
+		-d '{"symbol": "AAPL", "side": "buy", "quantity": 10, "order_type": "market", "time_in_force": "GTC"}' | \
+		python3 -m json.tool 2>/dev/null || echo "Failed to parse JSON response"
+	@echo ""
+	@echo "$(YELLOW)Check your Discord channel for the notification!$(NC)"
+
+discord-test-comprehensive: ## Test all Discord notification types
+	@echo "$(GREEN)🧪 Comprehensive Discord Testing$(NC)"
+	@echo "$(YELLOW)=================================$(NC)"
+	@echo ""
+	@echo "1. Testing Order Notifications..."
+	@curl -s -X POST "http://localhost:11080/api/trading/test/orders" \
+		-H "Content-Type: application/json" \
+		-d '{"symbol": "TSLA", "side": "sell", "quantity": 5, "order_type": "limit", "price": 250.00, "time_in_force": "GTC"}' | \
+		python3 -m json.tool 2>/dev/null || echo "Order test failed"
+	@echo ""
+	@echo "2. Testing Portfolio Notifications..."
+	@curl -s -X POST "http://localhost:11080/api/trading/test/portfolio/notify" | \
+		python3 -m json.tool 2>/dev/null || echo "Portfolio test failed"
+	@echo ""
+	@echo "3. Testing Risk Alerts..."
+	@curl -s -X POST "http://localhost:11080/api/trading/test/risk/alert" | \
+		python3 -m json.tool 2>/dev/null || echo "Risk alert test failed"
+	@echo ""
+	@echo "4. Testing System Alerts..."
+	@curl -s -X POST "http://localhost:11080/api/trading/test/system/alert" | \
+		python3 -m json.tool 2>/dev/null || echo "System alert test failed"
+	@echo ""
+	@echo "$(YELLOW)Check your Discord channel for all notifications!$(NC)"
+
+test-orders: ## Test various order types
+	@echo "$(GREEN)📈 Testing Order Types$(NC)"
+	@echo "$(YELLOW)=====================$(NC)"
+	@echo ""
+	@python3 scripts/test_order_types.py
+
+discord-status: ## Check Discord webhook status
+	@echo "$(GREEN)📊 Discord Webhook Status$(NC)"
+	@echo "$(YELLOW)=========================$(NC)"
+	@echo ""
+	@echo "Checking if Discord webhook URL is configured..."
+	@webhook_url=$$(kubectl get secret trading-secrets -n trading-system -o jsonpath='{.data.discord-webhook-url}' 2>/dev/null | base64 -d 2>/dev/null); \
+	if [ -n "$$webhook_url" ]; then \
+		echo "$(GREEN)✅ Discord webhook URL is configured$(NC)"; \
+		echo "URL: $$webhook_url"; \
+		echo ""; \
+		echo "Checking if CQRS API has the environment variable..."; \
+		if kubectl get pod -n trading-system -l app=cqrs-api -o jsonpath='{.items[0].spec.containers[0].env[?(@.name=="DISCORD_WEBHOOK_URL")].name}' 2>/dev/null | grep -q "DISCORD_WEBHOOK_URL"; then \
+			echo "$(GREEN)✅ DISCORD_WEBHOOK_URL environment variable is set$(NC)"; \
+		else \
+			echo "$(RED)❌ DISCORD_WEBHOOK_URL environment variable not found$(NC)"; \
+			echo "Run: kubectl apply -f k8s/cqrs-api-deployment.yaml"; \
+		fi; \
+	else \
+		echo "$(RED)❌ Discord webhook URL not configured$(NC)"; \
+		echo "Run: make discord-setup"; \
+	fi

@@ -1,0 +1,39 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+COPY requirements-dev.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+# Install additional test dependencies
+RUN pip install --no-cache-dir \
+    pytest-asyncio \
+    pytest-cov \
+    pytest-html \
+    asyncpg \
+    redis \
+    aio-pika
+
+# Copy source code
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY scripts/ ./scripts/
+COPY pytest.ini .
+
+# Create test results directory
+RUN mkdir -p test-results
+
+# Default command
+CMD ["pytest", "tests/cqrs/", "-v"]

@@ -45,7 +45,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy only source code (not tests, docs, etc.)
 COPY src/ ./src/
-COPY run_*.py ./
+COPY run/run_*.py ./
 COPY scripts/ ./scripts/
 
 # Create necessary directories

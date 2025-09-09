@@ -34,27 +34,6 @@ class DailyRecommendationsWorker:
             'rss_update': self._handle_rss_update
         }
         
-    async def start(self):
-        """Start the worker"""
-        try:
-            logger.info("🚀 Starting Daily Recommendations Worker...")
-            
-            # Connect to RabbitMQ
-            await self.rabbitmq.connect()
-            
-            # Register job handlers
-            for job_type, handler in self.job_handlers.items():
-                self.rabbitmq.register_job_handler(job_type, handler)
-            
-            # Start consuming jobs
-            await self.rabbitmq.start_consuming()
-            
-            self.is_running = True
-            logger.info("✅ Daily Recommendations Worker started successfully")
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to start Daily Recommendations Worker: {e}")
-            raise
     
     async def stop(self):
         """Stop the worker"""
@@ -291,11 +270,20 @@ async def main():
     worker = DailyRecommendationsWorker(config)
     
     try:
-        await worker.start()
+        # Connect to RabbitMQ
+        await worker.rabbitmq.connect()
         
-        # Keep running
-        while worker.is_running:
-            await asyncio.sleep(1)
+        # Register job handlers
+        for job_type, handler in worker.job_handlers.items():
+            worker.rabbitmq.register_handler(job_type, handler)
+        
+        logger.info("✅ Daily Recommendations Worker started successfully")
+        
+        # Start consuming jobs from daily recommendations queue
+        await worker.rabbitmq.start_worker(
+            worker.rabbitmq.queues['daily_recommendations'], 
+            'daily_recommendations'
+        )
             
     except KeyboardInterrupt:
         logger.info("🛑 Received interrupt signal")
