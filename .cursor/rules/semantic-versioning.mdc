@@ -1,0 +1,99 @@
+---
+description: Semantic versioning and centralized build management
+globs: Makefile*, scripts/version.sh, GitVersion.yml, k8s/*.yaml, services/*/Dockerfile
+---
+
+## Use Centralized Semantic Versioning System
+
+**Pattern**: When building, deploying, or managing Docker images and Kubernetes deployments
+**Message**: Use the centralized semantic versioning system instead of manual Docker/Kubernetes commands
+**Severity**: suggestion
+**Examples**:
+- ✅ Use: `make build-mcp` instead of `docker build -t mcp-service .`
+- ✅ Use: `make deploy-mcp` instead of manual kubectl commands
+- ✅ Use: `./scripts/version.sh mcp-service` for full workflow
+- ✅ Use: `make version` to check current semantic version
+- ❌ Avoid: `docker build -t localhost:32000/mcp-service:latest`
+- ❌ Avoid: `kubectl set image deployment/mcp-service mcp-service=localhost:32000/mcp-service:latest`
+- ❌ Avoid: Manual image tagging without semantic versions
+
+**Rationale**: The centralized system provides consistent semantic versioning, prevents repository bloat, ensures proper image management, and automates the complete build-push-deploy workflow.
+
+## Semantic Versioning Workflow
+
+### **Version Information**
+```bash
+# Check current version
+make version
+./scripts/version.sh --version-only
+```
+
+### **Single Service Operations**
+```bash
+# Build only (no push/deploy)
+make build-mcp
+./scripts/version.sh --build-only mcp-service
+
+# Full workflow (build + push + deploy)
+make deploy-mcp
+./scripts/version.sh mcp-service
+```
+
+### **All Services Operations**
+```bash
+# Build all services
+make build
+./scripts/version.sh --build-only --all-services
+
+# Deploy all services
+make deploy
+./scripts/version.sh --all-services
+
+# Cleanup operations
+make clean
+./scripts/version.sh --clean --all-services
+```
+
+### **Service-Specific Targets**
+- `make build-mcp` - Build MCP service
+- `make deploy-mcp` - Deploy MCP service
+- `make build-trading` - Build trading service
+- `make deploy-trading` - Deploy trading service
+- `make build-dashboards` - Build all dashboards
+- `make deploy-dashboards` - Deploy all dashboards
+- `make clean-mcp` - Clean up old MCP service versions
+- `make clean-trading` - Clean up old trading service versions
+- `make clean-system` - Clean up system (dangling images, containers)
+- `make clean-versions` - Clean up with custom version count
+
+## Version Tag Strategy
+
+The system automatically creates multiple tags for each build:
+- `0.1.0-ci.21` - Full semantic version
+- `0.1` - Major.Minor
+- `0` - Major only
+- `latest` - Latest build
+
+## Benefits Over Manual Commands
+
+1. **Consistent Versioning**: All services use the same semantic version
+2. **No Repository Bloat**: Proper versioned tags instead of random names
+3. **Automated Workflows**: Single command handles build-push-deploy
+4. **Rollback Capability**: Can easily rollback to specific versions
+5. **Audit Trail**: Clear version history and change tracking
+
+## When to Use Manual Commands
+
+Only use manual Docker/Kubernetes commands for:
+- Debugging and troubleshooting
+- One-off experiments
+- Emergency fixes that bypass normal workflow
+- Development testing outside the main workflow
+
+## Integration with Existing Workflows
+
+- **Port Forwarding**: Still use `kubectl port-forward` for local access
+- **Logs**: Still use `kubectl logs` for debugging
+- **Status Checks**: Still use `kubectl get pods` for status
+- **Builds**: Use semantic versioning system instead of manual builds
+- **Deployments**: Use semantic versioning system instead of manual deployments

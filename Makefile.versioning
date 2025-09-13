@@ -1,0 +1,137 @@
+# Trading System Semantic Versioning Makefile
+# Provides centralized versioning and build automation for all services
+
+.PHONY: help version build push deploy clean test
+
+# Default target
+help:
+	@echo "Trading System Semantic Versioning"
+	@echo "=================================="
+	@echo ""
+	@echo "Available targets:"
+	@echo "  version        Show version information only"
+	@echo "  build          Build Docker images with semantic versioning"
+	@echo "  push           Build and push to registry"
+	@echo "  deploy         Build, push, and deploy to Kubernetes"
+	@echo "  clean          Clean up Docker images and containers"
+	@echo "  test           Test the deployed services"
+	@echo "  help           Show this help message"
+	@echo ""
+	@echo "Service-specific targets:"
+	@echo "  build-mcp      Build MCP service only"
+	@echo "  deploy-mcp     Deploy MCP service only"
+	@echo "  build-trading  Build trading service only"
+	@echo "  deploy-trading Deploy trading service only"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make version   # Show current version"
+	@echo "  make build-mcp # Build MCP service only"
+	@echo "  make deploy    # Full build, push, and deploy all services"
+
+# Show version information
+version:
+	@./scripts/version.sh --version-only
+
+# Build all services
+build:
+	@./scripts/version.sh --build-only --all-services
+
+# Build and push all services
+push:
+	@./scripts/version.sh --no-deploy --all-services
+
+# Full build, push, and deploy all services
+deploy:
+	@./scripts/version.sh --all-services
+
+# Clean up old Docker images and tags
+clean:
+	@./scripts/version.sh --clean --all-services
+
+# Clean up specific service
+clean-mcp:
+	@./scripts/version.sh --clean mcp-service
+
+clean-trading:
+	@./scripts/version.sh --clean trading-service
+
+# Clean up system only (dangling images, containers)
+clean-system:
+	@./scripts/version.sh --clean --system-only
+
+# Clean up with custom version count
+clean-versions:
+	@./scripts/version.sh --clean --keep-versions 3 --all-services
+
+# Test the deployed services
+test:
+	@echo "Testing Trading System Services..."
+	@echo "1. Checking MCP service health..."
+	@curl -s http://localhost:11120/health | jq . || echo "MCP service not accessible"
+	@echo ""
+	@echo "2. Testing MCP documentation endpoints..."
+	@curl -s http://localhost:11120/api/mcp/docs/help | jq . || echo "Documentation endpoints not accessible"
+	@echo ""
+	@echo "3. Testing MCP architecture endpoints..."
+	@curl -s http://localhost:11120/api/mcp/architecture | jq . || echo "Architecture endpoints not accessible"
+	@echo ""
+	@echo "Testing completed"
+
+# MCP Service specific targets
+build-mcp:
+	@./scripts/version.sh --build-only mcp-service
+
+deploy-mcp:
+	@./scripts/version.sh mcp-service
+
+# Trading Service specific targets
+build-trading:
+	@./scripts/version.sh --build-only trading-service
+
+deploy-trading:
+	@./scripts/version.sh trading-service
+
+# Market Data Service specific targets
+build-market-data:
+	@./scripts/version.sh --build-only market-data-service
+
+deploy-market-data:
+	@./scripts/version.sh market-data-service
+
+# AI Analysis Service specific targets
+build-ai-analysis:
+	@./scripts/version.sh --build-only ai-analysis-service
+
+deploy-ai-analysis:
+	@./scripts/version.sh ai-analysis-service
+
+# Backtest API specific targets
+build-backtest:
+	@./scripts/version.sh --build-only backtest-api
+
+deploy-backtest:
+	@./scripts/version.sh backtest-api
+
+# Strategy Service specific targets
+build-strategy:
+	@./scripts/version.sh --build-only strategy-service
+
+deploy-strategy:
+	@./scripts/version.sh strategy-service
+
+# Dashboard specific targets
+build-dashboards:
+	@./scripts/version.sh --build-only unified-analytics-dashboard
+	@./scripts/version.sh --build-only unified-trading-dashboard
+	@./scripts/version.sh --build-only unified-news-dashboard
+
+deploy-dashboards:
+	@./scripts/version.sh unified-analytics-dashboard
+	@./scripts/version.sh unified-trading-dashboard
+	@./scripts/version.sh unified-news-dashboard
+
+# Development workflow
+dev: build-mcp test
+
+# Production deployment
+prod: deploy test

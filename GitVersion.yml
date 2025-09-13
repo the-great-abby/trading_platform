@@ -1,0 +1,42 @@
+mode: ContinuousDeployment
+increment: Patch
+major-version-bump-message: '\+semver:\s?(breaking|major)'
+minor-version-bump-message: '\+semver:\s?(feature|minor)'
+patch-version-bump-message: '\+semver:\s?(fix|patch)'
+legacy-semver-padding: 4
+build-metadata-padding: 4
+commits-since-version-source-padding: 4
+commit-message-incrementing: Enabled
+
+# Branch configuration
+branches:
+  main:
+    regex: ^main$
+    mode: ContinuousDeployment
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+  develop:
+    regex: ^develop$
+    mode: ContinuousDeployment
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+  feature:
+    regex: ^feature/.+
+    mode: ContinuousDeployment
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+  hotfix:
+    regex: ^hotfix/.+
+    mode: ContinuousDeployment
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+  release:
+    regex: ^release/.+
+    mode: ContinuousDeployment
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
