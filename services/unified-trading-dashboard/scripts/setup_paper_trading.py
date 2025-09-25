@@ -10,8 +10,10 @@ import time
 import logging
 import asyncio
 import httpx
+import os
+import requests
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import random
 
 # Configure logging
@@ -30,10 +32,12 @@ class PaperTradingEngine:
         self.total_pnl = 0.0
         self.active_positions = {}
         self.trade_history = []
+        self.polygon_api_key = os.getenv('POLYGON_API_KEY')
         
         logger.info(f"🚀 Paper Trading Engine initialized with ${self.portfolio_value}")
         logger.info(f"📊 Strategies: {self.config.get('strategies', [])}")
         logger.info(f"📈 Symbols: {self.config.get('symbols', [])}")
+        logger.info(f"🔑 Polygon API Key: {'✅ Available' if self.polygon_api_key else '❌ Missing'}")
     
     def calculate_strategy_signal(self, symbol: str, strategy: str) -> str:
         """Calculate trading signal based on strategy"""
@@ -66,14 +70,61 @@ class PaperTradingEngine:
         
         return "HOLD"
     
-    def execute_trade(self, symbol: str, action: str, strategy: str):
-        """Execute a paper trade"""
+    async def get_real_price(self, symbol: str) -> float:
+        """Get real market price from Polygon API"""
+        if not self.polygon_api_key:
+            # Fallback to realistic mock prices based on actual market data
+            base_prices = {
+                'INTC': 31.22,  # Real INTC price from our API call
+                'AAPL': 225.50,  # Approximate current price
+                'MSFT': 450.00,  # Approximate current price
+                'GOOGL': 180.00,  # Approximate current price
+                'TSLA': 250.00,  # Approximate current price
+                'NVDA': 130.00,  # Approximate current price
+                'AMD': 120.00,   # Approximate current price
+                'PYPL': 60.00    # Approximate current price
+            }
+            base_price = base_prices.get(symbol, 100.0)
+            # Add small random variation (±2%) to simulate real market movement
+            variation = random.uniform(-0.02, 0.02)
+            return base_price * (1 + variation)
+        
+        try:
+            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev?adjusted=true&apikey={self.polygon_api_key}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('results') and len(data['results']) > 0:
+                    price = data['results'][0]['c']  # Close price
+                    logger.info(f"📊 Real {symbol} price: ${price:.2f}")
+                    return price
+                else:
+                    logger.warning(f"No price data available for {symbol}")
+            else:
+                logger.warning(f"API error for {symbol}: {response.status_code}")
+                
+        except Exception as e:
+            logger.warning(f"Error fetching real price for {symbol}: {e}")
+        
+        # Fallback to realistic prices if API fails
+        base_prices = {
+            'INTC': 31.22, 'AAPL': 225.50, 'MSFT': 450.00, 'GOOGL': 180.00,
+            'TSLA': 250.00, 'NVDA': 130.00, 'AMD': 120.00, 'PYPL': 60.00
+        }
+        base_price = base_prices.get(symbol, 100.0)
+        variation = random.uniform(-0.02, 0.02)
+        logger.info(f"📊 Fallback {symbol} price: ${base_price * (1 + variation):.2f}")
+        return base_price * (1 + variation)
+    
+    async def execute_trade(self, symbol: str, action: str, strategy: str):
+        """Execute a paper trade with real market prices"""
         try:
             if action == "HOLD":
                 return
             
-            # Simulate trade execution
-            current_price = random.uniform(50, 200)  # Simulate price
+            # Get real market price
+            current_price = await self.get_real_price(symbol)
             
             if action == "SELL_IRON_CONDOR":
                 # Iron Condor trade
@@ -178,7 +229,7 @@ class PaperTradingEngine:
             logger.error(f"Error executing trade: {e}")
     
     async def run_trading_cycle(self):
-        """Run one trading cycle"""
+        """Run one trading cycle with real market data"""
         logger.info(f"🔄 Running trading cycle - Portfolio: ${self.portfolio_value:.2f}")
         
         strategies = self.config.get('strategies', [])
@@ -187,12 +238,14 @@ class PaperTradingEngine:
         for symbol in symbols:
             for strategy in strategies:
                 signal = self.calculate_strategy_signal(symbol, strategy)
-                self.execute_trade(symbol, signal, strategy)
+                await self.execute_trade(symbol, signal, strategy)
         
-        # Update portfolio value with any unrealized gains/losses
+        # Update portfolio value with any unrealized gains/losses using real prices
         for symbol, shares in self.active_positions.items():
-            current_price = random.uniform(50, 200)  # Simulate price movement
-            unrealized_pnl = shares * (current_price - 100) * 0.01  # Small random movement
+            current_price = await self.get_real_price(symbol)
+            # Calculate small random movement based on real price
+            price_change_pct = random.uniform(-0.01, 0.01)  # ±1% movement
+            unrealized_pnl = shares * current_price * price_change_pct
             self.portfolio_value += unrealized_pnl
     
     async def run(self):

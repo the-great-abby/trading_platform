@@ -1,17 +1,17 @@
 ---
-# Enhanced Risk Management Service
-# Kubernetes deployment configuration for the enhanced risk management framework
+# Risk Integration Service
+# Integrates Enhanced Risk Management Service with Trading System
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: enhanced-risk-management-service
+  name: risk-integration-service
   namespace: trading-system
   labels:
-    app: enhanced-risk-management-service
-    component: risk-management
+    app: risk-integration-service
+    component: risk-integration
     tier: backend
-    version: v3.0.0
+    version: v1.0.0
 spec:
   replicas: 1
   strategy:
@@ -21,35 +21,33 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: enhanced-risk-management-service
+      app: risk-integration-service
   template:
     metadata:
       labels:
-        app: enhanced-risk-management-service
-        component: risk-management
+        app: risk-integration-service
+        component: risk-integration
         tier: backend
-        version: v3.0.0
+        version: v1.0.0
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8081"
+        prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: enhanced-risk-management-service
-        image: localhost:32000/enhanced-risk-management-service:latest
+      - name: risk-integration-service
+        image: localhost:32000/risk-integration-service:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8081
+        - containerPort: 8080
           name: http
           protocol: TCP
         env:
         # API Configuration
-        - name: PORT
-          value: "8081"
         - name: API_HOST
           value: "0.0.0.0"
-        - name: API_DEBUG
-          value: "false"
+        - name: API_PORT
+          value: "8080"
         - name: LOG_LEVEL
           value: "INFO"
         - name: ENVIRONMENT
@@ -64,7 +62,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8081
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -72,7 +70,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 8081
+            port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
@@ -80,7 +78,7 @@ spec:
         startupProbe:
           httpGet:
             path: /health
-            port: 8081
+            port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
@@ -93,22 +91,22 @@ spec:
         fsGroup: 2000
 
 ---
-# Service for Enhanced Risk Management Service
+# Service for Risk Integration Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: enhanced-risk-management-service
+  name: risk-integration-service
   namespace: trading-system
   labels:
-    app: enhanced-risk-management-service
-    component: risk-management
+    app: risk-integration-service
+    component: risk-integration
     tier: backend
 spec:
   type: ClusterIP
   ports:
   - port: 80
-    targetPort: 8081
+    targetPort: 8080
     protocol: TCP
     name: http
   selector:
-    app: enhanced-risk-management-service
+    app: risk-integration-service

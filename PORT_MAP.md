@@ -2,16 +2,20 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-09-22 15:38:35 EEST
-**Active Port Forwards**: 1  
+**Last Updated**: 2025-09-25 13:44:40 EEST
+**Active Port Forwards**: 3  
 **Total Services**: 50+  
 **Paper Trading**: ✅ **ACTIVE** (Running since 05:31:15)  
+**Enhanced Risk Management**: ✅ **ACTIVE** (Running since 13:31:50)  
+**Risk Integration**: ✅ **ACTIVE** (Running since 13:44:40)  
 
 ## 🎯 Currently Active Port Forwards
 
 | Service | External Port | Internal Port | Status | URL | Last Checked |
 |---------|---------------|---------------|--------|-----|--------------|
 | Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-20 05:35 |
+| Enhanced Risk Management Service | 11081 | 80 | ✅ Active | http://localhost:11081/ | 2025-09-25 13:31 |
+| Risk Integration Service | 11082 | 80 | ✅ Active | http://localhost:11082/ | 2025-09-25 13:44 |
 
 ## 📈 Paper Trading Status
 
@@ -62,7 +66,7 @@
 | Service | External Port | Internal Port | Status | URL | Description |
 |---------|---------------|---------------|--------|-----|-------------|
 | Enhanced Portfolio Service | 11180 | 80 | ❌ Not Forwarded | http://localhost:11180/ | Advanced portfolio management with MPT, Black-Litterman, Risk Parity |
-| Enhanced Risk Management Service | 11181 | 80 | ❌ Not Forwarded | http://localhost:11181/ | Advanced risk management with VaR, CVaR, stress testing |
+| Enhanced Risk Management Service | 11081 | 80 | ✅ Active | http://localhost:11081/ | Advanced risk management with VaR, CVaR, stress testing, factor analysis |
 
 ### **⚠️ Comprehensive Risk Management Framework (11182-11189)**
 | Service | External Port | Internal Port | Status | URL | Description |
