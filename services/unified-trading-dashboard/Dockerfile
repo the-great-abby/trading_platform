@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY main.py .
 COPY templates/ ./templates/
+COPY scripts/ ./scripts/
 # COPY static/ ./static/  # Static directory doesn't exist yet
 
 # Create non-root user

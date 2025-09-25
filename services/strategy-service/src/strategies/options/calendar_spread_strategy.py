@@ -31,6 +31,10 @@ class CalendarSpreadStrategy(BaseStrategy):
     - Automated strike and expiration selection
     """
     
+    # Class attributes for fallback mechanism
+    requires_options_data = True
+    stock_fallback_strategy = None  # Will be set to RSI strategy by default
+    
     def __init__(self, 
                  name: str = "CalendarSpread",
                  short_dte: int = 14,  # Short-term expiration
@@ -41,8 +45,9 @@ class CalendarSpreadStrategy(BaseStrategy):
                  min_theta_ratio: float = 1.5,  # Minimum theta ratio between expirations
                  min_delta: float = 0.3,  # Minimum delta for strike selection
                  max_delta: float = 0.7,  # Maximum delta for strike selection
-                 min_dte_spread: int = 21):  # Minimum days between expirations
-        super().__init__(name)
+                 min_dte_spread: int = 21,  # Minimum days between expirations
+                 config: Dict[str, Any] = None):
+        super().__init__(name, config)
         self.short_dte = short_dte
         self.long_dte = long_dte
         self.profit_target_pct = profit_target_pct

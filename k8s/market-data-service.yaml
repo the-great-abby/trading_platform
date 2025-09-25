@@ -23,7 +23,7 @@ spec:
         - containerPort: 8000
         env:
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:password@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
         - name: REDIS_URL
           value: "redis://redis.redis.svc.cluster.local:6379"
         - name: LOG_LEVEL

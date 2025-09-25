@@ -1,0 +1,61 @@
+---
+# Simple Risk Management Database (no persistent storage)
+# For development/testing purposes
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risk-management-postgres-simple
+  namespace: trading-system
+  labels:
+    app: risk-management-postgres-simple
+    component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risk-management-postgres-simple
+  template:
+    metadata:
+      labels:
+        app: risk-management-postgres-simple
+        component: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: risk_management
+        - name: POSTGRES_USER
+          value: risk_user
+        - name: POSTGRES_PASSWORD
+          value: risk_password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risk-management-postgres-simple
+  namespace: trading-system
+  labels:
+    app: risk-management-postgres-simple
+spec:
+  selector:
+    app: risk-management-postgres-simple
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+

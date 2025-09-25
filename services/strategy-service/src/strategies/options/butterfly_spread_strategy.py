@@ -31,6 +31,10 @@ class ButterflySpreadStrategy(BaseStrategy):
     - Automated strike selection based on technical analysis
     """
     
+    # Class attributes for fallback mechanism
+    requires_options_data = True
+    stock_fallback_strategy = None  # Will be set to RSI strategy by default
+    
     def __init__(self, 
                  name: str = "ButterflySpread",
                  days_to_expiration: int = 30,
@@ -40,8 +44,9 @@ class ButterflySpreadStrategy(BaseStrategy):
                  min_width: float = 2.0,  # Minimum width between strikes
                  max_width: float = 10.0,  # Maximum width between strikes
                  min_dte: int = 21,
-                 max_dte: int = 45):
-        super().__init__(name)
+                 max_dte: int = 45,
+                 config: Dict[str, Any] = None):
+        super().__init__(name, config)
         self.days_to_expiration = days_to_expiration
         self.profit_target_pct = profit_target_pct
         self.stop_loss_pct = stop_loss_pct

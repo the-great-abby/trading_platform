@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY main.py .
+COPY compare_strategies.py .
+COPY quick_test.py .
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY src ./src

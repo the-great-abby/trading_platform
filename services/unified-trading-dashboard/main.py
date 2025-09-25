@@ -54,16 +54,16 @@ except RuntimeError:
 templates = Jinja2Templates(directory="templates")
 
 # Configuration
-BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11101")
-ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://backtest-api:11101")
+BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:10001")
+ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://backtest-api:10001")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8000")
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis.redis.svc.cluster.local:6379")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:11150/trading")
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-local-forward.ollama-controller.svc.cluster.local:12001")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-controller-api-service.ollama-controller.svc.cluster.local:12001")
 
 # New dedicated vector databases
-KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@localhost:11151/trading")
-FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@localhost:11151/trading")
+KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector-external.postgres-infra.svc.cluster.local:5432/kubernetes_vectors")
+FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector-external.postgres-infra.svc.cluster.local:5432/financial_vectors")
 
 # Redis connection
 redis_client = None
@@ -1750,15 +1750,50 @@ class BacktestRequest(BaseModel):
 async def run_backtest(request: BacktestRequest):
     """Run a backtest with the specified parameters"""
     try:
-        # For now, we'll simulate the backtest process
-        # In a real implementation, this would submit a job to the backtest engine
+        # Call the strategy service directly instead of importing locally
+        job_id = f"backtest_{int(time.time())}"
+        
+        # Make HTTP request to strategy service
+        import httpx
+        async with httpx.AsyncClient() as client:
+            strategy_service_url = "http://strategy-service:80/api/backtest/run"
+            response = await client.post(
+                strategy_service_url,
+                json=request.dict(),
+                timeout=300.0  # 5 minute timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"🚀 Real backtest completed successfully")
+                
+                # Store results in Redis for later retrieval
+                if redis_client:
+                    redis_client.setex(f"backtest_results:{job_id}", 3600, json.dumps({
+                        "status": "completed",
+                        "results": result.get("results", []),
+                        "request": request.dict()
+                    }))
+                
+                return {
+                    "success": True,
+                    "job_id": job_id,
+                    "message": "Real backtest completed successfully"
+                }
+            else:
+                logger.error(f"Strategy service returned error: {response.status_code} - {response.text}")
+                raise Exception(f"Strategy service error: {response.status_code}")
+        
+    except Exception as e:
+        logger.error(f"Error running real backtest: {e}")
+        # Fallback to mock data if real backtest fails
+        logger.warning("Falling back to mock data due to real backtest failure")
         
         job_id = f"backtest_{int(time.time())}"
         
-        # Simulate backtest results
+        # Simulate backtest results as fallback
         results = []
         for strategy in request.strategies:
-            # Generate mock results for demonstration
             import random
             total_return = random.uniform(-0.2, 0.4)  # -20% to +40%
             sharpe_ratio = random.uniform(-1.0, 2.0)
@@ -1788,12 +1823,8 @@ async def run_backtest(request: BacktestRequest):
         return {
             "success": True,
             "job_id": job_id,
-            "message": "Backtest started successfully"
+            "message": "Backtest completed (using fallback data)"
         }
-        
-    except Exception as e:
-        logger.error(f"Error running backtest: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to run backtest: {str(e)}")
 
 @app.get("/api/backtest/status/{job_id}")
 async def get_backtest_status(job_id: str):

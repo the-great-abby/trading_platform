@@ -29,6 +29,10 @@ class IronCondorStrategy(BaseStrategy):
     - Dynamic strike selection based on volatility
     """
     
+    # Class attributes for fallback mechanism
+    requires_options_data = True
+    stock_fallback_strategy = None  # Will be set to RSI strategy by default
+    
     def __init__(self, 
                  name: str = "IronCondor",
                  days_to_expiration: int = 45,
@@ -37,8 +41,9 @@ class IronCondorStrategy(BaseStrategy):
                  max_risk_per_trade: float = 0.02,  # 2% of portfolio
                  volatility_threshold: float = 0.3,  # 30% IV threshold
                  min_dte: int = 30,
-                 max_dte: int = 60):
-        super().__init__(name)
+                 max_dte: int = 60,
+                 config: Dict[str, Any] = None):
+        super().__init__(name, config)
         self.days_to_expiration = days_to_expiration
         self.profit_target_pct = profit_target_pct
         self.stop_loss_pct = stop_loss_pct
@@ -149,59 +154,92 @@ class IronCondorStrategy(BaseStrategy):
         return True
     
     async def generate_signal(self, symbol: str, data: pd.DataFrame, 
-                            options_data: Optional[Dict[str, Any]] = None) -> Optional[TradeSignal]:
+                            historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate Iron Condor signal"""
         
-        if len(data) < 20:
-            return None
-        
-        current_price = data['Close'].iloc[-1]
-        
-        # Check market conditions
-        if not self.check_market_conditions(data, options_data or {}):
-            return None
-        
-        # Select strikes
-        strikes = self.select_strikes(current_price, options_data or {})
-        
-        # Calculate risk/reward
-        max_risk = self.calculate_max_risk(strikes)
-        max_profit = self.calculate_max_profit(strikes)
-        risk_reward_ratio = max_profit / max_risk if max_risk > 0 else 0
-        
-        # Only trade if risk/reward is acceptable
-        if risk_reward_ratio < 0.3:  # At least 30% profit potential
-            return None
-        
-        # Calculate confidence based on market conditions
-        confidence = self._calculate_confidence(data, options_data or {}, strikes)
-        
-        # Generate signal
-        signal = TradeSignal(
-            symbol=symbol,
-            action="IRON_CONDOR",
-            quantity=1,  # One Iron Condor position
-            price=current_price,
-            timestamp=datetime.now(),
-            strategy=self.name,
-            confidence=confidence,
-            metadata={
-                'strikes': strikes,
-                'max_risk': max_risk,
-                'max_profit': max_profit,
-                'risk_reward_ratio': risk_reward_ratio,
-                'days_to_expiration': self.days_to_expiration,
-                'signal_type': 'iron_condor',
+        try:
+            if len(data) < 20:
+                return None
+            
+            current_price = data['Close'].iloc[-1]
+            
+            # Try to get options data
+            options_data = None
+            try:
+                if self.options_service:
+                    if historical_date:
+                        options_data = self.options_service.get_liquid_options_with_historical_support(
+                            symbol, min_volume=10, historical_date=historical_date
+                        )
+                    else:
+                        options_data = self.options_service.get_liquid_options(symbol, min_volume=10)
+                else:
+                    logger.warning(f"No options service available for {symbol}")
+                    return await self.handle_options_data_unavailable(symbol, data, historical_date)
+                    
+            except Exception as e:
+                logger.warning(f"Failed to get options data for {symbol}: {e}")
+                return await self.handle_options_data_unavailable(symbol, data, historical_date)
+            
+            # Check if we have valid options data
+            if not options_data or len(options_data) == 0:
+                logger.warning(f"No liquid options found for {symbol}")
+                return await self.handle_options_data_unavailable(symbol, data, historical_date)
+            
+            # Check market conditions
+            if not self.check_market_conditions(data, options_data):
+                return None
+            
+            # Select strikes
+            strikes = self.select_strikes(current_price, options_data)
+            
+            # Calculate risk/reward
+            max_risk = self.calculate_max_risk(strikes)
+            max_profit = self.calculate_max_profit(strikes)
+            risk_reward_ratio = max_profit / max_risk if max_risk > 0 else 0
+            
+            # Only trade if risk/reward is acceptable
+            if risk_reward_ratio < 0.3:  # At least 30% profit potential
+                return None
+            
+            # Calculate confidence based on market conditions
+            confidence = self._calculate_confidence(data, options_data, strikes)
+            
+            # Generate signal
+            signal = TradeSignal(
+                symbol=symbol,
+                action="IRON_CONDOR",
+                quantity=1,  # One Iron Condor position
+                price=current_price,
+                timestamp=datetime.now(),
+                strategy=self.name,
+                confidence=confidence,
+                metadata={
+                    'strikes': strikes,
+                    'max_risk': max_risk,
+                    'max_profit': max_profit,
+                    'risk_reward_ratio': risk_reward_ratio,
+                    'days_to_expiration': self.days_to_expiration,
+                    'signal_type': 'iron_condor',
                 'position_size': self.max_risk_per_trade / max_risk if max_risk > 0 else 0,
                 'profit_target': max_profit * self.profit_target_pct,
                 'stop_loss': max_risk * self.stop_loss_pct
             }
         )
         
-        logger.info(f"Iron Condor signal: {symbol} (confidence: {confidence:.3f}, "
-                   f"risk/reward: {risk_reward_ratio:.3f})")
-        
-        return signal
+            logger.info(f"Iron Condor signal: {symbol} (confidence: {confidence:.3f}, "
+                       f"risk/reward: {risk_reward_ratio:.3f})")
+            
+            return signal
+            
+        except Exception as e:
+            error_context = {
+                "strategy": self.name,
+                "symbol": symbol,
+                "method": "generate_signal"
+            }
+            self.error_handler.handle_error(e, error_context)
+            return await self.handle_options_data_unavailable(symbol, data, historical_date)
     
     def _calculate_confidence(self, data: pd.DataFrame, options_data: Dict[str, Any], 
                             strikes: Dict[str, float]) -> float:

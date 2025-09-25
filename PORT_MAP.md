@@ -2,33 +2,45 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-09-07 08:35:00 EEST  
-**Active Port Forwards**: 10  
+**Last Updated**: 2025-09-22 15:38:35 EEST
+**Active Port Forwards**: 1  
 **Total Services**: 50+  
+**Paper Trading**: ✅ **ACTIVE** (Running since 05:31:15)  
 
 ## 🎯 Currently Active Port Forwards
 
 | Service | External Port | Internal Port | Status | URL | Last Checked |
 |---------|---------------|---------------|--------|-----|--------------|
-| Registry | 32000 | 5000 | ✅ Active | http://localhost:32000/ | 2025-09-03 21:30 |
-| Unified Analytics Dashboard | 11114 | 80 | ✅ Active | http://localhost:11114/ | 2025-09-03 21:30 |
-| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-03 21:30 |
-| Unified News Dashboard | 11116 | 80 | ✅ Active | http://localhost:11116/ | 2025-09-03 21:30 |
-| MCP Service | 11117 | 8000 | ✅ Active | http://localhost:11117/ | 2025-09-04 05:41 |
-| PostgreSQL Timescale | 13001 | 5432 | ✅ Active | localhost:13001 | 2025-09-03 21:30 |
-| PostgreSQL Age | 13002 | 5432 | ✅ Active | localhost:13002 | 2025-09-03 21:30 |
-| PostgreSQL Vector | 13003 | 5432 | ✅ Active | localhost:13003 | 2025-09-03 21:30 |
-| PostgreSQL Regular | 13004 | 5432 | ✅ Active | localhost:13004 | 2025-09-03 21:30 |
+| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-20 05:35 |
 
-## 📋 Service Categories & Port Assignments
+## 📈 Paper Trading Status
+
+| Metric | Value | Details |
+|--------|-------|---------|
+| **Status** | ✅ **RUNNING** | Active since 2025-09-20 17:17:03 |
+| **Portfolio Value** | **$2,000.00** | Initial capital |
+| **Total Trades** | **0** | No completed trades yet |
+| **Total P&L** | **$0.00** | No realized gains/losses |
+| **Active Strategies** | **3** | IronCondor, ButterflySpread, CalendarSpread |
+| **Trading Symbols** | **3** | AMD, PYPL, INTC |
+| **Trading Interval** | **5 minutes** | 300 seconds between cycles |
+| **Max Risk Per Trade** | **5%** | $100 max risk per trade |
+| **Max Position Size** | **10%** | $200 max position size |
+| **Last Trade** | **None** | No trades yet |
+
+### 🎯 Strategy Configuration
+- **Primary**: Iron Condor (Options strategy for range-bound markets)
+- **Secondary**: Regime Switching (Adaptive strategy based on market conditions)  
+- **Backup**: Bollinger Bands (Mean reversion strategy)## 📋 Service Categories & Port Assignments
 
 ### **🔧 Core Infrastructure (11000-11099)**
 | Service | External Port | Internal Port | Status | URL | Description |
 |---------|---------------|---------------|--------|-----|-------------|
 | TimescaleDB | 11140 | 5432 | ⚠️ **DEPRECATED** | localhost:11140 | **DEPRECATED** - Moved to external database |
 | Redis | 11379 | 6379 | ⚠️ **DEPRECATED** | localhost:11379 | **DEPRECATED** - Moved to external Redis service |
-| RabbitMQ | 11144 | 5672 | ❌ Not Forwarded | localhost:11144 | internal message queue |
+| RabbitMQ | 11144 | 5672 | ⚠️ **DEPRECATED** | localhost:11144 | **DEPRECATED** - Moved to external RabbitMQ service |
 | PostgreSQL Vector | 11180 | 5432 | ⚠️ **DEPRECATED** | localhost:11180 | **DEPRECATED** - Moved to external vector storage |
+| Ollama Controller DB | - | 5432 | ⚠️ **DEPRECATED** | - | **DEPRECATED** - Use external postgres service |
 
 ### **📊 Unified Dashboards (11110-11119)**
 | Service | External Port | Internal Port | Status | URL | Description |
@@ -46,12 +58,26 @@
 | Backtest API | 11101 | 10001 | ❌ Not Forwarded | http://localhost:11101/ | Backtesting service |
 | Trading Engine | 11080 | 8080 | ❌ Not Forwarded | http://localhost:11080/ | Core trading engine |
 
+### **📊 Advanced Portfolio Management Services (11180-11189)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| Enhanced Portfolio Service | 11180 | 80 | ❌ Not Forwarded | http://localhost:11180/ | Advanced portfolio management with MPT, Black-Litterman, Risk Parity |
+| Enhanced Risk Management Service | 11181 | 80 | ❌ Not Forwarded | http://localhost:11181/ | Advanced risk management with VaR, CVaR, stress testing |
+
+### **⚠️ Comprehensive Risk Management Framework (11182-11189)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| Risk Management Service | 11182 | 80 | ❌ Not Forwarded | http://localhost:11182/ | **RESOURCE-CONSTRAINED**: 1 replica, VaR, stress testing, compliance |
+| Risk Management Database | 11183 | 5432 | ❌ Not Forwarded | localhost:11183 | **RESOURCE-CONSTRAINED**: 1 replica, 5GB storage |
+| Risk Management Redis | 11184 | 6379 | ❌ Not Forwarded | localhost:11184 | **RESOURCE-CONSTRAINED**: 1 replica, 256MB memory |
+
 ### **🤖 AI/ML Services (11120-11139)**
 | Service | External Port | Internal Port | Status | URL | Description |
 |---------|---------------|---------------|--------|-----|-------------|
 | LLM Proxy | 11081 | 11081 | ❌ Not Forwarded | http://localhost:11081/ | LLM proxy service |
 | AI Analysis Service | 11085 | 11085 | ❌ Not Forwarded | http://localhost:11085/ | AI analysis API |
 | LLM Service | 11109 | 11109 | ❌ Not Forwarded | http://localhost:11109/ | LLM service |
+| RAG Chat Service | 11116 | 8000 | ✅ Active | http://localhost:11116/ | Kubernetes RAG chat interface |
 
 ### **📈 Monitoring Services (11190-11199)**
 | Service | External Port | Internal Port | Status | URL | Description |
@@ -87,8 +113,56 @@
 # Check active port forwards
 ps aux | grep "kubectl port-forward" | grep -v grep
 
+# Check paper trading status
+curl -s http://localhost:11115/api/paper-trading/status
+
 # Run health check
 make simple-status
+```
+
+### **Paper Trading Commands**
+```bash
+# Check paper trading status
+curl -s http://localhost:11115/api/paper-trading/status | jq
+
+# Check paper trading configuration
+curl -s http://localhost:11115/api/paper-trading/config | jq
+
+# View trading dashboard
+open http://localhost:11115/paper-trading
+
+# Stop paper trading
+curl -X POST http://localhost:11115/api/paper-trading/stop
+
+# Update PORT_MAP.md with current paper trading status
+python scripts/update_paper_trading_status.py
+```
+
+### **Advanced Portfolio Management Commands**
+```bash
+# Check portfolio service status
+curl -s http://localhost:11180/api/v1/status | jq
+
+# Check risk management service status
+curl -s http://localhost:11181/api/v1/status | jq
+
+# Create a new portfolio
+curl -X POST http://localhost:11180/api/v1/portfolios \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Test Portfolio", "owner_id": "user123", "risk_tolerance": "MODERATE"}'
+
+# Get portfolio optimization results
+curl -s http://localhost:11180/api/v1/portfolios/portfolio-123/optimization/mpt | jq
+
+# Perform risk assessment
+curl -X POST http://localhost:11181/api/v1/risk/assess \
+  -H "Content-Type: application/json" \
+  -d '{"portfolio_id": "portfolio-123", "portfolio_value": 100000, "positions": []}'
+
+# Run stress test
+curl -X POST http://localhost:11181/api/v1/risk/stress-test \
+  -H "Content-Type: application/json" \
+  -d '{"portfolio_id": "portfolio-123", "scenarios": [{"name": "Market Crash", "shock_return": -0.20}]}'
 ```
 
 ### **Start Essential Services**
@@ -102,6 +176,10 @@ kubectl port-forward -n trading-system service/rabbitmq 11144:5672 &
 kubectl port-forward -n trading-system service/unified-analytics-dashboard 11114:80 &
 kubectl port-forward -n trading-system service/unified-trading-dashboard 11115:80 &
 kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
+
+# Start advanced portfolio management services
+kubectl port-forward -n trading-system service/enhanced-portfolio-service 11180:80 &
+kubectl port-forward -n trading-system service/enhanced-risk-management-service 11181:80 &
 
 # Start AI services
 kubectl port-forward -n trading-system service/llm-proxy 11081:11081 &
@@ -118,8 +196,17 @@ pkill -f "kubectl port-forward"
 # Test specific service
 curl -s http://localhost:11114/health
 
+# Test portfolio management services
+curl -s http://localhost:11180/health
+curl -s http://localhost:11181/health
+
+# Risk Management Framework Services (Resource-Constrained)
+curl -s http://localhost:11182/health
+curl -s http://localhost:11183/health  # Database
+curl -s http://localhost:11184/health  # Redis
+
 # Test multiple services
-for port in 11114 11115 11113; do
+for port in 11114 11115 11113 11180 11181 11182 11183 11184; do
   echo "Testing port $port..."
   curl -s http://localhost:$port/health || echo "Port $port not responding"
 done
@@ -171,6 +258,7 @@ Following the **Port Mapping Management Rule** (`.cursor/rules/port-mapping.mdc`
 - **Redis**: Moved to external managed cache service (redis://redis.redis.svc.cluster.local:6379)
 - **RabbitMQ**: Moved to external managed message queue service
 - **PostgreSQL Vector**: Moved to external managed vector database service
+- **Ollama Controller DB**: Should use external postgres service (postgres-timescale-external.postgres-infra.svc.cluster.local:5432)
 
 ### **Configuration:**
 - Database connections are configured via environment variables
@@ -189,9 +277,99 @@ Following the **Port Mapping Management Rule** (`.cursor/rules/port-mapping.mdc`
 - **Port Mapping Rule**: `.cursor/rules/port-mapping.mdc`
 - **Service Architecture**: `docs/ARCHITECTURE_DIAGRAM.md`
 - **Makefile Commands**: `make port-*` (see main Makefile)
+- **Ollama Controller Port Map**: `k8s/ollama-controller/PORT_MAP.md` - Detailed port mapping for Ollama services
+
+## 🚀 Risk Management Framework Commands
+
+### **Resource-Constrained Deployment Commands**
+
+```bash
+# Deploy Risk Management Framework (1 replica each)
+./scripts/deploy-risk-management.sh deploy
+
+# Check health of all services
+./scripts/check-risk-management-health.sh health
+
+# Test VaR calculation
+curl -X POST http://localhost:11182/api/risk/var-calculation \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_id": "test-portfolio-123",
+    "confidence_levels": [0.95, 0.99],
+    "calculation_method": "historical_simulation",
+    "data_period_days": 252,
+    "include_expected_shortfall": true,
+    "include_risk_contributions": true
+  }'
+
+# Test stress testing
+curl -X POST http://localhost:11182/api/risk/stress-test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_id": "test-portfolio-123",
+    "scenarios": ["market_crash", "volatility_spike"],
+    "include_position_impacts": true,
+    "include_sector_impacts": true
+  }'
+
+# Test correlation analysis
+curl -X POST http://localhost:11182/api/risk/correlation-analysis \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_id": "test-portfolio-123",
+    "rolling_period_days": 30,
+    "include_sector_analysis": true,
+    "include_diversification_recommendations": true
+  }'
+
+# Generate compliance report
+curl -X GET "http://localhost:11182/api/risk/compliance-report?portfolio_id=test-portfolio-123&report_type=daily&format=JSON"
+
+# Get risk monitoring status
+curl -X GET "http://localhost:11182/api/risk/monitoring?portfolio_id=test-portfolio-123"
+
+# Configure risk limits
+curl -X PUT http://localhost:11182/api/risk/limits \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_id": "test-portfolio-123",
+    "limits": [
+      {
+        "limit_type": "position_size",
+        "limit_value": 0.15,
+        "limit_unit": "percentage",
+        "enforcement_action": "alert"
+      }
+    ]
+  }'
+
+# Get risk alerts
+curl -X GET "http://localhost:11182/api/risk/alerts?portfolio_id=test-portfolio-123&status=active&limit=100"
+```
+
+### **Resource Monitoring Commands**
+
+```bash
+# Check resource usage (single replica)
+kubectl top pods -n trading -l app=risk-management-service
+
+# Check database resource usage
+kubectl top pods -n trading -l app=postgresql-service
+
+# Check Redis resource usage  
+kubectl top pods -n trading -l app=redis-service
+
+# View logs for troubleshooting
+kubectl logs -f deployment/risk-management-service -n trading
+kubectl logs -f statefulset/risk-management-postgresql -n trading
+kubectl logs -f deployment/risk-management-redis -n trading
+```
 
 ## 🆕 Recent Changes
 
+- **2025-01-15**: Added Comprehensive Risk Management Framework (11182-11189) with **RESOURCE-CONSTRAINED** deployment (1 replica each)
+- **2025-01-15**: Added Advanced Portfolio Management Services (11180-11189) with Enhanced Portfolio Service and Enhanced Risk Management Service
+- **2025-01-15**: Added portfolio management commands section with API examples
 - **2025-09-03**: Created standardized PORT_MAP.md following new rules format
 - **2025-09-03**: Moved from `md/PORT_MAP.md` to root directory
 - **2025-09-03**: Added comprehensive service categories and port assignments

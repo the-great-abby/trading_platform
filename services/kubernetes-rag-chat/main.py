@@ -283,11 +283,11 @@ Answer:"""
             
             # Use the /api/generate endpoint which works better
             llm_request = {
-                "model": "gpt-oss:20b",
+                "model": "phi3:mini",
                 "prompt": prompt,
                 "stream": False,
                 "priority": 40,  # Highest priority (40 = highest, 30 = high, 20 = normal, 10 = low)
-                "timeout_seconds": 300,  # 5 minutes for the LLM request
+                "timeout_seconds": 600,  # 10 minutes for the LLM request
                 "request_id": request_id,
                 "callback_url": f"http://kubernetes-rag-chat:8000/callback/{request_id}",
                 "callback_method": "POST"
@@ -300,8 +300,8 @@ Answer:"""
             url = f"{self.llm_proxy_url}/api/generate"
             
             # Create a session with longer timeout and retry logic
-            timeout = aiohttp.ClientTimeout(total=60, connect=30)
-            connector = aiohttp.TCPConnector(limit=100, limit_per_host=30, keepalive_timeout=60)
+            timeout = aiohttp.ClientTimeout(total=600, connect=60)  # 10 minutes total, 1 minute connect
+            connector = aiohttp.TCPConnector(limit=100, limit_per_host=30, keepalive_timeout=300)  # 5 minutes keepalive
             
             async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
                 # Submit the request
@@ -319,7 +319,7 @@ Answer:"""
                             
                             return {
                                 "answer": f"Your request is being processed. This may take a few minutes due to high demand. You can check the status of your request at: <a href='{status_url}' target='_blank' style='color: #007bff; text-decoration: underline;'>{status_url}</a>",
-                                "model": "gpt-oss:20b",
+                                "model": "phi3:mini",
                                 "request_id": actual_request_id,
                                 "status_url": status_url
                             }
@@ -327,25 +327,25 @@ Answer:"""
                             logger.error(f"Unexpected LLM response format: {result}")
                             return {
                                 "answer": "I'm having trouble processing the AI response. Please try again later.",
-                                "model": "gpt-oss:20b"
+                                "model": "phi3:mini"
                             }
                     else:
                         error_text = await response.text()
                         logger.error(f"LLM request failed with status {response.status}: {error_text}")
                         return {
                             "answer": "I'm having trouble connecting to the AI service. Please try again later.",
-                            "model": "gpt-oss:20b"
+                            "model": "phi3:mini"
                         }
                         
         except Exception as e:
             logger.error(f"Error generating AI response: {e}")
             return {
                 "answer": f"I encountered an error while generating a response: {str(e)}",
-                "model": "gpt-oss:20b"
+                "model": "phi3:mini"
             }
     
     async def _poll_for_completion(self, session: aiohttp.ClientSession, request_id: str, 
-                                  max_wait_time: int = 300, poll_interval: int = 5) -> Optional[Dict[str, Any]]:
+                                  max_wait_time: int = 600, poll_interval: int = 10) -> Optional[Dict[str, Any]]:  # 10 minutes max wait, poll every 10 seconds
         """Poll the status endpoint until the request completes"""
         start_time = time.time()
         
@@ -353,7 +353,7 @@ Answer:"""
             try:
                 status_url = f"{self.llm_proxy_url}/api/status/{request_id}"
                 
-                async with session.get(status_url, timeout=30) as response:
+                async with session.get(status_url, timeout=60) as response:  # Increased to 1 minute
                     if response.status == 200:
                         status_result = await response.json()
                         current_status = status_result.get("status", "unknown")
@@ -520,7 +520,7 @@ async def check_request_status(request_id: str):
         # Check the status with the external LLM proxy
         status_url = f"{rag_chat.llm_proxy_url}/api/status/{request_id}"
         
-        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        timeout = aiohttp.ClientTimeout(total=120, connect=30)  # Increased to 2 minutes total, 30 seconds connect
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(status_url) as response:
                 if response.status == 200:

@@ -71,19 +71,19 @@ except RuntimeError:
 templates = Jinja2Templates(directory="templates")
 
 # Configuration
-VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "postgresql://postgres:postgres@localhost:11151/trading")
-LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-local-forward.ollama-controller.svc.cluster.local:12001")
+VECTOR_STORAGE_URL = os.getenv("VECTOR_STORAGE_URL", "postgresql://postgres:postgres@postgres-vector-external.postgres-infra.svc.cluster.local:5432/trading")
+LLM_PROXY_URL = os.getenv("LLM_PROXY_URL", "http://ollama-controller-api-service.ollama-controller.svc.cluster.local:12001")
 BACKTEST_API_URL = os.getenv("BACKTEST_API_URL", "http://backtest-api:11031")
 MARKET_DATA_URL = os.getenv("MARKET_DATA_URL", "http://market-data-service:8002")
 RSS_FEED_URL = os.getenv("RSS_FEED_URL", "http://rss-feed-service:11004")
 NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:80")
 TRANSFORMATION_PIPELINE_URL = os.getenv("TRANSFORMATION_PIPELINE_URL", "http://data-transformation-pipeline:11135")
 ANALYSIS_SERVICE_URL = os.getenv("ANALYSIS_SERVICE_URL", "http://ai-analysis-service:11085")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:11150/trading")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot")
 
 # New dedicated vector databases
-KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@localhost:11151/trading")
-FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@localhost:11151/trading")
+KUBERNETES_VECTOR_DB_URL = os.getenv("KUBERNETES_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector-external.postgres-infra.svc.cluster.local:5432/kubernetes_vectors")
+FINANCIAL_VECTOR_DB_URL = os.getenv("FINANCIAL_VECTOR_DB_URL", "postgresql://postgres:postgres@postgres-vector-external.postgres-infra.svc.cluster.local:5432/financial_vectors")
 
 # Database connection
 def get_database_connection():
@@ -1635,7 +1635,7 @@ class UnifiedAnalyticsDashboard:
         """Get worker queue status from RabbitMQ"""
         try:
             # Try to get queue status from RabbitMQ management API
-            rabbitmq_url = "http://rabbitmq:15672/api/queues"
+            rabbitmq_url = "http://rabbitmq.rabbitmq-system.svc.cluster.local:15672/api/queues"
             auth = aiohttp.BasicAuth('trading', 'trading_pass')
             
             async with session.get(rabbitmq_url, auth=auth, timeout=5) as response:

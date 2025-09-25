@@ -1,0 +1,87 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: architecture-vectorizer-cronjob
+  namespace: trading-system
+  labels:
+    app: architecture-vectorizer
+    tier: background
+    environment: production
+spec:
+  schedule: "0 */6 * * *"  # Run every 6 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: architecture-vectorizer
+            tier: background
+            environment: production
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "8080"
+            prometheus.io/path: "/metrics"
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: architecture-vectorizer
+            image: localhost:32000/architecture-vectorizer:latest
+            imagePullPolicy: Never
+            env:
+                  - name: VECTOR_STORAGE_URL
+                    value: "http://postgres-vector-storage:80"
+                  - name: OLLAMA_URL
+                    value: "http://ollama-controller-api-service.ollama-controller.svc.cluster.local:12001"
+                  - name: REPO_ROOT
+                    value: "/app"
+            - name: RUN_ONCE
+              value: "true"
+            - name: VECTORIZE_INTERVAL
+              value: "3600"
+            - name: LOG_LEVEL
+              value: "DEBUG"
+            - name: VERBOSE_LOGGING
+              value: "true"
+            - name: ENVIRONMENT
+              value: "production"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            volumeMounts:
+            - name: repo-volume
+              mountPath: /app
+              readOnly: true
+          volumes:
+          - name: repo-volume
+            hostPath:
+              path: /Users/abby/code/trading
+              type: Directory
+          nodeSelector:
+            kubernetes.io/os: linux
+          tolerations:
+          - key: "node-role.kubernetes.io/master"
+            operator: "Exists"
+            effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: architecture-vectorizer-service
+  namespace: trading-system
+  labels:
+    app: architecture-vectorizer
+spec:
+  selector:
+    app: architecture-vectorizer
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

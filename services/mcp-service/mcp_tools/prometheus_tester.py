@@ -378,3 +378,4 @@ class PrometheusTester:
             logger.info(f"Removed Prometheus query: {query_name}")
             return True
         return False
+

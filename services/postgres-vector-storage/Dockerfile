@@ -21,7 +21,6 @@ COPY src /app/src
 # Copy application code
 COPY services/postgres-vector-storage/main.py .
 COPY services/postgres-vector-storage/vector_types.py .
-COPY services/postgres-vector-storage/models.py .
 
 # Set PYTHONPATH to include /app and /app/src
 ENV PYTHONPATH="/app:/app/src"

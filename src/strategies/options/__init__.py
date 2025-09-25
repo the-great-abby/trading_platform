@@ -14,6 +14,7 @@ from .earnings_strategy import EarningsStrategy
 from .straddle_strategy import StraddleStrategy
 from .strangle_strategy import StrangleStrategy
 from .diagonal_spread_strategy import DiagonalSpreadStrategy
+from .options_wheel_strategy import OptionsWheelStrategy
 
 __all__ = [
     'GreeksEnhancedStrategy',
@@ -27,5 +28,6 @@ __all__ = [
     'EarningsStrategy',
     'StraddleStrategy',
     'StrangleStrategy',
-    'DiagonalSpreadStrategy'
+    'DiagonalSpreadStrategy',
+    'OptionsWheelStrategy'
 ] 

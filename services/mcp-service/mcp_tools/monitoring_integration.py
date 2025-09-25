@@ -569,3 +569,4 @@ class MonitoringIntegration:
             }
             for alert in recent_alerts
         ]
+

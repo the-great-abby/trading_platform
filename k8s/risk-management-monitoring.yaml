@@ -1,0 +1,554 @@
+---
+# Prometheus ServiceMonitor for Risk Management Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: risk-management-service-monitor
+  namespace: trading-system
+  labels:
+    app: risk-management-service
+    component: risk-management
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: risk-management-service
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'go_.*'
+      action: drop
+    - sourceLabels: [__name__]
+      regex: 'process_.*'
+      action: drop
+    - sourceLabels: [__name__]
+      regex: 'promhttp_.*'
+      action: drop
+
+---
+# PrometheusRule for Risk Management Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: risk-management-alerts
+  namespace: trading-system
+  labels:
+    app: risk-management-service
+    component: risk-management
+    monitoring: prometheus
+spec:
+  groups:
+  - name: risk-management.rules
+    rules:
+    # High Error Rate Alert
+    - alert: RiskManagementHighErrorRate
+      expr: rate(http_requests_total{job="risk-management-service",status=~"5.."}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High error rate in risk management service"
+        description: "Risk management service is experiencing high error rate: {{ $value }} errors per second"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-high-error-rate"
+    
+    # High Response Time Alert
+    - alert: RiskManagementHighResponseTime
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="risk-management-service"}[5m])) > 5
+      for: 5m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High response time in risk management service"
+        description: "Risk management service 95th percentile response time is {{ $value }}s"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-high-response-time"
+    
+    # Service Down Alert
+    - alert: RiskManagementServiceDown
+      expr: up{job="risk-management-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        component: risk-management
+      annotations:
+        summary: "Risk management service is down"
+        description: "Risk management service has been down for more than 1 minute"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-service-down"
+    
+    # Database Connection Issues
+    - alert: RiskManagementDatabaseConnectionIssues
+      expr: risk_management_database_connections_failed_total > 10
+      for: 2m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "Database connection issues in risk management service"
+        description: "Risk management service has {{ $value }} failed database connections"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-database-issues"
+    
+    # High Memory Usage
+    - alert: RiskManagementHighMemoryUsage
+      expr: container_memory_usage_bytes{container="risk-management-service"} / container_spec_memory_limit_bytes{container="risk-management-service"} > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High memory usage in risk management service"
+        description: "Risk management service memory usage is {{ $value }}% of limit"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-high-memory"
+    
+    # High CPU Usage
+    - alert: RiskManagementHighCPUUsage
+      expr: rate(container_cpu_usage_seconds_total{container="risk-management-service"}[5m]) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High CPU usage in risk management service"
+        description: "Risk management service CPU usage is {{ $value }} cores"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-high-cpu"
+    
+    # VaR Calculation Failures
+    - alert: RiskManagementVaRCalculationFailures
+      expr: rate(risk_management_var_calculations_failed_total[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High VaR calculation failure rate"
+        description: "VaR calculation failure rate is {{ $value }} failures per second"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-var-failures"
+    
+    # Stress Test Failures
+    - alert: RiskManagementStressTestFailures
+      expr: rate(risk_management_stress_tests_failed_total[5m]) > 0.05
+      for: 2m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High stress test failure rate"
+        description: "Stress test failure rate is {{ $value }} failures per second"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-stress-test-failures"
+    
+    # Risk Alert Generation Failures
+    - alert: RiskManagementAlertGenerationFailures
+      expr: rate(risk_management_alerts_generation_failed_total[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        component: risk-management
+      annotations:
+        summary: "High risk alert generation failure rate"
+        description: "Risk alert generation failure rate is {{ $value }} failures per second"
+        runbook_url: "https://docs.trading.com/runbooks/risk-management-alert-failures"
+
+---
+# Grafana Dashboard ConfigMap for Risk Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-management-grafana-dashboard
+  namespace: trading-system
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard: risk-management
+data:
+  risk-management-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Risk Management Service Dashboard",
+        "tags": ["risk-management", "trading", "monitoring"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"risk-management-service\"}",
+                "legendFormat": "Service Status"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 6,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "id": 2,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"risk-management-service\"}[5m])",
+                "legendFormat": "{{method}} {{status}}"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 6,
+              "y": 0
+            }
+          },
+          {
+            "id": 3,
+            "title": "Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"risk-management-service\"}[5m]))",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"risk-management-service\"}[5m]))",
+                "legendFormat": "50th percentile"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 18,
+              "y": 0
+            }
+          },
+          {
+            "id": 4,
+            "title": "VaR Calculations",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(risk_management_var_calculations_total[5m])",
+                "legendFormat": "VaR Calculations/sec"
+              },
+              {
+                "expr": "rate(risk_management_var_calculations_failed_total[5m])",
+                "legendFormat": "VaR Calculation Failures/sec"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 8
+            }
+          },
+          {
+            "id": 5,
+            "title": "Stress Tests",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(risk_management_stress_tests_total[5m])",
+                "legendFormat": "Stress Tests/sec"
+              },
+              {
+                "expr": "rate(risk_management_stress_tests_failed_total[5m])",
+                "legendFormat": "Stress Test Failures/sec"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 8
+            }
+          },
+          {
+            "id": 6,
+            "title": "Risk Alerts",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(risk_management_alerts_generated_total[5m])",
+                "legendFormat": "Alerts Generated/sec"
+              },
+              {
+                "expr": "rate(risk_management_alerts_acknowledged_total[5m])",
+                "legendFormat": "Alerts Acknowledged/sec"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 24,
+              "y": 8
+            }
+          },
+          {
+            "id": 7,
+            "title": "Database Connections",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "risk_management_database_connections_active",
+                "legendFormat": "Active Connections"
+              },
+              {
+                "expr": "risk_management_database_connections_total",
+                "legendFormat": "Total Connections"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 16
+            }
+          },
+          {
+            "id": 8,
+            "title": "Cache Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(risk_management_cache_hits_total[5m])",
+                "legendFormat": "Cache Hits/sec"
+              },
+              {
+                "expr": "rate(risk_management_cache_misses_total[5m])",
+                "legendFormat": "Cache Misses/sec"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 16
+            }
+          },
+          {
+            "id": 9,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{container=\"risk-management-service\"}",
+                "legendFormat": "Memory Usage"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 24,
+              "y": 16
+            }
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+---
+# Grafana Dashboard Provider for Risk Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-management-grafana-dashboard-provider
+  namespace: trading-system
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard-provider: risk-management
+data:
+  risk-management-dashboard-provider.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'risk-management-dashboards'
+      orgId: 1
+      folder: 'Risk Management'
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards/risk-management
+
+---
+# Logging Configuration for Risk Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-management-logging-config
+  namespace: trading-system
+  labels:
+    app: risk-management-service
+    component: logging
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+        storage.path  /tmp/flb-storage/
+        storage.sync  normal
+        storage.checksum off
+        storage.backlog.mem_limit 5M
+        storage.metrics on
+
+    [INPUT]
+        Name              tail
+        Tag               risk-management.*
+        Path              /var/log/containers/*risk-management-service*.log
+        Parser            docker
+        DB                /tmp/flb-risk-management.db
+        Mem_Buf_Limit     50MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    [FILTER]
+        Name                kubernetes
+        Match               risk-management.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     risk-management.
+        Merge_Log           On
+        Merge_Log_Key       log_processed
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude Off
+
+    [FILTER]
+        Name                parser
+        Match               risk-management.*
+        Key_Name            log
+        Parser              risk-management
+        Reserve_Data        On
+        Preserve_Key        On
+
+    [OUTPUT]
+        Name  es
+        Match risk-management.*
+        Host  elasticsearch-service
+        Port  9200
+        Index risk-management-logs
+        Type  _doc
+        Logstash_Format On
+        Logstash_Prefix risk-management
+        Logstash_DateFormat %Y.%m.%d
+        Replace_Dots On
+        Retry_Limit 3
+
+  parsers.conf: |
+    [PARSER]
+        Name   risk-management
+        Format regex
+        Regex  ^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(?<level>\w+)\s+(?<logger>\S+)\s+-\s+(?<message>.*)$
+        Time_Key timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%LZ
+
+---
+# Jaeger Tracing Configuration for Risk Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-management-jaeger-config
+  namespace: trading-system
+  labels:
+    app: risk-management-service
+    component: tracing
+data:
+  jaeger-config.yaml: |
+    service_name: risk-management-service
+    reporter:
+      local_agent_host_port: jaeger-agent:6831
+      log_spans: true
+    sampler:
+      type: const
+      param: 1
+    tags:
+      service: risk-management
+      environment: production
+      version: v1.0.0
+
+---
+# NetworkPolicy for Monitoring Services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: risk-management-monitoring-netpol
+  namespace: trading-system
+  labels:
+    app: risk-management-service
+    component: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: risk-management-service
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  - to:
+    - podSelector:
+        matchLabels:
+          app: grafana
+    ports:
+    - protocol: TCP
+      port: 3000
+  - to:
+    - podSelector:
+        matchLabels:
+          app: jaeger-agent
+    ports:
+    - protocol: TCP
+      port: 6831
+    - protocol: UDP
+      port: 6831
+  - to:
+    - podSelector:
+        matchLabels:
+          app: fluent-bit
+    ports:
+    - protocol: TCP
+      port: 2020

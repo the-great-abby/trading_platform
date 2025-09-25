@@ -1,0 +1,386 @@
+openapi: 3.0.3
+info:
+  title: VaR Calculation API
+  description: Value at Risk and Expected Shortfall calculation endpoints
+  version: 1.0.0
+
+paths:
+  /api/risk/var-calculation:
+    post:
+      summary: Calculate Value at Risk
+      description: Calculate VaR and Expected Shortfall for a portfolio using historical simulation method
+      operationId: calculateVaR
+      tags:
+        - Risk Calculations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaRCalculationRequest'
+            example:
+              portfolio_id: "550e8400-e29b-41d4-a716-446655440000"
+              confidence_levels: [0.95, 0.99]
+              calculation_method: "historical_simulation"
+              data_period_days: 252
+              include_expected_shortfall: true
+              include_risk_contributions: true
+      responses:
+        '200':
+          description: VaR calculation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaRCalculationResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Insufficient data for calculation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/risk/var-calculation/history:
+    get:
+      summary: Get VaR calculation history
+      description: Retrieve historical VaR calculations for a portfolio
+      operationId: getVaRHistory
+      tags:
+        - Risk Calculations
+      parameters:
+        - name: portfolio_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: VaR history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaRHistoryResponse'
+
+components:
+  schemas:
+    VaRCalculationRequest:
+      type: object
+      required:
+        - portfolio_id
+        - confidence_levels
+        - calculation_method
+      properties:
+        portfolio_id:
+          type: string
+          format: uuid
+          description: Portfolio identifier
+        confidence_levels:
+          type: array
+          items:
+            type: number
+            minimum: 0.5
+            maximum: 0.999
+          minItems: 1
+          maxItems: 5
+          description: Confidence levels for VaR calculation (e.g., [0.95, 0.99])
+        calculation_method:
+          type: string
+          enum: [historical_simulation, parametric, monte_carlo]
+          default: historical_simulation
+          description: VaR calculation method
+        data_period_days:
+          type: integer
+          minimum: 30
+          maximum: 1000
+          default: 252
+          description: Number of days of historical data to use
+        include_expected_shortfall:
+          type: boolean
+          default: true
+          description: Whether to calculate Expected Shortfall (CVaR)
+        include_risk_contributions:
+          type: boolean
+          default: false
+          description: Whether to calculate individual asset risk contributions
+        custom_parameters:
+          type: object
+          description: Method-specific parameters
+          additionalProperties: true
+
+    VaRCalculationResponse:
+      type: object
+      required:
+        - status
+        - data
+        - timestamp
+        - request_id
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          $ref: '#/components/schemas/VaRCalculationResult'
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          format: uuid
+
+    VaRCalculationResult:
+      type: object
+      required:
+        - portfolio_id
+        - calculation_timestamp
+        - var_metrics
+        - calculation_metadata
+      properties:
+        portfolio_id:
+          type: string
+          format: uuid
+        calculation_timestamp:
+          type: string
+          format: date-time
+        var_metrics:
+          $ref: '#/components/schemas/VaRMetrics'
+        expected_shortfall:
+          $ref: '#/components/schemas/ExpectedShortfallMetrics'
+        risk_contributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskContribution'
+        calculation_metadata:
+          $ref: '#/components/schemas/CalculationMetadata'
+
+    VaRMetrics:
+      type: object
+      required:
+        - var_95
+        - var_99
+        - portfolio_volatility
+        - confidence_intervals
+      properties:
+        var_95:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Value at Risk at 95% confidence level
+        var_99:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Value at Risk at 99% confidence level
+        portfolio_volatility:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Annualized portfolio volatility
+        confidence_intervals:
+          type: object
+          additionalProperties:
+            type: number
+          description: VaR values for all requested confidence levels
+
+    ExpectedShortfallMetrics:
+      type: object
+      required:
+        - es_95
+        - es_99
+      properties:
+        es_95:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Expected Shortfall at 95% confidence level
+        es_99:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Expected Shortfall at 99% confidence level
+
+    RiskContribution:
+      type: object
+      required:
+        - asset_id
+        - asset_type
+        - position_weight
+        - var_contribution
+        - var_contribution_pct
+      properties:
+        asset_id:
+          type: string
+          description: Asset identifier
+        asset_type:
+          type: string
+          enum: [stock, option, bond, cash]
+        position_weight:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 1
+          description: Weight in portfolio
+        var_contribution:
+          type: number
+          format: decimal
+          description: Absolute contribution to portfolio VaR
+        var_contribution_pct:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 1
+          description: Percentage contribution to portfolio VaR
+        marginal_var:
+          type: number
+          format: decimal
+          description: Marginal VaR for this asset
+        component_var:
+          type: number
+          format: decimal
+          description: Component VaR for this asset
+
+    CalculationMetadata:
+      type: object
+      required:
+        - calculation_method
+        - data_period_days
+        - calculation_duration_ms
+        - data_quality_score
+      properties:
+        calculation_method:
+          type: string
+          description: Method used for calculation
+        data_period_days:
+          type: integer
+          description: Number of days of data used
+        calculation_duration_ms:
+          type: integer
+          minimum: 0
+          description: Time taken for calculation in milliseconds
+        data_quality_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Quality score of input data
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Any warnings during calculation
+
+    VaRHistoryResponse:
+      type: object
+      required:
+        - status
+        - data
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          required:
+            - portfolio_id
+            - var_history
+            - total_count
+          properties:
+            portfolio_id:
+              type: string
+              format: uuid
+            var_history:
+              type: array
+              items:
+                $ref: '#/components/schemas/VaRHistoryEntry'
+            total_count:
+              type: integer
+              minimum: 0
+        timestamp:
+          type: string
+          format: date-time
+
+    VaRHistoryEntry:
+      type: object
+      required:
+        - calculation_timestamp
+        - var_95
+        - var_99
+      properties:
+        calculation_timestamp:
+          type: string
+          format: date-time
+        var_95:
+          type: number
+          format: decimal
+        var_99:
+          type: number
+          format: decimal
+        portfolio_volatility:
+          type: number
+          format: decimal
+        calculation_method:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Error message
+            details:
+              type: object
+              description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          format: uuid
+

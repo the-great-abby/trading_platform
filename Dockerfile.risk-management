@@ -1,0 +1,66 @@
+# Dockerfile for Risk Management Service
+# Multi-stage build for production-ready risk management framework
+
+# Build stage
+FROM python:3.11-slim as builder
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements files
+COPY requirements-risk-management.txt .
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --user -r requirements-risk-management.txt
+
+# Production stage
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r riskuser && useradd -r -g riskuser riskuser
+
+# Copy Python packages from builder stage
+COPY --from=builder /root/.local /home/riskuser/.local
+
+# Copy application code
+COPY src/ ./src/
+COPY services/risk-management-service/ ./services/risk-management-service/
+COPY alembic/ ./alembic/
+COPY alembic.ini .
+
+# Set Python path
+ENV PYTHONPATH=/app/src:/app/services/risk-management-service
+
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/data && \
+    chown -R riskuser:riskuser /app
+
+# Switch to non-root user
+USER riskuser
+
+# Expose ports
+EXPOSE 8080 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command
+CMD ["python", "-m", "uvicorn", "services.risk-management-service.main:app", "--host", "0.0.0.0", "--port", "8080"]
+

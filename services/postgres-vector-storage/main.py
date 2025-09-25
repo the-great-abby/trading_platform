@@ -138,8 +138,70 @@ class PostgreSQLVectorStorage:
         except Exception as e:
             logger.error(f"Error adding embedding to PostgreSQL: {e}")
             raise
+    
+    async def add_embedding_with_upsert(self, content: str, metadata_dict: Dict[str, Any], 
+                                      vector_type: str, upsert: bool = False, 
+                                      content_hash: str = None) -> tuple[str, str]:
+        """Add content to PostgreSQL vector database with upsert support"""
         
-        return embedding_id
+        # Generate embedding using LLM
+        embedding = await self._generate_embedding(content)
+        
+        # Create unique ID
+        if content_hash:
+            embedding_id = f"{vector_type}_{content_hash}"
+        else:
+            content_hash = hashlib.md5(content.encode()).hexdigest()
+            embedding_id = f"{vector_type}_{content_hash}"
+        
+        try:
+            with self.engine.connect() as conn:
+                # Check if embedding already exists
+                result = conn.execute(text(
+                    "SELECT id FROM vector_embeddings WHERE id = :id"
+                ), {"id": embedding_id})
+                existing = result.fetchone()
+                
+                action = "updated" if existing else "created"
+                
+                if existing and upsert:
+                    # Update existing embedding
+                    conn.execute(text("""
+                        UPDATE vector_embeddings 
+                        SET content = :content, embedding = :embedding, 
+                            meta_info = :meta_info, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = :id
+                    """), {
+                        "id": embedding_id,
+                        "content": content,
+                        "embedding": json.dumps(embedding),
+                        "meta_info": json.dumps(metadata_dict)
+                    })
+                    logger.info(f"Updated existing embedding: {embedding_id} ({vector_type})")
+                elif not existing:
+                    # Create new embedding
+                    conn.execute(text("""
+                        INSERT INTO vector_embeddings (id, content, embedding, meta_info, vector_type)
+                        VALUES (:id, :content, :embedding, :meta_info, :vector_type)
+                    """), {
+                        "id": embedding_id,
+                        "content": content,
+                        "embedding": json.dumps(embedding),
+                        "meta_info": json.dumps(metadata_dict),
+                        "vector_type": vector_type
+                    })
+                    logger.info(f"Created new embedding: {embedding_id} ({vector_type})")
+                else:
+                    # Skip if exists and not upserting
+                    logger.info(f"Skipped existing embedding: {embedding_id} ({vector_type})")
+                    action = "skipped"
+                
+                conn.commit()
+                return embedding_id, action
+                
+        except Exception as e:
+            logger.error(f"Error adding embedding to PostgreSQL: {e}")
+            raise
     
     async def search_similar(self, query: str, vector_type: Optional[str] = None, 
                            top_k: int = 5) -> List[VectorSearchResult]:
@@ -270,32 +332,99 @@ class PostgreSQLVectorStorage:
             return {"error": str(e)}
     
     async def _generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding using LLM service"""
+        """Generate embedding using Ollama controller API service"""
         
         try:
             async with aiohttp.ClientSession() as session:
-                # Use LLM to generate embedding
-                llm_request = {
-                    "prompt": f"Generate a numerical embedding for this text: {text}",
-                    "max_tokens": 100,
-                    "temperature": 0.1,
-                    "task_type": "embedding"
+                # Use Ollama controller API to generate embedding
+                ollama_request = {
+                    "model": "nomic-embed-text",
+                    "prompt": text,
+                    "stream": False,
+                    "priority": 99
                 }
                 
-                url = f"{LLM_PROXY_URL}/api/embed"
-                async with session.post(url, json=llm_request) as response:
+                url = f"{LLM_PROXY_URL}/api/generate"
+                async with session.post(url, json=ollama_request) as response:
                     if response.status == 200:
                         result = await response.json()
-                        # Parse embedding from response
-                        embedding = self._parse_embedding_response(result.get("response", ""))
-                        return embedding
+                        
+                        # Check if request was queued
+                        if result.get("status") == "queued":
+                            request_id = result.get("request_id")
+                            status_url = result.get("status_url")
+                            logger.info(f"🔄 Embedding request queued with ID: {request_id}, polling status...")
+                            
+                            # Poll the status URL until completion
+                            embedding = await self._poll_embedding_status(session, f"{LLM_PROXY_URL}{status_url}", request_id)
+                            return embedding
+                        # Check if embedding is directly available
+                        elif "response" in result and "embedding" in result["response"]:
+                            embedding = result["response"]["embedding"]
+                            logger.info(f"✅ Generated embedding with {len(embedding)} dimensions")
+                            return embedding
+                        else:
+                            logger.error(f"❌ No embedding found in Ollama response: {result}")
+                            return self._generate_fallback_embedding(text)
                     else:
-                        logger.error(f"LLM embedding error: {response.status}")
+                        logger.error(f"Ollama embedding error: {response.status}")
                         return self._generate_fallback_embedding(text)
                         
         except Exception as e:
             logger.error(f"Error generating embedding: {e}")
             return self._generate_fallback_embedding(text)
+    
+    async def _poll_embedding_status(self, session: aiohttp.ClientSession, status_url: str, request_id: str) -> List[float]:
+        """Poll the status URL until embedding is ready"""
+        max_attempts = 60  # 5 minutes with 5-second intervals
+        attempt = 0
+        
+        while attempt < max_attempts:
+            try:
+                logger.debug(f"🔄 Polling status for request {request_id} (attempt {attempt + 1}/{max_attempts})")
+                
+                async with session.get(status_url, timeout=aiohttp.ClientTimeout(total=10)) as status_response:
+                    if status_response.status == 200:
+                        status_result = await status_response.json()
+                        status = status_result.get("status")
+                        
+                        if status == "completed":
+                            # Extract embedding from completed response
+                            if "response" in status_result and "embedding" in status_result["response"]:
+                                embedding = status_result["response"]["embedding"]
+                                logger.info(f"✅ Embedding completed for request {request_id} with {len(embedding)} dimensions")
+                                return embedding
+                            else:
+                                logger.error(f"❌ No embedding in completed response: {status_result}")
+                                return self._generate_fallback_embedding("fallback")
+                        elif status == "failed":
+                            error_msg = status_result.get("error", "Unknown error")
+                            logger.error(f"❌ Embedding generation failed for request {request_id}: {error_msg}")
+                            return self._generate_fallback_embedding("fallback")
+                        elif status in ["queued", "processing"]:
+                            logger.debug(f"⏳ Request {request_id} still {status}, waiting...")
+                            await asyncio.sleep(5)  # Wait 5 seconds before next poll
+                            attempt += 1
+                            continue
+                        else:
+                            logger.warning(f"⚠️ Unknown status '{status}' for request {request_id}")
+                            await asyncio.sleep(5)
+                            attempt += 1
+                            continue
+                    else:
+                        logger.warning(f"⚠️ Status check failed with {status_response.status}, retrying...")
+                        await asyncio.sleep(5)
+                        attempt += 1
+                        continue
+                        
+            except Exception as e:
+                logger.warning(f"⚠️ Error polling status for request {request_id}: {e}")
+                await asyncio.sleep(5)
+                attempt += 1
+                continue
+        
+        logger.error(f"❌ Timeout waiting for embedding generation for request {request_id}")
+        return self._generate_fallback_embedding("timeout")
     
     def _parse_embedding_response(self, response_text: str) -> List[float]:
         """Parse embedding from LLM response"""
@@ -439,18 +568,26 @@ async def vectorize_decision(decision: Dict[str, Any]) -> Dict[str, str]:
 
 @app.post("/api/vectorize/text")
 async def vectorize_text(request: Dict[str, Any]) -> Dict[str, str]:
-    """Generic text vectorization endpoint"""
+    """Generic text vectorization endpoint with upsert support"""
     try:
         content = request.get("content")
         vector_type = request.get("vector_type", "generic")
         metadata = request.get("metadata", {})
+        upsert = request.get("upsert", False)
+        content_hash = request.get("content_hash")
         
         if not content:
             raise HTTPException(status_code=400, detail="Content is required")
         
         # Add the content to vector storage
-        embedding_id = await vector_storage.add_embedding(content, metadata, vector_type)
-        return {"embedding_id": embedding_id, "status": "success"}
+        embedding_id, action = await vector_storage.add_embedding_with_upsert(
+            content, metadata, vector_type, upsert, content_hash
+        )
+        return {
+            "embedding_id": embedding_id, 
+            "status": "success",
+            "action": action
+        }
     except Exception as e:
         logger.error(f"Error vectorizing text: {e}")
         raise HTTPException(status_code=500, detail=str(e))

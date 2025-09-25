@@ -15,14 +15,16 @@ from datetime import datetime
 import hashlib
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, log_level, logging.INFO))
 logger = logging.getLogger(__name__)
 
 class ArchitectureVectorizer:
     """Service to vectorize architecture documentation"""
     
     def __init__(self):
-        self.vector_storage_url = os.getenv("VECTOR_STORAGE_URL", "http://localhost:11151")
+        self.vector_storage_url = os.getenv("VECTOR_STORAGE_URL", "http://postgres-vector-storage:80")
+        self.ollama_url = os.getenv("OLLAMA_URL", "http://ollama-host.ollama-controller.svc.cluster.local:11434")
         self.repo_root = os.getenv("REPO_ROOT", "/app")
         self.docs_patterns = [
             "**/*.md",           # Markdown files
@@ -37,13 +39,35 @@ class ArchitectureVectorizer:
         ]
         
         # Architecture-specific directories to prioritize
+        # For testing, let's start with just docs/ and md/ directories
         self.architecture_dirs = [
             "docs/",
-            "k8s/",
-            "services/",
-            "src/",
+            "md/",
             "README.md",
-            "Makefile",
+        ]
+        
+        # Directories to exclude from scanning
+        self.exclude_dirs = [
+            ".git/",
+            "htmlcov/",
+            "logs/",
+            "backup/",
+            "node_modules/",
+            ".pytest_cache/",
+            ".venv/",
+            "test-env/",
+            "migration-env/",
+            "k8s-job-generator-env/",
+            "port_monitor_logs/",
+            "port_watcher_logs/",
+            "port_watcher_v2_logs/",
+            "test-data/",
+            "test_scripts/",
+            "tests/",
+            "old-2025-07-07/",
+            ".benchmarks/",
+            ".cursor/",
+            ".grc/",
         ]
         
         # File categories for better organization
@@ -60,26 +84,50 @@ class ArchitectureVectorizer:
         """Main method to vectorize the entire repository"""
         try:
             logger.info("🚀 Starting repository vectorization...")
+            logger.info(f"🔗 Vector storage URL: {self.vector_storage_url}")
+            logger.info(f"📂 Repository root: {self.repo_root}")
             
             # Find all documentation files
             files = await self._discover_documentation_files()
             logger.info(f"📁 Found {len(files)} documentation files")
             
+            # Log file details
+            for i, file_path in enumerate(files[:10]):  # Log first 10 files
+                logger.info(f"📄 File {i+1}: {file_path}")
+            if len(files) > 10:
+                logger.info(f"📄 ... and {len(files) - 10} more files")
+            
             # Process and vectorize each file
             processed_count = 0
-            for file_path in files:
-                try:
-                    await self._process_file(file_path)
-                    processed_count += 1
-                    if processed_count % 10 == 0:
-                        logger.info(f"✅ Processed {processed_count}/{len(files)} files")
-                except Exception as e:
-                    logger.error(f"❌ Failed to process {file_path}: {e}")
+            error_count = 0
+            total_chunks_processed = 0
             
-            logger.info(f"🎉 Vectorization complete! Processed {processed_count} files")
+            for i, file_path in enumerate(files):
+                try:
+                    logger.info(f"🔄 Processing file {i+1}/{len(files)}: {file_path}")
+                    file_chunks = await self._process_file(file_path)
+                    processed_count += 1
+                    total_chunks_processed += file_chunks
+                    logger.info(f"✅ Successfully processed {file_path} ({file_chunks} chunks)")
+                    
+                    # Progress indicators
+                    progress_percent = (processed_count / len(files)) * 100
+                    logger.info(f"📊 File Progress: {processed_count}/{len(files)} files ({progress_percent:.1f}%) | Total Chunks: {total_chunks_processed}")
+                    
+                    if processed_count % 5 == 0:
+                        logger.info(f"🎯 Milestone: {processed_count} files completed, {total_chunks_processed} total chunks vectorized")
+                        
+                except Exception as e:
+                    error_count += 1
+                    logger.error(f"❌ Failed to process {file_path}: {e}")
+                    logger.error(f"📋 Error details: {str(e)}")
+            
+            logger.info(f"🎉 Vectorization complete!")
+            logger.info(f"📊 Final stats: {processed_count} successful, {error_count} failed out of {len(files)} total files")
             
         except Exception as e:
-            logger.error(f"❌ Vectorization failed: {e}")
+            logger.error(f"💥 Vectorization failed with exception: {e}")
+            logger.error(f"📋 Exception details: {str(e)}")
             raise
     
     async def _discover_documentation_files(self) -> List[Path]:
@@ -87,20 +135,51 @@ class ArchitectureVectorizer:
         files = []
         repo_path = Path(self.repo_root)
         
-        for pattern in self.docs_patterns:
-            try:
-                pattern_files = list(repo_path.glob(pattern))
-                files.extend(pattern_files)
-            except Exception as e:
-                logger.warning(f"Failed to process pattern {pattern}: {e}")
+        # First, scan priority directories specifically
+        for priority_dir in self.architecture_dirs:
+            if priority_dir.endswith('/'):
+                # Directory
+                dir_path = repo_path / priority_dir
+                if dir_path.exists() and dir_path.is_dir():
+                    logger.info(f"🔍 Scanning priority directory: {priority_dir}")
+                    for pattern in self.docs_patterns:
+                        try:
+                            pattern_files = list(dir_path.glob(pattern))
+                            files.extend(pattern_files)
+                        except Exception as e:
+                            logger.warning(f"Failed to process pattern {pattern} in {priority_dir}: {e}")
+            else:
+                # Single file
+                file_path = repo_path / priority_dir
+                if file_path.exists() and file_path.is_file():
+                    files.append(file_path)
+        
+        # Skip full repository scan for now - just use priority directories
+        logger.info(f"🔍 Skipping full repository scan - using priority directories only")
         
         # Remove duplicates and filter out non-files
         files = list(set([f for f in files if f.is_file()]))
         
-        # Sort by priority (architecture directories first)
-        files.sort(key=lambda x: self._get_file_priority(x))
+        # Filter out files in excluded directories
+        filtered_files = []
+        for file_path in files:
+            file_str = str(file_path)
+            should_exclude = False
+            
+            for exclude_dir in self.exclude_dirs:
+                if exclude_dir in file_str:
+                    should_exclude = True
+                    break
+            
+            if not should_exclude:
+                filtered_files.append(file_path)
         
-        return files
+        # Sort by priority (architecture directories first)
+        filtered_files.sort(key=lambda x: self._get_file_priority(x))
+        
+        logger.info(f"🔍 Filtered from {len(files)} to {len(filtered_files)} files after excluding directories")
+        
+        return filtered_files
     
     def _get_file_priority(self, file_path: Path) -> int:
         """Get priority score for file processing order"""
@@ -118,26 +197,39 @@ class ArchitectureVectorizer:
         
         return priority
     
-    async def _process_file(self, file_path: Path):
+    async def _process_file(self, file_path: Path) -> int:
         """Process and vectorize a single file"""
         try:
+            logger.info(f"📖 Reading file: {file_path}")
+            
             # Read file content
             content = await self._read_file_content(file_path)
             if not content:
-                return
+                logger.warning(f"⚠️ Empty or unreadable file: {file_path}")
+                return 0
+            
+            logger.info(f"📄 File size: {len(content)} characters")
             
             # Determine file category
             category = self._categorize_file(file_path, content)
+            logger.info(f"🏷️ File category: {category}")
             
             # Create chunks for vectorization
             chunks = self._create_content_chunks(content, file_path)
+            logger.info(f"📦 Created {len(chunks)} chunks for vectorization")
             
             # Vectorize each chunk
             for i, chunk in enumerate(chunks):
+                logger.info(f"🔄 Vectorizing chunk {i+1}/{len(chunks)} from {file_path.name}")
                 await self._vectorize_chunk(chunk, file_path, category, i)
             
+            logger.info(f"✅ Completed processing {file_path.name} with {len(chunks)} chunks")
+            return len(chunks)
+            
         except Exception as e:
-            logger.error(f"Failed to process file {file_path}: {e}")
+            logger.error(f"💥 Failed to process file {file_path}: {e}")
+            logger.error(f"📋 Exception type: {type(e).__name__}")
+            raise
     
     async def _read_file_content(self, file_path: Path) -> str:
         """Read file content with proper encoding handling"""
@@ -228,6 +320,11 @@ class ArchitectureVectorizer:
     async def _vectorize_chunk(self, chunk: str, file_path: Path, category: str, chunk_index: int):
         """Vectorize a content chunk and store it"""
         try:
+            logger.info(f"🔄 Processing chunk {chunk_index} from {file_path.name} (category: {category})")
+            
+            # Create content hash for upsert logic
+            content_hash = hashlib.md5(chunk.encode()).hexdigest()
+            
             # Create metadata
             metadata = {
                 "file_path": str(file_path),
@@ -235,34 +332,66 @@ class ArchitectureVectorizer:
                 "category": category,
                 "chunk_index": chunk_index,
                 "timestamp": datetime.now().isoformat(),
-                "content_hash": hashlib.md5(chunk.encode()).hexdigest(),
+                "content_hash": content_hash,
                 "content_length": len(chunk),
                 "source": "architecture-vectorizer"
             }
             
-            # Prepare vectorization request
-            vector_request = {
-                "content": chunk,
-                "metadata": metadata,
-                "embedding_model": "text-embedding-ada-002",  # Default model
-                "namespace": f"architecture_{category}"
-            }
+            logger.debug(f"📝 Created metadata for chunk {chunk_index}: {metadata}")
             
-            # Send to vector storage
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{self.vector_storage_url}/api/vectors/store",
-                    json=vector_request,
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        logger.debug(f"Vectorized chunk {chunk_index} from {file_path.name}")
-                    else:
-                        logger.warning(f"Failed to vectorize chunk from {file_path.name}: {response.status}")
+            # Store content in PostgreSQL vector storage with upsert logic
+            logger.info(f"💾 Storing content in PostgreSQL vector storage: {self.vector_storage_url}/api/vectorize/text")
+            await self._store_content(chunk, metadata, f"architecture_{category}", content_hash)
+            
+            logger.info(f"✅ Successfully vectorized chunk {chunk_index} from {file_path.name}")
             
         except Exception as e:
-            logger.error(f"Failed to vectorize chunk from {file_path.name}: {e}")
+            logger.error(f"💥 Exception in vectorize_chunk for {file_path.name}: {e}")
+            logger.error(f"📋 Chunk content preview: {chunk[:100]}...")
+            raise
+    
+    
+    async def _store_content(self, content: str, metadata: Dict[str, Any], vector_type: str, content_hash: str = None):
+        """Store content in PostgreSQL vector storage with upsert logic"""
+        try:
+            store_request = {
+                "content": content,
+                "metadata": metadata,
+                "vector_type": vector_type,
+                "upsert": True,  # Enable upsert mode
+                "content_hash": content_hash  # Use content hash for deduplication
+            }
+            
+            logger.debug(f"📤 Sending storage request to PostgreSQL: {json.dumps(store_request, indent=2)}")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.vector_storage_url}/api/vectorize/text",
+                    json=store_request,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    response_text = await response.text()
+                    logger.debug(f"📡 PostgreSQL response: {response.status} - {response_text[:200]}...")
+                    
+                    if response.status == 200:
+                        result = await response.json()
+                        action = result.get('action', 'created')
+                        embedding_id = result.get('embedding_id')
+                        
+                        if action == 'updated':
+                            logger.info(f"🔄 Updated existing content with ID: {embedding_id}")
+                        else:
+                            logger.info(f"✅ Created new content with ID: {embedding_id}")
+                        
+                        logger.debug(f"📊 Storage result: {result}")
+                    else:
+                        logger.error(f"❌ Failed to store content: {response.status}")
+                        logger.error(f"📄 Response body: {response_text}")
+                        raise Exception(f"PostgreSQL storage failed: {response.status}")
+                        
+        except Exception as e:
+            logger.error(f"💥 Exception in store_content: {e}")
+            raise
     
     async def search_architecture(self, query: str, category: str = None, limit: int = 5) -> List[Dict[str, Any]]:
         """Search vectorized architecture knowledge"""

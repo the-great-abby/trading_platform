@@ -1,0 +1,541 @@
+openapi: 3.0.3
+info:
+  title: Stress Testing API
+  description: Portfolio stress testing and scenario analysis endpoints
+  version: 1.0.0
+
+paths:
+  /api/risk/stress-test:
+    post:
+      summary: Run stress test scenarios
+      description: Execute stress testing scenarios on portfolio positions
+      operationId: runStressTest
+      tags:
+        - Stress Testing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StressTestRequest'
+            example:
+              portfolio_id: "550e8400-e29b-41d4-a716-446655440000"
+              scenarios: ["market_crash", "volatility_spike", "rate_shock"]
+              custom_scenarios:
+                - name: "Tech Sector Crash"
+                  type: "sector_rotation"
+                  parameters:
+                    technology_decline: -25
+                    energy_increase: 15
+              include_position_impacts: true
+              include_sector_impacts: true
+      responses:
+        '200':
+          description: Stress test completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StressTestResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Insufficient data for stress testing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/risk/stress-test/history:
+    get:
+      summary: Get stress test history
+      description: Retrieve historical stress test results for a portfolio
+      operationId: getStressTestHistory
+      tags:
+        - Stress Testing
+      parameters:
+        - name: portfolio_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: scenario_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [market_crash, rate_shock, volatility_spike, sector_rotation, options_decay]
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Stress test history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StressTestHistoryResponse'
+
+  /api/risk/stress-test/scenarios:
+    get:
+      summary: Get available stress test scenarios
+      description: Retrieve list of available stress test scenarios and their parameters
+      operationId: getAvailableScenarios
+      tags:
+        - Stress Testing
+      responses:
+        '200':
+          description: Available scenarios retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableScenariosResponse'
+
+components:
+  schemas:
+    StressTestRequest:
+      type: object
+      required:
+        - portfolio_id
+        - scenarios
+      properties:
+        portfolio_id:
+          type: string
+          format: uuid
+          description: Portfolio identifier
+        scenarios:
+          type: array
+          items:
+            type: string
+            enum: [market_crash, rate_shock, volatility_spike, sector_rotation, options_decay]
+          minItems: 1
+          maxItems: 10
+          description: List of standard scenarios to run
+        custom_scenarios:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomScenario'
+          maxItems: 5
+          description: Custom stress test scenarios
+        include_position_impacts:
+          type: boolean
+          default: true
+          description: Whether to calculate individual position impacts
+        include_sector_impacts:
+          type: boolean
+          default: true
+          description: Whether to calculate sector-level impacts
+        stress_duration_days:
+          type: integer
+          minimum: 1
+          maximum: 30
+          default: 1
+          description: Duration of stress scenario in days
+
+    CustomScenario:
+      type: object
+      required:
+        - name
+        - type
+        - parameters
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Custom scenario name
+        type:
+          type: string
+          enum: [market_crash, rate_shock, volatility_spike, sector_rotation, options_decay, custom]
+          description: Base scenario type
+        description:
+          type: string
+          maxLength: 500
+          description: Scenario description
+        parameters:
+          type: object
+          description: Scenario-specific parameters
+          additionalProperties: true
+
+    StressTestResponse:
+      type: object
+      required:
+        - status
+        - data
+        - timestamp
+        - request_id
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          $ref: '#/components/schemas/StressTestResult'
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          format: uuid
+
+    StressTestResult:
+      type: object
+      required:
+        - portfolio_id
+        - test_timestamp
+        - initial_portfolio_value
+        - scenario_results
+        - test_metadata
+      properties:
+        portfolio_id:
+          type: string
+          format: uuid
+        test_timestamp:
+          type: string
+          format: date-time
+        initial_portfolio_value:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Portfolio value before stress
+        scenario_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioResult'
+        test_metadata:
+          $ref: '#/components/schemas/StressTestMetadata'
+
+    ScenarioResult:
+      type: object
+      required:
+        - scenario_name
+        - scenario_type
+        - stressed_portfolio_value
+        - portfolio_value_change
+        - portfolio_value_change_pct
+        - status
+      properties:
+        scenario_name:
+          type: string
+          description: Name of the stress scenario
+        scenario_type:
+          type: string
+          enum: [market_crash, rate_shock, volatility_spike, sector_rotation, options_decay, custom]
+        stressed_portfolio_value:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Portfolio value after stress
+        portfolio_value_change:
+          type: number
+          format: decimal
+          description: Absolute change in portfolio value
+        portfolio_value_change_pct:
+          type: number
+          format: decimal
+          minimum: -1
+          maximum: 1
+          description: Percentage change in portfolio value
+        var_impact:
+          type: number
+          format: decimal
+          description: Change in VaR due to stress
+        volatility_impact:
+          type: number
+          format: decimal
+          description: Change in volatility due to stress
+        max_drawdown_impact:
+          type: number
+          format: decimal
+          description: Change in max drawdown due to stress
+        position_impacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PositionImpact'
+          description: Individual position impacts
+        sector_impacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectorImpact'
+          description: Sector-level impacts
+        scenario_parameters:
+          type: object
+          description: Parameters used for this scenario
+        status:
+          type: string
+          enum: [completed, failed, partial]
+          description: Status of scenario execution
+
+    PositionImpact:
+      type: object
+      required:
+        - asset_id
+        - position_value_change
+        - position_value_change_pct
+      properties:
+        asset_id:
+          type: string
+          description: Asset identifier
+        asset_type:
+          type: string
+          enum: [stock, option, bond, cash]
+        initial_value:
+          type: number
+          format: decimal
+          description: Position value before stress
+        stressed_value:
+          type: number
+          format: decimal
+          description: Position value after stress
+        position_value_change:
+          type: number
+          format: decimal
+          description: Absolute change in position value
+        position_value_change_pct:
+          type: number
+          format: decimal
+          description: Percentage change in position value
+        contribution_to_portfolio_change:
+          type: number
+          format: decimal
+          description: Contribution to overall portfolio change
+
+    SectorImpact:
+      type: object
+      required:
+        - sector
+        - sector_value_change_pct
+      properties:
+        sector:
+          type: string
+          description: Sector name
+        initial_value:
+          type: number
+          format: decimal
+          description: Sector value before stress
+        stressed_value:
+          type: number
+          format: decimal
+          description: Sector value after stress
+        sector_value_change:
+          type: number
+          format: decimal
+          description: Absolute change in sector value
+        sector_value_change_pct:
+          type: number
+          format: decimal
+          description: Percentage change in sector value
+        weight_in_portfolio:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 1
+          description: Sector weight in portfolio
+        contribution_to_portfolio_change:
+          type: number
+          format: decimal
+          description: Contribution to overall portfolio change
+
+    StressTestMetadata:
+      type: object
+      required:
+        - total_scenarios
+        - completed_scenarios
+        - failed_scenarios
+        - test_duration_ms
+      properties:
+        total_scenarios:
+          type: integer
+          minimum: 0
+          description: Total number of scenarios requested
+        completed_scenarios:
+          type: integer
+          minimum: 0
+          description: Number of successfully completed scenarios
+        failed_scenarios:
+          type: integer
+          minimum: 0
+          description: Number of failed scenarios
+        test_duration_ms:
+          type: integer
+          minimum: 0
+          description: Total time taken for stress testing in milliseconds
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Any warnings during stress testing
+        errors:
+          type: array
+          items:
+            type: string
+          description: Any errors during stress testing
+
+    StressTestHistoryResponse:
+      type: object
+      required:
+        - status
+        - data
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          required:
+            - portfolio_id
+            - stress_test_history
+            - total_count
+          properties:
+            portfolio_id:
+              type: string
+              format: uuid
+            stress_test_history:
+              type: array
+              items:
+                $ref: '#/components/schemas/StressTestHistoryEntry'
+            total_count:
+              type: integer
+              minimum: 0
+        timestamp:
+          type: string
+          format: date-time
+
+    StressTestHistoryEntry:
+      type: object
+      required:
+        - test_timestamp
+        - scenario_name
+        - scenario_type
+        - portfolio_value_change_pct
+      properties:
+        test_timestamp:
+          type: string
+          format: date-time
+        scenario_name:
+          type: string
+        scenario_type:
+          type: string
+        initial_portfolio_value:
+          type: number
+          format: decimal
+        stressed_portfolio_value:
+          type: number
+          format: decimal
+        portfolio_value_change_pct:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [completed, failed, partial]
+
+    AvailableScenariosResponse:
+      type: object
+      required:
+        - status
+        - data
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [success]
+        data:
+          type: object
+          required:
+            - standard_scenarios
+            - scenario_parameters
+          properties:
+            standard_scenarios:
+              type: array
+              items:
+                $ref: '#/components/schemas/StandardScenario'
+            scenario_parameters:
+              type: object
+              description: Available parameters for custom scenarios
+        timestamp:
+          type: string
+          format: date-time
+
+    StandardScenario:
+      type: object
+      required:
+        - name
+        - type
+        - description
+        - default_parameters
+      properties:
+        name:
+          type: string
+          description: Scenario name
+        type:
+          type: string
+          enum: [market_crash, rate_shock, volatility_spike, sector_rotation, options_decay]
+          description: Scenario type
+        description:
+          type: string
+          description: Scenario description
+        default_parameters:
+          type: object
+          description: Default parameters for this scenario
+        customizable:
+          type: boolean
+          description: Whether parameters can be customized
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Error message
+            details:
+              type: object
+              description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          format: uuid
+

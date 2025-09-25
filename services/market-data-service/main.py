@@ -224,12 +224,21 @@ async def get_historical_data(request: MarketDataRequest):
             record_cache_miss(request.symbol, "historical")
             
             # Get real data from market data manager (Polygon primary, Yahoo Finance fallback)
-            data = market_data_manager.get_historical_data(
-                symbol=request.symbol,
-                start_date=start_date,
-                end_date=end_date,
-                interval=interval
-            )
+            # Run in thread pool to avoid blocking the async endpoint
+            import asyncio
+            import concurrent.futures
+            
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                data = await loop.run_in_executor(
+                    executor,
+                    lambda: market_data_manager.get_historical_data(
+                        symbol=request.symbol,
+                        start_date=start_date,
+                        end_date=end_date,
+                        interval=interval
+                    )
+                )
             
             # Cache the result
             cache[cache_key] = data
@@ -408,12 +417,21 @@ async def get_current_price(symbol: str):
             start_date = end_date - timedelta(days=5)
             
             # Use the market data manager to get historical data
-            historical_data = market_data_manager.get_historical_data(
-                symbol, 
-                start_date.strftime("%Y-%m-%d"), 
-                end_date.strftime("%Y-%m-%d"), 
-                "1d"
-            )
+            # Run in thread pool to avoid blocking the async endpoint
+            import asyncio
+            import concurrent.futures
+            
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                historical_data = await loop.run_in_executor(
+                    executor,
+                    lambda: market_data_manager.get_historical_data(
+                        symbol, 
+                        start_date.strftime("%Y-%m-%d"), 
+                        end_date.strftime("%Y-%m-%d"), 
+                        "1d"
+                    )
+                )
             
             if historical_data is not None and not historical_data.empty and len(historical_data) >= 2:
                 # Calculate change percent from last 2 days

@@ -23,9 +23,9 @@ spec:
         - containerPort: 8080
         env:
         - name: VECTOR_STORAGE_URL
-          value: "http://postgres-vector-storage:80"
+          value: "postgresql://postgres:postgres@postgres-vector-external.postgres-infra.svc.cluster.local:5432/trading"
         - name: LLM_PROXY_URL
-          value: "http://host.docker.internal:12001"
+          value: "http://ollama-controller-api-service.ollama-controller.svc.cluster.local:12001"
         - name: BACKTEST_API_URL
           value: "http://backtest-api:11101"
         - name: MARKET_DATA_URL
@@ -39,7 +39,7 @@ spec:
         - name: ANALYSIS_SERVICE_URL
           value: "http://data-analysis-service:11136"
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:postgres@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
         resources:
           requests:
             memory: "128Mi"

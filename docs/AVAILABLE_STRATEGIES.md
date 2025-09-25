@@ -50,6 +50,9 @@ This document lists all the trading strategies available in the backtesting syst
 - **VolatilityStrategy** - Volatility-based strategy
 - **Straddle** - Straddle strategy
 - **LongStrangle** - Long strangle strategy
+
+### Income Strategies
+- **OptionsWheel** - Comprehensive options wheel strategy combining cash-secured puts and covered calls
 - **ShortStrangle** - Short strangle strategy
 
 ### Event-Driven

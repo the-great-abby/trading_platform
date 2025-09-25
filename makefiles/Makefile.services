@@ -222,3 +222,94 @@ services-core-status: ## Show core services status
 	@echo "Dashboards:"
 	kubectl get pods -n trading-system -l app=unified-analytics-dashboard
 	kubectl get pods -n trading-system -l app=unified-trading-dashboard
+
+# Risk Management Framework
+services-deploy-risk-management: ## Deploy Comprehensive Risk Management Framework
+	@echo "$(GREEN)🛡️  Deploying Comprehensive Risk Management Framework...$(NC)"
+	@echo "$(YELLOW)======================================================$(NC)"
+	@echo ""
+	@echo "Phase 1: Database Setup..."
+	kubectl apply -f k8s/risk-management-database.yaml -n trading-system
+	@echo "Phase 2: Risk Management Service..."
+	kubectl apply -f k8s/risk-management-service.yaml -n trading-system
+	@echo "Phase 3: Monitoring Configuration..."
+	kubectl apply -f k8s/risk-management-monitoring.yaml -n trading-system
+	@echo ""
+	@echo "$(GREEN)✅ Risk Management Framework deployed successfully!$(NC)"
+	@echo ""
+	@echo "Service Endpoints:"
+	@echo "  Risk Management API: http://localhost:11182"
+	@echo "  Health Check: http://localhost:11182/api/monitoring/health"
+	@echo "  Prometheus Metrics: http://localhost:11182/metrics"
+	@echo ""
+	@echo "Waiting for services to be ready..."
+	sleep 10
+	kubectl get pods -n trading-system -l app=risk-management-service
+	kubectl get services -n trading-system -l app=risk-management-service
+
+services-risk-management-status: ## Show Risk Management Framework status
+	@echo "$(GREEN)🛡️  Risk Management Framework Status$(NC)"
+	@echo "$(YELLOW)===================================$(NC)"
+	@echo ""
+	@echo "Risk Management Service:"
+	kubectl get pods -n trading-system -l app=risk-management-service
+	@echo ""
+	@echo "Risk Management Database:"
+	kubectl get pods -n trading-system -l app=risk-management-db
+	@echo ""
+	@echo "Risk Management Redis:"
+	kubectl get pods -n trading-system -l app=risk-management-redis
+	@echo ""
+	@echo "Services:"
+	kubectl get services -n trading-system | grep risk-management
+	@echo ""
+	@echo "Port Forwards:"
+	@ps aux | grep "kubectl port-forward" | grep -E "(11182|11183|11184)" | grep -v grep || echo "No port forwards active"
+
+services-risk-management-health: ## Check Risk Management Framework health
+	@echo "$(GREEN)🏥 Risk Management Framework Health Check$(NC)"
+	@echo "$(YELLOW)==========================================$(NC)"
+	@echo ""
+	@echo "Checking service health..."
+	@curl -s http://localhost:11182/health | jq '.' 2>/dev/null || echo "Health endpoint not accessible"
+	@echo ""
+	@echo "Checking API endpoints..."
+	@curl -s -X POST http://localhost:11182/api/risk/var-calculation \
+		-H "Content-Type: application/json" \
+		-d '{"portfolio_id": "test", "confidence_levels": [0.95]}' | jq '.status' 2>/dev/null || echo "VaR API not accessible"
+
+services-risk-management-logs: ## Show Risk Management Framework logs
+	@echo "$(GREEN)📋 Risk Management Framework Logs$(NC)"
+	@echo "$(YELLOW)==================================$(NC)"
+	@echo ""
+	@echo "Risk Management Service logs:"
+	kubectl logs -n trading-system -l app=risk-management-service --tail=50
+	@echo ""
+	@echo "Database logs:"
+	kubectl logs -n trading-system -l app=risk-management-db --tail=20
+
+services-risk-management-restart: ## Restart Risk Management Framework
+	@echo "$(YELLOW)🔄 Restarting Risk Management Framework...$(NC)"
+	kubectl rollout restart deployment/risk-management-service -n trading-system
+	kubectl rollout restart deployment/risk-management-db -n trading-system
+	kubectl rollout restart deployment/risk-management-redis -n trading-system
+	@echo "✅ Risk Management Framework restart initiated"
+	@echo "Waiting for rollout to complete..."
+	kubectl rollout status deployment/risk-management-service -n trading-system
+
+services-risk-management-stop: ## Stop Risk Management Framework
+	@echo "$(RED)🛑 Stopping Risk Management Framework...$(NC)"
+	kubectl scale deployment risk-management-service --replicas=0 -n trading-system
+	kubectl scale deployment risk-management-db --replicas=0 -n trading-system
+	kubectl scale deployment risk-management-redis --replicas=0 -n trading-system
+	@echo "✅ Risk Management Framework stopped"
+
+services-risk-management-start: ## Start Risk Management Framework
+	@echo "$(GREEN)🚀 Starting Risk Management Framework...$(NC)"
+	kubectl scale deployment risk-management-service --replicas=1 -n trading-system
+	kubectl scale deployment risk-management-db --replicas=1 -n trading-system
+	kubectl scale deployment risk-management-redis --replicas=1 -n trading-system
+	@echo "✅ Risk Management Framework started"
+	@echo "Waiting for services to be ready..."
+	sleep 10
+	kubectl get pods -n trading-system -l app=risk-management-service

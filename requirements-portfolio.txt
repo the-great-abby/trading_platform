@@ -1,0 +1,41 @@
+# Portfolio Management System Dependencies
+# Core portfolio optimization libraries
+cvxpy>=1.4.1
+PyPortfolioOpt>=1.5.5
+QuantLib>=1.32
+yfinance>=0.2.18
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Database and ORM
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+psycopg2-binary>=2.9.5
+
+# Caching and messaging
+redis>=4.5.0
+
+# API framework
+fastapi>=0.100.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Backtesting frameworks
+backtrader>=1.9.78
+zipline-reloaded>=2.2.0
+
+# Additional utilities
+python-multipart>=0.0.6
+python-jose>=3.3.0
+passlib>=1.7.4
+bcrypt>=4.0.1
+

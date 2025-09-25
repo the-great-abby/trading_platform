@@ -23,17 +23,24 @@ spec:
         - containerPort: 8080
         env:
         - name: BACKTEST_API_URL
-          value: "http://backtest-api:11101"
+          value: "http://backtest-api:10001"
         - name: ANALYTICS_API_URL
           value: "http://analytics-service:11104"
         - name: REDIS_URL
           value: "redis://redis.redis.svc.cluster.local:6379"
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:postgres@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
         - name: MARKET_DATA_URL
           value: "http://market-data-service:11084"
         - name: PORTFOLIO_SERVICE_URL
           value: "http://portfolio-service:11106"
+        - name: LLM_PROXY_URL
+          value: "http://ollama-controller-api-service.ollama-controller.svc.cluster.local:12001"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon_api_key
         resources:
           requests:
             memory: "128Mi"

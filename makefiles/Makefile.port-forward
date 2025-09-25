@@ -7,7 +7,7 @@ RED := \033[0;31m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help port-start port-stop port-status port-check port-start-dashboards port-start-analytics port-start-monitoring port-start-unified-dashboards port-restart port-cleanup port-health-check
+.PHONY: help port-start port-stop port-status port-check port-start-dashboards port-start-analytics port-start-monitoring port-start-unified-dashboards port-restart port-cleanup port-health-check port-start-risk-management port-risk-management-status
 
 port-help: ## Show port forwarding help
 	@echo "$(GREEN)🔌 Port Forwarding$(NC)"
@@ -29,6 +29,10 @@ port-help: ## Show port forwarding help
 	@echo ""
 	@echo "$(GREEN)Health & Monitoring:$(NC)"
 	@echo "  port-health-check - Check health of all forwarded ports"
+	@echo ""
+	@echo "$(GREEN)Risk Management Framework:$(NC)"
+	@echo "  port-start-risk-management - Start risk management port forwards"
+	@echo "  port-risk-management-status - Show risk management port status"
 	@echo ""
 
 # Basic Operations
@@ -138,3 +142,52 @@ port-health-check: ## Check health of all forwarded ports
 	@echo ""
 	@echo "📋 Registry Status:"
 	@curl -s http://localhost:32000/v2/_catalog > /dev/null 2>&1 && echo "  ✅ Registry active" || echo "  ❌ Registry down"
+
+# Risk Management Framework Port Forwards
+port-start-risk-management: ## Start Risk Management Framework port forwards
+	@echo "$(GREEN)🛡️  Starting Risk Management Framework Port Forwards...$(NC)"
+	@echo "$(YELLOW)======================================================$(NC)"
+	@echo ""
+	@echo "Starting Risk Management Service (port 11182)..."
+	kubectl port-forward -n trading-system service/risk-management-service 11182:80 &
+	@echo "Starting Risk Management Database (port 11183)..."
+	kubectl port-forward -n trading-system service/risk-management-db 11183:5432 &
+	@echo "Starting Risk Management Redis (port 11184)..."
+	kubectl port-forward -n trading-system service/risk-management-redis 11184:6379 &
+	@echo ""
+	@echo "$(GREEN)✅ Risk Management Framework port forwards started!$(NC)"
+	@echo ""
+	@echo "Service Endpoints:"
+	@echo "  Risk Management API: http://localhost:11182"
+	@echo "  Health Check: http://localhost:11182/api/monitoring/health"
+	@echo "  Prometheus Metrics: http://localhost:11182/metrics"
+	@echo "  Database: localhost:11183"
+	@echo "  Redis: localhost:11184"
+	@echo ""
+	@echo "Waiting 5 seconds for services to be ready..."
+	sleep 5
+	@echo "Testing connectivity..."
+	@curl -s http://localhost:11182/health > /dev/null 2>&1 && echo "✅ Risk Management API responding" || echo "⚠️  Risk Management API not yet ready"
+
+port-risk-management-status: ## Show Risk Management Framework port status
+	@echo "$(GREEN)🛡️  Risk Management Framework Port Status$(NC)"
+	@echo "$(YELLOW)===========================================$(NC)"
+	@echo ""
+	@echo "🔌 Active Risk Management Port Forwards:"
+	@ps aux | grep "kubectl port-forward" | grep -E "(11182|11183|11184)" | grep -v grep || echo "  No risk management port forwards active"
+	@echo ""
+	@echo "🌐 Risk Management Service Health:"
+	@curl -s http://localhost:11182/health | jq '.status' 2>/dev/null || echo "  ❌ Risk Management API not accessible"
+	@echo ""
+	@echo "📊 Service Endpoints Status:"
+	@echo "  Risk Management API (11182):"
+	@curl -s --connect-timeout 3 http://localhost:11182/health > /dev/null 2>&1 && echo "    ✅ Active" || echo "    ❌ Not responding"
+	@echo "  Database (11183):"
+	@nc -z localhost 11183 2>/dev/null && echo "    ✅ Active" || echo "    ❌ Not responding"
+	@echo "  Redis (11184):"
+	@nc -z localhost 11184 2>/dev/null && echo "    ✅ Active" || echo "    ❌ Not responding"
+	@echo ""
+	@echo "🧪 Quick API Test:"
+	@curl -s -X POST http://localhost:11182/api/risk/var-calculation \
+		-H "Content-Type: application/json" \
+		-d '{"portfolio_id": "test", "confidence_levels": [0.95]}' | jq '.status' 2>/dev/null || echo "  ⚠️  VaR API not yet ready"

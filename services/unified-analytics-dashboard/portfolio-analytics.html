@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Analytics - Unified Analytics Dashboard</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        .portfolio-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .portfolio-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0;
+            padding: 20px;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        
+        .risk-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .risk-low { background-color: #d4edda; color: #155724; }
+        .risk-medium { background-color: #fff3cd; color: #856404; }
+        .risk-high { background-color: #f8d7da; color: #721c24; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Unified Analytics Dashboard</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link active" href="/portfolio">Portfolio Analytics</a>
+                <a class="nav-link" href="/trading">Trading Analytics</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="portfolio-header">
+                    <h1 class="mb-0">📊 Portfolio Analytics</h1>
+                    <p class="mb-0">Advanced portfolio management and risk analytics</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading portfolio analytics...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error" style="display: none;">
+            <h5>⚠️ Error Loading Portfolio Analytics</h5>
+            <p id="errorMessage">Unable to load portfolio data. Please check that the portfolio services are running.</p>
+        </div>
+
+        <!-- Portfolio Overview -->
+        <div class="row" id="portfolioOverview" style="display: none;">
+            <!-- Portfolio Metrics -->
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="totalValue">$0</div>
+                    <div class="metric-label">Total Portfolio Value</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="totalReturn">0.00%</div>
+                    <div class="metric-label">Total Return</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="sharpeRatio">0.00</div>
+                    <div class="metric-label">Sharpe Ratio</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="maxDrawdown">0.00%</div>
+                    <div class="metric-label">Max Drawdown</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Metrics -->
+        <div class="row" id="riskMetrics" style="display: none;">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="var95">0.00%</div>
+                    <div class="metric-label">VaR 95%</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="var99">0.00%</div>
+                    <div class="metric-label">VaR 99%</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="volatility">0.00%</div>
+                    <div class="metric-label">Volatility</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-value" id="beta">0.00</div>
+                    <div class="metric-label">Beta</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="row" id="chartsRow1" style="display: none;">
+            <!-- Portfolio Performance Chart -->
+            <div class="col-lg-8">
+                <div class="card portfolio-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📈 Portfolio Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="portfolioPerformanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Asset Allocation Chart -->
+            <div class="col-lg-4">
+                <div class="card portfolio-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">🥧 Asset Allocation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="assetAllocationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="row" id="chartsRow2" style="display: none;">
+            <!-- Risk Metrics Chart -->
+            <div class="col-lg-6">
+                <div class="card portfolio-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">⚠️ Risk Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="riskMetricsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Optimization Results Chart -->
+            <div class="col-lg-6">
+                <div class="card portfolio-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">🎯 Optimization Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="optimizationResultsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 3 -->
+        <div class="row" id="chartsRow3" style="display: none;">
+            <!-- Correlation Matrix Chart -->
+            <div class="col-12">
+                <div class="card portfolio-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">🔗 Asset Correlation Matrix</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="correlationMatrixChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Details -->
+        <div class="row" id="portfolioDetails" style="display: none;">
+            <div class="col-12">
+                <div class="card portfolio-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📋 Portfolio Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Asset</th>
+                                        <th>Symbol</th>
+                                        <th>Weight</th>
+                                        <th>Current Price</th>
+                                        <th>Market Value</th>
+                                        <th>P&L</th>
+                                        <th>Risk Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolioTableBody">
+                                    <!-- Portfolio data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4" id="actionButtons" style="display: none;">
+            <div class="col-12">
+                <div class="card portfolio-card">
+                    <div class="card-body">
+                        <h5 class="card-title">🔧 Portfolio Actions</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-primary" onclick="runOptimization()">
+                                🎯 Run Optimization
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="runRebalancing()">
+                                ⚖️ Rebalance Portfolio
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="runRiskAssessment()">
+                                ⚠️ Risk Assessment
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="runTaxOptimization()">
+                                💰 Tax Optimization
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Portfolio Analytics JS -->
+    <script src="portfolio-analytics.js"></script>
+    
+    <!-- Action Functions -->
+    <script>
+        // Portfolio action functions
+        async function runOptimization() {
+            try {
+                const response = await fetch('http://localhost:11180/api/v1/optimization/mpt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        portfolio_id: 'default',
+                        optimization_type: 'MPT'
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Optimization completed successfully!');
+                    // Refresh the page to show new results
+                    window.location.reload();
+                } else {
+                    alert('❌ Optimization failed. Please try again.');
+                }
+            } catch (error) {
+                alert('❌ Error running optimization: ' + error.message);
+            }
+        }
+        
+        async function runRebalancing() {
+            try {
+                const response = await fetch('http://localhost:11180/api/v1/rebalancing/recommend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        portfolio_id: 'default'
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Rebalancing recommendations generated!');
+                    // Refresh the page to show new results
+                    window.location.reload();
+                } else {
+                    alert('❌ Rebalancing failed. Please try again.');
+                }
+            } catch (error) {
+                alert('❌ Error running rebalancing: ' + error.message);
+            }
+        }
+        
+        async function runRiskAssessment() {
+            try {
+                const response = await fetch('http://localhost:11181/api/v1/risk/assess', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        portfolio_id: 'default'
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Risk assessment completed!');
+                    // Refresh the page to show new results
+                    window.location.reload();
+                } else {
+                    alert('❌ Risk assessment failed. Please try again.');
+                }
+            } catch (error) {
+                alert('❌ Error running risk assessment: ' + error.message);
+            }
+        }
+        
+        async function runTaxOptimization() {
+            try {
+                const response = await fetch('http://localhost:11180/api/v1/tax/optimize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        portfolio_id: 'default'
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('✅ Tax optimization completed!');
+                    // Refresh the page to show new results
+                    window.location.reload();
+                } else {
+                    alert('❌ Tax optimization failed. Please try again.');
+                }
+            } catch (error) {
+                alert('❌ Error running tax optimization: ' + error.message);
+            }
+        }
+        
+        // Show/hide elements based on loading state
+        function showPortfolioContent() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('portfolioOverview').style.display = 'block';
+            document.getElementById('riskMetrics').style.display = 'block';
+            document.getElementById('chartsRow1').style.display = 'block';
+            document.getElementById('chartsRow2').style.display = 'block';
+            document.getElementById('chartsRow3').style.display = 'block';
+            document.getElementById('portfolioDetails').style.display = 'block';
+            document.getElementById('actionButtons').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorState').style.display = 'block';
+        }
+        
+        // Override the showError function from portfolio-analytics.js
+        if (window.PortfolioAnalytics) {
+            const originalShowError = window.PortfolioAnalytics.prototype.showError;
+            window.PortfolioAnalytics.prototype.showError = function(message) {
+                showError(message);
+            };
+        }
+    </script>
+</body>
+</html>
+

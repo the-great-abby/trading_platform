@@ -1,26 +1,42 @@
 """
 Log Analysis Tool for MCP Service
-Provides log analysis and error detection capabilities
+Provides log analysis and error detection capabilities using kubectl
 """
 
 import subprocess
 import re
 import json
+import aiohttp
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from collections import Counter
 
 class LogAnalysisTool:
-    """Tool for log analysis and error detection"""
+    """Tool for log analysis and error detection using kubectl and direct health checks"""
     
     def __init__(self):
-        self.log_paths = {
-            "trading_engine": "/app/logs/trading_engine.log",
-            "strategy_service": "/app/logs/strategy_service.log",
-            "market_data_service": "/app/logs/market_data_service.log",
-            "ai_analysis_service": "/app/logs/ai_analysis_service.log",
-            "unified_analytics": "/app/logs/unified_analytics.log",
-            "mcp_service": "/app/logs/mcp_service.log"
+        # Kubernetes service mappings for log analysis
+        self.k8s_services = {
+            "trading-engine": "trading-engine",
+            "strategy-service": "strategy-service", 
+            "market-data-service": "market-data-service",
+            "ai-analysis-service": "ai-analysis-service",
+            "unified-analytics-dashboard": "unified-analytics-dashboard",
+            "unified-trading-dashboard": "unified-trading-dashboard",
+            "unified-news-dashboard": "unified-news-dashboard",
+            "mcp-service": "mcp-service",
+            "backtest-api": "backtest-api",
+            "cqrs-api": "cqrs-api"
+        }
+        
+        # Service health endpoints
+        self.health_endpoints = {
+            "unified-analytics-dashboard": "http://localhost:11115/health",
+            "unified-trading-dashboard": "http://localhost:11114/health", 
+            "unified-news-dashboard": "http://localhost:11116/health",
+            "market-data-service": "http://localhost:11084/health",
+            "ai-analysis-service": "http://localhost:11085/health",
+            "mcp-service": "http://localhost:11117/health"
         }
         
         # Common error patterns
@@ -36,16 +52,18 @@ class LogAnalysisTool:
         }
     
     async def get_recent_errors(self, hours: int = 24) -> Dict[str, Any]:
-        """Get recent errors from all service logs"""
+        """Get recent errors from all service logs using kubectl and health checks"""
         try:
             errors = []
             error_counts = Counter()
             
-            for service_name, log_path in self.log_paths.items():
+            # Check Kubernetes pod logs for errors
+            for service_name, k8s_service in self.k8s_services.items():
                 try:
-                    # Use journalctl or tail to get recent logs
+                    # Get pod logs using kubectl
                     result = subprocess.run(
-                        ["journalctl", "-u", service_name, "--since", f"{hours} hours ago", "--no-pager"],
+                        ["kubectl", "logs", "-n", "trading-system", "-l", f"app={k8s_service}", 
+                         "--since", f"{hours}h", "--tail", "100"],
                         capture_output=True,
                         text=True,
                         timeout=30
@@ -59,6 +77,12 @@ class LogAnalysisTool:
                         # Count error types
                         for error in service_errors:
                             error_counts[error.get("type", "unknown")] += 1
+                    else:
+                        # If kubectl fails, try health check
+                        health_error = await self._check_service_health_error(service_name)
+                        if health_error:
+                            errors.append(health_error)
+                            error_counts[health_error.get("type", "unknown")] += 1
                     
                 except subprocess.TimeoutExpired:
                     errors.append({
@@ -74,6 +98,12 @@ class LogAnalysisTool:
                         "message": f"Failed to analyze logs for {service_name}: {str(e)}",
                         "timestamp": datetime.utcnow().isoformat()
                     })
+            
+            # Check pod status for additional errors
+            pod_errors = await self._check_pod_status_errors()
+            errors.extend(pod_errors)
+            for error in pod_errors:
+                error_counts[error.get("type", "unknown")] += 1
             
             # Sort errors by timestamp (most recent first)
             errors.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
@@ -188,16 +218,21 @@ class LogAnalysisTool:
             }
     
     async def search_logs(self, query: str, service: Optional[str] = None, hours: int = 24) -> Dict[str, Any]:
-        """Search logs for specific patterns"""
+        """Search logs for specific patterns using kubectl"""
         try:
             results = []
             
-            services_to_search = [service] if service else list(self.log_paths.keys())
+            services_to_search = [service] if service else list(self.k8s_services.keys())
             
             for service_name in services_to_search:
+                if service_name not in self.k8s_services:
+                    continue
+                    
+                k8s_service = self.k8s_services[service_name]
                 try:
-                    # Use journalctl to search logs
-                    cmd = ["journalctl", "-u", service_name, "--since", f"{hours} hours ago", "--no-pager", "-g", query]
+                    # Use kubectl to search logs
+                    cmd = ["kubectl", "logs", "-n", "trading-system", "-l", f"app={k8s_service}", 
+                           "--since", f"{hours}h", "--tail", "1000"]
                     result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
                     
                     if result.returncode == 0:
@@ -209,6 +244,15 @@ class LogAnalysisTool:
                                     "line": line.strip(),
                                     "timestamp": self._extract_timestamp(line)
                                 })
+                    else:
+                        # If kubectl fails, try health check as fallback
+                        health_error = await self._check_service_health_error(service_name)
+                        if health_error and query.lower() in health_error["message"].lower():
+                            results.append({
+                                "service": service_name,
+                                "line": health_error["message"],
+                                "timestamp": health_error["timestamp"]
+                            })
                     
                 except subprocess.TimeoutExpired:
                     results.append({
@@ -242,6 +286,101 @@ class LogAnalysisTool:
         """Extract timestamp from log line"""
         timestamp_match = re.search(r'(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})', log_line)
         return timestamp_match.group(1) if timestamp_match else datetime.utcnow().isoformat()
+    
+    async def _check_service_health_error(self, service_name: str) -> Optional[Dict[str, Any]]:
+        """Check service health and return error if unhealthy"""
+        if service_name in self.health_endpoints:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        self.health_endpoints[service_name], 
+                        timeout=5
+                    ) as response:
+                        if response.status != 200:
+                            return {
+                                "service": service_name,
+                                "type": "health_error",
+                                "message": f"Service health check failed with status {response.status}",
+                                "timestamp": datetime.utcnow().isoformat(),
+                                "severity": "high"
+                            }
+            except Exception as e:
+                return {
+                    "service": service_name,
+                    "type": "connection_error",
+                    "message": f"Service health check failed: {str(e)}",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "severity": "high"
+                }
+        return None
+    
+    async def _check_pod_status_errors(self) -> List[Dict[str, Any]]:
+        """Check Kubernetes pod status for errors"""
+        errors = []
+        try:
+            # Get pod status
+            result = subprocess.run(
+                ["kubectl", "get", "pods", "-n", "trading-system", "-o", "json"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                pod_data = json.loads(result.stdout)
+                for pod in pod_data.get("items", []):
+                    pod_name = pod.get("metadata", {}).get("name", "unknown")
+                    status = pod.get("status", {})
+                    phase = status.get("phase", "Unknown")
+                    conditions = status.get("conditions", [])
+                    
+                    # Check for error states
+                    if phase in ["Failed", "CrashLoopBackOff", "Error"]:
+                        errors.append({
+                            "service": pod_name,
+                            "type": "pod_error",
+                            "message": f"Pod in {phase} state",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "severity": "critical"
+                        })
+                    
+                    # Check container status
+                    for container in status.get("containerStatuses", []):
+                        container_name = container.get("name", "unknown")
+                        container_state = container.get("state", {})
+                        
+                        if "waiting" in container_state:
+                            reason = container_state["waiting"].get("reason", "Unknown")
+                            if reason in ["CrashLoopBackOff", "ImagePullBackOff", "ErrImageNeverPull"]:
+                                errors.append({
+                                    "service": f"{pod_name}:{container_name}",
+                                    "type": "container_error",
+                                    "message": f"Container {reason}: {container_state['waiting'].get('message', '')}",
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "severity": "critical" if reason in ["CrashLoopBackOff", "ImagePullBackOff"] else "high"
+                                })
+                        
+                        if "terminated" in container_state:
+                            exit_code = container_state["terminated"].get("exitCode", 0)
+                            if exit_code != 0:
+                                errors.append({
+                                    "service": f"{pod_name}:{container_name}",
+                                    "type": "container_terminated",
+                                    "message": f"Container terminated with exit code {exit_code}",
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "severity": "high"
+                                })
+            
+        except Exception as e:
+            errors.append({
+                "service": "kubectl",
+                "type": "kubectl_error",
+                "message": f"Failed to check pod status: {str(e)}",
+                "timestamp": datetime.utcnow().isoformat(),
+                "severity": "medium"
+            })
+        
+        return errors
     
     async def get_log_health_score(self) -> Dict[str, Any]:
         """Get log-based health score"""

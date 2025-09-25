@@ -1,0 +1,288 @@
+# Enhanced Portfolio Management Services - Consolidated Deployment
+# Replaces existing portfolio-service and risk-service with advanced capabilities
+
+---
+# Enhanced Portfolio Service - Consolidated Advanced Portfolio Management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-portfolio-service
+  namespace: trading-system
+  labels:
+    app: enhanced-portfolio-service
+    component: portfolio-management
+    version: "3.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: enhanced-portfolio-service
+  template:
+    metadata:
+      labels:
+        app: enhanced-portfolio-service
+        component: portfolio-management
+        version: "3.0.0"
+    spec:
+      containers:
+      - name: enhanced-portfolio-service
+        image: localhost:32000/enhanced-portfolio-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://redis.trading-system.svc.cluster.local:6379/0"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: trading-config
+              key: LOG_LEVEL
+        - name: PORT
+          value: "8080"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: portfolio-cache
+          mountPath: /app/cache
+      volumes:
+      - name: portfolio-cache
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-portfolio-service
+  namespace: trading-system
+  labels:
+    app: enhanced-portfolio-service
+    component: portfolio-management
+spec:
+  selector:
+    app: enhanced-portfolio-service
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+
+---
+# Enhanced Risk Management Service - Consolidated Advanced Risk Management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enhanced-risk-management-service
+  namespace: trading-system
+  labels:
+    app: enhanced-risk-management-service
+    component: risk-management
+    version: "3.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: enhanced-risk-management-service
+  template:
+    metadata:
+      labels:
+        app: enhanced-risk-management-service
+        component: risk-management
+        version: "3.0.0"
+    spec:
+      containers:
+      - name: enhanced-risk-management-service
+        image: localhost:32000/enhanced-risk-management-service:latest
+        ports:
+        - containerPort: 8081
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://redis.trading-system.svc.cluster.local:6379/1"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: trading-config
+              key: LOG_LEVEL
+        - name: PORT
+          value: "8081"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: risk-cache
+          mountPath: /app/cache
+      volumes:
+      - name: risk-cache
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enhanced-risk-management-service
+  namespace: trading-system
+  labels:
+    app: enhanced-risk-management-service
+    component: risk-management
+spec:
+  selector:
+    app: enhanced-risk-management-service
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8081
+  type: ClusterIP
+
+---
+# ConfigMap for Enhanced Portfolio Services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-portfolio-config
+  namespace: trading-system
+data:
+  # Portfolio optimization settings
+  MPT_DEFAULT_RISK_FREE_RATE: "0.02"
+  MPT_MAX_ITERATIONS: "1000"
+  MPT_CONVERGENCE_TOLERANCE: "1e-6"
+  
+  # Black-Litterman settings
+  BL_DEFAULT_CONFIDENCE: "0.5"
+  BL_DEFAULT_RISK_AVERSION: "3.0"
+  BL_VIEW_UNCERTAINTY: "0.1"
+  
+  # Risk Parity settings
+  RP_CONVERGENCE_TOLERANCE: "1e-6"
+  RP_MAX_ITERATIONS: "1000"
+  
+  # Tax optimization settings
+  TAX_DEFAULT_RATE: "0.20"
+  TAX_WASH_SALE_PERIOD: "30"
+  TAX_MIN_HARVEST_AMOUNT: "1000.0"
+  
+  # Rebalancing settings
+  REBALANCING_DEFAULT_THRESHOLD: "0.05"
+  REBALANCING_MIN_TRADE_SIZE: "100.0"
+  REBALANCING_MAX_TRADE_SIZE: "10000.0"
+  
+  # Risk management settings
+  RISK_DEFAULT_VAR_CONFIDENCE: "0.95"
+  RISK_DEFAULT_CVAR_CONFIDENCE: "0.95"
+  RISK_MAX_VOLATILITY: "0.30"
+  RISK_MAX_SINGLE_ASSET_WEIGHT: "0.20"
+  
+  # Backtesting settings
+  BACKTEST_DEFAULT_TRANSACTION_COST: "0.001"
+  BACKTEST_DEFAULT_SLIPPAGE: "0.0005"
+  BACKTEST_DEFAULT_BENCHMARK: "SPY"
+
+---
+# HorizontalPodAutoscaler for Enhanced Portfolio Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: enhanced-portfolio-service-hpa
+  namespace: trading-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: enhanced-portfolio-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# HorizontalPodAutoscaler for Enhanced Risk Management Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: enhanced-risk-management-service-hpa
+  namespace: trading-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: enhanced-risk-management-service
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+

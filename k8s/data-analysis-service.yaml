@@ -20,7 +20,7 @@ spec:
         - containerPort: 11136
         env:
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:password@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
         - name: TRANSFORMATION_PIPELINE_URL
           value: "http://data-transformation-pipeline:11135"
         - name: AI_ANALYSIS_URL

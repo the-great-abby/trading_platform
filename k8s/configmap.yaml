@@ -5,8 +5,9 @@ metadata:
   namespace: trading-system
 data:
   # Database URLs
-  DATABASE_URL_WRITE: "postgresql://postgres:password@write-db:5432/trading_write"
-  DATABASE_URL_READ: "postgresql://postgres:password@read-db:5432/trading_read"
+  DATABASE_URL_WRITE: "postgresql://postgres:password@postgres-regular-external.postgres-infra.svc.cluster.local:5432/trading_write"
+  DATABASE_URL_READ: "postgresql://postgres:password@postgres-regular-external.postgres-infra.svc.cluster.local:5432/trading_read"
+  DATABASE_URL_TIMESERIES: "postgresql://postgres:password@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
   
   # Event Store
   EVENT_STORE_URL: "eventstore:2113"

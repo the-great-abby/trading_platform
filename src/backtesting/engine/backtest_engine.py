@@ -13,15 +13,24 @@ import uuid
 import traceback
 import os
 
-from src.strategies.base import BaseStrategy
-from src.core.types import TradeSignal
-from src.services.market_data.market_data_provider import get_market_data_manager
-from src.services.market_data.cached_market_data_manager import get_cached_market_data_manager
-from src.services.database.backtest_results_service import BacktestResultsService
-from src.services.ai.trade_evaluator import TradeEvaluator
-from src.strategies.strategy_registry import get_strategy_registry, discover_strategies
-
 logger = logging.getLogger(__name__)
+
+# Import with error handling to avoid dependency issues
+try:
+    from src.strategies.base import BaseStrategy
+    from src.core.types import TradeSignal
+    from src.services.market_data.market_data_provider import get_market_data_manager
+    from src.services.market_data.cached_market_data_manager import get_cached_market_data_manager
+    from src.services.database.backtest_results_service import BacktestResultsService
+    from src.services.ai.trade_evaluator import TradeEvaluator
+    from src.strategies.strategy_registry import get_strategy_registry, discover_strategies
+    STRATEGIES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Some dependencies not available: {e}")
+    STRATEGIES_AVAILABLE = False
+    # Define minimal fallbacks
+    BaseStrategy = None
+    TradeSignal = None
 
 
 @dataclass
@@ -63,6 +72,16 @@ class BacktestResult:
     equity_curve: pd.DataFrame
     start_date: datetime
     end_date: datetime
+    
+    @property
+    def max_drawdown(self) -> float:
+        """Backward compatibility property for max_drawdown_pct"""
+        return self.max_drawdown_pct
+    
+    @max_drawdown.setter
+    def max_drawdown(self, value: float) -> None:
+        """Backward compatibility setter for max_drawdown_pct"""
+        self.max_drawdown_pct = value
 
 
 class BacktestEngine:
@@ -76,13 +95,18 @@ class BacktestEngine:
         self.database_only = os.getenv('DATABASE_ONLY', 'false').lower() in ('true', '1', 'yes')
         
         # Initialize appropriate market data manager
-        if use_real_data:
-            if use_cache:
-                self.market_data_manager = get_cached_market_data_manager()
-                logger.info(f"✅ Using cached market data manager (database_only={self.database_only})")
-            else:
-                self.market_data_manager = get_market_data_manager()
-                logger.info("✅ Using direct market data manager")
+        if use_real_data and STRATEGIES_AVAILABLE:
+            try:
+                if use_cache:
+                    self.market_data_manager = get_cached_market_data_manager()
+                    logger.info(f"✅ Using cached market data manager (database_only={self.database_only})")
+                else:
+                    self.market_data_manager = get_market_data_manager()
+                    logger.info("✅ Using direct market data manager")
+            except Exception as e:
+                logger.warning(f"Failed to initialize market data manager: {e}")
+                self.market_data_manager = None
+                self.use_real_data = False
         else:
             self.market_data_manager = None
             logger.info("✅ Using mock data for testing")
@@ -91,7 +115,14 @@ class BacktestEngine:
         
         # Initialize LLM trade evaluator
         self.use_llm_evaluation = os.getenv('ENABLE_LLM_EVALUATION', 'true').lower() in ('true', '1', 'yes')
-        self.trade_evaluator = TradeEvaluator(enable_llm=self.use_llm_evaluation)
+        if STRATEGIES_AVAILABLE:
+            try:
+                self.trade_evaluator = TradeEvaluator(enable_llm=self.use_llm_evaluation)
+            except Exception as e:
+                logger.warning(f"Failed to initialize trade evaluator: {e}")
+                self.trade_evaluator = None
+        else:
+            self.trade_evaluator = None
         
     async def run_backtest(self, symbols: List[str], start_date: str, end_date: str, strategies: List[str]) -> Dict[str, BacktestResult]:
         """

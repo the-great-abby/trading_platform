@@ -1,0 +1,444 @@
+---
+# PostgreSQL Database for Risk Management
+# Kubernetes deployment configuration for the risk management database
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: risk-management-postgresql
+  namespace: trading-system
+  labels:
+    app: postgresql-service
+    component: database
+    tier: data
+    version: v15.0
+spec:
+  serviceName: postgresql-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql-service
+      component: database
+  template:
+    metadata:
+      labels:
+        app: postgresql-service
+        component: database
+        tier: data
+        version: v15.0
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5432
+          name: postgresql
+          protocol: TCP
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: risk-management-db-config
+              key: postgres.db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: risk-management-db-secrets
+              key: postgres.user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: risk-management-db-secrets
+              key: postgres.password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgresql-init
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: risk-management-db-config
+      - name: postgresql-init
+        configMap:
+          name: risk-management-db-init
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+      labels:
+        app: postgresql-service
+        component: database
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: fast-ssd
+
+---
+# Service for PostgreSQL Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-service
+  namespace: trading-system
+  labels:
+    app: postgresql-service
+    component: database
+    tier: data
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgresql
+  selector:
+    app: postgresql-service
+
+---
+# Redis Cache for Risk Management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risk-management-redis
+  namespace: trading-system
+  labels:
+    app: redis-service
+    component: cache
+    tier: data
+    version: v7.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-service
+      component: cache
+  template:
+    metadata:
+      labels:
+        app: redis-service
+        component: cache
+        tier: data
+        version: v7.0
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6379
+          name: redis
+          protocol: TCP
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: risk-management-db-secrets
+              key: redis.password
+              optional: true
+        command:
+        - redis-server
+        - --appendonly
+        - "yes"
+        - --maxmemory
+        - "128mb"
+        - --maxmemory-policy
+        - "allkeys-lru"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+        emptyDir:
+          sizeLimit: 256Mi
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+
+---
+# Service for Redis Cache
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: trading-system
+  labels:
+    app: redis-service
+    component: cache
+    tier: data
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: redis-service
+
+---
+# ConfigMap for Database Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-management-db-config
+  namespace: trading-system
+  labels:
+    app: postgresql-service
+    component: database
+data:
+  postgres.db: "trading_risk"
+  postgresql.conf: |
+    # PostgreSQL configuration for risk management
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 100
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    maintenance_work_mem = 64MB
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    work_mem = 4MB
+    min_wal_size = 1GB
+    max_wal_size = 4GB
+    max_worker_processes = 8
+    max_parallel_workers_per_gather = 4
+    max_parallel_workers = 8
+    max_parallel_maintenance_workers = 4
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = '/var/log/postgresql'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_statement = 'all'
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_temp_files = 0
+    log_autovacuum_min_duration = 0
+    log_error_verbosity = default
+    log_min_messages = warning
+    log_min_error_statement = error
+    log_min_duration_statement = -1
+    log_statement_stats = off
+    log_parser_stats = off
+    log_planner_stats = off
+    log_executor_stats = off
+    log_statement = 'none'
+    shared_preload_libraries = 'pg_stat_statements'
+    track_activity_query_size = 2048
+    track_counts = on
+    track_io_timing = on
+    track_functions = all
+    track_activity_query_size = 2048
+    pg_stat_statements.track = all
+    pg_stat_statements.max = 10000
+    pg_stat_statements.track_utility = on
+    pg_stat_statements.track_planning = on
+    pg_stat_statements.save = on
+
+---
+# ConfigMap for Database Initialization
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: risk-management-db-init
+  namespace: trading-system
+  labels:
+    app: postgresql-service
+    component: database
+data:
+  01-create-database.sql: |
+    -- Create database and user for risk management
+    CREATE DATABASE trading_risk;
+    
+    -- Create risk management user
+    CREATE USER risk_user WITH PASSWORD 'risk_password';
+    
+    -- Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE trading_risk TO risk_user;
+    
+    -- Connect to the database
+    \c trading_risk;
+    
+    -- Grant schema privileges
+    GRANT ALL ON SCHEMA public TO risk_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO risk_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO risk_user;
+    
+    -- Set default privileges for future objects
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO risk_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO risk_user;
+    
+    -- Create extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+    
+    -- Create indexes for performance
+    CREATE INDEX IF NOT EXISTS idx_risk_metrics_portfolio_timestamp 
+    ON risk_metrics (portfolio_id, calculation_timestamp);
+    
+    CREATE INDEX IF NOT EXISTS idx_risk_metrics_calculation_method 
+    ON risk_metrics (calculation_method);
+    
+    CREATE INDEX IF NOT EXISTS idx_stress_test_results_portfolio_timestamp 
+    ON stress_test_results (portfolio_id, test_timestamp);
+    
+    CREATE INDEX IF NOT EXISTS idx_correlation_analysis_portfolio_timestamp 
+    ON correlation_analysis (portfolio_id, analysis_timestamp);
+    
+    CREATE INDEX IF NOT EXISTS idx_compliance_reports_portfolio_timestamp 
+    ON compliance_reports (portfolio_id, report_timestamp);
+    
+    CREATE INDEX IF NOT EXISTS idx_risk_limits_portfolio_active 
+    ON risk_limits (portfolio_id, is_active);
+    
+    CREATE INDEX IF NOT EXISTS idx_risk_alerts_portfolio_status 
+    ON risk_alerts (portfolio_id, alert_status);
+
+---
+# Secret for Database Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: risk-management-db-secrets
+  namespace: trading-system
+  labels:
+    app: postgresql-service
+    component: database
+type: Opaque
+data:
+  # PostgreSQL credentials (base64 encoded)
+  postgres.user: cmlza191c2Vy  # risk_user
+  postgres.password: cmlza19wYXNzd29yZA==  # risk_password
+  
+  # Redis password (base64 encoded, optional)
+  redis.password: ""  # Empty if no password
+
+---
+# NetworkPolicy for Database Services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: risk-management-db-netpol
+  namespace: trading-system
+  labels:
+    app: postgresql-service
+    component: database
+spec:
+  podSelector:
+    matchLabels:
+      app: postgresql-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: risk-management-service
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress: []
+
+---
+# NetworkPolicy for Redis Service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: risk-management-redis-netpol
+  namespace: trading-system
+  labels:
+    app: redis-service
+    component: cache
+spec:
+  podSelector:
+    matchLabels:
+      app: redis-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: risk-management-service
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress: []

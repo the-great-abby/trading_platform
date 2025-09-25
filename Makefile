@@ -11,5 +11,8 @@ include makefiles/Makefile.backtest
 include makefiles/Makefile.build
 include makefiles/Makefile.test
 
+# Include semantic versioning system
+include Makefile.versioning
+
 # Default target
 .DEFAULT_GOAL := help

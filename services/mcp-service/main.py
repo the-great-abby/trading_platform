@@ -22,6 +22,7 @@ from mcp_tools.intelligent_automation_tool import IntelligentAutomationTool
 from mcp_tools.health_check_tester import HealthCheckTester
 from mcp_tools.prometheus_tester import PrometheusTester
 from mcp_tools.monitoring_integration import MonitoringIntegration
+from mcp_tools.documentation_tool import DocumentationTool
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,6 +53,7 @@ intelligent_automation_tool = IntelligentAutomationTool()
 health_check_tester = HealthCheckTester()
 prometheus_tester = PrometheusTester()
 monitoring_integration = MonitoringIntegration()
+documentation_tool = DocumentationTool()
 
 # Auto-start automation system on service startup
 @app.on_event("startup")
@@ -152,6 +154,11 @@ async def list_mcp_tools():
                 "name": "log_analysis",
                 "description": "Log analysis and error detection",
                 "endpoints": ["/api/mcp/logs/errors", "/api/mcp/logs/search", "/api/mcp/logs/health"]
+            },
+            {
+                "name": "documentation",
+                "description": "Documentation search, retrieval, and analysis",
+                "endpoints": ["/api/mcp/docs/search", "/api/mcp/docs/categories", "/api/mcp/docs/tags", "/api/mcp/docs/content"]
             }
         ]
     }
@@ -577,6 +584,117 @@ async def get_recent_alerts(limit: int = 20):
         return await monitoring_integration.get_recent_alerts(limit)
     except Exception as e:
         logger.error(f"Error getting recent alerts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Documentation Tool Endpoints
+@app.get("/api/mcp/docs/search")
+async def search_documentation(query: str, category: Optional[str] = None, limit: int = 10):
+    """Search documentation with query"""
+    try:
+        return await documentation_tool.search_documentation(query, category, limit)
+    except Exception as e:
+        logger.error(f"Error searching documentation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/categories")
+async def get_documentation_categories():
+    """Get available documentation categories"""
+    try:
+        return await documentation_tool.get_available_categories()
+    except Exception as e:
+        logger.error(f"Error getting documentation categories: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/categories/{category}")
+async def get_documentation_by_category(category: str):
+    """Get documentation by category"""
+    try:
+        return await documentation_tool.get_documentation_by_category(category)
+    except Exception as e:
+        logger.error(f"Error getting documentation by category {category}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/tags")
+async def get_documentation_tags():
+    """Get available documentation tags"""
+    try:
+        return await documentation_tool.get_available_tags()
+    except Exception as e:
+        logger.error(f"Error getting documentation tags: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/tags/{tag}")
+async def get_documentation_by_tag(tag: str):
+    """Get documentation by tag"""
+    try:
+        return await documentation_tool.get_documentation_by_tag(tag)
+    except Exception as e:
+        logger.error(f"Error getting documentation by tag {tag}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/content/{file_path:path}")
+async def get_documentation_content(file_path: str):
+    """Get full content of a documentation file"""
+    try:
+        return await documentation_tool.get_documentation_content(file_path)
+    except Exception as e:
+        logger.error(f"Error getting documentation content for {file_path}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/overview")
+async def get_documentation_overview():
+    """Get documentation overview and statistics"""
+    try:
+        return await documentation_tool.get_documentation_overview()
+    except Exception as e:
+        logger.error(f"Error getting documentation overview: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/stats")
+async def get_documentation_stats():
+    """Get detailed documentation statistics"""
+    try:
+        return await documentation_tool.get_documentation_stats()
+    except Exception as e:
+        logger.error(f"Error getting documentation stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/docs/help")
+async def get_documentation_help():
+    """Get help and usage information for documentation tool"""
+    try:
+        return {
+            "tool": "Documentation Tool",
+            "description": "Comprehensive documentation search, retrieval, and analysis",
+            "capabilities": [
+                "Search documentation by query with relevance scoring",
+                "Browse documentation by category (architecture, trading, ai, kubernetes, etc.)",
+                "Filter documentation by tags",
+                "Get full content of specific documentation files",
+                "View documentation overview and statistics",
+                "Access recent and popular documentation"
+            ],
+            "endpoints": {
+                "search": "/api/mcp/docs/search?query=<query>&category=<category>&limit=<limit>",
+                "categories": "/api/mcp/docs/categories",
+                "category_docs": "/api/mcp/docs/categories/{category}",
+                "tags": "/api/mcp/docs/tags",
+                "tag_docs": "/api/mcp/docs/tags/{tag}",
+                "content": "/api/mcp/docs/content/{file_path}",
+                "overview": "/api/mcp/docs/overview",
+                "stats": "/api/mcp/docs/stats"
+            },
+            "examples": [
+                "Search for trading strategies: /api/mcp/docs/search?query=trading strategies",
+                "Get AI documentation: /api/mcp/docs/categories/ai",
+                "Find Kubernetes guides: /api/mcp/docs/tags/kubernetes",
+                "Get specific file: /api/mcp/docs/content/docs/TRADING_STRATEGIES_GUIDE.md"
+            ],
+            "categories": await documentation_tool.get_available_categories(),
+            "total_docs": len(documentation_tool.documentation_index)
+        }
+    except Exception as e:
+        logger.error(f"Error getting documentation help: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

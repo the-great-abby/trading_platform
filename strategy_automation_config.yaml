@@ -1,0 +1,299 @@
+# 🤖 Strategy Automation Configuration
+# ===================================
+# This configuration file defines how the automated strategy selection system
+# should behave for different market conditions and portfolio requirements.
+
+# Market Condition Detection
+market_conditions:
+  # Volatility thresholds
+  volatility:
+    low_threshold: 0.01      # 1% daily volatility
+    high_threshold: 0.03     # 3% daily volatility
+    extreme_threshold: 0.05  # 5% daily volatility
+  
+  # Trend strength thresholds
+  trend:
+    weak_threshold: 0.01     # 1% trend strength
+    moderate_threshold: 0.03 # 3% trend strength
+    strong_threshold: 0.05   # 5% trend strength
+  
+  # Volume thresholds
+  volume:
+    low_threshold: 0.8       # 80% of average volume
+    high_threshold: 1.5      # 150% of average volume
+    extreme_threshold: 2.0   # 200% of average volume
+  
+  # RSI thresholds
+  rsi:
+    oversold: 30
+    overbought: 70
+    extreme_oversold: 20
+    extreme_overbought: 80
+  
+  # MACD thresholds
+  macd:
+    bullish_threshold: 0.1   # 10% MACD momentum
+    bearish_threshold: -0.1  # -10% MACD momentum
+
+# Strategy Selection Rules
+strategy_selection:
+  # Market condition to strategy mapping
+  market_condition_strategies:
+    bull_trending:
+      primary: ["SMACrossover", "MACD", "Ichimoku", "Momentum"]
+      secondary: ["CoveredCall", "CashSecuredPut"]
+      ai_enhanced: ["MACD_AI_Enhanced", "SMA_Crossover_AI_Enhanced"]
+    
+    bear_trending:
+      primary: ["SMACrossover", "MACD", "Ichimoku"]
+      secondary: ["CashSecuredPut", "VolatilityStrategy"]
+      ai_enhanced: ["MACD_AI_Enhanced"]
+    
+    sideways_range:
+      primary: ["BollingerBands", "RSI", "MeanReversion"]
+      secondary: ["IronCondor", "CoveredCall", "CalendarSpread", "OptionsWheel"]
+      ai_enhanced: ["RSI_AI_Enhanced", "BollingerBands_AI_Enhanced"]
+    
+    high_volatility:
+      primary: ["VolatilityBreakout", "VWAP", "Straddle"]
+      secondary: ["VolatilityStrategy", "LongStrangle"]
+      ai_enhanced: ["Volatility_AI_Enhanced"]
+    
+    low_volatility:
+      primary: ["VolatilityBreakout", "Momentum", "AdaptiveMomentum"]
+      secondary: ["CalendarSpread", "IronCondor", "OptionsWheel"]
+      ai_enhanced: ["Momentum_AI_Enhanced"]
+    
+    breakout:
+      primary: ["VolatilityBreakout", "Momentum", "VWAP"]
+      secondary: ["Straddle", "LongStrangle"]
+      ai_enhanced: ["Volatility_AI_Enhanced"]
+    
+    mean_reversion:
+      primary: ["BollingerBands", "RSI", "MeanReversion"]
+      secondary: ["IronCondor", "ButterflySpread"]
+      ai_enhanced: ["RSI_AI_Enhanced", "BollingerBands_AI_Enhanced"]
+    
+    earnings_event:
+      primary: ["Straddle", "LongStrangle", "VolatilityStrategy"]
+      secondary: ["EarningsStrategy", "VolatilityBreakout"]
+      ai_enhanced: ["Earnings_AI_Enhanced"]
+
+  # Strategy scoring weights
+  scoring_weights:
+    historical_performance: 0.4
+    market_condition_alignment: 0.2
+    confidence_level: 0.2
+    recent_performance: 0.1
+    risk_adjustment: 0.1
+  
+  # Minimum thresholds
+  thresholds:
+    min_confidence: 0.6
+    min_performance_score: 0.5
+    max_risk_score: 0.8
+    min_win_rate: 0.4
+    min_profit_factor: 1.2
+
+# Portfolio Constraints
+portfolio_constraints:
+  # Risk management
+  risk:
+    max_risk_per_strategy: 0.05      # 5% max risk per strategy
+    max_total_risk: 0.20             # 20% max total portfolio risk
+    max_correlation: 0.7             # 70% max correlation between strategies
+    max_drawdown: 0.15               # 15% max drawdown
+  
+  # Strategy limits
+  limits:
+    max_strategies_per_symbol: 3
+    max_options_strategies: 2
+    max_high_risk_strategies: 1
+    min_diversification_score: 0.6
+  
+  # Timeframe constraints
+  timeframes:
+    allowed_timeframes: ["short", "medium", "long"]
+    preferred_timeframe: "medium"
+    max_short_term_strategies: 2
+    max_long_term_strategies: 1
+
+# Performance Tracking
+performance_tracking:
+  # Lookback periods
+  lookback_periods:
+    short_term: 30      # 30 days
+    medium_term: 90     # 90 days
+    long_term: 252      # 1 year
+  
+  # Performance metrics
+  metrics:
+    - "sharpe_ratio"
+    - "max_drawdown"
+    - "win_rate"
+    - "profit_factor"
+    - "volatility_adjusted_return"
+    - "calmar_ratio"
+    - "sortino_ratio"
+  
+  # Rebalancing
+  rebalancing:
+    frequency: "daily"               # daily, weekly, monthly
+    min_performance_change: 0.1      # 10% performance change to trigger rebalance
+    max_rebalance_frequency: 7       # Max rebalances per week
+    performance_window: 14           # Days to look back for performance
+
+# AI Enhancement
+ai_enhancement:
+  # AI strategy selection
+  ai_selection:
+    enabled: true
+    confidence_threshold: 0.7
+    use_sentiment_analysis: true
+    use_news_analysis: true
+    use_social_media: false
+  
+  # AI model preferences
+  models:
+    sentiment_analysis: "gpt-3.5-turbo"
+    news_analysis: "gpt-3.5-turbo"
+    technical_analysis: "gpt-3.5-turbo"
+    risk_assessment: "gpt-3.5-turbo"
+  
+  # AI confidence boosting
+  confidence_boosting:
+    enabled: true
+    min_ai_confidence: 0.6
+    ai_weight: 0.3
+    technical_weight: 0.7
+
+# Options Strategy Automation
+options_automation:
+  # IV percentile thresholds
+  iv_percentiles:
+    low_iv: 30
+    high_iv: 70
+    extreme_low_iv: 20
+    extreme_high_iv: 80
+  
+  # Greeks thresholds
+  greeks:
+    min_delta: 0.3
+    max_delta: 0.7
+    min_gamma: 0.1
+    min_theta: -0.05
+    min_vega: 0.2
+  
+  # Liquidity requirements
+  liquidity:
+    min_volume: 10
+    min_open_interest: 50
+    min_bid_ask_spread: 0.05
+  
+  # Time decay preferences
+  time_decay:
+    min_days_to_expiration: 30
+    max_days_to_expiration: 60
+    preferred_days_to_expiration: 45
+
+# Risk Management
+risk_management:
+  # Position sizing
+  position_sizing:
+    method: "kelly_criterion"        # kelly_criterion, fixed_fractional, volatility_based
+    max_position_size: 0.1           # 10% max position size
+    min_position_size: 0.01          # 1% min position size
+    volatility_scaling: true
+  
+  # Stop loss
+  stop_loss:
+    enabled: true
+    method: "atr_based"              # atr_based, percentage_based, support_resistance
+    atr_multiplier: 2.0
+    percentage_stop: 0.05            # 5% stop loss
+    trailing_stop: true
+  
+  # Take profit
+  take_profit:
+    enabled: true
+    method: "risk_reward_ratio"      # risk_reward_ratio, percentage_based, technical_levels
+    risk_reward_ratio: 2.0
+    percentage_profit: 0.10          # 10% take profit
+
+# Monitoring and Alerts
+monitoring:
+  # Performance monitoring
+  performance:
+    check_frequency: "hourly"        # hourly, daily, weekly
+    alert_thresholds:
+      max_drawdown: 0.10             # 10% drawdown alert
+      min_performance: -0.05         # -5% performance alert
+      max_correlation: 0.8           # 80% correlation alert
+  
+  # Strategy monitoring
+  strategy:
+    check_frequency: "daily"
+    alert_thresholds:
+      min_confidence: 0.5
+      max_risk_score: 0.9
+      min_win_rate: 0.3
+  
+  # Market condition monitoring
+  market:
+    check_frequency: "hourly"
+    alert_thresholds:
+      volatility_spike: 0.05         # 5% volatility spike
+      trend_change: 0.03             # 3% trend change
+      volume_spike: 2.0              # 200% volume spike
+
+# Backtesting and Optimization
+backtesting:
+  # Backtest parameters
+  parameters:
+    start_date: "2020-01-01"
+    end_date: "2024-01-01"
+    initial_capital: 100000
+    commission: 0.001
+    slippage: 0.0005
+  
+  # Optimization
+  optimization:
+    enabled: true
+    method: "genetic_algorithm"      # genetic_algorithm, grid_search, bayesian
+    max_iterations: 100
+    population_size: 50
+    mutation_rate: 0.1
+    crossover_rate: 0.8
+  
+  # Walk-forward analysis
+  walk_forward:
+    enabled: true
+    training_period: 252             # 1 year training
+    testing_period: 63               # 3 months testing
+    step_size: 21                    # 1 month step
+
+# Logging and Debugging
+logging:
+  # Log levels
+  levels:
+    strategy_selection: "INFO"
+    market_analysis: "INFO"
+    performance_tracking: "INFO"
+    risk_management: "WARNING"
+    ai_enhancement: "DEBUG"
+  
+  # Log retention
+  retention:
+    days: 30
+    max_size_mb: 100
+    compress: true
+  
+  # Debug mode
+  debug:
+    enabled: false
+    log_all_decisions: false
+    log_performance_calculations: false
+    log_ai_reasoning: false
+
+
+

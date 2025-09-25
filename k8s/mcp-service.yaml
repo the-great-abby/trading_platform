@@ -30,6 +30,10 @@ spec:
           value: "INFO"
         - name: NAMESPACE
           value: "trading-system"
+        - name: DOCS_PATH
+          value: "/app/docs"
+        - name: MD_PATH
+          value: "/app/md"
         resources:
           requests:
             memory: "128Mi"
@@ -37,6 +41,13 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        volumeMounts:
+        - name: docs-volume
+          mountPath: /app/docs
+          readOnly: true
+        - name: md-volume
+          mountPath: /app/md
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /health
@@ -49,6 +60,15 @@ spec:
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
+      volumes:
+      - name: docs-volume
+        hostPath:
+          path: /Users/abby/code/trading/docs
+          type: Directory
+      - name: md-volume
+        hostPath:
+          path: /Users/abby/code/trading/md
+          type: Directory
 ---
 apiVersion: v1
 kind: Service
