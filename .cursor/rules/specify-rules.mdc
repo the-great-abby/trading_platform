@@ -1,0 +1,24 @@
+# trading Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-09-25
+
+## Active Technologies
+-  +  (008-title-live-trading)
+
+## Project Structure
+```
+src/
+tests/
+```
+
+## Commands
+# Add commands for 
+
+## Code Style
+: Follow standard conventions
+
+## Recent Changes
+- 008-title-live-trading: Added  + 
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

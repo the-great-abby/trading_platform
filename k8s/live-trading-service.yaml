@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: live-trading-service-config
+  namespace: default
+data:
+  DATABASE_URL: "postgresql+asyncpg://postgres:password@timescaledb-service:5432/trading_db"
+  ENCRYPTION_KEY: "your-encryption-key-here"
+  LOG_LEVEL: "INFO"
+  PUBLIC_API_BASE_URL: "https://public.com/api"
+  PUBLIC_API_VERSION: "v1"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: live-trading-service-secrets
+  namespace: default
+type: Opaque
+data:
+  # Base64 encoded secrets (replace with actual values)
+  database-password: cGFzc3dvcmQ=  # "password"
+  encryption-key: eW91ci1lbmNyeXB0aW9uLWtleS1oZXJl  # "your-encryption-key-here"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-trading-service
+  namespace: default
+  labels:
+    app: live-trading-service
+    version: v1.0.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: live-trading-service
+  template:
+    metadata:
+      labels:
+        app: live-trading-service
+        version: v1.0.0
+    spec:
+      containers:
+      - name: live-trading-service
+        image: live-trading-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: live-trading-service-config
+              key: DATABASE_URL
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: live-trading-service-secrets
+              key: encryption-key
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: live-trading-service-config
+              key: LOG_LEVEL
+        - name: PUBLIC_API_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: live-trading-service-config
+              key: PUBLIC_API_BASE_URL
+        - name: PUBLIC_API_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: live-trading-service-config
+              key: PUBLIC_API_VERSION
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-trading-service
+  namespace: default
+  labels:
+    app: live-trading-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: live-trading-service
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: live-trading-service-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - live-trading.local
+    secretName: live-trading-tls
+  rules:
+  - host: live-trading.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: live-trading-service
+            port:
+              number: 8080
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: live-trading-service-pdb
+  namespace: default
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: live-trading-service
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: live-trading-service-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: live-trading-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

@@ -73,6 +73,64 @@ MARKET_DATA_CONFIG = {
     'news_data_enabled': True
 }
 
+# Live Trading Configuration
+LIVE_TRADING_CONFIG = {
+    'public_api': {
+        'base_url': os.getenv('PUBLIC_API_BASE_URL', 'https://api.public.com'),
+        'api_version': os.getenv('PUBLIC_API_VERSION', 'v1'),
+        'timeout': int(os.getenv('PUBLIC_API_TIMEOUT', '30')),
+        'max_retries': int(os.getenv('PUBLIC_API_MAX_RETRIES', '3')),
+        'rate_limit_requests': int(os.getenv('PUBLIC_API_RATE_LIMIT', '100')),
+        'rate_limit_window': int(os.getenv('PUBLIC_API_RATE_LIMIT_WINDOW', '60'))
+    },
+    'database': {
+        'url': os.getenv('DATABASE_URL', 'postgresql+asyncpg://postgres:password@timescaledb-service:5432/trading_db'),
+        'pool_size': int(os.getenv('DB_POOL_SIZE', '10')),
+        'max_overflow': int(os.getenv('DB_MAX_OVERFLOW', '20')),
+        'pool_timeout': int(os.getenv('DB_POOL_TIMEOUT', '30')),
+        'pool_recycle': int(os.getenv('DB_POOL_RECYCLE', '3600'))
+    },
+    'redis': {
+        'url': os.getenv('REDIS_URL', 'redis://redis.redis.svc.cluster.local:6379'),
+        'db': int(os.getenv('REDIS_DB', '0')),
+        'timeout': int(os.getenv('REDIS_TIMEOUT', '5')),
+        'max_connections': int(os.getenv('REDIS_MAX_CONNECTIONS', '10'))
+    },
+    'encryption': {
+        'key': os.getenv('ENCRYPTION_KEY', 'your-encryption-key-here'),
+        'algorithm': 'AES-256-GCM',
+        'key_derivation': 'PBKDF2'
+    },
+    'risk_management': {
+        'max_position_size': float(os.getenv('LIVE_MAX_POSITION_SIZE', '10000.0')),
+        'max_portfolio_risk': float(os.getenv('LIVE_MAX_PORTFOLIO_RISK', '0.05')),
+        'max_daily_loss': float(os.getenv('LIVE_MAX_DAILY_LOSS', '1000.0')),
+        'max_daily_trades': int(os.getenv('LIVE_MAX_DAILY_TRADES', '20')),
+        'emergency_stop_enabled': True,
+        'market_hours_enforcement': True,
+        'greeks_limits': {
+            'max_delta': float(os.getenv('LIVE_MAX_DELTA', '1000.0')),
+            'max_gamma': float(os.getenv('LIVE_MAX_GAMMA', '100.0')),
+            'max_theta': float(os.getenv('LIVE_MAX_THETA', '-50.0')),
+            'max_vega': float(os.getenv('LIVE_MAX_VEGA', '200.0'))
+        }
+    },
+    'trading': {
+        'allowed_strategies': ['IRON_CONDOR', 'BUTTERFLY_SPREAD', 'CALENDAR_SPREAD'],
+        'default_order_type': 'MARKET',
+        'default_time_in_force': 'DAY',
+        'position_sizing_method': 'fixed_dollar',
+        'default_position_size': float(os.getenv('LIVE_DEFAULT_POSITION_SIZE', '1000.0'))
+    },
+    'logging': {
+        'level': os.getenv('LIVE_TRADING_LOG_LEVEL', 'INFO'),
+        'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        'file_rotation': True,
+        'max_file_size': '10MB',
+        'backup_count': 5
+    }
+}
+
 def get_symbols():
     return SYMBOLS
 
@@ -87,5 +145,10 @@ def get_trading_config() -> Dict[str, Any]:
         'llm_service': LLM_SERVICE_CONFIG,
         'risk_management': RISK_CONFIG,
         'order_management': ORDER_CONFIG,
-        'market_data': MARKET_DATA_CONFIG
-    } 
+        'market_data': MARKET_DATA_CONFIG,
+        'live_trading': LIVE_TRADING_CONFIG
+    }
+
+def get_live_trading_config() -> Dict[str, Any]:
+    """Get live trading configuration"""
+    return LIVE_TRADING_CONFIG 

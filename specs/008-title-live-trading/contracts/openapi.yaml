@@ -1,0 +1,685 @@
+openapi: 3.0.3
+info:
+  title: Live Trading Service API
+  description: API for live trading system with Public.com integration
+  version: 1.0.0
+  contact:
+    name: Trading System Team
+    email: trading@company.com
+
+servers:
+  - url: http://localhost:11120
+    description: Local development
+  - url: https://live-trading-service.trading-system.svc.cluster.local
+    description: Kubernetes cluster
+
+paths:
+  # Authentication Endpoints
+  /api/v1/auth/public-connect:
+    post:
+      summary: Connect to Public.com API
+      description: Authenticate and store Public.com API credentials
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [access_token, account_id]
+              properties:
+                access_token:
+                  type: string
+                  description: Public.com personal access token
+                account_id:
+                  type: string
+                  description: Public.com account identifier
+                account_name:
+                  type: string
+                  description: Human-readable account name
+      responses:
+        '201':
+          description: Successfully connected to Public.com
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credential_id:
+                    type: string
+                    format: uuid
+                  account_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [CONNECTED]
+        '400':
+          description: Invalid credentials or account
+        '409':
+          description: Account already connected
+        '500':
+          description: Internal server error
+
+  /api/v1/auth/disconnect:
+    post:
+      summary: Disconnect from Public.com API
+      description: Remove stored credentials and disconnect account
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_id]
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Successfully disconnected
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
+
+  # Account Management
+  /api/v1/accounts:
+    get:
+      summary: List live trading accounts
+      description: Get all connected live trading accounts
+      tags: [Accounts]
+      responses:
+        '200':
+          description: List of live trading accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LiveTradingAccount'
+        '500':
+          description: Internal server error
+
+  /api/v1/accounts/{account_id}:
+    get:
+      summary: Get account details
+      description: Get detailed information for a specific account
+      tags: [Accounts]
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveTradingAccount'
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
+
+  /api/v1/accounts/{account_id}/balance:
+    get:
+      summary: Get account balance
+      description: Get real-time account balance from Public.com
+      tags: [Accounts]
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalance'
+        '404':
+          description: Account not found
+        '503':
+          description: Public.com API unavailable
+        '500':
+          description: Internal server error
+
+  # Trading Endpoints
+  /api/v1/trading/orders:
+    post:
+      summary: Place trading order
+      description: Execute a trade through Public.com API
+      tags: [Trading]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeOrder'
+      responses:
+        '201':
+          description: Order placed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveTrade'
+        '400':
+          description: Invalid order or risk limits exceeded
+        '404':
+          description: Account not found
+        '409':
+          description: Market closed or trading halted
+        '503':
+          description: Public.com API unavailable
+        '500':
+          description: Internal server error
+
+  /api/v1/trading/orders/{order_id}:
+    get:
+      summary: Get order status
+      description: Get current status of a trading order
+      tags: [Trading]
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatus'
+        '404':
+          description: Order not found
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Cancel order
+      description: Cancel a pending trading order
+      tags: [Trading]
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order cancelled successfully
+        '404':
+          description: Order not found
+        '409':
+          description: Order cannot be cancelled
+        '500':
+          description: Internal server error
+
+  /api/v1/trading/positions:
+    get:
+      summary: List active positions
+      description: Get all active positions for accounts
+      tags: [Trading]
+      parameters:
+        - name: account_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by account ID
+      responses:
+        '200':
+          description: List of active positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LivePosition'
+        '500':
+          description: Internal server error
+
+  /api/v1/trading/positions/{position_id}/close:
+    post:
+      summary: Close position
+      description: Close an active position
+      tags: [Trading]
+      parameters:
+        - name: position_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  description: Quantity to close (default: all)
+                reason:
+                  type: string
+                  enum: [MANUAL, RISK_LIMIT, EXPIRY]
+                  description: Reason for closing
+      responses:
+        '200':
+          description: Position closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveTrade'
+        '404':
+          description: Position not found
+        '409':
+          description: Position cannot be closed
+        '500':
+          description: Internal server error
+
+  # Risk Management
+  /api/v1/risk/profile:
+    get:
+      summary: Get risk profile
+      description: Get risk management settings for account
+      tags: [Risk Management]
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Risk profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskProfile'
+        '404':
+          description: Account or risk profile not found
+        '500':
+          description: Internal server error
+
+    put:
+      summary: Update risk profile
+      description: Update risk management settings
+      tags: [Risk Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiskProfile'
+      responses:
+        '200':
+          description: Risk profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskProfile'
+        '400':
+          description: Invalid risk parameters
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
+
+  /api/v1/risk/emergency-stop:
+    post:
+      summary: Emergency stop trading
+      description: Immediately halt all trading for account
+      tags: [Risk Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_id]
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+                  description: Reason for emergency stop
+      responses:
+        '200':
+          description: Emergency stop activated
+        '404':
+          description: Account not found
+        '500':
+          description: Internal server error
+
+  # System Status
+  /api/v1/status:
+    get:
+      summary: System status
+      description: Get live trading system status
+      tags: [System]
+      responses:
+        '200':
+          description: System status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        '500':
+          description: Internal server error
+
+  /api/v1/status/market-hours:
+    get:
+      summary: Market hours status
+      description: Check if market is currently open
+      tags: [System]
+      responses:
+        '200':
+          description: Market hours status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_market_open:
+                    type: boolean
+                  market_opens_at:
+                    type: string
+                    format: date-time
+                  market_closes_at:
+                    type: string
+                    format: date-time
+                  timezone:
+                    type: string
+                    default: "America/New_York"
+
+components:
+  schemas:
+    LiveTradingAccount:
+      type: object
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        public_account_id:
+          type: string
+        account_name:
+          type: string
+        account_type:
+          type: string
+          enum: [CASH, MARGIN]
+        buying_power:
+          type: number
+          format: decimal
+        cash_balance:
+          type: number
+          format: decimal
+        equity:
+          type: number
+          format: decimal
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AccountBalance:
+      type: object
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        buying_power:
+          type: number
+          format: decimal
+        cash_balance:
+          type: number
+          format: decimal
+        equity:
+          type: number
+          format: decimal
+        last_updated:
+          type: string
+          format: date-time
+
+    TradeOrder:
+      type: object
+      required: [account_id, symbol, action, quantity, strategy]
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        action:
+          type: string
+          enum: [BUY, SELL]
+        quantity:
+          type: integer
+        strategy:
+          type: string
+          enum: [IRON_CONDOR, BUTTERFLY_SPREAD, CALENDAR_SPREAD]
+        limit_price:
+          type: number
+          format: decimal
+        time_in_force:
+          type: string
+          enum: [DAY, GTC]
+          default: DAY
+        market_conditions:
+          type: object
+          description: Strategy-specific market conditions
+
+    LiveTrade:
+      type: object
+      properties:
+        trade_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+        public_order_id:
+          type: string
+        symbol:
+          type: string
+        strategy:
+          type: string
+          enum: [IRON_CONDOR, BUTTERFLY_SPREAD, CALENDAR_SPREAD]
+        action:
+          type: string
+          enum: [BUY, SELL]
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: decimal
+        total_value:
+          type: number
+          format: decimal
+        commission:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [PENDING, FILLED, PARTIALLY_FILLED, REJECTED, CANCELLED]
+        fill_quantity:
+          type: integer
+        average_fill_price:
+          type: number
+          format: decimal
+        executed_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    LivePosition:
+      type: object
+      properties:
+        position_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        strategy:
+          type: string
+          enum: [IRON_CONDOR, BUTTERFLY_SPREAD, CALENDAR_SPREAD]
+        quantity:
+          type: integer
+        average_price:
+          type: number
+          format: decimal
+        current_price:
+          type: number
+          format: decimal
+        unrealized_pnl:
+          type: number
+          format: decimal
+        max_risk:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [ACTIVE, CLOSED, EXPIRED]
+        opened_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+
+    OrderStatus:
+      type: object
+      properties:
+        trade_id:
+          type: string
+          format: uuid
+        public_order_id:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, SUBMITTED, FILLED, PARTIALLY_FILLED, REJECTED, CANCELLED]
+        status_message:
+          type: string
+        fill_price:
+          type: number
+          format: decimal
+        fill_quantity:
+          type: integer
+        remaining_quantity:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    RiskProfile:
+      type: object
+      properties:
+        profile_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+        max_position_size:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 1
+        max_portfolio_risk:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 1
+        max_daily_loss:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 1
+        max_daily_trades:
+          type: integer
+          minimum: 1
+        position_size_limit:
+          type: number
+          format: decimal
+          minimum: 0
+        emergency_stop_enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SystemStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [HEALTHY, DEGRADED, DOWN]
+        version:
+          type: string
+        uptime:
+          type: string
+        active_accounts:
+          type: integer
+        active_positions:
+          type: integer
+        last_health_check:
+          type: string
+          format: date-time
+        public_api_status:
+          type: string
+          enum: [CONNECTED, DISCONNECTED, DEGRADED]
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Authentication
+    description: Public.com API authentication and credential management
+  - name: Accounts
+    description: Live trading account management
+  - name: Trading
+    description: Order execution and position management
+  - name: Risk Management
+    description: Risk controls and emergency procedures
+  - name: System
+    description: System status and health monitoring

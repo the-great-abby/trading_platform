@@ -61,6 +61,7 @@
 | Market Data Service | 11084 | 11084 | ❌ Not Forwarded | http://localhost:11084/ | Market data API |
 | Backtest API | 11101 | 10001 | ❌ Not Forwarded | http://localhost:11101/ | Backtesting service |
 | Trading Engine | 11080 | 8080 | ❌ Not Forwarded | http://localhost:11080/ | Core trading engine |
+| **Live Trading Service** | **11120** | **8080** | ❌ **Not Forwarded** | **http://localhost:11120/** | **Live trading with Public.com API integration** |
 
 ### **📊 Advanced Portfolio Management Services (11180-11189)**
 | Service | External Port | Internal Port | Status | URL | Description |
@@ -169,6 +170,66 @@ curl -X POST http://localhost:11181/api/v1/risk/stress-test \
   -d '{"portfolio_id": "portfolio-123", "scenarios": [{"name": "Market Crash", "shock_return": -0.20}]}'
 ```
 
+### **Live Trading Service Commands**
+```bash
+# Check live trading service status
+curl -s http://localhost:11120/health | jq
+
+# Check system status
+curl -s http://localhost:11120/api/v1/status | jq
+
+# Check market hours
+curl -s http://localhost:11120/api/v1/status/market-hours | jq
+
+# Connect to Public.com
+curl -X POST http://localhost:11120/api/v1/auth/public-connect \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key": "your_api_key",
+    "api_secret": "your_api_secret",
+    "account_name": "My Trading Account",
+    "account_type": "CASH"
+  }'
+
+# Get account balance
+curl -s http://localhost:11120/api/v1/accounts/account-123/balance | jq
+
+# Submit a trade order
+curl -X POST http://localhost:11120/api/v1/trading/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "SPY",
+    "strategy": "IRON_CONDOR",
+    "legs": [
+      {"action": "SELL", "option_type": "CALL", "strike_price": 450, "quantity": 1, "premium": 2.50},
+      {"action": "BUY", "option_type": "CALL", "strike_price": 455, "quantity": 1, "premium": 1.00},
+      {"action": "SELL", "option_type": "PUT", "strike_price": 440, "quantity": 1, "premium": 2.00},
+      {"action": "BUY", "option_type": "PUT", "strike_price": 435, "quantity": 1, "premium": 0.50}
+    ],
+    "estimated_premium": 3.00,
+    "estimated_risk": 1000.00
+  }'
+
+# Check order status
+curl -s http://localhost:11120/api/v1/trading/orders/order-123 | jq
+
+# Get positions
+curl -s http://localhost:11120/api/v1/trading/positions | jq
+
+# Get risk profile
+curl -s http://localhost:11120/api/v1/risk/profile/account-123 | jq
+
+# Activate emergency stop
+curl -X POST http://localhost:11120/api/v1/risk/emergency-stop/account-123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Market volatility spike",
+    "severity": "HIGH",
+    "cancel_orders": true,
+    "close_positions": false
+  }'
+```
+
 ### **Start Essential Services**
 ```bash
 # Start core infrastructure
@@ -184,6 +245,9 @@ kubectl port-forward -n trading-system service/unified-news-dashboard 11113:80 &
 # Start advanced portfolio management services
 kubectl port-forward -n trading-system service/enhanced-portfolio-service 11180:80 &
 kubectl port-forward -n trading-system service/enhanced-risk-management-service 11181:80 &
+
+# Start live trading service
+kubectl port-forward -n trading-system service/live-trading-service 11120:8080 &
 
 # Start AI services
 kubectl port-forward -n trading-system service/llm-proxy 11081:11081 &
@@ -204,13 +268,17 @@ curl -s http://localhost:11114/health
 curl -s http://localhost:11180/health
 curl -s http://localhost:11181/health
 
+# Test live trading service
+curl -s http://localhost:11120/health
+curl -s http://localhost:11120/api/v1/status/market-hours
+
 # Risk Management Framework Services (Resource-Constrained)
 curl -s http://localhost:11182/health
 curl -s http://localhost:11183/health  # Database
 curl -s http://localhost:11184/health  # Redis
 
 # Test multiple services
-for port in 11114 11115 11113 11180 11181 11182 11183 11184; do
+for port in 11114 11115 11113 11120 11180 11181 11182 11183 11184; do
   echo "Testing port $port..."
   curl -s http://localhost:$port/health || echo "Port $port not responding"
 done
@@ -371,6 +439,7 @@ kubectl logs -f deployment/risk-management-redis -n trading
 
 ## 🆕 Recent Changes
 
+- **2025-01-15**: Added **Live Trading Service** (11120) with Public.com API integration, comprehensive trading endpoints, and risk management
 - **2025-01-15**: Added Comprehensive Risk Management Framework (11182-11189) with **RESOURCE-CONSTRAINED** deployment (1 replica each)
 - **2025-01-15**: Added Advanced Portfolio Management Services (11180-11189) with Enhanced Portfolio Service and Enhanced Risk Management Service
 - **2025-01-15**: Added portfolio management commands section with API examples

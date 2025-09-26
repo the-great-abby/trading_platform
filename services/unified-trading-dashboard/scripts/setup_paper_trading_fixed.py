@@ -341,7 +341,6 @@ class RiskManagedPaperTradingEngine:
                 'position_id': position_id,
                 'strategy': strategy,
                 'quantity': 1,
-                'avg_price': current_price,  # Add missing avg_price field
                 'premium_collected': premium,
                 'max_risk': max_risk,
                 'created_at': datetime.now(),

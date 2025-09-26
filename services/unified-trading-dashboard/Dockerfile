@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 COPY templates/ ./templates/
 COPY scripts/ ./scripts/
+
+# Force rebuild - update timestamp
+RUN touch /tmp/rebuild_$(date +%s)
 # COPY static/ ./static/  # Static directory doesn't exist yet
 
 # Create non-root user

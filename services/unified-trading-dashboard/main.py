@@ -1914,10 +1914,10 @@ async def start_paper_trading(config: PaperTradingConfig):
                 with open(config_file, 'w') as f:
                     json.dump(config.dict(), f)
                 
-                # Start the paper trading setup script with config
-                subprocess.run([
-                    "python3", "scripts/setup_paper_trading.py", config_file
-                ], check=True)
+                       # Start the RISK-MANAGED paper trading setup script with config
+                       subprocess.run([
+                           "python3", "scripts/setup_paper_trading.py", config_file
+                       ], check=True)
             except Exception as e:
                 logger.error(f"Paper trading error: {e}")
                 paper_trading_status.is_running = False
@@ -2021,8 +2021,8 @@ async def get_paper_trading_trades():
         with engine.connect() as conn:
             # Get recent trades from database
             result = conn.execute(text("""
-                SELECT symbol, action, quantity, price, pnl, strategy, timestamp, value
-                FROM trades 
+                SELECT symbol, action, quantity, price, realized_pnl as pnl, strategy, timestamp, premium as value
+                FROM paper_trades 
                 WHERE timestamp >= NOW() - INTERVAL '30 days'
                 ORDER BY timestamp DESC
                 LIMIT 20
@@ -2059,18 +2059,18 @@ async def get_paper_trading_performance():
             return {"status": "error", "message": "Database connection failed"}
         
         with engine.connect() as conn:
-            # Get performance data from trades table
+            # Get performance data from paper_trades table
             result = conn.execute(text("""
                 SELECT 
                     COUNT(*) as total_trades,
-                    SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
-                    SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
-                    SUM(pnl) as total_pnl,
-                    AVG(pnl) as avg_pnl,
-                    MAX(pnl) as best_trade,
-                    MIN(pnl) as worst_trade,
-                    SUM(value) as total_volume
-                FROM trades 
+                    SUM(CASE WHEN realized_pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
+                    SUM(CASE WHEN realized_pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+                    SUM(realized_pnl) as total_pnl,
+                    AVG(realized_pnl) as avg_pnl,
+                    MAX(realized_pnl) as best_trade,
+                    MIN(realized_pnl) as worst_trade,
+                    SUM(premium) as total_volume
+                FROM paper_trades 
                 WHERE timestamp >= NOW() - INTERVAL '30 days'
             """))
             performance_data = result.fetchone()
@@ -2106,10 +2106,10 @@ async def get_paper_trading_performance():
                 strategy_result = conn.execute(text("""
                     SELECT strategy, 
                            COUNT(*) as trades,
-                           SUM(pnl) as total_pnl,
-                           AVG(pnl) as avg_pnl,
-                           SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins
-                    FROM trades 
+                           SUM(realized_pnl) as total_pnl,
+                           AVG(realized_pnl) as avg_pnl,
+                           SUM(CASE WHEN realized_pnl > 0 THEN 1 ELSE 0 END) as wins
+                    FROM paper_trades 
                     WHERE timestamp >= NOW() - INTERVAL '30 days'
                     GROUP BY strategy
                     ORDER BY total_pnl DESC
