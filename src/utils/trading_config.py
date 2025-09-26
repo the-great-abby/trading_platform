@@ -73,6 +73,32 @@ MARKET_DATA_CONFIG = {
     'news_data_enabled': True
 }
 
+# Elliott Wave Analysis Configuration
+ELLIOTT_WAVE_CONFIG = {
+    'service_url': os.getenv('ELLIOTT_WAVE_SERVICE_URL', 'http://elliott-wave-service.trading-system.svc.cluster.local:8000'),
+    'timeout': int(os.getenv('ELLIOTT_WAVE_TIMEOUT', '30')),
+    'max_retries': int(os.getenv('ELLIOTT_WAVE_MAX_RETRIES', '3')),
+    'analysis_timeout': int(os.getenv('ELLIOTT_WAVE_ANALYSIS_TIMEOUT', '30')),
+    'min_confidence_threshold': float(os.getenv('ELLIOTT_WAVE_MIN_CONFIDENCE', '0.6')),
+    'tracked_symbols': ['SPY', 'QQQ', 'AAPL'],
+    'timeframe': os.getenv('ELLIOTT_WAVE_TIMEFRAME', '15m'),
+    'options_integration_enabled': True,
+    'fibonacci_levels': [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.618, 2.618],
+    'pattern_types': ['impulse', 'corrective', 'extension', 'diagonal', 'triangle', 'flat', 'zigzag'],
+    'risk_levels': {
+        'high': {'max_position_size': 0.1, 'min_confidence': 0.8},
+        'medium': {'max_position_size': 0.05, 'min_confidence': 0.6},
+        'low': {'max_position_size': 0.02, 'min_confidence': 0.4}
+    },
+    'strategy_mappings': {
+        'impulse_completion': ['StraddleStrategy', 'LongStrangleStrategy'],
+        'corrective_completion': ['IronCondorStrategy', 'ButterflySpreadStrategy'],
+        'fibonacci_retracement': ['CalendarSpreadStrategy', 'DiagonalSpreadStrategy'],
+        'wave_extension': ['VolatilityStrategy', 'StraddleStrategy'],
+        'pattern_invalidation': ['ButterflySpreadStrategy', 'IronCondorStrategy']
+    }
+}
+
 # Live Trading Configuration
 LIVE_TRADING_CONFIG = {
     'public_api': {
@@ -146,6 +172,7 @@ def get_trading_config() -> Dict[str, Any]:
         'risk_management': RISK_CONFIG,
         'order_management': ORDER_CONFIG,
         'market_data': MARKET_DATA_CONFIG,
+        'elliott_wave': ELLIOTT_WAVE_CONFIG,
         'live_trading': LIVE_TRADING_CONFIG
     }
 

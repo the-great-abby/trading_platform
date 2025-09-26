@@ -1,0 +1,492 @@
+openapi: 3.0.3
+info:
+  title: Elliott Wave Analysis Service API
+  description: Real-time Elliott Wave pattern detection for 15-minute charts with options trading integration
+  version: 1.0.0
+  contact:
+    name: Trading System Team
+    email: trading@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://elliott-wave-service.trading-system.svc.cluster.local:8000
+    description: Kubernetes cluster service
+
+paths:
+  /:
+    get:
+      summary: Root endpoint
+      description: Service information and status
+      operationId: getRoot
+      responses:
+        '200':
+          description: Service information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Ahoy matey! Elliott Wave Analysis Service is running! 🏴‍☠️"
+                  service:
+                    type: string
+                    example: "Elliott Wave Analysis"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  symbols_tracked:
+                    type: integer
+                    example: 3
+
+  /elliott-wave/symbols:
+    get:
+      summary: Get tracked symbols
+      description: Returns list of symbols being analyzed for Elliott Wave patterns
+      operationId: getTrackedSymbols
+      responses:
+        '200':
+          description: List of tracked symbols
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbols:
+                    type: array
+                    items:
+                      type: string
+                    example: ["SPY", "QQQ", "AAPL"]
+                  count:
+                    type: integer
+                    example: 3
+
+  /elliott-wave/analyze/{symbol}:
+    get:
+      summary: Analyze single symbol
+      description: Analyze a single symbol for Elliott Wave patterns
+      operationId: analyzeSingleSymbol
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "SPY"
+        - name: days_back
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 7
+            minimum: 1
+            maximum: 30
+      responses:
+        '200':
+          description: Elliott Wave analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ElliottWaveAnalysisResponse'
+        '404':
+          description: Symbol not found
+        '500':
+          description: Analysis error
+
+  /elliott-wave/analyze-all:
+    get:
+      summary: Analyze all symbols
+      description: Analyze all tracked symbols for Elliott Wave patterns
+      operationId: analyzeAllSymbols
+      responses:
+        '200':
+          description: Analysis results for all symbols
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_symbols:
+                    type: integer
+                    example: 3
+                  patterns_found:
+                    type: integer
+                    example: 2
+                  patterns:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PatternSummary'
+                  summary:
+                    type: string
+                    example: "Found 2 Elliott Wave patterns out of 3 symbols"
+
+  /elliott-wave/options-analysis/{symbol}:
+    get:
+      summary: Analyze symbol for options trading
+      description: Analyze symbol for Elliott Wave patterns and generate options trading signals
+      operationId: analyzeSymbolForOptions
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "SPY"
+        - name: days_back
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 7
+            minimum: 1
+            maximum: 30
+      responses:
+        '200':
+          description: Options analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptionsAnalysisResponse'
+        '404':
+          description: Symbol not found
+        '500':
+          description: Analysis error
+
+  /elliott-wave/options-analysis-all:
+    get:
+      summary: Analyze all symbols for options
+      description: Analyze all tracked symbols for Elliott Wave patterns and options opportunities
+      operationId: analyzeAllSymbolsForOptions
+      responses:
+        '200':
+          description: Options analysis results for all symbols
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_symbols_analyzed:
+                    type: integer
+                    example: 3
+                  symbols_with_options_signals:
+                    type: integer
+                    example: 2
+                  options_opportunities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OptionsOpportunity'
+                  summary:
+                    type: string
+                    example: "Found 2 symbols with Elliott Wave-based options opportunities"
+
+  /elliott-wave/health:
+    get:
+      summary: Health check
+      description: Service health and status information
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  service:
+                    type: string
+                    example: "Elliott Wave Analysis"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  market_data_available:
+                    type: boolean
+                    example: true
+                  options_integration:
+                    type: boolean
+                    example: true
+
+components:
+  schemas:
+    ElliottWaveAnalysisResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "SPY"
+        pattern_found:
+          type: boolean
+          example: true
+        pattern_type:
+          type: string
+          enum: [impulse, corrective, extension, diagonal, triangle, flat, zigzag]
+          example: "impulse"
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.85
+        start_time:
+          type: string
+          format: date-time
+          example: "2025-01-27T10:00:00Z"
+        end_time:
+          type: string
+          format: date-time
+          example: "2025-01-27T12:00:00Z"
+        waves:
+          type: array
+          items:
+            $ref: '#/components/schemas/WavePoint'
+        fibonacci_levels:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          example:
+            fib_0.618_retracement: 445.50
+            fib_1.0_extension: 450.00
+        target_price:
+          type: number
+          format: float
+          nullable: true
+          example: 452.30
+        invalidation_level:
+          type: number
+          format: float
+          nullable: true
+          example: 440.00
+
+    WavePoint:
+      type: object
+      properties:
+        wave_number:
+          type: integer
+          nullable: true
+          example: 3
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-27T11:30:00Z"
+        price:
+          type: number
+          format: float
+          example: 448.75
+        direction:
+          type: string
+          enum: [up, down]
+          nullable: true
+          example: "up"
+
+    PatternSummary:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "SPY"
+        pattern_type:
+          type: string
+          example: "impulse"
+        confidence:
+          type: number
+          format: float
+          example: 0.85
+        start_time:
+          type: string
+          format: date-time
+          example: "2025-01-27T10:00:00Z"
+        end_time:
+          type: string
+          format: date-time
+          example: "2025-01-27T12:00:00Z"
+        target_price:
+          type: number
+          format: float
+          nullable: true
+          example: 452.30
+        invalidation_level:
+          type: number
+          format: float
+          nullable: true
+          example: 440.00
+
+    OptionsAnalysisResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "SPY"
+        elliott_wave_pattern:
+          type: object
+          properties:
+            type:
+              type: string
+              example: "impulse"
+            confidence:
+              type: number
+              format: float
+              example: 0.85
+            waves:
+              type: integer
+              example: 5
+        options_signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/OptionsSignal'
+        trading_plan:
+          $ref: '#/components/schemas/TradingPlan'
+
+    OptionsSignal:
+      type: object
+      properties:
+        signal_type:
+          type: string
+          enum: [wave_completion_entry, fibonacci_retracement, volatility_expansion, pattern_invalidation]
+          example: "wave_completion_entry"
+        recommended_strategy:
+          type: string
+          example: "StraddleStrategy"
+        confidence:
+          type: number
+          format: float
+          example: 0.85
+        risk_level:
+          type: string
+          enum: [high, medium, low]
+          example: "high"
+        description:
+          type: string
+          example: "Wave 5 completion detected - expect volatility expansion and reversal"
+
+    TradingPlan:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "SPY"
+        primary_signal:
+          type: object
+          properties:
+            type:
+              type: string
+              example: "wave_completion_entry"
+            pattern:
+              type: string
+              example: "impulse_completion"
+            confidence:
+              type: number
+              format: float
+              example: 0.85
+            description:
+              type: string
+              example: "Wave 5 completion detected - expect volatility expansion and reversal"
+        recommended_strategy:
+          type: string
+          example: "StraddleStrategy"
+        strategy_config:
+          type: object
+          properties:
+            min_dte:
+              type: integer
+              example: 30
+            max_dte:
+              type: integer
+              example: 45
+            profit_target_pct:
+              type: number
+              format: float
+              example: 0.5
+            stop_loss_pct:
+              type: number
+              format: float
+              example: 2.0
+        strike_selection:
+          type: object
+          properties:
+            call_strike:
+              type: number
+              format: float
+              example: 459.00
+            put_strike:
+              type: number
+              format: float
+              example: 441.00
+            atm_strike:
+              type: number
+              format: float
+              example: 450.00
+        risk_management:
+          type: object
+          properties:
+            risk_level:
+              type: string
+              example: "high"
+            profit_target:
+              type: number
+              format: float
+              example: 22.50
+            stop_loss:
+              type: number
+              format: float
+              example: 9.00
+            max_position_size:
+              type: number
+              format: float
+              example: 0.1
+
+    OptionsOpportunity:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: "SPY"
+        pattern_type:
+          type: string
+          example: "impulse"
+        pattern_confidence:
+          type: number
+          format: float
+          example: 0.85
+        options_signals_count:
+          type: integer
+          example: 2
+        top_signal:
+          type: object
+          properties:
+            strategy:
+              type: string
+              example: "StraddleStrategy"
+            confidence:
+              type: number
+              format: float
+              example: 0.85
+            risk_level:
+              type: string
+              example: "high"
+
+  responses:
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "Symbol not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "Analysis error occurred"

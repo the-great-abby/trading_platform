@@ -62,6 +62,7 @@
 | Backtest API | 11101 | 10001 | ❌ Not Forwarded | http://localhost:11101/ | Backtesting service |
 | Trading Engine | 11080 | 8080 | ❌ Not Forwarded | http://localhost:11080/ | Core trading engine |
 | **Live Trading Service** | **11120** | **8080** | ❌ **Not Forwarded** | **http://localhost:11120/** | **Live trading with Public.com API integration** |
+| **Elliott Wave Analysis Service** | **11085** | **8000** | ❌ **Not Forwarded** | **http://localhost:11085/** | **Elliott Wave pattern detection with options integration** |
 
 ### **📊 Advanced Portfolio Management Services (11180-11189)**
 | Service | External Port | Internal Port | Status | URL | Description |

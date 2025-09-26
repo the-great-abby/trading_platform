@@ -31,131 +31,10 @@ import random
 import uuid
 from sqlalchemy import create_engine, text, MetaData, Table, Column, Integer, String, Float, DateTime, Boolean
 from sqlalchemy.pool import QueuePool
-import aiohttp
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-class ElliottWaveIntegration:
-    """Elliott Wave integration for existing paper trading system"""
-    
-    def __init__(self):
-        self.service_url = os.getenv('ELLIOTT_WAVE_SERVICE_URL', 
-                                   'http://elliott-wave-service.trading-system.svc.cluster.local:8000')
-        self.timeout = 30
-        self.confidence_threshold = 0.6
-        logger.info(f"🌊 Elliott Wave Integration initialized: {self.service_url}")
-    
-    async def get_elliott_signals(self, symbol: str) -> Dict:
-        """Get Elliott Wave signals from existing service"""
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
-                async with session.get(f"{self.service_url}/elliott-wave/options-analysis/{symbol}") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        logger.info(f"🌊 Elliott Wave signal for {symbol}: {data.get('action', 'HOLD')}")
-                        return data
-                    else:
-                        logger.warning(f"Elliott Wave service returned status {response.status} for {symbol}")
-        except Exception as e:
-            logger.error(f"Elliott Wave integration error for {symbol}: {e}")
-        
-        return {"action": "HOLD", "confidence": 0.0, "reason": "Service unavailable"}
-
-class TrailingStopManager:
-    """Trailing stop manager for existing position management"""
-    
-    def __init__(self):
-        self.trailing_stops = {}
-        self.stop_configs = {
-            'iron_condor': {
-                'profit_threshold': 0.5,  # 50% profit
-                'trail_percentage': 0.05,  # 5% below current
-                'min_profit': 0.3  # Minimum profit to activate
-            },
-            'butterfly_spread': {
-                'profit_threshold': 0.3,  # 30% profit
-                'trail_percentage': 0.03,  # 3% below current
-                'min_profit': 0.2
-            },
-            'calendar_spread': {
-                'profit_threshold': 0.4,  # 40% profit
-                'trail_percentage': 0.04,  # 4% below current
-                'min_profit': 0.25
-            }
-        }
-        logger.info("🛑 Trailing Stop Manager initialized")
-    
-    def set_trailing_stop(self, symbol: str, strategy: str, entry_price: float, 
-                         current_price: float, position_data: Dict):
-        """Set trailing stop based on strategy type"""
-        strategy_key = strategy.lower().replace('_', '_').replace('spread', '_spread')
-        
-        if strategy_key not in self.stop_configs:
-            return
-        
-        config = self.stop_configs[strategy_key]
-        
-        # Calculate profit percentage
-        profit_pct = (current_price - entry_price) / entry_price
-        
-        # Check if we should activate trailing stop
-        if profit_pct >= config.get('min_profit', 0.2):
-            stop_price = current_price * (1 - config['trail_percentage'])
-            
-            self.trailing_stops[symbol] = {
-                'type': 'percentage',
-                'stop_price': stop_price,
-                'strategy': strategy,
-                'entry_price': entry_price,
-                'current_price': current_price,
-                'profit_pct': profit_pct,
-                'config': config,
-                'position_data': position_data,
-                'created_at': datetime.now()
-            }
-            
-            logger.info(f"🛑 Trailing stop set for {symbol} ({strategy}): "
-                       f"Stop at ${stop_price:.2f} (Profit: {profit_pct:.1%})")
-    
-    def update_trailing_stop(self, symbol: str, current_price: float):
-        """Update trailing stop as price moves favorably"""
-        if symbol not in self.trailing_stops:
-            return
-        
-        stop_data = self.trailing_stops[symbol]
-        config = stop_data['config']
-        
-        # Calculate new profit percentage
-        profit_pct = (current_price - stop_data['entry_price']) / stop_data['entry_price']
-        
-        # Update stop to maintain percentage below current price
-        if current_price > stop_data['current_price']:
-            new_stop_price = current_price * (1 - config['trail_percentage'])
-            
-            # Only update if new stop is higher (more favorable)
-            if new_stop_price > stop_data['stop_price']:
-                stop_data['stop_price'] = new_stop_price
-                stop_data['current_price'] = current_price
-                stop_data['profit_pct'] = profit_pct
-                
-                logger.info(f"📈 Trailing stop updated for {symbol}: "
-                           f"Stop at ${new_stop_price:.2f} (Profit: {profit_pct:.1%})")
-    
-    def check_stop_triggered(self, symbol: str, current_price: float) -> bool:
-        """Check if trailing stop is triggered"""
-        if symbol not in self.trailing_stops:
-            return False
-        
-        stop_data = self.trailing_stops[symbol]
-        return current_price <= stop_data['stop_price']
-    
-    def remove_trailing_stop(self, symbol: str):
-        """Remove trailing stop when position is closed"""
-        if symbol in self.trailing_stops:
-            del self.trailing_stops[symbol]
-            logger.info(f"🛑 Trailing stop removed for {symbol}")
 
 class RiskManagedPaperTradingEngine:
     """Risk-managed paper trading engine with proper trade execution"""
@@ -186,22 +65,14 @@ class RiskManagedPaperTradingEngine:
         self.polygon_api_key = os.getenv('POLYGON_API_KEY')
         self.database_url = os.getenv('DATABASE_URL')
         
-        # NEW: Elliott Wave Integration
-        self.elliott_wave_integration = ElliottWaveIntegration()
-        
-        # NEW: Trailing Stop Manager
-        self.trailing_stop_manager = TrailingStopManager()
-        
         # Initialize database
         self.db_engine = None
         self.init_database()
         
-        logger.info(f"🚀 Enhanced Risk-Managed Paper Trading Engine initialized")
+        logger.info(f"🚀 Risk-Managed Paper Trading Engine initialized")
         logger.info(f"💰 Initial Capital: ${self.initial_capital:.2f}")
         logger.info(f"🛡️ Max Position Size: {self.max_position_size*100:.1f}%")
         logger.info(f"⚠️ Max Daily Loss: {self.max_daily_loss*100:.1f}%")
-        logger.info(f"🌊 Elliott Wave Integration: ✅ Active")
-        logger.info(f"🛑 Trailing Stops: ✅ Active")
         logger.info(f"🔑 Polygon API Key: {'✅ Available' if self.polygon_api_key else '❌ Missing'}")
         logger.info(f"🗄️ Database: {'✅ Connected' if self.db_engine else '❌ Failed'}")
     
@@ -481,12 +352,6 @@ class RiskManagedPaperTradingEngine:
             self.daily_trades += 1
             self.trade_history.append(trade_data)
             
-            # NEW: Set trailing stop for the new position
-            if action in ["SELL_IRON_CONDOR", "SELL_BUTTERFLY_SPREAD", "SELL_CALENDAR_SPREAD"]:
-                self.trailing_stop_manager.set_trailing_stop(
-                    symbol, strategy, current_price, current_price, position_data
-                )
-            
             logger.info(f"✅ {strategy} on {symbol}: Collected ${premium:.2f} premium, Risk: ${max_risk:.2f}")
             logger.info(f"💰 Cash Balance: ${self.cash_balance:.2f}")
             
@@ -496,72 +361,44 @@ class RiskManagedPaperTradingEngine:
             logger.error(f"Error executing trade: {e}")
             return False
     
-    async def calculate_strategy_signal(self, symbol: str, strategy: str) -> str:
-        """Enhanced strategy signal calculation with Elliott Wave integration"""
+    def calculate_strategy_signal(self, symbol: str, strategy: str) -> str:
+        """Calculate trading signal with realistic probabilities"""
         
-        # Check trailing stops first
-        if self.trailing_stop_manager.check_stop_triggered(symbol, await self.get_real_price(symbol)):
-            logger.info(f"🛑 Trailing stop triggered for {symbol}")
-            return "CLOSE"
-        
-        # Elliott Wave strategies
-        if strategy.startswith('ElliottWave'):
-            try:
-                elliott_signal = await self.elliott_wave_integration.get_elliott_signals(symbol)
-                action = elliott_signal.get('action', 'HOLD')
-                confidence = elliott_signal.get('confidence', 0.0)
-                
-                if confidence >= self.elliott_wave_integration.confidence_threshold:
-                    logger.info(f"🌊 Elliott Wave signal for {symbol}: {action} (confidence: {confidence:.2f})")
-                    return action
-                else:
-                    logger.info(f"🌊 Elliott Wave signal for {symbol}: HOLD (low confidence: {confidence:.2f})")
-                    return "HOLD"
-                    
-            except Exception as e:
-                logger.error(f"Elliott Wave signal error for {symbol}: {e}")
-                return "HOLD"
-        
-        # Existing strategy logic
         if strategy == "IronCondor":
-            if random.random() < 0.15:  # 15% chance
+            # Iron Condor: Look for range-bound, low volatility conditions
+            if random.random() < 0.15:  # 15% chance (realistic)
                 return "SELL_IRON_CONDOR"
         
         elif strategy == "ButterflySpread":
+            # Butterfly Spread: Limited risk/reward strategy
             if random.random() < 0.12:  # 12% chance
                 return "SELL_BUTTERFLY_SPREAD"
         
         elif strategy == "CalendarSpread":
+            # Calendar Spread: Time decay strategy
             if random.random() < 0.10:  # 10% chance
                 return "SELL_CALENDAR_SPREAD"
         
         elif strategy == "RegimeSwitching":
+            # Regime Switching: Adaptive based on market conditions
             if random.random() < 0.08:  # 8% chance
                 return "BUY" if random.random() > 0.5 else "SELL"
         
         elif strategy == "BollingerBands":
+            # Bollinger Bands: Mean reversion strategy
             if random.random() < 0.06:  # 6% chance
                 return "BUY" if random.random() > 0.5 else "SELL"
         
         return "HOLD"
     
     async def update_positions(self):
-        """Enhanced position updates with trailing stops"""
+        """Update position values and handle expirations"""
         current_time = datetime.now()
         
         for symbol, position in list(self.active_positions.items()):
             try:
                 # Get current price
                 current_price = await self.get_real_price(symbol)
-                
-                # Update trailing stop
-                self.trailing_stop_manager.update_trailing_stop(symbol, current_price)
-                
-                # Check if trailing stop is triggered
-                if self.trailing_stop_manager.check_stop_triggered(symbol, current_price):
-                    logger.info(f"🛑 Trailing stop triggered for {symbol}")
-                    self.close_position(symbol, current_price, "TRAILING_STOP")
-                    continue
                 
                 # Calculate time decay (options lose value over time)
                 days_held = (current_time - position['created_at']).days
@@ -583,12 +420,12 @@ class RiskManagedPaperTradingEngine:
                 # Check for expiration (simplified - close after 30 days)
                 if days_held >= 30:
                     self.close_position(symbol, current_price, "EXPIRED")
-                    
+                
             except Exception as e:
                 logger.error(f"Error updating position for {symbol}: {e}")
     
     def close_position(self, symbol: str, close_price: float, reason: str = "MANUAL"):
-        """Enhanced position closing with trailing stop cleanup"""
+        """Close a position and realize P&L"""
         if symbol not in self.active_positions:
             return
         
@@ -607,9 +444,6 @@ class RiskManagedPaperTradingEngine:
         
         # Log the closure
         logger.info(f"🔒 Closed {position['strategy']} on {symbol}: P&L ${realized_pnl:.2f} ({reason})")
-        
-        # NEW: Remove trailing stop
-        self.trailing_stop_manager.remove_trailing_stop(symbol)
         
         # Remove from active positions
         del self.active_positions[symbol]
@@ -660,16 +494,11 @@ class RiskManagedPaperTradingEngine:
                 continue  # Skip if we already have a position
             
             for strategy in strategies:
-                signal = await self.calculate_strategy_signal(symbol, strategy)
+                signal = self.calculate_strategy_signal(symbol, strategy)
                 if signal != "HOLD":
-                    if signal == "CLOSE":
-                        # Handle trailing stop close
-                        current_price = await self.get_real_price(symbol)
-                        self.close_position(symbol, current_price, "TRAILING_STOP")
-                    else:
-                        success = await self.execute_trade(symbol, signal, strategy)
-                        if success:
-                            break  # Only one trade per symbol per cycle
+                    success = await self.execute_trade(symbol, signal, strategy)
+                    if success:
+                        break  # Only one trade per symbol per cycle
         
         logger.info(f"📊 Portfolio Value: ${self.portfolio_value:.2f} (Cash: ${self.cash_balance:.2f}, Unrealized: ${total_unrealized:.2f})")
     
