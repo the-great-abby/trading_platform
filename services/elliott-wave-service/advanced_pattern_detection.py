@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import logging
 
-from .models import (
+from models import (
     WavePoint, ElliottWavePattern, FibonacciLevel, WaveRelationship,
     PatternAnalysis, WaveType, WaveDirection
 )

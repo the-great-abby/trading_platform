@@ -2,7 +2,7 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-09-25 13:44:40 EEST
+**Last Updated**: 2025-09-28 09:08:03 EEST
 **Active Port Forwards**: 3  
 **Total Services**: 50+  
 **Paper Trading**: ✅ **ACTIVE** (Running since 05:31:15)  
@@ -21,11 +21,11 @@
 
 | Metric | Value | Details |
 |--------|-------|---------|
-| **Status** | ✅ **RUNNING** | Active since 2025-09-20 17:17:03 |
-| **Portfolio Value** | **$2,000.00** | Initial capital |
+| **Status** | ✅ **RUNNING** | Active since 2025-09-28 15:07:59 |
+| **Portfolio Value** | **$4,000.00** | Initial capital |
 | **Total Trades** | **0** | No completed trades yet |
 | **Total P&L** | **$0.00** | No realized gains/losses |
-| **Active Strategies** | **3** | IronCondor, ButterflySpread, CalendarSpread |
+| **Active Strategies** | **5** | ElliottWaveImpulse, ElliottWaveCorrective, IronCondor, ButterflySpread, CalendarSpread |
 | **Trading Symbols** | **3** | AMD, PYPL, INTC |
 | **Trading Interval** | **5 minutes** | 300 seconds between cycles |
 | **Max Risk Per Trade** | **5%** | $100 max risk per trade |
@@ -61,7 +61,7 @@
 | Market Data Service | 11084 | 11084 | ❌ Not Forwarded | http://localhost:11084/ | Market data API |
 | Backtest API | 11101 | 10001 | ❌ Not Forwarded | http://localhost:11101/ | Backtesting service |
 | Trading Engine | 11080 | 8080 | ❌ Not Forwarded | http://localhost:11080/ | Core trading engine |
-| **Live Trading Service** | **11120** | **8080** | ❌ **Not Forwarded** | **http://localhost:11120/** | **Live trading with Public.com API integration** |
+| **Live Trading Service** | **11120** | **8080** | ✅ **Active** | **http://localhost:11120/** | **Live trading with Public.com API integration** |
 | **Elliott Wave Analysis Service** | **11085** | **8000** | ❌ **Not Forwarded** | **http://localhost:11085/** | **Elliott Wave pattern detection with options integration** |
 
 ### **📊 Advanced Portfolio Management Services (11180-11189)**

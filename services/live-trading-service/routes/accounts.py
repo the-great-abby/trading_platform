@@ -11,6 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from src.services.live_trading.database import get_db_session
 from src.services.live_trading.public_api_client import PublicAPIClient
@@ -58,7 +59,7 @@ async def get_accounts(
     Returns a list of all configured live trading accounts.
     """
     try:
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 account_id,
                 public_account_id,
@@ -71,7 +72,7 @@ async def get_accounts(
                 created_at
             FROM live_trading_accounts
             ORDER BY created_at DESC
-        """)
+        """))
         
         accounts = result.fetchall()
         
@@ -117,7 +118,7 @@ async def get_account(
         Account information
     """
     try:
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 account_id,
                 public_account_id,
@@ -127,7 +128,7 @@ async def get_account(
                 created_at
             FROM live_trading_accounts
             WHERE account_id = :account_id
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account = result.fetchone()
         
@@ -172,7 +173,7 @@ async def get_account_balance(
     """
     try:
         # Get stored credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
                 c.access_token,
@@ -181,7 +182,7 @@ async def get_account_balance(
             FROM live_trading_accounts a
             JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id AND c.is_active = true
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account_data = result.fetchone()
         
@@ -214,7 +215,7 @@ async def get_account_balance(
         balance_response = await api_client.get_account_balance(public_account_id)
         
         # Update local account balance
-        await db.execute("""
+        await db.execute(text("""
             UPDATE live_trading_accounts 
             SET 
                 buying_power = :buying_power,
@@ -222,7 +223,7 @@ async def get_account_balance(
                 equity = :equity,
                 updated_at = :updated_at
             WHERE account_id = :account_id
-        """, {
+        """), {
             "buying_power": balance_response.get("buying_power", 0),
             "cash_balance": balance_response.get("cash_balance", 0),
             "equity": balance_response.get("equity", 0),
@@ -273,7 +274,7 @@ async def sync_account_data(
     """
     try:
         # Get stored credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
                 c.access_token,
@@ -282,7 +283,7 @@ async def sync_account_data(
             FROM live_trading_accounts a
             JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id AND c.is_active = true
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account_data = result.fetchone()
         
@@ -328,7 +329,7 @@ async def sync_account_data(
             )
         
         # Update local account data
-        await db.execute("""
+        await db.execute(text("""
             UPDATE live_trading_accounts 
             SET 
                 buying_power = :buying_power,
@@ -336,7 +337,7 @@ async def sync_account_data(
                 equity = :equity,
                 updated_at = :updated_at
             WHERE account_id = :account_id
-        """, {
+        """), {
             "buying_power": public_account.get("buying_power", 0),
             "cash_balance": public_account.get("cash_balance", 0),
             "equity": public_account.get("equity", 0),

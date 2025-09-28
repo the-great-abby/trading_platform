@@ -383,3 +383,5 @@ async def get_rebalancing_history(
         logger.error(f"Error getting rebalancing history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+

@@ -585,3 +585,5 @@ def initialize_market_data_integration(
     logger.info("Market data service integration initialized")
     return _market_data_integration
 
+
+

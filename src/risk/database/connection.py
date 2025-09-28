@@ -338,3 +338,5 @@ def drop_tables() -> None:
         logger.error(f"Failed to drop database tables: {str(e)}")
         raise
 
+
+

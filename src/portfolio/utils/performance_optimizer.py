@@ -492,3 +492,5 @@ def reset_performance_metrics():
     """Reset performance metrics"""
     performance_optimizer.reset_metrics()
 
+
+

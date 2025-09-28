@@ -246,3 +246,5 @@ class TestPortfolioAPIContract:
         assert "error" in error_data
         assert error_data["error"]["code"] == "PORTFOLIO_NOT_FOUND"
 
+
+

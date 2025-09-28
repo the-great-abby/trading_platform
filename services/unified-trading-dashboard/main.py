@@ -1914,10 +1914,10 @@ async def start_paper_trading(config: PaperTradingConfig):
                 with open(config_file, 'w') as f:
                     json.dump(config.dict(), f)
                 
-                       # Start the RISK-MANAGED paper trading setup script with config
-                       subprocess.run([
-                           "python3", "scripts/setup_paper_trading.py", config_file
-                       ], check=True)
+                # Start the RISK-MANAGED paper trading setup script with config
+                subprocess.run([
+                    "python3", "scripts/setup_paper_trading.py", config_file
+                ], check=True)
             except Exception as e:
                 logger.error(f"Paper trading error: {e}")
                 paper_trading_status.is_running = False
@@ -2099,8 +2099,16 @@ async def get_paper_trading_performance():
                 # Calculate win rate
                 win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
                 
-                # Calculate portfolio value (initial capital + total P&L)
-                portfolio_value = paper_trading_config.initial_capital + total_pnl
+                # Get unrealized P&L from open positions
+                unrealized_result = conn.execute(text("""
+                    SELECT COALESCE(SUM(unrealized_pnl), 0) as unrealized_pnl
+                    FROM paper_positions 
+                    WHERE status = 'ACTIVE'
+                """))
+                unrealized_pnl = float(unrealized_result.fetchone().unrealized_pnl or 0)
+                
+                # Calculate portfolio value (initial capital + realized P&L + unrealized P&L)
+                portfolio_value = paper_trading_config.initial_capital + total_pnl + unrealized_pnl
                 
                 # Get strategy performance
                 strategy_result = conn.execute(text("""

@@ -367,3 +367,5 @@ def is_risk_config_valid() -> bool:
     """Check if the global risk management configuration is valid."""
     return _config_manager.is_configuration_valid()
 
+
+

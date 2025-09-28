@@ -450,3 +450,5 @@ async def calculate_tax_efficiency(portfolio_id: str):
         logger.error(f"Error calculating tax efficiency: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+

@@ -532,3 +532,5 @@ def initialize_portfolio_integration(
     logger.info("Portfolio service integration initialized")
     return _portfolio_integration
 
+
+

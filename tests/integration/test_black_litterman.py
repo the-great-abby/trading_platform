@@ -351,3 +351,5 @@ class TestBlackLittermanIntegration:
         assert result.optimization_time < 60.0  # Must complete within 60 seconds
         assert result.convergence_status == True
 
+
+

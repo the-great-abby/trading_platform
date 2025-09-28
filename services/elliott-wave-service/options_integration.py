@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import logging
 
-from .models import (
+from models import (
     ElliottWavePattern, TradingSignal, SignalType, RiskLevel,
     WaveType, WaveDirection
 )

@@ -64,8 +64,18 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Get database URL from environment
+    database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot')
+    
+    # Convert asyncpg URL to psycopg2 for Alembic
+    if 'postgresql+asyncpg://' in database_url:
+        database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
+    
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration['sqlalchemy.url'] = database_url
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

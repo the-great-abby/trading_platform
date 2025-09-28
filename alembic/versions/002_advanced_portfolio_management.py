@@ -294,3 +294,5 @@ def downgrade():
     op.drop_table('assets')
     op.drop_table('portfolios')
 
+
+

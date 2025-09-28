@@ -19,16 +19,11 @@ spec:
     spec:
       containers:
       - name: elliott-wave-service
-        image: elliott-wave-service:latest
+        image: localhost:32000/elliott-wave-service:latest
         ports:
         - containerPort: 8000
           name: http
         env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: trading-secrets
-              key: database-url
         - name: MARKET_DATA_SERVICE_URL
           value: "http://market-data-service.trading-system.svc.cluster.local:8000"
         - name: LOG_LEVEL

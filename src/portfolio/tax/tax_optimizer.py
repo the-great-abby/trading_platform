@@ -371,3 +371,5 @@ class TaxOptimizer:
             return self.market_data_service.get_current_price(asset_id)
         return None
 
+
+

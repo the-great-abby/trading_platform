@@ -268,3 +268,5 @@ class StressTestResult:
                 f"portfolio_value_change_pct={self.portfolio_value_change_pct:.3f}, "
                 f"status={self.status.value})")
 
+
+

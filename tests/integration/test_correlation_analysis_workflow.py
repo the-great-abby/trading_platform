@@ -75,3 +75,5 @@ class TestCorrelationAnalysisWorkflow:
             assert result_data["effective_number_of_assets"] >= 1
             assert isinstance(result_data["recommendations"], list)
 
+
+

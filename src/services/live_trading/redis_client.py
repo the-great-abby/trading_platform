@@ -49,6 +49,12 @@ class RedisClient:
             logger.error(f"Failed to connect to Redis: {str(e)}")
             raise
     
+    async def ping(self):
+        """Ping Redis server to check connectivity."""
+        if not self.redis:
+            raise Exception("Redis client not connected")
+        return await self.redis.ping()
+    
     async def disconnect(self):
         """Disconnect from Redis."""
         try:

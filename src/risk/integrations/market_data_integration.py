@@ -678,3 +678,5 @@ def initialize_market_data(config: MarketDataConfig = None) -> MarketDataManager
     
     return _market_data_manager
 
+
+

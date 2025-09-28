@@ -12,6 +12,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from src.services.live_trading.database import get_db_session
 from src.services.live_trading.market_hours_service import MarketHoursService
@@ -296,18 +297,18 @@ async def get_database_status(
     try:
         # Test database connection
         start_time = datetime.utcnow()
-        await db.execute("SELECT 1")
+        await db.execute(text("SELECT 1"))
         end_time = datetime.utcnow()
         
         response_time = (end_time - start_time).total_seconds() * 1000  # Convert to milliseconds
         
         # Get basic database stats
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 COUNT(*) as total_accounts,
                 COUNT(CASE WHEN is_active = true THEN 1 END) as active_accounts
             FROM live_trading_accounts
-        """)
+        """))
         stats = result.fetchone()
         
         return {
@@ -346,7 +347,7 @@ async def get_public_api_status():
         return {
             "status": "healthy",
             "api_version": "v1",
-            "base_url": api_client.config.base_url,
+            "base_url": api_client.config.api_base_url,
             "rate_limits": {
                 "requests_per_minute": 100,
                 "requests_per_hour": 1000
@@ -399,7 +400,7 @@ async def _perform_health_checks() -> Dict[str, Any]:
         from src.services.live_trading.database import async_session_maker
         async with async_session_maker() as session:
             start_time = datetime.utcnow()
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
             end_time = datetime.utcnow()
             response_time = (end_time - start_time).total_seconds() * 1000
             
@@ -436,7 +437,7 @@ async def _perform_health_checks() -> Dict[str, Any]:
         # Test basic connectivity
         checks["public_api"] = {
             "status": "healthy",
-            "base_url": api_client.config.base_url,
+            "base_url": api_client.config.api_base_url,
             "timeout": api_client.config.timeout
         }
         await api_client.close()
@@ -454,7 +455,7 @@ async def _check_database() -> Dict[str, Any]:
     try:
         from src.services.live_trading.database import async_session_maker
         async with async_session_maker() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         return {"status": "healthy", "connection": "active"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
@@ -481,7 +482,7 @@ async def _check_public_api() -> Dict[str, Any]:
         # Basic connectivity test
         return {
             "status": "healthy",
-            "base_url": api_client.config.base_url
+            "base_url": api_client.config.api_base_url
         }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}

@@ -454,3 +454,5 @@ async def get_benchmark_data(benchmark: str = "SPY", days: int = 252) -> Optiona
     manager = get_portfolio_market_data_manager()
     return await manager.get_benchmark_data(benchmark, days)
 
+
+

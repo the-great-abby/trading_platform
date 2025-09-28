@@ -14,9 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from .models import ElliottWavePattern, WaveType, HealthCheckResponse
-from .advanced_pattern_detection import AdvancedElliottWaveDetector
-from .options_integration import ElliottWaveOptionsIntegrator
+from models import ElliottWavePattern, WaveType, HealthCheckResponse
+from advanced_pattern_detection import AdvancedElliottWaveDetector
+from options_integration import ElliottWaveOptionsIntegrator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

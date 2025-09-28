@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from src.services.live_trading.models import LiveTradingAccount, APICredentials, RiskProfile
 from src.services.live_trading.public_api_client import PublicAPIClient
@@ -29,10 +30,10 @@ security = HTTPBearer()
 # Pydantic models for request/response
 class PublicConnectRequest(BaseModel):
     """Request model for Public.com connection."""
-    api_key: str = Field(..., description="Public.com API key")
-    api_secret: str = Field(..., description="Public.com API secret")
+    secret_key: str = Field(..., description="Public.com secret key for token generation")
     account_name: str = Field(..., description="Human-readable account name")
     account_type: str = Field(default="CASH", description="Account type (CASH or MARGIN)")
+    validity_minutes: int = Field(default=1440, description="Token validity in minutes (default 24 hours)")
 
 
 class PublicConnectResponse(BaseModel):
@@ -79,10 +80,9 @@ async def connect_to_public(
         # Create Public.com API client
         api_client = PublicAPIClient()
         
-        # Authenticate with Public.com
+        # Authenticate with Public.com using secret key
         auth_response = await api_client.authenticate(
-            api_key=request.api_key,
-            api_secret=request.api_secret
+            secret_key=request.secret_key
         )
         
         # Get account information from Public.com
@@ -96,11 +96,13 @@ async def connect_to_public(
         
         # Use the first account (can be extended to support multiple accounts)
         public_account = accounts_response["accounts"][0]
-        public_account_id = public_account["id"]
+        logger.info(f"Public.com account data: {public_account}")
+        public_account_id = public_account.get("accountId") or public_account.get("id")
+        logger.info(f"Extracted public_account_id: {public_account_id}")
         
         # Check if account already exists
         existing_account = await db.execute(
-            "SELECT account_id FROM live_trading_accounts WHERE public_account_id = :public_id",
+            text("SELECT account_id FROM live_trading_accounts WHERE public_account_id = :public_id"),
             {"public_id": public_account_id}
         )
         existing_account = existing_account.fetchone()
@@ -145,16 +147,17 @@ async def connect_to_public(
             
             db.add(risk_profile)
             
+            # Commit the account and risk profile first
+            await db.commit()
+            
             logger.info(f"Created new account: {account_id}")
         
         # Store encrypted credentials
         credential_id = str(uuid4())
         
         # Encrypt credentials (simplified - in production use proper encryption)
-        encrypted_api_key = api_client._encrypt_data(request.api_key)
-        encrypted_api_secret = api_client._encrypt_data(request.api_secret)
+        encrypted_secret_key = api_client._encrypt_data(request.secret_key)
         encrypted_access_token = api_client._encrypt_data(auth_response["access_token"])
-        encrypted_refresh_token = api_client._encrypt_data(auth_response["refresh_token"])
         
         # Calculate token expiration
         expires_at = datetime.utcnow() + timedelta(seconds=auth_response["expires_in"])
@@ -163,10 +166,10 @@ async def connect_to_public(
         credentials = APICredentials(
             credential_id=credential_id,
             account_id=account_id,
-            encrypted_api_key=encrypted_api_key,
-            encrypted_api_secret=encrypted_api_secret,
+            encrypted_api_key=encrypted_secret_key,  # Store secret key
+            encrypted_api_secret="",  # Not used for Public.com
             access_token=encrypted_access_token,
-            refresh_token=encrypted_refresh_token,
+            refresh_token="",  # Not used for Public.com
             token_expires_at=expires_at,
             is_active=True,
             last_used_at=datetime.utcnow()
@@ -267,7 +270,7 @@ async def get_auth_status(
     """
     try:
         # Get account and credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.account_name,
                 a.is_active,
@@ -277,7 +280,7 @@ async def get_auth_status(
             FROM live_trading_accounts a
             LEFT JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account_data = result.fetchone()
         
@@ -324,11 +327,11 @@ async def refresh_access_token(
     """
     try:
         # Get stored credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT credential_id, refresh_token, access_token
             FROM api_credentials 
             WHERE account_id = :account_id AND is_active = true
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         credentials = result.fetchone()
         
@@ -352,7 +355,7 @@ async def refresh_access_token(
         expires_at = datetime.utcnow() + timedelta(seconds=token_response["expires_in"])
         
         # Update credentials
-        await db.execute("""
+        await db.execute(text("""
             UPDATE api_credentials 
             SET 
                 access_token = :access_token,
@@ -360,7 +363,7 @@ async def refresh_access_token(
                 token_expires_at = :expires_at,
                 last_used_at = :last_used
             WHERE credential_id = :credential_id
-        """, {
+        """), {
             "access_token": encrypted_access_token,
             "refresh_token": encrypted_refresh_token,
             "expires_at": expires_at,
@@ -402,7 +405,7 @@ async def list_connected_accounts(
     Returns a list of all accounts that are connected to Public.com.
     """
     try:
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.account_id,
                 a.public_account_id,
@@ -419,7 +422,7 @@ async def list_connected_accounts(
             LEFT JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.is_active = true
             ORDER BY a.created_at DESC
-        """)
+        """))
         
         accounts = result.fetchall()
         

@@ -5,7 +5,7 @@ SQLAlchemy models for the live trading system.
 Defines all database entities for live trading operations.
 """
 
-from sqlalchemy import Column, String, DateTime, Boolean, Decimal, Integer, ForeignKey, Text, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, Boolean, Numeric, Integer, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -77,9 +77,9 @@ class LiveTradingAccount(Base):
     public_account_id = Column(String(100), unique=True, nullable=False)
     account_name = Column(String(255), nullable=False)
     account_type = Column(SQLEnum(AccountType), nullable=False)
-    buying_power = Column(Decimal(15, 2), nullable=False, default=0.00)
-    cash_balance = Column(Decimal(15, 2), nullable=False, default=0.00)
-    equity = Column(Decimal(15, 2), nullable=False, default=0.00)
+    buying_power = Column(Numeric(15, 2), nullable=False, default=0.00)
+    cash_balance = Column(Numeric(15, 2), nullable=False, default=0.00)
+    equity = Column(Numeric(15, 2), nullable=False, default=0.00)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -104,10 +104,10 @@ class LivePosition(Base):
     symbol = Column(String(50), nullable=False)
     strategy = Column(SQLEnum(StrategyType), nullable=False)
     quantity = Column(Integer, nullable=False)
-    average_price = Column(Decimal(10, 4), nullable=False)
-    current_price = Column(Decimal(10, 4))
-    unrealized_pnl = Column(Decimal(15, 2), default=0.00)
-    realized_pnl = Column(Decimal(15, 2), default=0.00)
+    average_price = Column(Numeric(10, 4), nullable=False)
+    current_price = Column(Numeric(10, 4))
+    unrealized_pnl = Column(Numeric(15, 2), default=0.00)
+    realized_pnl = Column(Numeric(15, 2), default=0.00)
     status = Column(SQLEnum(PositionStatus), nullable=False, default=PositionStatus.OPEN)
     opened_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     closed_at = Column(DateTime)
@@ -138,12 +138,12 @@ class LiveTrade(Base):
     symbol = Column(String(50), nullable=False)
     action = Column(SQLEnum(TradeAction), nullable=False)
     option_type = Column(SQLEnum(OptionType))
-    strike_price = Column(Decimal(10, 4))
+    strike_price = Column(Numeric(10, 4))
     expiration_date = Column(DateTime)
     quantity = Column(Integer, nullable=False)
-    price = Column(Decimal(10, 4), nullable=False)
-    total_amount = Column(Decimal(15, 2), nullable=False)
-    commission = Column(Decimal(10, 4), default=0.00)
+    price = Column(Numeric(10, 4), nullable=False)
+    total_amount = Column(Numeric(15, 2), nullable=False)
+    commission = Column(Numeric(10, 4), default=0.00)
     status = Column(SQLEnum(TradeStatus), nullable=False, default=TradeStatus.PENDING)
     filled_quantity = Column(Integer, default=0)
     remaining_quantity = Column(Integer, nullable=False)
@@ -171,9 +171,9 @@ class RiskProfile(Base):
     
     risk_profile_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     account_id = Column(UUID(as_uuid=True), ForeignKey("live_trading_accounts.account_id"), nullable=False, unique=True)
-    max_position_size = Column(Decimal(15, 2), nullable=False)
-    max_portfolio_risk = Column(Decimal(5, 4), nullable=False)  # Percentage as decimal (0.05 = 5%)
-    max_daily_loss = Column(Decimal(15, 2), nullable=False)
+    max_position_size = Column(Numeric(15, 2), nullable=False)
+    max_portfolio_risk = Column(Numeric(5, 4), nullable=False)  # Percentage as decimal (0.05 = 5%)
+    max_daily_loss = Column(Numeric(15, 2), nullable=False)
     max_daily_trades = Column(Integer, nullable=False)
     allowed_strategies = Column(Text, nullable=False)  # JSON array of allowed strategies
     max_greeks_exposure = Column(Text, nullable=False)  # JSON object of Greeks limits
@@ -224,8 +224,8 @@ class TradeSignal(Base):
     symbol = Column(String(50), nullable=False)
     strategy = Column(SQLEnum(StrategyType), nullable=False)
     signal_type = Column(String(50), nullable=False)  # ENTRY, EXIT, ADJUSTMENT
-    signal_strength = Column(Decimal(3, 2), nullable=False)  # 0.00 to 1.00
-    confidence_score = Column(Decimal(3, 2), nullable=False)  # 0.00 to 1.00
+    signal_strength = Column(Numeric(3, 2), nullable=False)  # 0.00 to 1.00
+    confidence_score = Column(Numeric(3, 2), nullable=False)  # 0.00 to 1.00
     market_conditions = Column(Text)  # JSON object of market conditions
     signal_data = Column(Text, nullable=False)  # JSON object of signal parameters
     status = Column(String(20), nullable=False, default="PENDING")  # PENDING, EXECUTED, CANCELLED, EXPIRED
@@ -251,8 +251,8 @@ class OrderStatus(Base):
     status_message = Column(Text)
     filled_quantity = Column(Integer, default=0)
     remaining_quantity = Column(Integer, nullable=False)
-    average_price = Column(Decimal(10, 4))
-    commission = Column(Decimal(10, 4), default=0.00)
+    average_price = Column(Numeric(10, 4))
+    commission = Column(Numeric(10, 4), default=0.00)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     external_status = Column(Text)  # Raw status from Public.com API
     error_details = Column(Text)

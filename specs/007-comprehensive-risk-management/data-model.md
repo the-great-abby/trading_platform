@@ -430,3 +430,5 @@ CREATE INDEX idx_risk_contributions_metrics_asset ON risk_contributions(risk_met
 - Monthly partitions for optimal query performance
 - Automatic partition management for data retention
 
+
+

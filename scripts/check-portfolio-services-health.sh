@@ -188,3 +188,5 @@ echo "• scripts/deploy-enhanced-portfolio-services.sh: Deployment script"
 
 exit $overall_status
 
+
+

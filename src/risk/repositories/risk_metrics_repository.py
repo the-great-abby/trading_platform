@@ -396,3 +396,5 @@ class RiskMetricsDB:
         sa.Index('idx_risk_metrics_calculation_method', 'calculation_method'),
     )
 
+
+

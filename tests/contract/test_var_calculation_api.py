@@ -482,3 +482,5 @@ class TestVaRCalculationAPI:
             assert isinstance(metadata["calculation_duration_ms"], int)
             assert isinstance(metadata["data_quality_score"], (int, float))
 
+
+

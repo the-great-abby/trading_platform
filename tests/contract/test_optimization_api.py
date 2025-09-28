@@ -287,3 +287,5 @@ class TestOptimizationAPIContract:
         assert "constraint_violations" in response_data
         assert isinstance(response_data["constraint_violations"], list)
 
+
+

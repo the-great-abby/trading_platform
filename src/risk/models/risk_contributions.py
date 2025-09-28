@@ -320,3 +320,5 @@ class RiskContributions:
                 f"systematic_risk={self.systematic_risk}, "
                 f"idiosyncratic_risk={self.idiosyncratic_risk})")
 
+
+

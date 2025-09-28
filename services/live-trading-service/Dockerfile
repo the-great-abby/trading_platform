@@ -17,16 +17,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY services/live-trading-service/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY main.py .
-COPY routes/ ./routes/
-COPY src/ ./src/
+COPY services/live-trading-service/main.py .
+COPY services/live-trading-service/routes/ ./routes/
+COPY src/services/live_trading/ ./src/services/live_trading/
 
 # Create non-root user
 RUN groupadd -r trading && useradd -r -g trading trading

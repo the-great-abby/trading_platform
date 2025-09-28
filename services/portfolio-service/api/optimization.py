@@ -307,3 +307,5 @@ async def get_optimization_details(optimization_id: str):
         logger.error(f"Error getting optimization details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+

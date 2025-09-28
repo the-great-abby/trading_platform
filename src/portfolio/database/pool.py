@@ -391,3 +391,5 @@ class AdvancedPoolManager:
             "recommendations": self.optimizer.analyze_pool_performance(metrics_history).get("recommendations", [])
         }
 
+
+

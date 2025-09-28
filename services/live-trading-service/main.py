@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from sqlalchemy import text
 
 from src.services.live_trading.database import init_database, close_database
 
@@ -66,13 +67,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         
         # Log request
         logger.info(
-            f"Request processed",
-            request_id=request_id,
-            method=request.method,
-            url=str(request.url),
-            status_code=response.status_code,
-            process_time=process_time,
-            client_ip=request.client.host if request.client else "unknown"
+            f"Request processed - ID: {request_id}, Method: {request.method}, URL: {str(request.url)}, "
+            f"Status: {response.status_code}, Time: {process_time:.4f}s, "
+            f"IP: {request.client.host if request.client else 'unknown'}"
         )
         
         return response
@@ -192,7 +189,7 @@ app.add_middleware(RateLimitMiddleware, calls=100, period=60)
 # Add trusted host middleware
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "trading.local", "*.trading.local"]
+    allowed_hosts=["localhost", "127.0.0.1", "trading.local", "*.trading.local", "*"]
 )
 
 # Include API routes
@@ -201,12 +198,18 @@ from routes.accounts import router as accounts_router
 from routes.trading import router as trading_router
 from routes.risk import router as risk_router
 from routes.status import router as status_router
+from routes.strategies import router as strategies_router
+from routes.risk_management import router as risk_management_router
+from routes.trailing_stops import router as trailing_stops_router
 
 app.include_router(auth_router)
 app.include_router(accounts_router)
 app.include_router(trading_router)
 app.include_router(risk_router)
 app.include_router(status_router)
+app.include_router(strategies_router)
+app.include_router(risk_management_router)
+app.include_router(trailing_stops_router)
 
 
 @app.get("/health")
@@ -216,10 +219,12 @@ async def health_check():
         # Check database connectivity
         from src.services.live_trading.database import async_session_maker
         async with async_session_maker() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         
         # Check Redis connectivity
         from src.services.live_trading.database import redis_client
+        if not redis_client.redis:
+            await redis_client.connect()
         await redis_client.ping()
         
         return {
@@ -256,7 +261,7 @@ async def readiness_check():
         try:
             from src.services.live_trading.database import async_session_maker
             async with async_session_maker() as session:
-                await session.execute("SELECT 1")
+                await session.execute(text("SELECT 1"))
             checks["database"] = "ready"
         except Exception as e:
             checks["database"] = f"not ready: {str(e)}"
@@ -264,6 +269,8 @@ async def readiness_check():
         # Check Redis
         try:
             from src.services.live_trading.database import redis_client
+            if not redis_client.redis:
+                await redis_client.connect()
             await redis_client.ping()
             checks["redis"] = "ready"
         except Exception as e:

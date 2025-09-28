@@ -114,7 +114,7 @@ async def submit_order(
             )
         
         # Get stored credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
                 c.access_token,
@@ -123,7 +123,7 @@ async def submit_order(
             FROM live_trading_accounts a
             JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id AND c.is_active = true
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account_data = result.fetchone()
         
@@ -213,7 +213,7 @@ async def get_order_status(
     """
     try:
         # Get stored credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
                 c.access_token,
@@ -222,7 +222,7 @@ async def get_order_status(
             FROM live_trading_accounts a
             JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id AND c.is_active = true
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account_data = result.fetchone()
         
@@ -286,7 +286,7 @@ async def cancel_order(
     """
     try:
         # Get stored credentials
-        result = await db.execute("""
+        result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
                 c.access_token,
@@ -295,7 +295,7 @@ async def cancel_order(
             FROM live_trading_accounts a
             JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id AND c.is_active = true
-        """, {"account_id": account_id})
+        """), {"account_id": account_id})
         
         account_data = result.fetchone()
         

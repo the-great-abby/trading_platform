@@ -455,3 +455,5 @@ async def delete_backtest(backtest_id: str):
         logger.error(f"Error deleting backtest: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+

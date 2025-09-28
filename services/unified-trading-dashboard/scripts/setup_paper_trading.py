@@ -83,6 +83,16 @@ class TrailingStopManager:
                 'profit_threshold': 0.4,  # 40% profit
                 'trail_percentage': 0.04,  # 4% below current
                 'min_profit': 0.25
+            },
+            'elliottwaveimpulse': {
+                'profit_threshold': 0.2,  # 20% profit
+                'trail_percentage': 0.02,  # 2% below current
+                'min_profit': 0.1  # Minimum profit to activate
+            },
+            'elliottwavecorrective': {
+                'profit_threshold': 0.15,  # 15% profit
+                'trail_percentage': 0.015,  # 1.5% below current
+                'min_profit': 0.08
             }
         }
         logger.info("🛑 Trailing Stop Manager initialized")
@@ -465,15 +475,19 @@ class RiskManagedPaperTradingEngine:
             self.cash_balance += premium  # Collect premium
             self.cash_balance -= max_risk  # Set aside risk capital
             
-            # Track position
+            # Track position with all required fields
             self.active_positions[symbol] = {
                 'position_id': position_id,
+                'symbol': symbol,
                 'strategy': strategy,
                 'quantity': 1,
-                'avg_price': current_price,  # Add missing avg_price field
+                'avg_price': current_price,
+                'current_price': current_price,
                 'premium_collected': premium,
                 'max_risk': max_risk,
+                'unrealized_pnl': 0.0,
                 'created_at': datetime.now(),
+                'updated_at': datetime.now(),
                 'status': 'ACTIVE'
             }
             
@@ -482,7 +496,8 @@ class RiskManagedPaperTradingEngine:
             self.trade_history.append(trade_data)
             
             # NEW: Set trailing stop for the new position
-            if action in ["SELL_IRON_CONDOR", "SELL_BUTTERFLY_SPREAD", "SELL_CALENDAR_SPREAD"]:
+            if action in ["SELL_IRON_CONDOR", "SELL_BUTTERFLY_SPREAD", "SELL_CALENDAR_SPREAD", 
+                         "BUY", "SELL"] and strategy.startswith('ElliottWave'):
                 self.trailing_stop_manager.set_trailing_stop(
                     symbol, strategy, current_price, current_price, position_data
                 )
@@ -522,17 +537,17 @@ class RiskManagedPaperTradingEngine:
                 logger.error(f"Elliott Wave signal error for {symbol}: {e}")
                 return "HOLD"
         
-        # Existing strategy logic
+        # Existing strategy logic with reduced probabilities
         if strategy == "IronCondor":
-            if random.random() < 0.15:  # 15% chance
+            if random.random() < 0.03:  # 3% chance (was 15%)
                 return "SELL_IRON_CONDOR"
         
         elif strategy == "ButterflySpread":
-            if random.random() < 0.12:  # 12% chance
+            if random.random() < 0.03:  # 3% chance (was 12%)
                 return "SELL_BUTTERFLY_SPREAD"
         
         elif strategy == "CalendarSpread":
-            if random.random() < 0.10:  # 10% chance
+            if random.random() < 0.03:  # 3% chance (was 10%)
                 return "SELL_CALENDAR_SPREAD"
         
         elif strategy == "RegimeSwitching":
@@ -546,7 +561,7 @@ class RiskManagedPaperTradingEngine:
         return "HOLD"
     
     async def update_positions(self):
-        """Enhanced position updates with trailing stops"""
+        """Enhanced position updates with trailing stops and error handling"""
         current_time = datetime.now()
         
         for symbol, position in list(self.active_positions.items()):
@@ -569,8 +584,14 @@ class RiskManagedPaperTradingEngine:
                 
                 # Calculate unrealized P&L (simplified)
                 # For now, assume we keep most of the premium unless market moves significantly
+                
+                # Ensure avg_price exists in position
+                if 'avg_price' not in position:
+                    logger.warning(f"Missing avg_price for {symbol}, using current price")
+                    position['avg_price'] = current_price
+                
                 price_change_pct = (current_price - position['avg_price']) / position['avg_price']
-                unrealized_pnl = position['premium_collected'] * time_decay_factor
+                unrealized_pnl = position.get('premium_collected', 0) * time_decay_factor
                 
                 # If market moves against us significantly, we might lose money
                 if abs(price_change_pct) > 0.05:  # 5% move
@@ -579,13 +600,29 @@ class RiskManagedPaperTradingEngine:
                 # Update position
                 position['unrealized_pnl'] = unrealized_pnl
                 position['current_price'] = current_price
+                position['updated_at'] = current_time
+                
+                # Log position update
+                logger.info(f"📊 Updated {symbol} ({position['strategy']}): "
+                           f"Price ${current_price:.2f}, P&L ${unrealized_pnl:.2f}, "
+                           f"Change {price_change_pct:.1%}")
                 
                 # Check for expiration (simplified - close after 30 days)
                 if days_held >= 30:
+                    logger.info(f"⏰ Position {symbol} expired after {days_held} days")
                     self.close_position(symbol, current_price, "EXPIRED")
                     
             except Exception as e:
                 logger.error(f"Error updating position for {symbol}: {e}")
+                # Try to recover by ensuring position has required fields
+                try:
+                    if 'avg_price' not in position:
+                        position['avg_price'] = await self.get_real_price(symbol)
+                    if 'premium_collected' not in position:
+                        position['premium_collected'] = 0.0
+                    logger.info(f"🔧 Recovered position {symbol} with missing fields")
+                except Exception as recovery_error:
+                    logger.error(f"Failed to recover position {symbol}: {recovery_error}")
     
     def close_position(self, symbol: str, close_price: float, reason: str = "MANUAL"):
         """Enhanced position closing with trailing stop cleanup"""

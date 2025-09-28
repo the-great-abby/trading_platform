@@ -635,3 +635,5 @@ config.database.query_timeout = 30
 
 *Quickstart guide completed for Advanced Portfolio Management System*
 
+
+

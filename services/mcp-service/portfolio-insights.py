@@ -472,3 +472,5 @@ async def generate_insights_report(portfolio_id: str) -> Dict[str, Any]:
     async with PortfolioInsightsMCP() as mcp_service:
         return await mcp_service.generate_insights_report(portfolio_id)
 
+
+

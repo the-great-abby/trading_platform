@@ -20,11 +20,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PublicAPIConfig:
     """Configuration for Public.com API client."""
-    base_url: str = "https://public.com/api"
-    api_version: str = "v1"
-    timeout: int = 30
-    max_retries: int = 3
+    auth_base_url: str = os.getenv("PUBLIC_API_AUTH_BASE_URL", "https://api.public.com/userapiauthservice")
+    api_base_url: str = os.getenv("PUBLIC_API_BASE_URL", "https://api.public.com/userapigateway")
+    timeout: int = int(os.getenv("PUBLIC_API_TIMEOUT", "30"))
+    max_retries: int = int(os.getenv("PUBLIC_API_MAX_RETRIES", "3"))
     retry_delay: float = 1.0
+    secret_key: str = os.getenv("PUBLIC_API_SECRET", "")  # Public.com secret key for token generation
+    access_token: str = os.getenv("PUBLIC_API_KEY", "")  # Generated access token
 
 
 class PublicAPIClient:
@@ -33,21 +35,114 @@ class PublicAPIClient:
     def __init__(self, config: Optional[PublicAPIConfig] = None):
         """Initialize the Public.com API client."""
         self.config = config or PublicAPIConfig()
-        self.access_token: Optional[str] = None
-        self.refresh_token: Optional[str] = None
+        self.secret_key: Optional[str] = self.config.secret_key
+        self.access_token: Optional[str] = self.config.access_token
         self.token_expires_at: Optional[datetime] = None
-        self.is_authenticated: bool = False
+        self.is_authenticated: bool = bool(self.access_token)
         self._encryption_key = self._get_encryption_key()
         
-        # Create HTTP client with timeout
+        # Create HTTP client for API calls with timeout
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "LiveTradingService/1.0.0"
+        }
+        
+        # Add Bearer token if available
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        
         self.client = httpx.AsyncClient(
-            base_url=f"{self.config.base_url}/{self.config.api_version}",
+            base_url=self.config.api_base_url,
             timeout=self.config.timeout,
-            headers={
-                "Content-Type": "application/json",
-                "User-Agent": "LiveTradingService/1.0.0"
-            }
+            headers=headers
         )
+        
+        # Create separate client for authentication
+        self.auth_client = httpx.AsyncClient(
+            base_url=self.config.auth_base_url,
+            timeout=self.config.timeout,
+            headers={"Content-Type": "application/json", "User-Agent": "LiveTradingService/1.0.0"}
+        )
+    
+    async def generate_access_token(self, secret_key: str, validity_minutes: int = 1440) -> Dict[str, Any]:
+        """
+        Generate an access token using the secret key.
+        
+        Args:
+            secret_key: Public.com secret key
+            validity_minutes: Token validity in minutes (default 24 hours)
+            
+        Returns:
+            Token response with access token
+            
+        Raises:
+            Exception: If token generation fails
+        """
+        try:
+            response = await self.auth_client.post(
+                "/personal/access-tokens",
+                json={
+                    "validityInMinutes": validity_minutes,
+                    "secret": secret_key
+                }
+            )
+            response.raise_for_status()
+            
+            token_data = response.json()
+            access_token = token_data.get("accessToken")
+            
+            if not access_token:
+                raise Exception("No access token in response")
+            
+            # Store the token
+            self.access_token = access_token
+            self.is_authenticated = True
+            self.token_expires_at = datetime.utcnow() + timedelta(minutes=validity_minutes)
+            
+            # Update client headers
+            self.client.headers.update({
+                "Authorization": f"Bearer {self.access_token}"
+            })
+            
+            logger.info(f"Successfully generated access token, expires at {self.token_expires_at}")
+            
+            return token_data
+            
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Token generation failed with status {e.response.status_code}: {e.response.text}")
+            raise Exception(f"Token generation failed: {e.response.text}")
+        except Exception as e:
+            logger.error(f"Token generation error: {str(e)}")
+            raise Exception(f"Token generation error: {str(e)}")
+    
+    async def auto_authenticate(self) -> bool:
+        """
+        Automatically authenticate using secret key or existing access token.
+        
+        Returns:
+            True if authentication was successful, False otherwise
+        """
+        # If we have a secret key, generate a new token
+        if self.secret_key:
+            try:
+                await self.generate_access_token(self.secret_key)
+                logger.info("Auto-authentication successful using secret key")
+                return True
+            except Exception as e:
+                logger.warning(f"Auto-authentication with secret key failed: {str(e)}")
+        
+        # If we have an existing access token, test it
+        if self.access_token:
+            try:
+                response = await self.client.get("/trading/account")
+                response.raise_for_status()
+                logger.info("Auto-authentication successful using existing access token")
+                return True
+            except Exception as e:
+                logger.warning(f"Auto-authentication with existing token failed: {str(e)}")
+        
+        logger.info("No valid authentication method available")
+        return False
     
     def _get_encryption_key(self) -> bytes:
         """Get encryption key for sensitive data."""
@@ -61,113 +156,60 @@ class PublicAPIClient:
     def _encrypt_data(self, data: str) -> str:
         """Encrypt sensitive data."""
         fernet = Fernet(self._encryption_key)
-        return fernet.encrypt(data.encode()).decode()
+        return fernet.encrypt(data.encode('utf-8')).decode('utf-8')
     
     def _decrypt_data(self, encrypted_data: str) -> str:
         """Decrypt sensitive data."""
         fernet = Fernet(self._encryption_key)
-        return fernet.decrypt(encrypted_data.encode()).decode()
+        return fernet.decrypt(encrypted_data.encode('utf-8')).decode('utf-8')
     
-    async def authenticate(self, api_key: str, api_secret: str) -> Dict[str, Any]:
+    async def authenticate(self, secret_key: str) -> Dict[str, Any]:
         """
-        Authenticate with Public.com API.
+        Authenticate with Public.com API using secret key to generate access token.
         
         Args:
-            api_key: Public.com API key
-            api_secret: Public.com API secret
+            secret_key: Public.com secret key
             
         Returns:
-            Authentication response with tokens
+            Authentication response with token info
             
         Raises:
             Exception: If authentication fails
         """
         try:
-            auth_data = {
-                "api_key": api_key,
-                "api_secret": api_secret,
-                "grant_type": "client_credentials"
-            }
+            # Generate access token using secret key
+            token_data = await self.generate_access_token(secret_key)
             
-            response = await self.client.post("/auth/token", json=auth_data)
-            response.raise_for_status()
-            
-            auth_response = response.json()
-            
-            # Store tokens
-            self.access_token = auth_response.get("access_token")
-            self.refresh_token = auth_response.get("refresh_token")
-            expires_in = auth_response.get("expires_in", 3600)
-            self.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
-            self.is_authenticated = True
-            
-            # Update client headers
-            self.client.headers.update({
-                "Authorization": f"Bearer {self.access_token}"
-            })
-            
-            logger.info("Successfully authenticated with Public.com API")
+            logger.info("Successfully authenticated with Public.com API using secret key")
             
             return {
                 "access_token": self.access_token,
-                "refresh_token": self.refresh_token,
-                "expires_in": expires_in,
-                "token_type": "Bearer"
+                "token_type": "Bearer",
+                "expires_in": 86400,  # 24 hours
+                "expires_at": self.token_expires_at.isoformat() if self.token_expires_at else None
             }
             
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Authentication failed with status {e.response.status_code}: {e.response.text}")
-            raise Exception(f"Authentication failed: {e.response.text}")
         except Exception as e:
             logger.error(f"Authentication error: {str(e)}")
             raise Exception(f"Authentication error: {str(e)}")
     
     async def refresh_access_token(self) -> Dict[str, Any]:
         """
-        Refresh the access token using refresh token.
+        Refresh the access token by generating a new one using the secret key.
         
         Returns:
-            New token response
+            Token response
             
         Raises:
             Exception: If token refresh fails
         """
-        if not self.refresh_token:
-            raise Exception("No refresh token available")
+        if not self.secret_key:
+            raise Exception("No secret key available for token refresh")
         
         try:
-            refresh_data = {
-                "refresh_token": self.refresh_token,
-                "grant_type": "refresh_token"
-            }
+            # Generate a new access token using the secret key
+            return await self.authenticate(self.secret_key)
             
-            response = await self.client.post("/auth/refresh", json=refresh_data)
-            response.raise_for_status()
-            
-            token_response = response.json()
-            
-            # Update tokens
-            self.access_token = token_response.get("access_token")
-            self.refresh_token = token_response.get("refresh_token", self.refresh_token)
-            expires_in = token_response.get("expires_in", 3600)
-            self.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
-            
-            # Update client headers
-            self.client.headers.update({
-                "Authorization": f"Bearer {self.access_token}"
-            })
-            
-            logger.info("Successfully refreshed access token")
-            
-            return {
-                "access_token": self.access_token,
-                "refresh_token": self.refresh_token,
-                "expires_in": expires_in
-            }
-            
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Token refresh failed with status {e.response.status_code}: {e.response.text}")
-            raise Exception(f"Token refresh failed: {e.response.text}")
         except Exception as e:
             logger.error(f"Token refresh error: {str(e)}")
             raise Exception(f"Token refresh error: {str(e)}")
@@ -186,13 +228,14 @@ class PublicAPIClient:
             raise Exception("Not authenticated")
         
         try:
-            response = await self.client.get("/accounts")
+            response = await self.client.get("/trading/account")
             response.raise_for_status()
             
-            accounts_data = response.json()
-            logger.info(f"Retrieved {len(accounts_data.get('accounts', []))} accounts")
+            account_data = response.json()
+            logger.info(f"Retrieved account information: {account_data}")
             
-            return accounts_data
+            # Public.com returns an accounts array directly
+            return account_data
             
         except httpx.HTTPStatusError as e:
             logger.error(f"Get accounts failed with status {e.response.status_code}: {e.response.text}")
@@ -203,13 +246,13 @@ class PublicAPIClient:
     
     async def get_account_balance(self, account_id: str) -> Dict[str, Any]:
         """
-        Get account balance for specific account.
+        Get account balance for specific account using portfolio v2 endpoint.
         
         Args:
             account_id: Public.com account ID
             
         Returns:
-            Account balance information
+            Account balance information from portfolio v2
             
         Raises:
             Exception: If not authenticated or API call fails
@@ -218,11 +261,34 @@ class PublicAPIClient:
             raise Exception("Not authenticated")
         
         try:
-            response = await self.client.get(f"/accounts/{account_id}/balance")
+            response = await self.client.get(f"/trading/{account_id}/portfolio/v2")
             response.raise_for_status()
             
-            balance_data = response.json()
-            logger.info(f"Retrieved balance for account {account_id}")
+            portfolio_data = response.json()
+            logger.info(f"Retrieved portfolio v2 for account {account_id}")
+            
+            # Extract balance information from portfolio response
+            buying_power = portfolio_data.get("buyingPower", {})
+            equity = portfolio_data.get("equity", [])
+            
+            # Calculate total equity from equity array
+            total_equity = 0.0
+            cash_balance = 0.0
+            
+            for equity_item in equity:
+                if equity_item.get("type") == "CASH":
+                    cash_balance = float(equity_item.get("value", 0))
+                total_equity += float(equity_item.get("value", 0))
+            
+            balance_data = {
+                "buying_power": float(buying_power.get("buyingPower", 0)),
+                "cash_balance": cash_balance,
+                "equity": total_equity,
+                "cash_only_buying_power": float(buying_power.get("cashOnlyBuyingPower", 0)),
+                "options_buying_power": float(buying_power.get("optionsBuyingPower", 0)),
+                "positions": portfolio_data.get("positions", []),
+                "orders": portfolio_data.get("orders", [])
+            }
             
             return balance_data
             

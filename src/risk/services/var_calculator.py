@@ -479,3 +479,5 @@ class VaRCalculator:
         self.calculation_cache.clear()
         logger.info("VaR calculation cache cleared")
 
+
+

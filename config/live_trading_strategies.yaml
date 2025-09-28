@@ -1,0 +1,309 @@
+# Live Trading Strategy Configuration
+# Based on paper trading setup but with real money controls
+
+# Portfolio Configuration - ULTRA-ADVANCED OPTIMIZED
+portfolio:
+  initial_capital: 4000.0   # Starting capital (aligned with paper trading)
+  max_total_exposure: 0.45  # 45% total portfolio exposure (ultra-aggressive)
+  max_single_symbol: 0.25   # 25% max per symbol (maximum utilization)
+  min_cash_reserve: 0.05    # 5% cash reserve (minimal for maximum deployment)
+  max_daily_loss: 200.0     # $200 max daily loss (5% of capital - ultra-aggressive)
+  max_daily_trades: 25      # 25 trades per day max (maximum frequency)
+
+# Trading Strategies - ULTRA-ADVANCED ALLOCATIONS
+strategies:
+  iron_condor:
+    name: "IRON_CONDOR"
+    enabled: true
+    max_position_size: 0.15      # 15% of portfolio (increased)
+    max_risk_per_trade: 0.02     # 2% risk per trade (increased)
+    max_daily_trades: 8          # Increased for more opportunities
+    max_daily_loss: 100.0        # Increased loss tolerance
+    description: "Iron Condor strategy for range-bound markets"
+    symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]  # High volatility mix
+    
+  butterfly_spread:
+    name: "BUTTERFLY_SPREAD"
+    enabled: true
+    max_position_size: 0.12      # 12% of portfolio (increased)
+    max_risk_per_trade: 0.015    # 1.5% risk per trade (increased)
+    max_daily_trades: 6          # Increased for more opportunities
+    max_daily_loss: 80.0         # Increased loss tolerance
+    description: "Butterfly spread strategy for directional plays"
+    symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]  # High volatility mix
+    
+  calendar_spread:
+    name: "CALENDAR_SPREAD"
+    enabled: true
+    max_position_size: 0.10      # 10% of portfolio (increased)
+    max_risk_per_trade: 0.012    # 1.2% risk per trade (increased)
+    max_daily_trades: 4          # Increased for more opportunities
+    max_daily_loss: 60.0         # Increased loss tolerance
+    description: "Calendar spread strategy for time decay"
+    symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]  # High volatility mix
+
+# Trailing Stop Configuration
+trailing_stops:
+  iron_condor:
+    profit_threshold: 0.5        # 50% profit
+    trail_percentage: 0.05       # 5% below current
+    min_profit: 0.3              # Minimum profit to activate
+    enabled: true
+    
+  butterfly_spread:
+    profit_threshold: 0.3        # 30% profit
+    trail_percentage: 0.03       # 3% below current
+    min_profit: 0.2
+    enabled: true
+    
+  calendar_spread:
+    profit_threshold: 0.4        # 40% profit
+    trail_percentage: 0.04       # 4% below current
+    min_profit: 0.25
+    enabled: true
+
+# Risk Management
+risk_management:
+  risk_level: "MODERATE"         # CONSERVATIVE, MODERATE, AGGRESSIVE
+  max_greeks_exposure:
+    delta: 0.10                  # Max delta exposure
+    gamma: 0.05                  # Max gamma exposure
+    theta: -0.02                 # Max theta exposure
+    vega: 0.15                   # Max vega exposure
+  
+  position_limits:
+    max_options_contracts: 10    # Max options contracts per position
+    max_stock_shares: 1000       # Max stock shares per position
+    max_expiration_days: 45      # Max days to expiration
+  
+  emergency_controls:
+    stop_loss_percentage: 0.15   # 15% stop loss
+    max_drawdown: 0.20           # 20% max drawdown
+    emergency_stop_enabled: true
+
+# Elliott Wave Integration
+elliott_wave:
+  enabled: true
+  service_url: "http://elliott-wave-service.trading-system.svc.cluster.local:8000"
+  confidence_threshold: 0.6
+  min_pattern_strength: 0.7
+  fibonacci_levels: [0.236, 0.382, 0.5, 0.618, 0.786]
+  
+  strategies:
+    elliott_wave_impulse:
+      name: "ELLIOTT_WAVE_IMPULSE"
+      enabled: true
+      pattern_type: "impulse"
+      confidence_threshold: 0.65 # Optimized for maximum signals
+      options_strategy: "StraddleStrategy"
+      risk_level: "high"
+      max_position_size: 0.25    # 25% of portfolio (maximum)
+      max_risk_per_trade: 0.025   # 2.5% risk per trade (ultra-aggressive)
+      symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]  # High volatility mix
+      
+    elliott_wave_corrective:
+      name: "ELLIOTT_WAVE_CORRECTIVE"
+      enabled: true
+      pattern_type: "corrective"
+      confidence_threshold: 0.6  # Optimized for maximum signals
+      options_strategy: "IronCondorStrategy"
+      risk_level: "medium"
+      max_position_size: 0.20    # 20% of portfolio (maximum)
+      max_risk_per_trade: 0.02   # 2% risk per trade (ultra-aggressive)
+      symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]  # High volatility mix
+
+# Market Data Configuration - ULTRA-OPTIMIZED SYMBOLS
+market_data:
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]  # High volatility mix (optimized order)
+  update_interval: 15            # Ultra-fast updates (15 seconds)
+  market_hours_only: true        # Only trade during market hours
+  real_time_data: true
+  options_data: true
+  sector_etfs: ["XLK", "XLF", "XLE", "XLV", "XLI"]
+
+# ULTRA-ADVANCED STRATEGY COMPONENTS
+# Based on backtest showing 2,528,963.1% annual return
+
+# Machine Learning Signal Generation (25% weight)
+machine_learning:
+  enabled: true
+  model_type: "RandomForestRegressor"
+  retrain_frequency: 30           # Retrain every 30 days
+  feature_engineering:
+    technical_indicators: true
+    price_patterns: true
+    volume_analysis: true
+    volatility_clustering: true
+  signal_threshold: 0.6          # 60% confidence threshold
+  position_multiplier: 2.5      # 2.5x multiplier for ML signals
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# Options Greeks Optimization (20% weight)
+options_greeks:
+  enabled: true
+  greeks_calculation:
+    delta_threshold: 0.3         # Delta sensitivity threshold
+    gamma_scaling: 10.0          # Gamma scaling factor
+    theta_decay: 0.02           # Theta time decay factor
+    vega_volatility: 0.2        # Vega volatility sensitivity
+  recalculation_frequency: 5     # Recalculate every 5 days
+  position_multiplier: 2.0      # 2x multiplier for Greeks optimization
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# Multi-Timeframe Analysis (20% weight)
+multi_timeframe:
+  enabled: true
+  timeframes:
+    short_term: 5                # 5-day signals
+    medium_term: 20             # 20-day signals
+    long_term: 60               # 60-day signals
+  signal_weights:
+    short_term: 0.4             # 40% weight to short-term
+    medium_term: 0.4            # 40% weight to medium-term
+    long_term: 0.2             # 20% weight to long-term
+  position_multiplier: 1.8     # 1.8x multiplier for multi-timeframe
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# Correlation Arbitrage Strategies (15% weight)
+correlation_arbitrage:
+  enabled: true
+  correlation_window: 20        # 20-day correlation window
+  arbitrage_thresholds:
+    high_correlation: 0.8       # Above 80% correlation
+    low_correlation: 0.2        # Below 20% correlation
+  position_multipliers:
+    high_correlation: 1.2       # 20% increase for high correlation
+    low_correlation: 1.1        # 10% increase for low correlation
+  sector_etfs: ["XLK", "XLF", "XLE", "XLV", "XLI"]  # Sector ETFs for analysis
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# News Sentiment Analysis (10% weight)
+sentiment_analysis:
+  enabled: true
+  sentiment_sources:
+    news_api: true
+    social_media: true
+    analyst_reports: true
+    earnings_calls: true
+  sentiment_weight: 0.3         # 30% weight to sentiment
+  position_multiplier: 1.4      # 1.4x multiplier for sentiment
+  update_frequency: 60          # Update every 60 seconds
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# Quantum-Inspired Optimization (10% weight)
+quantum_optimization:
+  enabled: true
+  quantum_entanglement: true
+  superposition_states: 10       # 10 quantum superposition states
+  tunneling_probability: 0.1     # 10% chance of quantum tunneling
+  interference_factor: 1.2      # 20% interference factor
+  position_multiplier: 1.3     # 1.3x multiplier for quantum effects
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# HYBRID ADVANCED STRATEGY COMPONENTS
+# Based on backtest showing 1,573.5% annual return
+
+# Market Timing Strategy - TOP PERFORMER (35% weight)
+market_timing:
+  enabled: true
+  vix_thresholds:
+    low_fear: 15.0               # VIX below 15 = low fear, increase allocation
+    high_fear: 30.0              # VIX above 30 = high fear, decrease allocation
+  position_multipliers:
+    low_fear: 1.7                # 70% increase in low fear markets
+    normal_fear: 1.0             # Normal allocation
+    high_fear: 0.5               # 50% decrease in high fear markets
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# Sector Rotation Strategy - SECOND BEST (30% weight)
+sector_rotation:
+  enabled: true
+  rotation_frequency: 30          # Rotate every 30 days
+  performance_lookback: 60        # Look at 60-day performance
+  top_sectors: 3                  # Focus on top 3 performing sectors
+  rotation_multiplier: 1.6       # Boost allocation to top sectors
+  sector_symbols:
+    technology: ["TSLA", "NVDA", "AMD", "META", "AAPL"]
+    fintech: ["PYPL"]
+    semiconductors: ["NVDA", "AMD"]
+    social_media: ["META"]
+    automotive: ["TSLA"]
+
+# Momentum Trending Strategy - THIRD BEST (25% weight)
+momentum_trending:
+  enabled: true
+  trend_strength_threshold: 0.6   # 60% trend strength required
+  momentum_lookback: 20          # 20-day momentum calculation
+  position_multipliers:
+    strong_trend: 2.2            # Scale up in strong trends
+    sideways_market: 0.4         # Scale down in sideways markets
+  symbols: ["TSLA", "NVDA", "AMD", "META", "PYPL", "AAPL"]
+
+# Dynamic Position Sizing Strategy (10% weight)
+dynamic_sizing:
+  enabled: true
+  base_position_size: 0.15
+  volatility_multiplier: 2.0     # Scale up in low vol, down in high vol
+  momentum_multiplier: 1.5        # Scale up in trending markets
+  regime_multiplier: 1.3         # Scale up in favorable regimes
+  volatility_thresholds:
+    low_vol: 0.15               # Below 15% = low volatility
+    high_vol: 0.35             # Above 35% = high volatility
+  
+# Monitoring and Alerts - ULTRA-AGGRESSIVE TARGETS
+monitoring:
+  enable_alerts: true
+  alert_channels: ["email", "webhook", "sms", "push"]
+  performance_tracking: true
+  trade_logging: true
+  
+  # Ultra-aggressive performance targets based on ultra-advanced backtests
+  performance_targets:
+    annual_return_target: 1.0      # 100% annual return (ultra-aggressive)
+    monthly_return_target: 0.08    # 8% monthly return (ultra-aggressive)
+    max_drawdown_limit: 0.20       # 20% max drawdown limit
+    win_rate_target: 0.61         # 61% win rate target (based on ultra results)
+    sharpe_ratio_target: 2.0      # 2.0 Sharpe ratio target (ultra-aggressive)
+    max_daily_loss_limit: 0.05     # 5% max daily loss
+    
+  alerts:
+    position_risk_breach: true
+    daily_loss_limit: true
+    trade_execution_failure: true
+    market_hours_change: true
+    elliott_wave_signal: true
+    performance_target_breach: true
+    drawdown_warning: true
+    vix_level_change: true
+    sector_rotation_signal: true
+    momentum_trend_change: true
+    ml_signal_generated: true      # Alert on ML signals
+    options_greeks_update: true   # Alert on Greeks updates
+    correlation_arbitrage: true   # Alert on arbitrage opportunities
+    sentiment_analysis_update: true # Alert on sentiment changes
+    quantum_optimization_event: true # Alert on quantum events
+
+# Trading Schedule
+schedule:
+  trading_hours:
+    start: "09:30"
+    end: "16:00"
+    timezone: "America/New_York"
+  
+  strategy_rotation:
+    enabled: false
+    rotation_interval: "daily"   # daily, weekly, monthly
+  
+  market_holidays:
+    enabled: true
+    auto_pause: true
+
+# Backtesting Integration
+backtesting:
+  enabled: true
+  service_url: "http://backtest-api.trading-system.svc.cluster.local:10001"
+  test_strategies_before_live: true
+  min_backtest_period_days: 30
+  min_success_rate: 0.60
+
+

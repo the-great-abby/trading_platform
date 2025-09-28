@@ -509,3 +509,5 @@ def validate_portfolio_config() -> List[str]:
     """Validate portfolio configuration"""
     return get_config_manager().validate_config()
 
+
+
