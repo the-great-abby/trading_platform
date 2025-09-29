@@ -2,30 +2,30 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-09-28 09:08:03 EEST
+**Last Updated**: 2025-09-28 11:41:29 EEST
 **Active Port Forwards**: 3  
 **Total Services**: 50+  
-**Paper Trading**: ✅ **ACTIVE** (Running since 05:31:15)  
-**Enhanced Risk Management**: ✅ **ACTIVE** (Running since 13:31:50)  
-**Risk Integration**: ✅ **ACTIVE** (Running since 13:44:40)  
+**Paper Trading**: ✅ **ACTIVE** (Running since 16:54:38)  
+**RSS Feed Service**: ✅ **ACTIVE** (Running since 11:01:00)  
+**RSS Dashboard**: ✅ **ACTIVE** (Running since 11:01:00)  
 
 ## 🎯 Currently Active Port Forwards
 
 | Service | External Port | Internal Port | Status | URL | Last Checked |
 |---------|---------------|---------------|--------|-----|--------------|
-| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-20 05:35 |
-| Enhanced Risk Management Service | 11081 | 80 | ✅ Active | http://localhost:11081/ | 2025-09-25 13:31 |
-| Risk Integration Service | 11082 | 80 | ✅ Active | http://localhost:11082/ | 2025-09-25 13:44 |
+| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-28 17:06 |
+| RSS Feed Service | 11004 | 11004 | ✅ Active | http://localhost:11004/ | 2025-09-28 17:06 |
+| RSS Dashboard | 8080 | 80 | ✅ Active | http://localhost:8080/ | 2025-09-28 17:06 |
 
 ## 📈 Paper Trading Status
 
 | Metric | Value | Details |
 |--------|-------|---------|
-| **Status** | ✅ **RUNNING** | Active since 2025-09-28 15:07:59 |
+| **Status** | ✅ **RUNNING** | Active since 2025-09-28 17:41:28 |
 | **Portfolio Value** | **$4,000.00** | Initial capital |
 | **Total Trades** | **0** | No completed trades yet |
 | **Total P&L** | **$0.00** | No realized gains/losses |
-| **Active Strategies** | **5** | ElliottWaveImpulse, ElliottWaveCorrective, IronCondor, ButterflySpread, CalendarSpread |
+| **Active Strategies** | **5** | ElliottWaveCorrective, ButterflySpread, SectorRotation, VolatilityTrading, CollarStrategy |
 | **Trading Symbols** | **3** | AMD, PYPL, INTC |
 | **Trading Interval** | **5 minutes** | 300 seconds between cycles |
 | **Max Risk Per Trade** | **5%** | $100 max risk per trade |
@@ -104,7 +104,8 @@
 ### **📰 RSS & News Services (11150-11169)**
 | Service | External Port | Internal Port | Status | URL | Description |
 |---------|---------------|---------------|--------|-----|-------------|
-| RSS Feed Service | 11150 | 11150 | ❌ Not Forwarded | localhost:11150 | RSS feed processing |
+| RSS Feed Service | 11004 | 11004 | ✅ **Active** | http://localhost:11004/ | RSS feed processing with news integration |
+| RSS Dashboard | 8080 | 80 | ✅ **Active** | http://localhost:8080/ | RSS feed viewer and management |
 | News Scanning | 11151 | 11151 | ❌ Not Forwarded | localhost:11151 | News scanning service |
 
 ### **🔑 Authentication & Security (11170-11179)**
@@ -142,6 +143,27 @@ curl -X POST http://localhost:11115/api/paper-trading/stop
 
 # Update PORT_MAP.md with current paper trading status
 python scripts/update_paper_trading_status.py
+```
+
+### **RSS & News Services Commands**
+```bash
+# Check RSS feed service health
+curl -s http://localhost:11004/health | jq
+
+# View RSS feed (trading recommendations)
+curl -s http://localhost:11004/rss/daily-recommendations
+
+# Check RSS dashboard health
+curl -s http://localhost:8080/health | jq
+
+# Open RSS dashboard in browser
+open http://localhost:8080/
+
+# Get latest trading recommendations
+curl -s http://localhost:11004/rss/daily-recommendations | head -50
+
+# Check news integration status
+curl -s http://localhost:11004/api/news/status | jq
 ```
 
 ### **Advanced Portfolio Management Commands**
