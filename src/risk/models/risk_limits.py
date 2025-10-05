@@ -37,16 +37,16 @@ class RiskLimits:
     to enforce risk management policies and prevent excessive risk taking.
     """
     
+    # Portfolio reference - required field comes first
+    portfolio_id: UUID
+    
+    # Limit configuration - required fields
+    limit_type: LimitType
+    limit_value: float
+    limit_unit: str
+    
     # Primary key
     risk_limits_id: UUID = field(default_factory=uuid4)
-    
-    # Portfolio reference
-    portfolio_id: UUID = field()
-    
-    # Limit configuration
-    limit_type: LimitType = field()
-    limit_value: float = field()
-    limit_unit: str = field()
     
     # Current state
     current_value: float = field(default=0.0)
@@ -275,6 +275,14 @@ class RiskLimits:
                 f"limit_value={self.limit_value}, "
                 f"current_value={self.current_value}, "
                 f"is_active={self.is_active})")
+
+
+
+
+
+
+
+
 
 
 

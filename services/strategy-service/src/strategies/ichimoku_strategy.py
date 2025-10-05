@@ -54,10 +54,10 @@ class IchimokuStrategy(BaseStrategy):
         self.senkou_b_period = senkou_b_period
         self.displacement = displacement
         
-        # Signal thresholds
-        self.cloud_threshold = 0.02  # 2% minimum cloud thickness
-        self.crossover_threshold = 0.01  # 1% minimum crossover distance
-        self.confidence_threshold = 0.6  # Minimum confidence for signals
+        # Signal thresholds - Made more permissive
+        self.cloud_threshold = 0.01  # Reduced from 0.02 (1% minimum cloud thickness)
+        self.crossover_threshold = 0.005  # Reduced from 0.01 (0.5% minimum crossover distance)
+        self.confidence_threshold = 0.3  # Reduced from 0.6 (Minimum confidence for signals)
     
     def calculate_ichimoku(self, data: pd.DataFrame) -> pd.DataFrame:
         """Calculate all Ichimoku indicators"""
@@ -279,21 +279,25 @@ class IchimokuStrategy(BaseStrategy):
         current_price = data['Close'].iloc[-1]
         action = None
         
-        # Bullish conditions
+        # Bullish conditions - Made less restrictive (OR instead of AND)
         bullish_conditions = (
             cloud_analysis.get('above_cloud', False) and
-            cloud_analysis.get('cloud_bullish', False) and
-            (crossover_analysis.get('bullish_crossover', False) or 
-             crossover_analysis.get('tenkan_above_kijun', False)) and
+            cloud_analysis.get('cloud_bullish', False)
+        ) or (
+            crossover_analysis.get('bullish_crossover', False) or 
+            crossover_analysis.get('tenkan_above_kijun', False)
+        ) or (
             chikou_analysis.get('chikou_bullish', False)
         )
         
-        # Bearish conditions
+        # Bearish conditions - Made less restrictive (OR instead of AND)
         bearish_conditions = (
             cloud_analysis.get('below_cloud', False) and
-            not cloud_analysis.get('cloud_bullish', False) and
-            (crossover_analysis.get('bearish_crossover', False) or 
-             not crossover_analysis.get('tenkan_above_kijun', False)) and
+            not cloud_analysis.get('cloud_bullish', False)
+        ) or (
+            crossover_analysis.get('bearish_crossover', False) or 
+            not crossover_analysis.get('tenkan_above_kijun', False)
+        ) or (
             chikou_analysis.get('chikou_bearish', False)
         )
         

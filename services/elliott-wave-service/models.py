@@ -70,8 +70,9 @@ class WavePoint(BaseModel):
         """Validate wave direction consistency"""
         if v is not None:
             wave_number = values.get('wave_number')
-            if wave_number is not None:
-                # Impulse waves: odd numbers up, even numbers down
+            wave_type = values.get('wave_type')
+            if wave_number is not None and wave_type == WaveType.IMPULSE:
+                # Only validate impulse waves strictly
                 if wave_number % 2 == 1 and v != WaveDirection.UP:
                     raise ValueError('Odd-numbered impulse waves must be up')
                 elif wave_number % 2 == 0 and v != WaveDirection.DOWN:

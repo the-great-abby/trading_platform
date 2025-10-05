@@ -61,7 +61,7 @@ class PaperTradingMonitor:
         self.strategy_performance: Dict[str, StrategyPerformance] = {}
         
         # Portfolio tracking
-        self.initial_capital = 100000
+        self.initial_capital = 4000  # Updated to match live trading
         self.current_value = self.initial_capital
         self.total_pnl = 0.0
         self.max_drawdown = 0.0

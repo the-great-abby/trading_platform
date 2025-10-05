@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: Paper Trading System Testing API
+  description: API contracts for testing paper trading system components
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local testing server
+
+paths:
+  /test/paper-trading-engine:
+    post:
+      summary: Test paper trading engine initialization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperTradingEngineConfig'
+      responses:
+        '200':
+          description: Engine initialization test passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngineTestResult'
+        '400':
+          description: Invalid configuration
+        '500':
+          description: Engine initialization failed
+
+  /test/capital-allocation:
+    post:
+      summary: Test capital allocation parameter validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapitalAllocationTest'
+      responses:
+        '200':
+          description: Capital allocation test passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapitalAllocationResult'
+        '400':
+          description: Invalid allocation parameters
+
+  /test/trade-limits:
+    post:
+      summary: Test trade limit enforcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeLimitsTest'
+      responses:
+        '200':
+          description: Trade limits test passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeLimitsResult'
+
+  /test/strategy-integration:
+    post:
+      summary: Test strategy integration and fallback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyIntegrationTest'
+      responses:
+        '200':
+          description: Strategy integration test passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyIntegrationResult'
+
+  /test/exit-strategy-monitoring:
+    get:
+      summary: Test exit strategy monitoring display
+      responses:
+        '200':
+          description: Exit strategy monitoring test passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExitStrategyMonitoringResult'
+
+components:
+  schemas:
+    PaperTradingEngineConfig:
+      type: object
+      required:
+        - initial_capital
+        - max_position_size
+        - trading_interval
+      properties:
+        initial_capital:
+          type: number
+          minimum: 1000
+          maximum: 100000
+        max_position_size:
+          type: number
+          minimum: 0.01
+          maximum: 0.25
+        max_portfolio_utilization:
+          type: number
+          minimum: 0.5
+          maximum: 1.0
+        trading_interval:
+          type: integer
+          minimum: 60
+          maximum: 86400
+        symbols:
+          type: array
+          items:
+            type: string
+        strategies:
+          type: array
+          items:
+            type: string
+
+    CapitalAllocationTest:
+      type: object
+      required:
+        - portfolio_value
+        - max_position_size
+        - max_portfolio_utilization
+        - min_cash_reserve
+      properties:
+        portfolio_value:
+          type: number
+          minimum: 1000
+        max_position_size:
+          type: number
+          minimum: 0.01
+          maximum: 0.25
+        max_portfolio_utilization:
+          type: number
+          minimum: 0.5
+          maximum: 1.0
+        min_cash_reserve:
+          type: number
+          minimum: 0.1
+          maximum: 0.5
+        hybrid_allocation:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            cash_reserve_pct:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+            stock_allocation_pct:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+            options_allocation_pct:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+
+    TradeLimitsTest:
+      type: object
+      required:
+        - max_daily_trades
+        - max_weekly_trades
+        - max_monthly_trades
+      properties:
+        max_daily_trades:
+          type: integer
+          minimum: 1
+          maximum: 20
+        max_weekly_trades:
+          type: integer
+          minimum: 1
+          maximum: 50
+        max_monthly_trades:
+          type: integer
+          minimum: 1
+          maximum: 100
+
+    StrategyIntegrationTest:
+      type: object
+      required:
+        - strategy_names
+        - mock_market_data
+      properties:
+        strategy_names:
+          type: array
+          items:
+            type: string
+            enum:
+              - AdaptiveSectorWaveStrategy
+              - HybridIchimokuStrategy
+              - ElliottWaveImpulseStrategy
+              - ElliottWaveCorrectiveStrategy
+        mock_market_data:
+          type: object
+          properties:
+            symbol:
+              type: string
+            close_prices:
+              type: array
+              items:
+                type: number
+            volume:
+              type: array
+              items:
+                type: integer
+        simulate_service_failure:
+          type: boolean
+          default: false
+
+    EngineTestResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        engine_initialized:
+          type: boolean
+        strategies_loaded:
+          type: integer
+        error_message:
+          type: string
+
+    CapitalAllocationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        allocation_valid:
+          type: boolean
+        available_capital:
+          type: number
+        utilization_percentage:
+          type: number
+        error_message:
+          type: string
+
+    TradeLimitsResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        limits_enforced:
+          type: boolean
+        daily_count:
+          type: integer
+        weekly_count:
+          type: integer
+        monthly_count:
+          type: integer
+        can_trade:
+          type: boolean
+
+    StrategyIntegrationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        strategies_initialized:
+          type: integer
+        fallback_active:
+          type: boolean
+        error_message:
+          type: string
+
+    ExitStrategyMonitoringResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        default_values_shown:
+          type: boolean
+        max_hold_days:
+          type: integer
+        profit_target_pct:
+          type: number
+        stop_loss_pct:
+          type: number
+        early_profit_target_pct:
+          type: number
+

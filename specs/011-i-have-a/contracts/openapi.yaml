@@ -1,0 +1,983 @@
+openapi: 3.0.3
+info:
+  title: Strategy Engine Testing Framework API
+  description: Comprehensive testing framework for trading strategies with focus on Elliott Wave, Adaptive Wave, Ichimoku, and advanced strategies
+  version: 1.0.0
+  contact:
+    name: Trading System Team
+    email: trading@example.com
+
+servers:
+  - url: http://localhost:11080/api/testing
+    description: Local development server
+  - url: https://trading.example.com/api/testing
+    description: Production server
+
+paths:
+  /strategies:
+    get:
+      summary: List all available strategies for testing
+      description: Retrieve list of all strategies that can be tested
+      tags:
+        - Strategy Management
+      responses:
+        '200':
+          description: List of available strategies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  strategies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StrategyInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /strategies/{strategy_name}/validate:
+    post:
+      summary: Validate a specific strategy
+      description: Run comprehensive validation tests for a specific strategy
+      tags:
+        - Strategy Validation
+      parameters:
+        - name: strategy_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the strategy to validate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyValidationRequest'
+      responses:
+        '200':
+          description: Strategy validation results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyValidationResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Strategy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /strategies/{strategy_name}/test/signals:
+    post:
+      summary: Test strategy signal generation
+      description: Test signal generation for a specific strategy with mock data
+      tags:
+        - Signal Testing
+      parameters:
+        - name: strategy_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the strategy to test
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalTestRequest'
+      responses:
+        '200':
+          description: Signal generation test results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalTestResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Strategy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /strategies/{strategy_name}/test/performance:
+    post:
+      summary: Test strategy performance benchmarks
+      description: Run performance benchmarks for a specific strategy
+      tags:
+        - Performance Testing
+      parameters:
+        - name: strategy_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the strategy to benchmark
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerformanceTestRequest'
+      responses:
+        '200':
+          description: Performance benchmark results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceTestResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Strategy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /strategies/ensemble/test:
+    post:
+      summary: Test ensemble strategy integration
+      description: Test multiple strategies working together as an ensemble
+      tags:
+        - Ensemble Testing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnsembleTestRequest'
+      responses:
+        '200':
+          description: Ensemble test results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnsembleTestResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test-suites:
+    get:
+      summary: List available test suites
+      description: Retrieve list of available test suites
+      tags:
+        - Test Suite Management
+      responses:
+        '200':
+          description: List of available test suites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  test_suites:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestSuiteInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test-suites/{suite_id}/run:
+    post:
+      summary: Run a test suite
+      description: Execute a complete test suite for strategy validation
+      tags:
+        - Test Suite Management
+      parameters:
+        - name: suite_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the test suite to run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestSuiteRunRequest'
+      responses:
+        '200':
+          description: Test suite execution results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuiteRunResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Test suite not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /test-results/{test_id}:
+    get:
+      summary: Get test result details
+      description: Retrieve detailed results for a specific test execution
+      tags:
+        - Test Results
+      parameters:
+        - name: test_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the test result to retrieve
+      responses:
+        '200':
+          description: Detailed test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResultDetail'
+        '404':
+          description: Test result not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /mock-data/generate:
+    post:
+      summary: Generate mock market data
+      description: Generate synthetic market data for strategy testing
+      tags:
+        - Mock Data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MockDataRequest'
+      responses:
+        '200':
+          description: Generated mock market data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MockDataResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the testing framework
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: 1.0.0
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+components:
+  schemas:
+    StrategyInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Strategy name
+        category:
+          type: string
+          enum: [basic, options, advanced]
+          description: Strategy category
+        description:
+          type: string
+          description: Strategy description
+        is_active:
+          type: boolean
+          description: Whether strategy is active
+        test_coverage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Test coverage percentage
+
+    StrategyValidationRequest:
+      type: object
+      required:
+        - test_types
+        - symbols
+        - timeframes
+      properties:
+        test_types:
+          type: array
+          items:
+            type: string
+            enum: [interface, signal, performance, edge_case, ensemble]
+          description: Types of tests to run
+        symbols:
+          type: array
+          items:
+            type: string
+          description: Symbols to test with
+        timeframes:
+          type: array
+          items:
+            type: string
+            enum: [1m, 5m, 15m, 1h, 4h, 1d]
+          description: Timeframes to test
+        market_regimes:
+          type: array
+          items:
+            type: string
+            enum: [bull, bear, sideways, volatile]
+          description: Market regimes to test
+        parameters:
+          type: object
+          description: Strategy-specific parameters
+        timeout_seconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+          default: 300
+          description: Test timeout in seconds
+
+    StrategyValidationResponse:
+      type: object
+      properties:
+        test_id:
+          type: string
+          description: Unique test identifier
+        strategy_name:
+          type: string
+          description: Strategy that was tested
+        overall_status:
+          type: string
+          enum: [passed, failed, error, skipped]
+          description: Overall test status
+        execution_time_ms:
+          type: integer
+          description: Total execution time in milliseconds
+        test_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestResult'
+        summary:
+          type: object
+          properties:
+            total_tests:
+              type: integer
+            passed_tests:
+              type: integer
+            failed_tests:
+              type: integer
+            skipped_tests:
+              type: integer
+            coverage_percentage:
+              type: number
+              format: float
+
+    TestResult:
+      type: object
+      properties:
+        test_type:
+          type: string
+          enum: [interface, signal, performance, edge_case, ensemble]
+        status:
+          type: string
+          enum: [passed, failed, error, skipped]
+        execution_time_ms:
+          type: integer
+        details:
+          type: object
+          description: Test-specific details
+        error_message:
+          type: string
+          description: Error message if test failed
+
+    SignalTestRequest:
+      type: object
+      required:
+        - symbols
+        - start_date
+        - end_date
+      properties:
+        symbols:
+          type: array
+          items:
+            type: string
+          description: Symbols to test
+        start_date:
+          type: string
+          format: date
+          description: Start date for testing
+        end_date:
+          type: string
+          format: date
+          description: End date for testing
+        market_regime:
+          type: string
+          enum: [bull, bear, sideways, volatile]
+          default: sideways
+          description: Market regime to simulate
+        expected_signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpectedSignal'
+          description: Expected signals for validation
+
+    ExpectedSignal:
+      type: object
+      properties:
+        symbol:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        action:
+          type: string
+          enum: [BUY, SELL, HOLD]
+        confidence_min:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        confidence_max:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    SignalTestResponse:
+      type: object
+      properties:
+        test_id:
+          type: string
+        strategy_name:
+          type: string
+        signals_generated:
+          type: integer
+        signals_validated:
+          type: integer
+        validation_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignalValidation'
+        summary:
+          type: object
+          properties:
+            total_signals:
+              type: integer
+            valid_signals:
+              type: integer
+            invalid_signals:
+              type: integer
+            accuracy_percentage:
+              type: number
+              format: float
+
+    SignalValidation:
+      type: object
+      properties:
+        signal_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        symbol:
+          type: string
+        action:
+          type: string
+          enum: [BUY, SELL, HOLD]
+        confidence:
+          type: number
+          format: float
+        validation_status:
+          type: string
+          enum: [valid, invalid, ambiguous]
+        expected_action:
+          type: string
+          enum: [BUY, SELL, HOLD]
+        validation_notes:
+          type: string
+
+    PerformanceTestRequest:
+      type: object
+      required:
+        - symbols
+        - iterations
+      properties:
+        symbols:
+          type: array
+          items:
+            type: string
+        iterations:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          description: Number of iterations to run
+        concurrent_executions:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 1
+          description: Number of concurrent executions
+        performance_limits:
+          $ref: '#/components/schemas/PerformanceLimits'
+
+    PerformanceLimits:
+      type: object
+      properties:
+        max_execution_time_ms:
+          type: integer
+          default: 100
+        max_memory_mb:
+          type: number
+          format: float
+          default: 1024
+        max_cpu_percent:
+          type: number
+          format: float
+          default: 80
+
+    PerformanceTestResponse:
+      type: object
+      properties:
+        test_id:
+          type: string
+        strategy_name:
+          type: string
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        validation_status:
+          type: string
+          enum: [within_limits, exceeds_limits, critical]
+        benchmark_comparison:
+          type: object
+          properties:
+            previous_baseline:
+              type: number
+              format: float
+            performance_change_percent:
+              type: number
+              format: float
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        total_execution_time_ms:
+          type: integer
+        average_execution_time_ms:
+          type: number
+          format: float
+        max_execution_time_ms:
+          type: integer
+        min_execution_time_ms:
+          type: integer
+        memory_peak_mb:
+          type: number
+          format: float
+        memory_average_mb:
+          type: number
+          format: float
+        cpu_peak_percent:
+          type: number
+          format: float
+        cpu_average_percent:
+          type: number
+          format: float
+        signals_per_second:
+          type: number
+          format: float
+
+    EnsembleTestRequest:
+      type: object
+      required:
+        - strategy_names
+        - symbols
+      properties:
+        strategy_names:
+          type: array
+          items:
+            type: string
+          description: Names of strategies to test as ensemble
+        symbols:
+          type: array
+          items:
+            type: string
+        test_duration_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          default: 30
+        conflict_resolution:
+          type: string
+          enum: [first_wins, highest_confidence, weighted_average]
+          default: highest_confidence
+        allocation_strategy:
+          type: string
+          enum: [equal, risk_parity, momentum_based]
+          default: equal
+
+    EnsembleTestResponse:
+      type: object
+      properties:
+        test_id:
+          type: string
+        ensemble_strategies:
+          type: array
+          items:
+            type: string
+        conflict_count:
+          type: integer
+          description: Number of signal conflicts detected
+        resolution_success_rate:
+          type: number
+          format: float
+          description: Success rate of conflict resolution
+        ensemble_performance:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        individual_performances:
+          type: array
+          items:
+            type: object
+            properties:
+              strategy_name:
+                type: string
+              performance:
+                $ref: '#/components/schemas/PerformanceMetrics'
+
+    TestSuiteInfo:
+      type: object
+      properties:
+        suite_id:
+          type: string
+        suite_name:
+          type: string
+        description:
+          type: string
+        strategy_categories:
+          type: array
+          items:
+            type: string
+        test_count:
+          type: integer
+        estimated_duration_minutes:
+          type: integer
+
+    TestSuiteRunRequest:
+      type: object
+      properties:
+        symbols:
+          type: array
+          items:
+            type: string
+        timeframes:
+          type: array
+          items:
+            type: string
+            enum: [1m, 5m, 15m, 1h, 4h, 1d]
+        market_regimes:
+          type: array
+          items:
+            type: string
+            enum: [bull, bear, sideways, volatile]
+        parallel_execution:
+          type: boolean
+          default: true
+        timeout_minutes:
+          type: integer
+          minimum: 1
+          maximum: 120
+          default: 30
+
+    TestSuiteRunResponse:
+      type: object
+      properties:
+        suite_id:
+          type: string
+        execution_id:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, failed, cancelled]
+        start_time:
+          type: string
+          format: date-time
+        estimated_completion:
+          type: string
+          format: date-time
+        progress:
+          type: object
+          properties:
+            total_tests:
+              type: integer
+            completed_tests:
+              type: integer
+            passed_tests:
+              type: integer
+            failed_tests:
+              type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestResult'
+
+    TestResultDetail:
+      type: object
+      properties:
+        test_id:
+          type: string
+        strategy_name:
+          type: string
+        test_type:
+          type: string
+        status:
+          type: string
+        execution_time_ms:
+          type: integer
+        memory_usage_mb:
+          type: number
+          format: float
+        cpu_usage_percent:
+          type: number
+          format: float
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: object
+        error_message:
+          type: string
+        performance_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        signal_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignalValidation'
+
+    MockDataRequest:
+      type: object
+      required:
+        - symbols
+        - start_date
+        - end_date
+      properties:
+        symbols:
+          type: array
+          items:
+            type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        timeframe:
+          type: string
+          enum: [1m, 5m, 15m, 1h, 4h, 1d]
+          default: 1h
+        market_regime:
+          type: string
+          enum: [bull, bear, sideways, volatile]
+          default: sideways
+        include_technical_indicators:
+          type: boolean
+          default: true
+        include_elliott_wave_patterns:
+          type: boolean
+          default: false
+        include_options_data:
+          type: boolean
+          default: false
+        volatility_level:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+
+    MockDataResponse:
+      type: object
+      properties:
+        data_id:
+          type: string
+        symbols:
+          type: array
+          items:
+            type: string
+        timeframe:
+          type: string
+        market_regime:
+          type: string
+        data_points:
+          type: integer
+        generated_at:
+          type: string
+          format: date-time
+        data_preview:
+          type: array
+          items:
+            type: object
+            properties:
+              symbol:
+                type: string
+              timestamp:
+                type: string
+              open:
+                type: number
+                format: float
+              high:
+                type: number
+                format: float
+              low:
+                type: number
+                format: float
+              close:
+                type: number
+                format: float
+              volume:
+                type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          description: Request identifier for debugging
+
+tags:
+  - name: Strategy Management
+    description: Operations for managing and listing strategies
+  - name: Strategy Validation
+    description: Comprehensive strategy validation testing
+  - name: Signal Testing
+    description: Signal generation testing and validation
+  - name: Performance Testing
+    description: Performance benchmarking and monitoring
+  - name: Ensemble Testing
+    description: Multi-strategy integration testing
+  - name: Test Suite Management
+    description: Test suite creation and execution
+  - name: Test Results
+    description: Test result retrieval and analysis
+  - name: Mock Data
+    description: Synthetic market data generation
+  - name: System
+    description: System health and status endpoints
+

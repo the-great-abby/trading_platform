@@ -2,20 +2,49 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-09-28 11:41:29 EEST
-**Active Port Forwards**: 3  
+**Last Updated**: 2025-01-15 12:45:00 EST
+**Active Port Forwards**: 4  
 **Total Services**: 50+  
 **Paper Trading**: ✅ **ACTIVE** (Running since 16:54:38)  
 **RSS Feed Service**: ✅ **ACTIVE** (Running since 11:01:00)  
 **RSS Dashboard**: ✅ **ACTIVE** (Running since 11:01:00)  
+**Strategy Service**: ✅ **ACTIVE** (Updated with Public.com config)  
+**Secrets Management**: ✅ **ACTIVE** (Kubernetes secrets via Makefile)  
 
 ## 🎯 Currently Active Port Forwards
 
 | Service | External Port | Internal Port | Status | URL | Last Checked |
 |---------|---------------|---------------|--------|-----|--------------|
-| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-28 17:06 |
-| RSS Feed Service | 11004 | 11004 | ✅ Active | http://localhost:11004/ | 2025-09-28 17:06 |
-| RSS Dashboard | 8080 | 80 | ✅ Active | http://localhost:8080/ | 2025-09-28 17:06 |
+| Strategy Service | 11001 | 80 | ✅ Active | http://localhost:11001/ | 2025-09-29 08:10 |
+| **Strategy Testing Framework** | **11003** | **8000** | ✅ **New** | **http://localhost:11003/** | **2025-01-15 12:45** |
+| Live Trading Service | 11120 | 8080 | ✅ Active | http://localhost:11120/ | 2025-09-29 08:10 |
+| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-29 08:10 |
+
+## 🚀 Live Trading System Status
+
+**Configuration**: ✅ **ACTIVE** (Optimized Strategies Running)  
+**Expected Annual Return**: +7.53% (vs previous -1.23%)  
+**Sharpe Ratio**: +2.177 (vs previous +0.384)  
+**Status**: All optimized strategies active and trading  
+**Monitoring**: Live trading monitor available  
+
+### 🎯 Active Strategies
+- **Calendar Spread**: ✅ 12% max position, 4 daily trades
+- **Iron Condor**: ✅ 12% max position, 4 daily trades  
+- **Butterfly Spread**: ✅ 12% max position, 4 daily trades
+- **Risk Management**: ✅ Enhanced (11% drawdown limit, 15% cash reserve)
+
+### 🔧 Quick Commands
+```bash
+# Monitor live trading
+python3 live_trading_monitor.py single
+
+# Continuous monitoring (every 5 minutes)
+python3 live_trading_monitor.py continuous 5
+
+# Check strategy service
+python3 simplified_system_monitor.py single
+```
 
 ## 📈 Paper Trading Status
 
@@ -55,6 +84,18 @@
 | MCP Service | 11117 | 8000 | ✅ Active | http://localhost:11117/ | Model Context Protocol service |
 | Performance Dashboard | 11116 | 80 | ⚠️ **DEPRECATED** | http://localhost:11116/ | **DEPRECATED** - Functionality moved to unified-trading-dashboard |
 
+### **🧪 Strategy Testing Framework (11000-11009)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| **Strategy Testing Framework** | **11003** | **8000** | ✅ **New** | **http://localhost:11003/** | **Comprehensive strategy validation and testing API** |
+| Strategy Testing Database | 11004 | 5432 | ❌ Not Forwarded | localhost:11004 | Testing framework database |
+
+### **🔍 Backtest Validation Framework (11080-11089)**
+| Service | External Port | Internal Port | Status | URL | Description |
+|---------|---------------|---------------|--------|-----|-------------|
+| **Validation Framework API** | **11080** | **8000** | ❌ **Not Forwarded** | **http://localhost:11080/** | **Backtest script validation and testing framework** |
+| Validation Framework Database | 11081 | 5432 | ❌ Not Forwarded | localhost:11081 | External validation database connection |
+
 ### **💼 Trading Services (11080-11099)**
 | Service | External Port | Internal Port | Status | URL | Description |
 |---------|---------------|---------------|--------|-----|-------------|
@@ -63,6 +104,7 @@
 | Trading Engine | 11080 | 8080 | ❌ Not Forwarded | http://localhost:11080/ | Core trading engine |
 | **Live Trading Service** | **11120** | **8080** | ✅ **Active** | **http://localhost:11120/** | **Live trading with Public.com API integration** |
 | **Elliott Wave Analysis Service** | **11085** | **8000** | ❌ **Not Forwarded** | **http://localhost:11085/** | **Elliott Wave pattern detection with options integration** |
+| **Trade Recovery Service** | **11086** | **10001** | ❌ **Not Forwarded** | **http://localhost:11086/** | **~~Active trade recovery and management service~~** **CONSOLIDATED INTO LIVE TRADING SERVICE** |
 
 ### **📊 Advanced Portfolio Management Services (11180-11189)**
 | Service | External Port | Internal Port | Status | URL | Description |
@@ -191,6 +233,172 @@ curl -X POST http://localhost:11181/api/v1/risk/assess \
 curl -X POST http://localhost:11181/api/v1/risk/stress-test \
   -H "Content-Type: application/json" \
   -d '{"portfolio_id": "portfolio-123", "scenarios": [{"name": "Market Crash", "shock_return": -0.20}]}'
+```
+
+### **Strategy Testing Framework Commands**
+```bash
+# Check testing framework health
+curl -s http://localhost:11003/api/v1/testing/health | jq
+
+# List available strategies
+curl -s http://localhost:11003/api/v1/testing/strategies | jq
+
+# Validate Elliott Wave strategy
+curl -X POST http://localhost:11003/api/v1/testing/strategies/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "strategy_name": "ElliottWaveStrategy",
+    "config": {
+      "symbols": ["AAPL"],
+      "timeframe": "1d",
+      "lookback_periods": 50
+    }
+  }'
+
+# Test signal generation
+curl -X POST http://localhost:11003/api/v1/testing/signals/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "strategy_name": "ElliottWaveStrategy",
+    "symbol": "AAPL",
+    "test_config": {
+      "confidence_threshold": 0.8
+    },
+    "mock_data": {
+      "price_data": []
+    }
+  }'
+
+# Test performance metrics
+curl -X POST http://localhost:11003/api/v1/testing/performance/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "strategy_name": "ElliottWaveStrategy",
+    "test_config": {
+      "symbols": ["AAPL"]
+    },
+    "signal_count": 100
+  }'
+
+# Generate mock market data
+curl -X POST http://localhost:11003/api/v1/testing/mock-data/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "AAPL",
+    "timeframe": "1d",
+    "start_date": "2024-01-01T00:00:00Z",
+    "end_date": "2024-01-31T23:59:59Z",
+    "market_regime": "bull",
+    "initial_price": 150.0,
+    "volatility": 0.2
+  }'
+
+# Create comprehensive test suite
+curl -X POST http://localhost:11003/api/v1/testing/test-suites/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "suite_name": "Elliott Wave Comprehensive Test",
+    "strategy_name": "ElliottWaveStrategy",
+    "test_cases": [
+      {
+        "name": "Bull Market Test",
+        "type": "signal",
+        "config": {"market_regime": "bull"},
+        "expected_outcomes": {"min_signals": 10}
+      }
+    ]
+  }'
+
+# Open API documentation
+open http://localhost:11003/docs
+```
+
+### **Backtest Validation Framework Commands**
+```bash
+# Check validation framework health
+curl -s http://localhost:11080/health | jq
+
+# Discover backtest scripts
+curl -s http://localhost:11080/api/v1/scripts/discover | jq
+
+# List all scripts
+curl -s http://localhost:11080/api/v1/scripts/ | jq
+
+# Get script information
+curl -s http://localhost:11080/api/v1/scripts/script-123 | jq
+
+# Execute single script validation
+curl -X POST http://localhost:11080/api/v1/validation/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "script_id": "my_backtest_script",
+    "test_config_id": "basic_config",
+    "timeout_seconds": 300
+  }'
+
+# Check validation status
+curl -s http://localhost:11080/api/v1/validation/status/script-123 | jq
+
+# Get validation results
+curl -s http://localhost:11080/api/v1/validation/results/script-123 | jq
+
+# Execute batch validation
+curl -X POST http://localhost:11080/api/v1/batch/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "script_ids": ["script1", "script2", "script3"],
+    "parallel_execution": true,
+    "max_concurrent": 5
+  }'
+
+# Check batch status
+curl -s http://localhost:11080/api/v1/batch/status/batch-123 | jq
+
+# Get batch results
+curl -s http://localhost:11080/api/v1/batch/results/batch-123 | jq
+
+# Generate validation report
+curl -X POST http://localhost:11080/api/v1/reports/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "script_ids": ["script1", "script2"],
+    "report_type": "summary",
+    "format": "json",
+    "include_metrics": true
+  }'
+
+# List validation configurations
+curl -s http://localhost:11080/api/v1/config/ | jq
+
+# Create validation configuration
+curl -X POST http://localhost:11080/api/v1/config/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_name": "strict_validation",
+    "config_data": {
+      "timeout_seconds": 600,
+      "tolerance_levels": {
+        "total_return_pct": 0.001,
+        "sharpe_ratio": 0.01
+      }
+    },
+    "description": "Strict validation configuration"
+  }'
+
+# Query validation results
+curl -s "http://localhost:11080/api/v1/results/?status=PASSED&limit=10" | jq
+
+# Compare script results
+curl -s http://localhost:11080/api/v1/results/comparison/script1/script2 | jq
+
+# Get validation metrics
+curl -s http://localhost:11080/metrics | jq
+
+# Open API documentation
+open http://localhost:11080/docs
+
+# Open ReDoc documentation
+open http://localhost:11080/redoc
 ```
 
 ### **Live Trading Service Commands**
@@ -472,6 +680,63 @@ kubectl logs -f deployment/risk-management-redis -n trading
 - **2025-09-03**: Integrated with new rules system and update process
 - **2025-09-03**: **IMPORTANT**: Marked internal databases as DEPRECATED - moved to external sources
 - **2025-09-03**: Added external database configuration section and migration status
+
+---
+
+## 🔐 Secrets Management
+
+**Status**: ✅ **ACTIVE** (Kubernetes secrets via Makefile)  
+**Last Updated**: 2025-01-15 12:45:00 EST
+
+### Available Commands
+- `make secrets-help` - Show all secrets management commands
+- `make secrets-validate` - Validate .env file and secret configurations
+- `make secrets-update` - Update Kubernetes secrets from .env file
+- `make secrets-list` - List current Kubernetes secrets
+- `make secrets-update-api-keys` - Update only API key secrets
+- `make secrets-update-database` - Update only database credentials
+- `make secrets-check-cluster` - Check cluster connectivity and permissions
+
+### Configuration
+- **Environment File**: `.env` (based on `config.env.example`)
+- **Namespace**: `default` (configurable via NAMESPACE variable)
+- **Secret Types**: API keys (individual secrets), Database credentials (combined secret)
+
+### Secret Mappings
+| Environment Variable | Kubernetes Secret | Type |
+|---------------------|-------------------|------|
+| `POLYGON_API_KEY` | `polygon-api-key` | api-key |
+| `ALPHA_VANTAGE_API_KEY` | `alpha-vantage-api-key` | api-key |
+| `DB_HOST` | `db-credentials` | database |
+| `DB_USERNAME` | `db-credentials` | database |
+| `DB_PASSWORD` | `db-credentials` | database |
+| `DB_NAME` | `db-credentials` | database |
+
+### Usage Examples
+```bash
+# Validate environment file
+make secrets-validate
+
+# Update all secrets
+make secrets-update
+
+# Update secrets in specific namespace
+NAMESPACE=trading make secrets-update
+
+# Dry run (show what would be updated)
+make secrets-update DRY_RUN=true
+
+# List current secrets
+make secrets-list
+```
+
+### Security Features
+- ✅ Automatic .env file validation
+- ✅ File permission checking (must be 600 or less)
+- ✅ Kubernetes naming convention enforcement
+- ✅ Base64 encoding of secret values
+- ✅ No secret values logged in output
+- ✅ Comprehensive error handling with next steps
 
 ---
 

@@ -248,3 +248,12 @@ class TestPortfolioAPIContract:
 
 
 
+
+
+
+
+
+
+
+
+

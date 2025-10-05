@@ -5,14 +5,30 @@ Elliott Wave Analysis Service - Main Application
 
 import logging
 import time
+import sys
 from datetime import datetime
 from typing import Dict, Any, Optional
 import pandas as pd
+import numpy as np
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
+
+# Add the src directory to path to import trading config
+sys.path.append('/Users/abby/code/trading/src')
+try:
+    from utils.trading_config import SYMBOLS
+except ImportError:
+    # Fallback to a comprehensive list if import fails
+    SYMBOLS = [
+        'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC',
+        'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'PFE', 'UNH', 'HD', 'DIS',
+        'V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO',
+        'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'SMCI'
+    ]
 
 from models import ElliottWavePattern, WaveType, HealthCheckResponse
 from advanced_pattern_detection import AdvancedElliottWaveDetector
@@ -41,7 +57,163 @@ app.add_middleware(
 # Global variables
 elliott_detector: Optional[AdvancedElliottWaveDetector] = None
 options_integrator: Optional[ElliottWaveOptionsIntegrator] = None
-TRACKED_SYMBOLS = ["SPY", "QQQ", "AAPL"]
+TRACKED_SYMBOLS = SYMBOLS  # Track all 43 symbols available in the database
+
+def get_market_data_for_backtest(symbol: str, timeframe: str = "1d", historical_date: str = None, limit: int = 2000) -> pd.DataFrame:
+    """Get historical market data for backtesting up to a specific date"""
+    try:
+        # Call market-data-service API for historical data
+        market_data_service_url = os.getenv('MARKET_DATA_SERVICE_URL', 'http://market-data-service:11084')
+        
+        # Convert timeframe to API format
+        if timeframe in ["1d", "daily"]:
+            interval = "1d"
+        elif timeframe in ["1h", "hourly"]:
+            interval = "1h"
+        elif timeframe in ["15m", "15min"]:
+            interval = "15m"
+        else:
+            interval = "1d"  # Default to daily
+        
+        # Call market-data-service API using POST with request body
+        url = f"{market_data_service_url}/market-data/historical"
+        
+        # Calculate date range for backtesting - Use 5 years of data for better Elliott Wave analysis
+        from datetime import datetime, timedelta
+        if historical_date:
+            end_date = historical_date
+            start_date = (datetime.strptime(historical_date, "%Y-%m-%d") - timedelta(days=1825)).strftime("%Y-%m-%d")  # 5 years
+        else:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+            start_date = (datetime.now() - timedelta(days=1825)).strftime("%Y-%m-%d")  # 5 years
+        
+        request_data = {
+            "symbol": symbol.upper(),
+            "start_date": start_date,
+            "end_date": end_date,
+            "interval": interval
+        }
+        
+        import requests
+        response = requests.post(url, json=request_data, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if not data or 'data' not in data:
+            logger.warning(f"No historical data returned from market-data-service for {symbol} up to {historical_date}")
+            return pd.DataFrame()
+        
+        # Convert API response to DataFrame
+        df = pd.DataFrame(data['data'])
+        
+        # Ensure required columns exist
+        required_columns = ['date', 'high', 'low', 'close', 'volume']
+        if not all(col in df.columns for col in required_columns):
+            logger.error(f"Missing required columns in historical market data for {symbol}")
+            return pd.DataFrame()
+        
+        # Filter data to only include data up to historical_date
+        if historical_date:
+            df['date'] = pd.to_datetime(df['date'])
+            historical_dt = pd.to_datetime(historical_date)
+            df = df[df['date'] <= historical_dt]
+        
+        # Sort by date and limit results
+        df = df.sort_values('date').tail(limit)
+        
+        # Rename columns to match expected format
+        df = df.rename(columns={
+            'date': 'Date',
+            'high': 'High',
+            'low': 'Low',
+            'close': 'Close',
+            'volume': 'Volume'
+        })
+        
+        # Set date as index
+        df = df.set_index('Date')
+        
+        logger.info(f"Retrieved {len(df)} historical data points for {symbol} up to {historical_date}")
+        return df
+        
+    except Exception as e:
+        logger.error(f"Error fetching historical market data for {symbol}: {str(e)}")
+        return pd.DataFrame()
+
+def get_market_data(symbol: str, timeframe: str = "1d", limit: int = 1000) -> pd.DataFrame:
+    try:
+        # Call market-data-service API instead of direct database access
+        market_data_service_url = os.getenv('MARKET_DATA_SERVICE_URL', 'http://market-data-service:11084')
+        
+        # Convert timeframe to API format
+        if timeframe in ["1d", "daily"]:
+            interval = "1d"
+        elif timeframe in ["1h", "hourly"]:
+            interval = "1h"
+        elif timeframe in ["15m", "15min"]:
+            interval = "15m"
+        else:
+            interval = "1d"  # Default to daily
+        
+        # Call market-data-service API using POST with request body
+        url = f"{market_data_service_url}/market-data/historical"
+        
+        # Calculate date range for the request
+        from datetime import datetime, timedelta
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")  # Get 1 year of data
+        
+        request_data = {
+            "symbol": symbol.upper(),
+            "start_date": start_date,
+            "end_date": end_date,
+            "interval": interval
+        }
+        
+        import requests
+        response = requests.post(url, json=request_data, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if not data or 'data' not in data:
+            logger.warning(f"No data returned from market-data-service for {symbol}")
+            return pd.DataFrame()
+        
+        # Convert API response to DataFrame
+        df = pd.DataFrame(data['data'])
+        
+        # Ensure required columns exist
+        required_columns = ['date', 'high', 'low', 'close', 'volume']
+        if not all(col in df.columns for col in required_columns):
+            logger.error(f"Missing required columns in market data for {symbol}")
+            return pd.DataFrame()
+        
+        # Rename columns to match expected format and add timestamp
+        df = df.rename(columns={
+            'date': 'timestamp',
+            'high': 'High',
+            'low': 'Low', 
+            'close': 'Close',
+            'volume': 'Volume'
+        })
+        
+        # Convert date string to datetime
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        # Sort by timestamp
+        df = df.sort_values('timestamp').reset_index(drop=True)
+        
+        logger.info(f"Retrieved {len(df)} data points for {symbol} from market-data-service")
+        return df
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error calling market-data-service for {symbol}: {e}")
+        return pd.DataFrame()
+    except Exception as e:
+        logger.error(f"Error processing market data for {symbol}: {e}")
+        return pd.DataFrame()
 
 
 @app.on_event("startup")
@@ -78,24 +250,31 @@ async def get_symbols():
 
 
 @app.get("/elliott-wave/analyze/{symbol}")
-async def analyze_single_symbol(symbol: str, timeframe: str = "15m"):
+async def analyze_single_symbol(symbol: str, timeframe: str = "15m", historical_date: Optional[str] = None):
     """Analyze a single symbol for Elliott Wave patterns"""
     if symbol.upper() not in TRACKED_SYMBOLS:
         raise HTTPException(status_code=404, detail=f"Symbol {symbol} not tracked")
     
     start_time = time.time()
     
-    # Mock data for testing
-    dates = pd.date_range(start='2024-01-01', periods=100, freq='15min')
-    prices = [100 + i * 0.5 for i in range(100)]
+    # Get market data - either current or historical for backtesting
+    if historical_date:
+        # For backtesting - get data up to historical_date
+        data = get_market_data_for_backtest(symbol, timeframe, historical_date, limit=2000)
+    else:
+        # For live trading - get current data
+        data = get_market_data(symbol, timeframe, limit=1000)
     
-    data = pd.DataFrame({
-        'timestamp': dates,
-        'High': prices,
-        'Low': [p - 1 for p in prices],
-        'Close': [p - 0.5 for p in prices],
-        'Volume': [1000 + i * 10 for i in range(len(prices))]
-    })
+    if data.empty:
+        return {
+            "symbol": symbol.upper(),
+            "pattern_found": False,
+            "message": f"No market data available for {symbol}",
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date
+        }
+    
+    logger.info(f"Analyzing {symbol} with {len(data)} data points (historical_date: {historical_date})")
     
     # Detect swing points
     swing_points = elliott_detector.detect_swing_points(data)
@@ -104,8 +283,9 @@ async def analyze_single_symbol(symbol: str, timeframe: str = "15m"):
         return {
             "symbol": symbol.upper(),
             "pattern_found": False,
-            "message": "Insufficient swing points for pattern detection",
-            "analysis_time": time.time() - start_time
+            "message": f"Insufficient swing points for pattern detection (found {len(swing_points)})",
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date
         }
     
     # Identify wave pattern
@@ -124,14 +304,94 @@ async def analyze_single_symbol(symbol: str, timeframe: str = "15m"):
             "fibonacci_levels": pattern.fibonacci_levels,
             "target_price": pattern.target_price,
             "invalidation_level": pattern.invalidation_level,
-            "analysis_time": time.time() - start_time
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date
         }
     else:
         return {
             "symbol": symbol.upper(),
             "pattern_found": False,
             "message": "No Elliott Wave pattern detected",
-            "analysis_time": time.time() - start_time
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date
+        }
+
+
+@app.get("/elliott-wave/backtest/{symbol}")
+async def analyze_for_backtest(symbol: str, historical_date: str, timeframe: str = "1d"):
+    """Analyze a symbol for Elliott Wave patterns at a specific historical date (for backtesting)"""
+    if symbol.upper() not in TRACKED_SYMBOLS:
+        raise HTTPException(status_code=404, detail=f"Symbol {symbol} not tracked")
+    
+    start_time = time.time()
+    
+    # Validate historical_date format
+    try:
+        from datetime import datetime
+        datetime.strptime(historical_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="historical_date must be in YYYY-MM-DD format")
+    
+    # Get historical market data for backtesting
+    data = get_market_data_for_backtest(symbol, timeframe, historical_date, limit=2000)
+    
+    if data.empty:
+        return {
+            "symbol": symbol.upper(),
+            "pattern_found": False,
+            "message": f"No historical market data available for {symbol} up to {historical_date}",
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date,
+            "backtest_mode": True
+        }
+    
+    logger.info(f"Backtesting analysis for {symbol} with {len(data)} data points up to {historical_date}")
+    
+    # Detect swing points
+    swing_points = elliott_detector.detect_swing_points(data)
+    
+    if len(swing_points) < 5:
+        return {
+            "symbol": symbol.upper(),
+            "pattern_found": False,
+            "message": f"Insufficient swing points for pattern detection (found {len(swing_points)})",
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date,
+            "backtest_mode": True
+        }
+    
+    # Identify wave pattern
+    pattern = elliott_detector.identify_wave_pattern(swing_points)
+    
+    if pattern:
+        pattern.symbol = symbol.upper()
+        pattern.timeframe = timeframe
+        
+        return {
+            "symbol": symbol.upper(),
+            "pattern_found": True,
+            "pattern_type": pattern.pattern_type.value,
+            "confidence": pattern.confidence,
+            "waves": [wave.dict() for wave in pattern.waves],
+            "fibonacci_levels": pattern.fibonacci_levels,
+            "target_price": pattern.target_price,
+            "invalidation_level": pattern.invalidation_level,
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date,
+            "backtest_mode": True,
+            "data_points": len(data),
+            "swing_points": len(swing_points)
+        }
+    else:
+        return {
+            "symbol": symbol.upper(),
+            "pattern_found": False,
+            "message": "No Elliott Wave pattern detected",
+            "analysis_time": time.time() - start_time,
+            "historical_date": historical_date,
+            "backtest_mode": True,
+            "data_points": len(data),
+            "swing_points": len(swing_points)
         }
 
 

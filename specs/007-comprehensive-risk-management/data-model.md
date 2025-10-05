@@ -432,3 +432,12 @@ CREATE INDEX idx_risk_contributions_metrics_asset ON risk_contributions(risk_met
 
 
 
+
+
+
+
+
+
+
+
+

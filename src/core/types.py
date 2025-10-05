@@ -34,6 +34,7 @@ class TradeSignal:
     strategy: str
     confidence: float
     metadata: Dict[str, Any]
+    instrument_type: str = 'stock'  # 'stock' or 'options'
 
 @dataclass
 class Trade:

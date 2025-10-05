@@ -8,9 +8,9 @@ import pandas as pd
 from datetime import datetime, date
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
-from loguru import logger
+import logging
 
-from .economic_calendar import get_market_regime_for_date, is_high_impact_day
+logger = logging.getLogger(__name__)
 
 
 @dataclass

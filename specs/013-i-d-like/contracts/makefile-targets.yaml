@@ -1,0 +1,265 @@
+openapi: 3.0.0
+info:
+  title: Kubernetes Secrets Management - Makefile Targets
+  description: API contract for Makefile targets that manage Kubernetes secrets
+  version: 1.0.0
+  contact:
+    name: Trading System Team
+
+paths:
+  /secrets-update:
+    post:
+      summary: Update Kubernetes secrets from .env file
+      description: |
+        Updates existing Kubernetes secrets with values from the .env file.
+        Validates environment file, converts naming conventions, and applies updates.
+      operationId: updateSecrets
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace (default: default)
+          required: false
+          schema:
+            type: string
+            default: default
+        - name: env-file
+          in: query
+          description: Path to .env file (default: .env)
+          required: false
+          schema:
+            type: string
+            default: .env
+      responses:
+        '200':
+          description: Secrets updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  updated_secrets:
+                    type: array
+                    items:
+                      type: string
+                    example: ["polygon-api-key", "db-credentials"]
+                  next_steps:
+                    type: array
+                    items:
+                      type: string
+                    example: 
+                      - "Verify secrets: kubectl get secrets"
+                      - "Restart affected pods: kubectl rollout restart deployment/strategy-service"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [error]
+                  error_type:
+                    type: string
+                    enum: [validation_error, file_not_found, invalid_format]
+                  message:
+                    type: string
+                  next_steps:
+                    type: array
+                    items:
+                      type: string
+        '500':
+          description: Cluster operation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [error]
+                  error_type:
+                    type: string
+                    enum: [cluster_error, kubectl_error, permission_error]
+                  message:
+                    type: string
+                  next_steps:
+                    type: array
+                    items:
+                      type: string
+
+  /secrets-validate:
+    get:
+      summary: Validate .env file and secret configurations
+      description: |
+        Validates the .env file format and checks that all required secret
+        configurations are present and properly formatted.
+      operationId: validateSecrets
+      parameters:
+        - name: env-file
+          in: query
+          description: Path to .env file (default: .env)
+          required: false
+          schema:
+            type: string
+            default: .env
+      responses:
+        '200':
+          description: Validation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [valid]
+                  validated_secrets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        env_variable:
+                          type: string
+                        k8s_secret_name:
+                          type: string
+                        secret_type:
+                          type: string
+                          enum: [api-key, database]
+                        validation_status:
+                          type: string
+                          enum: [valid, invalid, missing]
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [invalid]
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        env_variable:
+                          type: string
+                        error_type:
+                          type: string
+                          enum: [missing, invalid_format, empty_value]
+                        message:
+                          type: string
+
+  /secrets-list:
+    get:
+      summary: List current Kubernetes secrets
+      description: |
+        Lists all secrets in the specified namespace that are managed
+        by this system (API keys and database credentials).
+      operationId: listSecrets
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace (default: default)
+          required: false
+          schema:
+            type: string
+            default: default
+      responses:
+        '200':
+          description: Secrets list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  secrets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        type:
+                          type: string
+                          enum: [api-key, database]
+                        created:
+                          type: string
+                          format: date-time
+                        keys:
+                          type: array
+                          items:
+                            type: string
+        '500':
+          description: Cluster access error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [error]
+                  error_type:
+                    type: string
+                    enum: [cluster_error, permission_error]
+                  message:
+                    type: string
+                  next_steps:
+                    type: array
+                    items:
+                      type: string
+
+components:
+  schemas:
+    SecretConfiguration:
+      type: object
+      required:
+        - env_variable_name
+        - k8s_secret_name
+        - secret_type
+        - namespace
+      properties:
+        env_variable_name:
+          type: string
+          pattern: '^[A-Z][A-Z0-9_]*$'
+          description: Environment variable name with underscores
+        k8s_secret_name:
+          type: string
+          pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+          description: Kubernetes secret name with hyphens
+        secret_type:
+          type: string
+          enum: [api-key, database]
+          description: Type of secret
+        namespace:
+          type: string
+          description: Kubernetes namespace
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - error_type
+        - message
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error_type:
+          type: string
+        message:
+          type: string
+        next_steps:
+          type: array
+          items:
+            type: string
+

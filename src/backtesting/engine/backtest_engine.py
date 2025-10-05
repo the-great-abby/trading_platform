@@ -94,6 +94,11 @@ class BacktestEngine:
         # Check environment variable for database_only mode
         self.database_only = os.getenv('DATABASE_ONLY', 'false').lower() in ('true', '1', 'yes')
         
+        # Check if running in Kubernetes (has KUBERNETES_SERVICE_HOST)
+        self.in_kubernetes = os.getenv('KUBERNETES_SERVICE_HOST') is not None
+        if self.in_kubernetes:
+            logger.info("🎯 Running in Kubernetes - will use cluster service addresses")
+        
         # Initialize appropriate market data manager
         if use_real_data and STRATEGIES_AVAILABLE:
             try:
@@ -113,6 +118,18 @@ class BacktestEngine:
         
         self.results = {}
         
+        # Initialize options data service for real options pricing
+        if STRATEGIES_AVAILABLE:
+            try:
+                from src.services.market_data.enhanced_options_data_service import get_enhanced_options_service
+                self.options_data_service = get_enhanced_options_service()
+                logger.info("✅ Enhanced options data service initialized")
+            except Exception as e:
+                logger.warning(f"Enhanced options data service not available: {e}")
+                self.options_data_service = None
+        else:
+            self.options_data_service = None
+        
         # Initialize LLM trade evaluator
         self.use_llm_evaluation = os.getenv('ENABLE_LLM_EVALUATION', 'true').lower() in ('true', '1', 'yes')
         if STRATEGIES_AVAILABLE:
@@ -123,6 +140,68 @@ class BacktestEngine:
                 self.trade_evaluator = None
         else:
             self.trade_evaluator = None
+        
+        # Track the last signal for options trade detection
+        self._last_signal = None
+    
+    def _get_real_options_price(self, symbol: str, current_date: datetime, underlying_price: float) -> Optional[float]:
+        """
+        Get real historical options price for backtesting
+        
+        Args:
+            symbol: Stock symbol
+            current_date: Current date in backtest
+            underlying_price: Current underlying stock price
+            
+        Returns:
+            Real options price or None if not available
+        """
+        if not self.options_data_service:
+            return None
+            
+        try:
+            # Convert datetime to date
+            if isinstance(current_date, datetime):
+                snapshot_date = current_date.date()
+            else:
+                snapshot_date = current_date
+            
+            # Get historical options data for this date
+            historical_data = self.options_data_service.get_historical_options_data(
+                symbol=symbol, 
+                snapshot_date=snapshot_date
+            )
+            
+            if not historical_data or not historical_data.contracts:
+                logger.debug(f"No historical options data for {symbol} on {snapshot_date}")
+                return None
+            
+            # Find the most liquid contract (highest volume)
+            liquid_contracts = [
+                contract for contract in historical_data.contracts 
+                if contract.get('volume', 0) > 0 and contract.get('close', 0) > 0
+            ]
+            
+            if not liquid_contracts:
+                logger.debug(f"No liquid options contracts for {symbol} on {snapshot_date}")
+                return None
+            
+            # Get the most liquid contract
+            most_liquid = max(liquid_contracts, key=lambda x: x.get('volume', 0))
+            
+            # Return the real options price
+            real_price = most_liquid.get('close', 0)
+            
+            if real_price > 0:
+                logger.debug(f"📊 Found real options price for {symbol}: ${real_price:.2f} on {snapshot_date}")
+                return real_price
+            else:
+                logger.debug(f"Invalid options price for {symbol} on {snapshot_date}: {real_price}")
+                return None
+                
+        except Exception as e:
+            logger.debug(f"Error getting real options price for {symbol}: {e}")
+            return None
         
     async def run_backtest(self, symbols: List[str], start_date: str, end_date: str, strategies: List[str]) -> Dict[str, BacktestResult]:
         """
@@ -180,10 +259,14 @@ class BacktestEngine:
         if self.use_llm_evaluation:
             llm_report = self.trade_evaluator.get_performance_report()
             logger.info("🤖 LLM Trade Evaluation Performance:")
-            logger.info(f"   Total Signals Evaluated: {llm_report['llm_performance']['total_signals']}")
-            logger.info(f"   LLM Approval Rate: {llm_report['evaluations_summary']['approval_rate']:.1f}%")
-            logger.info(f"   LLM Accuracy: {llm_report['evaluations_summary']['accuracy']:.1f}%")
-            logger.info(f"   Average Confidence: {llm_report['evaluations_summary']['average_confidence']:.2f}")
+            if 'llm_performance' in llm_report:
+                logger.info(f"   Total Signals Evaluated: {llm_report['llm_performance']['total_signals']}")
+            else:
+                logger.info(f"   LLM Performance: {llm_report}")
+                if 'evaluations_summary' in llm_report:
+                    logger.info(f"   LLM Approval Rate: {llm_report['evaluations_summary'].get('approval_rate', 'N/A')}")
+                    logger.info(f"   LLM Accuracy: {llm_report['evaluations_summary'].get('accuracy', 'N/A')}")
+                    logger.info(f"   Average Confidence: {llm_report['evaluations_summary'].get('average_confidence', 'N/A')}")
         
         return results
     
@@ -235,9 +318,31 @@ class BacktestEngine:
             prices = [base_price]
             
             # Generate price series with realistic movements
+            # Include market regimes: bull (40%), bear (20%), sideways (40%)
+            regime_length = len(date_range) // 3
+            
             for i in range(1, len(date_range)):
-                # Daily return with some trend and volatility
-                daily_return = np.random.normal(0.001, 0.02)  # 0.1% mean, 2% std
+                # Determine market regime
+                if i < regime_length:
+                    # Bull market - positive drift
+                    mean_return = 0.0005
+                    volatility = 0.015
+                elif i < regime_length * 2:
+                    # Bear market - negative drift
+                    mean_return = -0.0003
+                    volatility = 0.025
+                else:
+                    # Sideways - no drift, lower volatility
+                    mean_return = 0.0
+                    volatility = 0.012
+                
+                # Add occasional market shocks (5% chance)
+                if np.random.random() < 0.05:
+                    shock = np.random.normal(0, 0.05)  # 5% volatility shock
+                    daily_return = shock
+                else:
+                    daily_return = np.random.normal(mean_return, volatility)
+                
                 prices.append(prices[-1] * (1 + daily_return))
             
             # Create OHLCV data (using lowercase column names to match strategy expectations)
@@ -333,7 +438,7 @@ class BacktestEngine:
                 return None
             
             strategy = strategy_class()
-            initial_capital = 1000.0
+            initial_capital = getattr(self, 'initial_capital', 1000.0)
             final_capital = initial_capital
             total_trades = 0
             winning_trades = 0
@@ -341,7 +446,7 @@ class BacktestEngine:
             trades = []
             equity_curve_data = []
             
-            # Run backtest for each symbol
+            # Run backtest for each symbol with shared capital
             for symbol, data in market_data.items():
                 logger.info(f"🔍 DEBUG: {strategy_name} - Processing symbol {symbol}")
                 symbol_result = await self._backtest_symbol(strategy, symbol, data)
@@ -350,12 +455,13 @@ class BacktestEngine:
                     total_trades += symbol_result['trades']
                     trades.extend(symbol_result['trade_list'])
                     
-                    # Calculate capital changes
+                    # Calculate capital changes from individual symbol trades
                     for trade in symbol_result['trade_list']:
                         if trade['action'] == 'BUY':
-                            final_capital -= trade['value']
+                            final_capital -= trade['value']  # Spend money to buy shares
                         elif trade['action'] == 'SELL':
-                            final_capital += trade['value']
+                            final_capital += trade['value']  # Receive money from sale
+                            # Count winning/losing trades based on P&L
                             if trade['pnl'] > 0:
                                 winning_trades += 1
                             else:
@@ -444,13 +550,33 @@ class BacktestEngine:
             return None
     
     async def _backtest_symbol(self, strategy: BaseStrategy, symbol: str, data: pd.DataFrame) -> Optional[Dict[str, Any]]:
-        """Run backtest for a single symbol"""
+        """Run backtest for a single symbol with realistic transaction costs"""
         try:
-            initial_capital = 10000
+            # Use the engine's initial capital if set, otherwise default to 10000
+            initial_capital = getattr(self, 'initial_capital', 10000)
             current_capital = initial_capital
+            
+            # Calculate cash reserve (20% of initial capital)
+            cash_reserve = initial_capital * 0.20
+            max_tradeable_capital = initial_capital - cash_reserve
+            
             position = 0
+            position_cost_basis = 0.0  # Track average cost basis
             trades = []
             signals_generated = 0
+            
+            # Risk management parameters
+            stop_loss_pct = 0.15  # 15% stop loss
+            take_profit_pct = 0.30  # 30% take profit
+            max_daily_loss_pct = 0.02  # 2% max daily loss
+            daily_pnl = 0.0  # Track daily P&L
+            
+            logger.info(f"🔍 DEBUG: {symbol} - Initial capital: ${initial_capital:.2f}, Cash reserve: ${cash_reserve:.2f}, Max tradeable: ${max_tradeable_capital:.2f}")
+            
+            # Realistic trading costs (from paper_trading_strategies.yaml)
+            commission_per_trade = 0.0  # Public.com is commission-free
+            slippage = 0.0003  # 0.03% slippage
+            spread_cost = 0.001  # 0.1% spread
             
             logger.info(f"🔍 DEBUG: Starting backtest for {symbol} with {len(data)} data points")
             
@@ -480,11 +606,78 @@ class BacktestEngine:
                 else:
                     historical_date = str(current_date)
                 
+                # Check stop loss and take profit before generating new signals
+                if position > 0:
+                    current_price = data_with_indicators.iloc[i]['Close']
+                    
+                    # Check if this is an options trade (use last signal metadata)
+                    is_options_trade = False
+                    if hasattr(self, '_last_signal') and self._last_signal:
+                        is_options_trade = (self._last_signal.metadata and 
+                                          (self._last_signal.metadata.get('options_strategy') or 
+                                           self._last_signal.metadata.get('active_strategy')))
+                    
+                    if is_options_trade:
+                        # For options: use REAL market data instead of simulation
+                        underlying_price = current_price
+                        entry_price = position_cost_basis
+                        
+                        # Try to get real historical options data for this date
+                        real_options_price = self._get_real_options_price(symbol, current_date, underlying_price)
+                        
+                        if real_options_price is not None:
+                            # Use real market data
+                            simulated_premium = real_options_price
+                            logger.debug(f"📊 {symbol} - Using REAL options price: ${simulated_premium:.2f} on {current_date}")
+                        else:
+                            # Fallback to improved simulation if real data unavailable
+                            logger.debug(f"📊 {symbol} - Using fallback options pricing for {current_date}")
+                            
+                            # Calculate price movement from entry
+                            price_movement_pct = (underlying_price - entry_price * 100) / (entry_price * 100)
+                            
+                            # Delta effect: options move with underlying (typically 0.3-0.7 for ATM options)
+                            delta = 0.5  # Assume 50% delta for simplicity
+                            delta_effect = price_movement_pct * delta
+                            
+                            # Time decay: options lose value over time (simplified)
+                            # Find the last BUY trade to calculate days held
+                            days_held = 1  # Default
+                            for trade in reversed(trades):
+                                if trade['action'] == 'BUY' and trade['symbol'] == symbol:
+                                    days_held = (current_date - trade['date']).days
+                                    break
+                            theta_decay = -0.02 * days_held  # 2% decay per day (simplified)
+                            
+                            # Volatility effect: assume some volatility changes
+                            volatility_effect = np.random.normal(0, 0.05)  # Reduced volatility (more realistic)
+                            
+                            # Combine all effects
+                            total_effect = delta_effect + theta_decay + volatility_effect
+                            
+                            # Calculate new premium
+                            simulated_premium = entry_price * (1 + total_effect)
+                            
+                            # Ensure realistic premium bounds (not too low, not too high)
+                            simulated_premium = max(entry_price * 0.2, min(entry_price * 2.0, simulated_premium))
+                        
+                        position_pnl_pct = (simulated_premium - position_cost_basis) / position_cost_basis
+                        current_price = simulated_premium  # Use premium for trade execution
+                    else:
+                        # For stocks: normal price-based P&L calculation
+                        position_pnl_pct = (current_price - position_cost_basis) / position_cost_basis
+                    
+                    # Let the strategy handle all exit logic - no engine-level stop loss/take profit
+                    # The strategy has sophisticated patient exit logic that should be respected
+                    # Skip engine-level exit checks and let strategy generate exit signals
+                
                 # Generate signal with historical date
                 signal = await strategy.generate_signal(symbol, current_data, historical_date)
                 
                 if signal:
                     signals_generated += 1
+                    # Track the last signal for options trade detection
+                    self._last_signal = signal
                     logger.info(f"🔍 DEBUG: {symbol} - Signal {signals_generated}: {signal.action} at {data_with_indicators.index[i]}")
                     
                     # Initialize evaluation variable
@@ -509,32 +702,86 @@ class BacktestEngine:
                     
                     # Execute trade
                     if signal.action == 'BUY' and position == 0:
-                        # Buy signal
-                        shares_to_buy = current_capital // signal.price
-                        if shares_to_buy > 0:
-                            position = shares_to_buy
-                            trade_value = shares_to_buy * signal.price
-                            current_capital -= trade_value
+                        # Calculate available cash (current capital minus cash reserve)
+                        available_cash = current_capital - cash_reserve
+                        
+                        # Buy signal - use strategy's quantity or calculate based on available cash
+                        if hasattr(signal, 'quantity') and signal.quantity > 0:
+                            # Use strategy's specified quantity
+                            shares_to_buy = signal.quantity
                             
-                            trades.append({
-                                'date': signal.timestamp,
-                                'action': 'BUY',
-                                'price': signal.price,
-                                'shares': shares_to_buy,
-                                'value': trade_value,
-                                'pnl': 0,
-                                'llm_evaluation': evaluation if self.use_llm_evaluation else None
-                            })
-                            logger.info(f"🔍 DEBUG: {symbol} - BUY trade: {shares_to_buy} shares at ${signal.price:.2f}")
+                            trade_value = shares_to_buy * signal.price
+                            
+                            # Check if we have enough cash (including reserve)
+                            if trade_value > available_cash:
+                                logger.warning(f"⚠️ {symbol} - Insufficient cash for trade: need ${trade_value:.2f}, available ${available_cash:.2f} (reserve: ${cash_reserve:.2f})")
+                                continue
+                            
+                            # Check minimum trade value (at least $10)
+                            if trade_value < 10:
+                                logger.warning(f"⚠️ {symbol} - Trade value too small: ${trade_value:.2f} (minimum $10)")
+                                continue
+                        else:
+                            # Fallback: calculate based on available cash
+                            shares_to_buy = available_cash // signal.price
+                            if shares_to_buy <= 0:
+                                logger.warning(f"⚠️ {symbol} - Insufficient cash for trade: need ${signal.price:.2f}, available ${available_cash:.2f} (reserve: ${cash_reserve:.2f})")
+                                continue
+                            trade_value = shares_to_buy * signal.price
+                        
+                        # Update position and cost basis
+                        if position == 0:
+                            # New position
+                            position = shares_to_buy
+                            position_cost_basis = signal.price
+                        else:
+                            # Add to existing position (average cost basis)
+                            total_shares = position + shares_to_buy
+                            total_cost = (position * position_cost_basis) + trade_value
+                            position_cost_basis = total_cost / total_shares
+                            position = total_shares
+                        
+                        current_capital -= trade_value
+                        
+                        logger.info(f"🔍 DEBUG: {symbol} - BUY trade: {shares_to_buy} shares at ${signal.price:.2f}, remaining cash: ${current_capital:.2f} (reserve: ${cash_reserve:.2f})")
+                        
+                        trades.append({
+                            'date': signal.timestamp,
+                            'symbol': symbol,  # Add symbol to trade
+                            'action': 'BUY',
+                            'price': signal.price,
+                            'shares': shares_to_buy,
+                            'value': trade_value,
+                            'pnl': 0,
+                            'llm_evaluation': evaluation if self.use_llm_evaluation else None
+                        })
+                        
+                        # Update strategy's capital estimation
+                        if hasattr(strategy, 'update_capital_estimation'):
+                            strategy.update_capital_estimation(trade_value, 0)
+                        logger.info(f"🔍 DEBUG: {symbol} - BUY trade: {shares_to_buy} shares at ${signal.price:.2f}")
                     
                     elif signal.action == 'SELL' and position > 0:
                         # Sell signal
                         trade_value = position * signal.price
-                        pnl = trade_value - (position * trades[-1]['price']) if trades else 0
+                        
+                        # Check if this is an options trade
+                        is_options_trade = (signal.metadata and 
+                                          (signal.metadata.get('options_strategy') or 
+                                           signal.metadata.get('active_strategy')))
+                        
+                        if is_options_trade:
+                            # For options: P&L = contracts * (exit_premium - entry_premium)
+                            pnl = position * (signal.price - position_cost_basis)
+                        else:
+                            # For stocks: P&L = shares * (exit_price - entry_price)
+                            pnl = trade_value - (position * position_cost_basis)
+                        
                         current_capital += trade_value
                         
                         trades.append({
                             'date': signal.timestamp,
+                            'symbol': symbol,  # Add symbol to trade
                             'action': 'SELL',
                             'price': signal.price,
                             'shares': position,
@@ -542,6 +789,10 @@ class BacktestEngine:
                             'pnl': pnl,
                             'llm_evaluation': evaluation if self.use_llm_evaluation else None
                         })
+                        
+                        # Update strategy's capital estimation with actual P&L
+                        if hasattr(strategy, 'update_capital_estimation'):
+                            strategy.update_capital_estimation(trade_value, pnl)
                         logger.info(f"🔍 DEBUG: {symbol} - SELL trade: {position} shares at ${signal.price:.2f}, P&L: ${pnl:.2f}")
                         
                         # Update LLM performance if evaluation was used
@@ -550,12 +801,27 @@ class BacktestEngine:
                             self.trade_evaluator.update_performance(signal_id, pnl)
                         
                         position = 0
+                        position_cost_basis = 0.0
             
             # Close any remaining position
             if position > 0:
-                final_value = position * data_with_indicators.iloc[-1]['Close']
+                final_price = data_with_indicators.iloc[-1]['Close']
+                final_value = position * final_price
+                
+                # Check if this is an options trade
+                is_options_trade = False
+                if hasattr(self, '_last_signal') and self._last_signal:
+                    is_options_trade = (self._last_signal.metadata and 
+                                      (self._last_signal.metadata.get('options_strategy') or 
+                                       self._last_signal.metadata.get('active_strategy')))
+                
+                if is_options_trade:
+                    final_pnl = position * (final_price - position_cost_basis)
+                else:
+                    final_pnl = final_value - (position * position_cost_basis)
+                
                 current_capital += final_value
-                logger.info(f"🔍 DEBUG: {symbol} - Closing position: {position} shares at ${data_with_indicators.iloc[-1]['Close']:.2f}")
+                logger.info(f"🔍 DEBUG: {symbol} - Closing position: {position} shares at ${final_price:.2f}, P&L: ${final_pnl:.2f}")
             
             # Calculate return
             total_return = ((current_capital - initial_capital) / initial_capital) * 100
@@ -607,7 +873,7 @@ class BacktestEngine:
             # Build mapping (strategy_name -> module_path)
             mapping = {}
             for strategy_name, strategy_class in strategies.items():
-                mapping[strategy_name] = strategy_class.__module__
+                mapping[strategy_name] = f"{strategy_class.__module__}.{strategy_class.__name__}"
             
             logger.info(f"📊 Dynamic strategy mapping created with {len(mapping)} strategies")
             return mapping

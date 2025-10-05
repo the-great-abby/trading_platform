@@ -574,18 +574,24 @@ class PolygonProvider(MarketDataProvider):
             data = response.json()
             logger.info(f"🔍 DEBUG: {symbol} - Response data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
             
-            if "results" in data and data["results"]:
-                result = data["results"]
-                logger.info(f"🔍 DEBUG: {symbol} - Results keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+            if "ticker" in data and data["ticker"]:
+                ticker_data = data["ticker"]
+                logger.info(f"🔍 DEBUG: {symbol} - Ticker keys: {list(ticker_data.keys()) if isinstance(ticker_data, dict) else 'Not a dict'}")
                 
-                if "lastTrade" in result and "p" in result["lastTrade"]:
-                    price = float(result["lastTrade"]["p"])
-                    logger.info(f"✅ DEBUG: {symbol} - Found price in lastTrade.p: {price}")
+                # Try to get current price from day data
+                if "day" in ticker_data and "c" in ticker_data["day"]:
+                    price = float(ticker_data["day"]["c"])
+                    logger.info(f"✅ DEBUG: {symbol} - Found price in ticker.day.c: {price}")
+                    return price
+                # Fallback to min data
+                elif "min" in ticker_data and "c" in ticker_data["min"]:
+                    price = float(ticker_data["min"]["c"])
+                    logger.info(f"✅ DEBUG: {symbol} - Found price in ticker.min.c: {price}")
                     return price
                 else:
-                    logger.warning(f"⚠️ DEBUG: {symbol} - No lastTrade.p found in results")
+                    logger.warning(f"⚠️ DEBUG: {symbol} - No price found in ticker data")
             else:
-                logger.warning(f"⚠️ DEBUG: {symbol} - No results found in response")
+                logger.warning(f"⚠️ DEBUG: {symbol} - No ticker found in response")
             
             return None
             

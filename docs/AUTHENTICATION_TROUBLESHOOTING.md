@@ -220,3 +220,12 @@ curl -s http://localhost:11120/api/v1/accounts | jq
 **💡 Tip**: Always test your connection with `python scripts/connect_public_com.py` before trying to set up strategies. This will catch authentication issues early.
 
 
+
+
+
+
+
+
+
+
+

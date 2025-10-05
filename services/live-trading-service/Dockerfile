@@ -14,19 +14,23 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY services/live-trading-service/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY services/live-trading-service/main.py .
-COPY services/live-trading-service/routes/ ./routes/
-COPY src/services/live_trading/ ./src/services/live_trading/
+COPY main.py .
+COPY routes/ ./routes/
+COPY cli_recovery.py .
+COPY src/ ./src/
+COPY alembic/ ./alembic/
+COPY alembic.ini .
 
 # Create non-root user
 RUN groupadd -r trading && useradd -r -g trading trading

@@ -1,0 +1,113 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-elliott-wave-service
+  namespace: trading-system
+  labels:
+    app: backtest-elliott-wave
+    purpose: elliott-wave-service-testing
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest-elliott-wave
+        purpose: elliott-wave-service-testing
+    spec:
+      containers:
+      - name: elliott-wave-backtest
+        image: trading-bot:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args: 
+          - "-c"
+          - |
+            import sys
+            sys.path.append('src')
+            import asyncio
+            import requests
+            from datetime import datetime, timedelta
+            
+            async def test_elliott_wave_service():
+                print("🎯 ELLIOTT WAVE SERVICE BACKTEST")
+                print("=" * 50)
+                
+                # Use internal Kubernetes address
+                service_url = "http://elliott-wave-service.trading-system.svc.cluster.local:8000"
+                symbols = ["SPY", "QQQ", "AAPL"]
+                test_dates = ["2023-01-15", "2023-06-15", "2023-12-15"]
+                
+                print(f"📡 Service URL: {service_url}")
+                print(f"📊 Symbols: {', '.join(symbols)}")
+                print()
+                
+                total_tests = 0
+                successful_tests = 0
+                
+                for test_date in test_dates:
+                    print(f"📅 Testing date: {test_date}")
+                    
+                    for symbol in symbols:
+                        try:
+                            url = f"{service_url}/elliott-wave/backtest/{symbol}"
+                            params = {"historical_date": test_date, "timeframe": "1d"}
+                            
+                            print(f"   🔍 Testing {symbol}...")
+                            response = requests.get(url, params=params, timeout=30)
+                            response.raise_for_status()
+                            
+                            result = response.json()
+                            total_tests += 1
+                            
+                            if result.get("pattern_found", False):
+                                pattern_type = result.get("pattern_type", "unknown")
+                                confidence = result.get("confidence", 0.0)
+                                data_points = result.get("data_points", 0)
+                                swing_points = result.get("swing_points", 0)
+                                
+                                print(f"      ✅ Pattern: {pattern_type} (conf: {confidence:.2f})")
+                                print(f"      📊 Data: {data_points} points, {swing_points} swings")
+                                successful_tests += 1
+                            else:
+                                print(f"      ❌ No pattern: {result.get('message', 'No pattern')}")
+                            
+                            analysis_time = result.get("analysis_time", 0)
+                            print(f"      ⏱️  Time: {analysis_time:.3f}s")
+                            
+                        except Exception as e:
+                            print(f"      ❌ Error: {str(e)}")
+                            total_tests += 1
+                    
+                    print()
+                
+                print("📊 ELLIOTT WAVE SERVICE TEST RESULTS")
+                print("=" * 40)
+                print(f"📈 Total tests: {total_tests}")
+                print(f"✅ Successful: {successful_tests}")
+                print(f"📊 Success rate: {successful_tests/total_tests*100:.1f}%" if total_tests > 0 else "📊 Success rate: 0%")
+                
+                if successful_tests > 0:
+                    print("\n🎉 Elliott Wave service is working in Kubernetes!")
+                    print("💡 Ready for integration with backtesting engine")
+                else:
+                    print("\n❌ Elliott Wave service needs investigation")
+                
+                return successful_tests > 0
+            
+            # Run the test
+            result = asyncio.run(test_elliott_wave_service())
+            exit(0 if result else 1)
+        env:
+        - name: ELLIOTT_WAVE_SERVICE_URL
+          value: "http://elliott-wave-service.trading-system.svc.cluster.local:8000"
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@postgres-dev:5432/trading_bot"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      restartPolicy: Never
+  backoffLimit: 1
+

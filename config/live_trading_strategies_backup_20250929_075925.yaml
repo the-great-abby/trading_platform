@@ -1,0 +1,746 @@
+backtesting:
+  enabled: true
+  min_backtest_period_days: 30
+  min_success_rate: 0.6
+  service_url: http://backtest-api.trading-system.svc.cluster.local:10001
+  test_strategies_before_live: true
+correlation_arbitrage:
+  arbitrage_thresholds:
+    high_correlation: 0.8
+    low_correlation: 0.2
+  correlation_window: 20
+  enabled: true
+  position_multipliers:
+    high_correlation: 1.2
+    low_correlation: 1.1
+  sector_etfs:
+  - XLK
+  - XLF
+  - XLE
+  - XLV
+  - XLI
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+cost_controls:
+  enabled: true
+  tax_optimization:
+    enabled: true
+    long_term_tax_rate: 0.2
+    min_holding_period: 30
+    preferred_holding_period: 365
+    short_term_tax_rate: 0.37
+    wash_sale_rule: true
+  trading_costs:
+    commission_per_contract: 0.0      # Commission-free on Public.com API
+    commission_per_trade: 0.0         # Commission-free on Public.com API
+    options_rebate_per_contract: 0.06 # $0.06 rebate per contract (Tier 1-3)
+    max_contracts_per_trade: 3
+    slippage: 0.0005
+    spread_cost: 0.001
+    extended_hours_fee: 2.99          # $2.99 per extended hours trade
+    premium_membership_cost: 10.0     # $10/month for Premium
+    inactivity_fee: 3.99             # $3.99/month if <$70 balance + 6mo inactive
+    account_maintenance_fee: 5.0      # $5 quarterly if <$20 balance + 90d inactive
+      trading_limits:
+        max_daily_trades: 5               # Optimized: Quality over quantity
+        max_monthly_trades: 8             # Optimized: Focus on high-probability trades
+        max_weekly_trades: 6              # Optimized: Balanced approach
+        trading_frequency_penalty: true   # Re-enabled: Prevent overtrading
+public_com_optimization:
+  enabled: true
+  api_settings:
+    commission_free_trading: true
+    options_rebates_enabled: true
+    extended_hours_trading: false    # Set to true if you need extended hours
+    premium_membership: false         # Set to true if you want Premium benefits
+      rebate_optimization:
+        target_monthly_contracts: 30     # Optimized: Focus on quality trades
+        tier_4_threshold: 1000           # Contracts needed for $0.10 rebate
+        volume_tracking: true
+        quality_over_quantity: true      # Prioritize high-probability trades
+  cost_monitoring:
+    track_rebates: true
+    track_extended_hours_fees: true
+    track_premium_costs: true
+    monthly_cost_reporting: true
+    quality_metrics: true              # Track trade quality metrics
+    overtrading_detection: true        # Detect and prevent overtrading
+dynamic_sizing:
+  base_position_size: 0.08            # Optimized: More conservative base size
+  enabled: true
+  momentum_multiplier: 1.2            # Optimized: Reduced momentum multiplier
+  regime_multiplier: 1.1              # Optimized: Reduced regime multiplier
+  max_position_size: 0.12            # Optimized: Lower maximum position size
+  volatility_multiplier: 2.0
+  volatility_thresholds:
+    high_vol: 0.35
+    low_vol: 0.15
+elliott_wave:
+  confidence_threshold: 0.6
+  enabled: true
+  fibonacci_levels:
+  - 0.236
+  - 0.382
+  - 0.5
+  - 0.618
+  - 0.786
+  min_pattern_strength: 0.7
+  service_url: http://elliott-wave-service.trading-system.svc.cluster.local:8000
+  strategies:
+    elliott_wave_corrective:
+      confidence_threshold: 0.75
+      enabled: true
+      max_daily_trades: 2
+      max_monthly_trades: 2
+      max_position_size: 0.2
+      max_risk_per_trade: 0.02
+      name: ELLIOTT_WAVE_CORRECTIVE
+      options_strategy: IronCondorStrategy
+      pattern_type: corrective
+      risk_level: medium
+      stop_loss: 0.18
+      symbols:
+      - TSLA
+      - NVDA
+      - AMD
+      - META
+      - PYPL
+      - AAPL
+      target_profit: 0.35
+    elliott_wave_impulse:
+      confidence_threshold: 0.8
+      enabled: false
+      max_daily_trades: 0
+      max_monthly_trades: 0
+      max_position_size: 0.0
+      max_risk_per_trade: 0.0
+      name: ELLIOTT_WAVE_IMPULSE
+      options_strategy: StraddleStrategy
+      pattern_type: impulse
+      risk_level: high
+      stop_loss: 0.0
+      symbols: []
+      target_profit: 0.0
+greeks_optimization:
+  enabled: true
+  greeks_calculation:
+    delta_threshold: 0.3
+    gamma_scaling: 10.0
+    rho_interest_rate: 0.01
+    theta_decay: 0.02
+    vega_volatility: 0.2
+  position_sizing:
+    delta_based_sizing: true
+    gamma_adjustment: true
+    max_delta_per_position: 0.5
+    max_gamma_per_position: 0.1
+    max_theta_per_position: -0.05
+    max_vega_per_position: 0.3
+    theta_optimization: true
+    vega_scaling: true
+  recalculation:
+    earnings_triggers: true
+    frequency: 5
+    intraday_updates: true
+    volatility_triggers: true
+  risk_management:
+    correlation_greeks: true
+    delta_hedging: true
+    gamma_scalping: true
+    theta_decay_optimization: true
+    vega_volatility_trading: true
+machine_learning:
+  enabled: true
+  feature_engineering:
+    price_patterns: true
+    technical_indicators: true
+    volatility_clustering: true
+    volume_analysis: true
+  model_type: RandomForestRegressor
+  position_multiplier: 2.5
+  retrain_frequency: 30
+  signal_threshold: 0.6
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+market_data:
+  market_hours_only: true
+  options_data: true
+  real_time_data: true
+  sector_etfs:
+  - XLK
+  - XLF
+  - XLE
+  - XLV
+  - XLI
+  - XLY
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+  update_interval: 60
+  volatility_products:
+  - VIX
+  - VXX
+  - UVXY
+  - SVXY
+market_timing:
+  enabled: true
+  position_multipliers:
+    high_fear: 0.5
+    low_fear: 1.7
+    normal_fear: 1.0
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+  vix_thresholds:
+    high_fear: 30.0
+    low_fear: 15.0
+momentum_trending:
+  enabled: true
+  momentum_lookback: 20
+  position_multipliers:
+    sideways_market: 0.4
+    strong_trend: 2.2
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+  trend_strength_threshold: 0.6
+monitoring:
+  alert_channels:
+  - email
+  - webhook
+  alerts:
+    cost_limit_breach: true
+    daily_loss_limit: true
+    drawdown_warning: true
+    elliott_wave_signal: true
+    market_hours_change: true
+    performance_target_breach: true
+    position_risk_breach: true
+    tax_optimization_alert: true
+    trade_execution_failure: true
+    trading_frequency_alert: true
+    public_com_rebate_tracking: true    # New: Track rebate earnings
+    extended_hours_fee_alert: true       # New: Alert on extended hours fees
+    premium_membership_roi: true         # New: Track Premium membership ROI
+  enable_alerts: true
+  performance_targets:
+    annual_return_target: 0.7
+    max_daily_loss_limit: 0.035
+    max_drawdown_limit: 0.035
+    monthly_return_target: 0.058
+    sharpe_ratio_target: 3.5
+    win_rate_target: 0.8
+  performance_tracking: true
+  trade_logging: true
+multi_signal_exits:
+  advanced_exit_strategies:
+    correlation_exit: true
+    enabled: true
+    market_regime_exit: true
+    ml_exit: true
+    momentum_exit: true
+    options_exit: true
+    volatility_exit: true
+  correlation_exit:
+    correlation_breakdown_threshold: 0.3
+    correlation_window: 20
+    enabled: true
+    market_correlation_threshold: 0.7
+    sector_correlation_threshold: 0.8
+  enabled: true
+  market_regime_exit:
+    enabled: true
+    regime_confidence_threshold: 0.75
+    regime_detection_window: 30
+    regime_specific_exits:
+      bear_market: volatility_exit
+      bull_market: momentum_exit
+      high_volatility: options_exit
+      sideways_market: correlation_exit
+    regime_transition_threshold: 0.5
+  momentum_exit:
+    enabled: true
+    exit_confidence_threshold: 0.7
+    momentum_indicators:
+    - MACD
+    - RSI
+    - ADX
+    momentum_reversal_threshold: 0.3
+    trend_strength_threshold: 0.6
+  options_exit:
+    enabled: true
+    greeks_thresholds:
+      delta_threshold: 0.8
+      gamma_threshold: 0.1
+      theta_decay_threshold: 0.02
+      vega_sensitivity_threshold: 0.2
+    implied_volatility_threshold: 0.3
+    options_volume_threshold: 1000
+  volatility_exit:
+    enabled: true
+    extreme_volatility_threshold: 0.4
+    vix_spike_threshold: 25.0
+    volatility_expansion_threshold: 1.5
+    volatility_regime_detection: true
+multi_timeframe:
+  enabled: true
+  position_multiplier: 1.8
+  signal_weights:
+    long_term: 0.2
+    medium_term: 0.4
+    short_term: 0.4
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+  timeframes:
+    long_term: 60
+    medium_term: 20
+    short_term: 5
+news_integration:
+  confidence_boosting:
+    alignment_threshold: 0.8
+    applicable_strategies:
+    - elliott_wave_corrective
+    - volatility_trading
+    boost_multiplier: 1.3
+    enabled: true
+    max_boost: 0.5
+  early_exit_signals:
+    applicable_strategies:
+    - butterfly_spread
+    - collar_strategy
+    confidence_threshold: 0.8
+    enabled: true
+    news_impact_threshold: 0.6
+    sentiment_reversal_threshold: 0.4
+  enabled: true
+  news_sources:
+    llm_analysis: true
+    polygon_api: true
+    rss_feeds: true
+    social_media: true
+  regime_enhancement:
+    applicable_strategies:
+    - sector_rotation
+    - elliott_wave_corrective
+    enabled: true
+    news_weight: 0.4
+    sentiment_window: 48
+    technical_weight: 0.6
+  sentiment_filtering:
+    alignment_required: true
+    applicable_strategies:
+    - elliott_wave_corrective
+    - sector_rotation
+    - volatility_trading
+    confidence_threshold: 0.7
+    enabled: true
+    sentiment_threshold: 0.3
+  volatility_prediction:
+    applicable_strategies:
+    - volatility_trading
+    - butterfly_spread
+    enabled: true
+    prediction_window: 24
+    vix_spike_threshold: 25.0
+    volatility_multiplier: 1.5
+optimizations:
+  advanced_caching:
+    enabled: true
+    l1_cache: true
+    l2_cache: true
+    predictive_caching: true
+  database_optimization:
+    connection_pooling: true
+    enabled: true
+    index_optimization: true
+    query_caching: true
+  strategy_optimization:
+    algorithm_optimization: true
+    enabled: true
+    memory_optimization: true
+    parallelization: true
+    parameter_tuning: true
+options_greeks:
+  enabled: true
+  greeks_calculation:
+    delta_threshold: 0.3
+    gamma_scaling: 10.0
+    theta_decay: 0.02
+    vega_volatility: 0.2
+  position_multiplier: 2.0
+  recalculation_frequency: 5
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+phase2_enhancements:
+  advanced_exit_strategies:
+    correlation_exit: true
+    enabled: true
+    market_regime_exit: true
+    ml_exit: true
+    momentum_exit: true
+    options_exit: true
+    volatility_exit: true
+  enhanced_risk_management:
+    correlation_analysis: true
+    enabled: true
+    portfolio_hedging: true
+    position_sizing: true
+    risk_limits: true
+    stress_testing: true
+    var_calculation: true
+  resource_management:
+    alerting: true
+    auto_optimization: true
+    emergency_cleanup: true
+    enabled: true
+    monitoring: true
+portfolio:
+  initial_capital: 4000.0
+  max_daily_loss: 150.0
+  max_daily_trades: 5               # Optimized: Quality over quantity
+  max_monthly_trades: 8             # Optimized: Focus on high-probability trades
+  max_single_symbol: 0.20           # Optimized: More conservative per-symbol limit
+  max_total_exposure: 0.40          # Optimized: More conservative total exposure
+  min_cash_reserve: 0.15            # Optimized: Higher cash reserve for safety
+quantum_optimization:
+  enabled: true
+  interference_factor: 1.2
+  position_multiplier: 1.3
+  quantum_entanglement: true
+  superposition_states: 10
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+  tunneling_probability: 0.1
+regime_switching:
+  enabled: true
+  regime_detection:
+    confidence_threshold: 0.7
+    lookback_period: 100
+    min_regime_duration: 20
+    regime_types:
+    - bull_market
+    - bear_market
+    - sideways_market
+    - high_volatility
+    - low_volatility
+  regime_strategies:
+    bear_market:
+      allocation_multiplier: 0.8
+      primary_strategies:
+      - volatility_trading
+      - collar_strategy
+      risk_multiplier: 0.9
+      secondary_strategies:
+      - elliott_wave_corrective
+    bull_market:
+      allocation_multiplier: 1.3
+      primary_strategies:
+      - elliott_wave_corrective
+      - sector_rotation
+      risk_multiplier: 1.1
+      secondary_strategies:
+      - butterfly_spread
+      - collar_strategy
+    high_volatility:
+      allocation_multiplier: 1.2
+      primary_strategies:
+      - volatility_trading
+      - elliott_wave_corrective
+      risk_multiplier: 0.8
+      secondary_strategies:
+      - butterfly_spread
+    low_volatility:
+      allocation_multiplier: 1.0
+      primary_strategies:
+      - butterfly_spread
+      - sector_rotation
+      risk_multiplier: 1.2
+      secondary_strategies:
+      - collar_strategy
+    sideways_market:
+      allocation_multiplier: 1.1
+      primary_strategies:
+      - butterfly_spread
+      - elliott_wave_corrective
+      risk_multiplier: 1.0
+      secondary_strategies:
+      - volatility_trading
+      - collar_strategy
+  transition_management:
+    confidence_weighting: true
+    overlap_strategies: true
+    smooth_transitions: true
+    transition_period: 5
+risk_management:
+  emergency_controls:
+    emergency_stop_enabled: true
+    max_drawdown: 0.2
+    stop_loss_percentage: 0.15
+  enhanced_risk_management:
+    correlation_analysis: true
+    enabled: true
+    portfolio_hedging: true
+    position_sizing: true
+    risk_limits: true
+    stress_testing: true
+    var_calculation: true
+  max_greeks_exposure:
+    delta: 0.15
+    gamma: 0.08
+    theta: -0.03
+    vega: 0.2
+  position_limits:
+    max_expiration_days: 45
+    max_options_contracts: 15
+    max_stock_shares: 1000
+  resource_management:
+    auto_optimization: true
+    emergency_cleanup: true
+    enabled: true
+    monitoring: true
+  risk_level: MODERATE
+schedule:
+  market_holidays:
+    auto_pause: true
+    enabled: true
+  strategy_rotation:
+    enabled: false
+    rotation_interval: daily
+  trading_hours:
+    end: '16:00'
+    start: 09:30
+    timezone: America/New_York
+sector_rotation:
+  enabled: true
+  performance_lookback: 60
+  rotation_frequency: 30
+  rotation_multiplier: 1.6
+  sector_symbols:
+    automotive:
+    - TSLA
+    fintech:
+    - PYPL
+    semiconductors:
+    - NVDA
+    - AMD
+    social_media:
+    - META
+    technology:
+    - TSLA
+    - NVDA
+    - AMD
+    - META
+    - AAPL
+  top_sectors: 3
+sentiment_analysis:
+  enabled: true
+  position_multiplier: 1.4
+  sentiment_sources:
+    analyst_reports: true
+    earnings_calls: true
+    news_api: true
+    social_media: true
+  sentiment_weight: 0.3
+  symbols:
+  - TSLA
+  - NVDA
+  - AMD
+  - META
+  - PYPL
+  - AAPL
+  update_frequency: 60
+strategies:
+  butterfly_spread:
+    description: Butterfly Spread - best options strategy (8.8% annual return) + News
+      Integration
+    enabled: true
+    max_daily_loss: 60.0
+    max_daily_trades: 3
+    max_monthly_trades: 3
+    max_position_size: 0.15
+    max_risk_per_trade: 0.015
+    name: BUTTERFLY_SPREAD
+    news_integration:
+      early_exit_signals: true
+      enabled: true
+      news_sensitivity: medium
+      sentiment_weight: 0.2
+      volatility_prediction: true
+    stop_loss: 0.15
+    symbols:
+    - TSLA
+    - NVDA
+    - AMD
+    - META
+    - PYPL
+    - AAPL
+    target_profit: 0.25
+  collar_strategy:
+    description: Collar Strategy - hedged income (5.8% annual return) + News Integration
+    enabled: true
+    max_daily_loss: 30.0
+    max_daily_trades: 2
+    max_monthly_trades: 2
+    max_position_size: 0.05
+    max_risk_per_trade: 0.008
+    name: COLLAR_STRATEGY
+    news_integration:
+      early_exit_signals: true
+      enabled: true
+      news_sensitivity: low
+      sentiment_weight: 0.1
+    stop_loss: 0.1
+    symbols:
+    - TSLA
+    - NVDA
+    - AMD
+    - META
+    - PYPL
+    - AAPL
+    target_profit: 0.2
+  elliott_wave_corrective:
+    confidence_threshold: 0.75
+    description: Elliott Wave Corrective - star performer (67.5% annual return) +
+      News Integration
+    enabled: true
+    max_daily_loss: 80.0
+    max_daily_trades: 2
+    max_monthly_trades: 2
+    max_position_size: 0.2
+    max_risk_per_trade: 0.02
+    name: ELLIOTT_WAVE_CORRECTIVE
+    news_integration:
+      confidence_boosting: true
+      enabled: true
+      news_sensitivity: high
+      regime_enhancement: true
+      sentiment_filtering: true
+      sentiment_weight: 0.3
+    stop_loss: 0.18
+    symbols:
+    - TSLA
+    - NVDA
+    - AMD
+    - META
+    - PYPL
+    - AAPL
+    target_profit: 0.35
+  sector_rotation:
+    description: Sector Rotation - momentum enhancement (20.0% annual return) + News
+      Integration
+    enabled: true
+    max_daily_loss: 60.0
+    max_daily_trades: 2
+    max_monthly_trades: 2
+    max_position_size: 0.12
+    max_risk_per_trade: 0.015
+    name: SECTOR_ROTATION
+    news_integration:
+      enabled: true
+      news_sensitivity: high
+      regime_enhancement: true
+      sentiment_filtering: true
+      sentiment_weight: 0.4
+    sector_symbols:
+      consumer:
+      - PYPL
+      energy: []
+      financial:
+      - PYPL
+      healthcare: []
+      industrial: []
+      technology:
+      - TSLA
+      - NVDA
+      - AMD
+      - META
+      - AAPL
+    stop_loss: 0.12
+    symbols:
+    - XLK
+    - XLF
+    - XLE
+    - XLV
+    - XLI
+    - XLY
+    target_profit: 0.2
+  volatility_trading:
+    description: Volatility Trading - VIX enhancement (25.0% annual return) + News
+      Integration
+    enabled: true
+    max_daily_loss: 50.0
+    max_daily_trades: 2
+    max_monthly_trades: 2
+    max_position_size: 0.08
+    max_risk_per_trade: 0.012
+    name: VOLATILITY_TRADING
+    news_integration:
+      confidence_boosting: true
+      enabled: true
+      news_sensitivity: very_high
+      sentiment_filtering: true
+      sentiment_weight: 0.5
+      volatility_prediction: true
+    stop_loss: 0.15
+    symbols:
+    - VIX
+    - VXX
+    - UVXY
+    - SVXY
+    target_profit: 0.25
+    volatility_thresholds:
+      high_volatility: 25.0
+      low_volatility: 15.0
+trailing_stops:
+  butterfly_spread:
+    enabled: true
+    min_profit: 0.2
+    profit_threshold: 0.3
+    trail_percentage: 0.03
+  calendar_spread:
+    enabled: true
+    min_profit: 0.25
+    profit_threshold: 0.4
+    trail_percentage: 0.04
+  iron_condor:
+    enabled: true
+    min_profit: 0.3
+    profit_threshold: 0.5
+    trail_percentage: 0.05

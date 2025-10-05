@@ -1,0 +1,342 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-2year-comprehensive-with-regime
+  namespace: trading-system
+  labels:
+    app: backtest-comprehensive-with-regime
+    purpose: 2year-advanced-strategies-with-regime
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest-comprehensive-with-regime
+        purpose: 2year-advanced-strategies-with-regime
+    spec:
+      containers:
+      - name: comprehensive-regime-backtest
+        image: live-trading-service:latest
+        imagePullPolicy: Never
+        command: ["python"]
+        args:
+        - "-c"
+        - |
+          import sys
+          sys.path.append('/app')
+          
+          from src.services.backtest.backtest_data_scanner import BacktestDataScanner
+          from src.utils.config import get_config
+          from src.utils.enhanced_logging import setup_logging
+          import logging
+          import pandas as pd
+          from datetime import datetime, timedelta
+          
+          setup_logging()
+          logger = logging.getLogger(__name__)
+          
+          config = get_config()
+          
+          # Configure for 2-year advanced comprehensive backtest
+          scanner = BacktestDataScanner()
+          
+          # Set date range: 2023-01-01 to 2024-12-31 (2 years)
+          start_date = "2023-01-01"
+          end_date = "2024-12-31"
+          
+          logger.info("🚀 STARTING ADVANCED 2-YEAR COMPREHENSIVE BACKTEST")
+          logger.info("=" * 70)
+          logger.info(f"📅 Date Range: {start_date} to {end_date}")
+          logger.info(f"💰 Capital Allocation: 20% Cash, 30% Stocks, 50% Options")
+          logger.info(f"📊 Total Days: {(pd.to_datetime(end_date) - pd.to_datetime(start_date)).days}")
+          logger.info("=" * 70)
+          
+          # Advanced strategy configuration with your specifications
+          strategies_config = {
+              # Market Regime Strategies
+              'MarketRegimeAdaptiveStrategy': {
+                  'regime_lookback': 50,
+                  'volatility_threshold': 0.2,
+                  'trend_threshold': 0.02,
+                  'regime_confidence_threshold': 0.6
+              },
+              'RegimeSwitchingStrategy': {
+                  'lookback_period': 100,
+                  'regime_confidence_threshold': 0.7,
+                  'min_regime_duration': 20
+              },
+              'AdaptiveSectorWaveStrategy': {
+                  'sector_rotation_lookback': 60,
+                  'volatility_threshold': 0.25,
+                  'trend_threshold': 0.03,
+                  'confidence_threshold': 0.65
+              },
+              
+              # Core Strategies
+              'IchimokuStrategy': {
+                  'tenkan_period': 9,
+                  'kijun_period': 26,
+                  'senkou_b_period': 52,
+                  'displacement': 26,
+                  'min_confidence': 0.7
+              },
+              
+              # Elliott Wave Strategies (Service-Based)
+              'ServiceBasedElliottWaveImpulseStrategy': {
+                  'service_url': 'http://elliott-wave-service.trading-system.svc.cluster.local:8000',
+                  'confidence_threshold': 0.7,
+                  'timeframe': '1d'
+              },
+              'ServiceBasedElliottWaveCorrectiveStrategy': {
+                  'service_url': 'http://elliott-wave-service.trading-system.svc.cluster.local:8000',
+                  'confidence_threshold': 0.6,
+                  'timeframe': '1d'
+              },
+              
+              # Advanced Risk Management
+              'TrailingStopStrategy': {
+                  'trailing_stop_pct': 0.05,
+                  'min_profit_pct': 0.02,
+                  'max_position_size': 0.15
+              },
+              
+              # Options Strategies
+              'CalendarSpreadStrategy': {
+                  'min_dte': 30,
+                  'max_dte': 60,
+                  'strike_distance': 0.02,
+                  'max_position_size': 0.20
+              },
+              'ButterflySpreadStrategy': {
+                  'min_dte': 45,
+                  'max_dte': 90,
+                  'wing_width': 0.05,
+                  'max_position_size': 0.15
+              },
+              'IronCondorStrategy': {
+                  'min_dte': 30,
+                  'max_dte': 60,
+                  'wing_width': 0.10,
+                  'max_position_size': 0.25
+              },
+              'StraddleStrategy': {
+                  'min_dte': 30,
+                  'max_dte': 60,
+                  'max_position_size': 0.20
+              },
+              'VolatilityStrategy': {
+                  'vol_threshold': 0.25,
+                  'min_dte': 30,
+                  'max_position_size': 0.15
+              }
+          }
+          
+          # Capital allocation configuration
+          capital_allocation = {
+              'total_capital': 100000,  # $100k total
+              'cash_reserve_pct': 0.20,  # 20% cash ($20k)
+              'stock_allocation_pct': 0.30,  # 30% stocks ($30k)
+              'options_allocation_pct': 0.50,  # 50% options ($50k)
+              
+              # Risk management
+              'max_position_size': 0.15,  # Max 15% per position
+              'max_daily_risk': 0.02,  # Max 2% daily risk
+              'max_drawdown': 0.10,  # Max 10% drawdown
+              
+              # Options-specific
+              'max_options_premium': 0.05,  # Max 5% premium per options trade
+              'options_expiry_buffer': 7,  # Close options 7 days before expiry
+          }
+          
+          # Symbol universe
+          symbols = [
+              # Large Cap Tech
+              'AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX',
+              
+              # Financials
+              'JPM', 'BAC', 'WFC', 'GS', 'MS',
+              
+              # Healthcare
+              'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK',
+              
+              # Consumer
+              'KO', 'PEP', 'WMT', 'PG', 'NKE',
+              
+              # Energy
+              'XOM', 'CVX', 'COP', 'EOG',
+              
+              # Industrials
+              'BA', 'CAT', 'GE', 'MMM', 'HON',
+              
+              # ETFs for diversification
+              'SPY', 'QQQ', 'IWM', 'DIA', 'XLF', 'XLK', 'XLE', 'XLV'
+          ]
+          
+          logger.info("📊 STRATEGY CONFIGURATION:")
+          for strategy_name, config in strategies_config.items():
+              logger.info(f"   ✅ {strategy_name}: {config}")
+          
+          logger.info(f"\n💰 CAPITAL ALLOCATION:")
+          logger.info(f"   💵 Cash Reserve: {capital_allocation['cash_reserve_pct']*100:.0f}% (${capital_allocation['total_capital'] * capital_allocation['cash_reserve_pct']:,.0f})")
+          logger.info(f"   📈 Stock Allocation: {capital_allocation['stock_allocation_pct']*100:.0f}% (${capital_allocation['total_capital'] * capital_allocation['stock_allocation_pct']:,.0f})")
+          logger.info(f"   🎯 Options Allocation: {capital_allocation['options_allocation_pct']*100:.0f}% (${capital_allocation['total_capital'] * capital_allocation['options_allocation_pct']:,.0f})")
+          
+          logger.info(f"\n📊 SYMBOL UNIVERSE: {len(symbols)} symbols")
+          logger.info(f"   {', '.join(symbols[:10])}{'...' if len(symbols) > 10 else ''}")
+          
+          # Run comprehensive backtest with advanced strategies
+          logger.info(f"\n🚀 Starting comprehensive backtest...")
+          
+          results = scanner.run_comprehensive_backtest(
+              start_date=start_date,
+              end_date=end_date,
+              symbols=symbols,
+              strategies=list(strategies_config.keys()),
+              initial_capital=capital_allocation['total_capital'],
+              commission=0.001,  # 0.1% commission
+              slippage=0.0005,   # 0.05% slippage
+              
+              # Advanced configuration
+              capital_allocation=capital_allocation,
+              strategy_configs=strategies_config,
+              
+              # Risk management
+              max_position_size=capital_allocation['max_position_size'],
+              max_daily_risk=capital_allocation['max_daily_risk'],
+              max_drawdown=capital_allocation['max_drawdown'],
+              
+              # Options configuration
+              options_enabled=True,
+              max_options_premium=capital_allocation['max_options_premium'],
+              options_expiry_buffer=capital_allocation['options_expiry_buffer'],
+              
+              # Elliott Wave service integration
+              elliott_wave_service_enabled=True,
+              elliott_wave_service_url='http://elliott-wave-service.trading-system.svc.cluster.local:8000',
+              
+              # Trailing stops
+              trailing_stops_enabled=True,
+              trailing_stop_pct=0.05
+          )
+          
+          logger.info("\n" + "=" * 70)
+          logger.info("📊 COMPREHENSIVE 2-YEAR BACKTEST RESULTS")
+          logger.info("=" * 70)
+          logger.info(f"📅 Date Range: {start_date} to {end_date}")
+          logger.info(f"💰 Total Days: {(pd.to_datetime(end_date) - pd.to_datetime(start_date)).days}")
+          logger.info(f"📊 Symbols: {len(symbols)}")
+          logger.info(f"🎯 Strategies: {len(strategies_config)}")
+          
+          # Individual strategy results
+          logger.info(f"\n📈 INDIVIDUAL STRATEGY PERFORMANCE:")
+          logger.info("-" * 50)
+          
+          for strategy_name, result in results.items():
+              if strategy_name == 'PortfolioStrategy':
+                  continue  # Handle portfolio separately
+                  
+              logger.info(f"\n🎯 {strategy_name}")
+              logger.info(f"   📊 Total Return: {result.get('total_return', 0):.2%}")
+              logger.info(f"   📈 Sharpe Ratio: {result.get('sharpe_ratio', 0):.3f}")
+              logger.info(f"   📉 Max Drawdown: {result.get('max_drawdown', 0):.2%}")
+              logger.info(f"   🎯 Win Rate: {result.get('win_rate', 0):.2%}")
+              logger.info(f"   📊 Total Trades: {result.get('total_trades', 0)}")
+              logger.info(f"   ✅ Winning Trades: {result.get('winning_trades', 0)}")
+              logger.info(f"   ❌ Losing Trades: {result.get('losing_trades', 0)}")
+              logger.info(f"   💰 Profit Factor: {result.get('profit_factor', 0):.3f}")
+              logger.info(f"   📈 Average Win: {result.get('avg_win', 0):.2%}")
+              logger.info(f"   📉 Average Loss: {result.get('avg_loss', 0):.2%}")
+              logger.info(f"   🏆 Best Trade: {result.get('best_trade', 0):.2%}")
+              logger.info(f"   💥 Worst Trade: {result.get('worst_trade', 0):.2%}")
+              logger.info(f"   💵 Final Value: ${result.get('final_value', 0):,.2f}")
+              logger.info(f"   💰 Total P&L: ${result.get('total_pnl', 0):,.2f}")
+          
+          # Portfolio strategy results (multi-strategy combination)
+          if 'PortfolioStrategy' in results:
+              portfolio = results['PortfolioStrategy']
+              logger.info(f"\n" + "=" * 50)
+              logger.info(f"🎯 PORTFOLIO STRATEGY (Multi-Strategy Combined)")
+              logger.info("=" * 50)
+              logger.info(f"💰 Combined Total Return: {portfolio.get('total_return', 0):.2%}")
+              logger.info(f"📈 Combined Sharpe Ratio: {portfolio.get('sharpe_ratio', 0):.3f}")
+              logger.info(f"📉 Combined Max Drawdown: {portfolio.get('max_drawdown', 0):.2%}")
+              logger.info(f"🎯 Combined Win Rate: {portfolio.get('win_rate', 0):.2%}")
+              logger.info(f"💰 Combined Profit Factor: {portfolio.get('profit_factor', 0):.3f}")
+              logger.info(f"💵 Combined Final Value: ${portfolio.get('final_value', 0):,.2f}")
+              logger.info(f"📊 Combined Total Trades: {portfolio.get('total_trades', 0)}")
+              
+              # Capital allocation breakdown
+              logger.info(f"\n💰 CAPITAL ALLOCATION RESULTS:")
+              logger.info(f"   💵 Cash Reserve: ${portfolio.get('cash_value', 0):,.2f}")
+              logger.info(f"   📈 Stock Value: ${portfolio.get('stock_value', 0):,.2f}")
+              logger.info(f"   🎯 Options Value: ${portfolio.get('options_value', 0):,.2f}")
+              
+              # Risk metrics
+              logger.info(f"\n⚠️  RISK METRICS:")
+              logger.info(f"   📊 Max Position Size Used: {portfolio.get('max_position_size_used', 0):.2%}")
+              logger.info(f"   📉 Max Daily Risk Used: {portfolio.get('max_daily_risk_used', 0):.2%}")
+              logger.info(f"   🛑 Trailing Stops Triggered: {portfolio.get('trailing_stops_triggered', 0)}")
+              
+              # Options metrics
+              logger.info(f"\n🎯 OPTIONS METRICS:")
+              logger.info(f"   📊 Options Trades: {portfolio.get('options_trades', 0)}")
+              logger.info(f"   💰 Options P&L: ${portfolio.get('options_pnl', 0):,.2f}")
+              logger.info(f"   📈 Options Win Rate: {portfolio.get('options_win_rate', 0):.2%}")
+              
+              # Elliott Wave metrics
+              logger.info(f"\n🌊 ELLIOTT WAVE METRICS:")
+              logger.info(f"   📊 Elliott Wave Calls: {portfolio.get('elliott_wave_calls', 0)}")
+              logger.info(f"   ✅ Successful Patterns: {portfolio.get('successful_patterns', 0)}")
+              logger.info(f"   📈 Pattern Success Rate: {portfolio.get('pattern_success_rate', 0):.2%}")
+              
+              # Market Regime metrics
+              logger.info(f"\n📊 MARKET REGIME METRICS:")
+              logger.info(f"   🎯 Regime Changes: {portfolio.get('regime_changes', 0)}")
+              logger.info(f"   📈 Bull Market Periods: {portfolio.get('bull_market_periods', 0)}")
+              logger.info(f"   📉 Bear Market Periods: {portfolio.get('bear_market_periods', 0)}")
+              logger.info(f"   ↔️  Sideways Market Periods: {portfolio.get('sideways_market_periods', 0)}")
+              logger.info(f"   🌊 High Volatility Periods: {portfolio.get('high_volatility_periods', 0)}")
+              logger.info(f"   😴 Low Volatility Periods: {portfolio.get('low_volatility_periods', 0)}")
+              logger.info(f"   🎯 Regime Accuracy: {portfolio.get('regime_accuracy', 0):.2%}")
+          
+          # Performance comparison
+          logger.info(f"\n" + "=" * 70)
+          logger.info(f"🏆 PERFORMANCE COMPARISON")
+          logger.info("=" * 70)
+          
+          # Find best performing strategy
+          best_strategy = max(results.items(), key=lambda x: x[1].get('total_return', 0))
+          worst_strategy = min(results.items(), key=lambda x: x[1].get('total_return', 0))
+          
+          logger.info(f"🥇 Best Strategy: {best_strategy[0]} ({best_strategy[1].get('total_return', 0):.2%})")
+          logger.info(f"🥉 Worst Strategy: {worst_strategy[0]} ({worst_strategy[1].get('total_return', 0):.2%})")
+          
+          # Risk-adjusted performance
+          best_sharpe = max(results.items(), key=lambda x: x[1].get('sharpe_ratio', 0))
+          logger.info(f"📈 Best Sharpe Ratio: {best_sharpe[0]} ({best_sharpe[1].get('sharpe_ratio', 0):.3f})")
+          
+          logger.info("\n" + "=" * 70)
+          logger.info("🎉 ADVANCED 2-YEAR COMPREHENSIVE BACKTEST COMPLETED!")
+          logger.info("=" * 70)
+          
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://risk_user:risk_password@postgresql-service:5432/risk_management"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon_api_key
+        - name: ELLIOTT_WAVE_SERVICE_URL
+          value: "http://elliott-wave-service.trading-system.svc.cluster.local:8000"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+      restartPolicy: Never
+      imagePullSecrets:
+      - name: regcred

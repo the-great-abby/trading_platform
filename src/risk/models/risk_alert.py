@@ -43,17 +43,19 @@ class RiskAlert:
     or when risk metrics exceed predefined thresholds.
     """
     
+    # References - required fields come first
+    portfolio_id: UUID
+    risk_limits_id: UUID
+    
     # Primary key
     risk_alert_id: UUID = field(default_factory=uuid4)
     
-    # References
-    portfolio_id: UUID = field()
-    risk_limits_id: UUID = field()
+    # Alert details - required fields
+    alert_type: AlertType
+    alert_severity: AlertSeverity
     
-    # Alert details
+    # Alert timestamp
     alert_timestamp: datetime = field(default_factory=datetime.utcnow)
-    alert_type: AlertType = field()
-    alert_severity: AlertSeverity = field()
     
     # Limit information
     limit_name: str = field()
@@ -308,6 +310,14 @@ class RiskAlert:
                 f"alert_status={self.alert_status.value}, "
                 f"limit_name='{self.limit_name}', "
                 f"breach_percentage={self.breach_percentage:.2f})")
+
+
+
+
+
+
+
+
 
 
 

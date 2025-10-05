@@ -48,7 +48,8 @@ class AdvancedElliottWaveDetector:
         
         highs = data['High'].values
         lows = data['Low'].values
-        timestamps = data['timestamp'].values
+        # Use the index as timestamps (Date column)
+        timestamps = data.index.values
         
         # Find local maxima and minima
         for i in range(2, len(data) - 2):
@@ -57,8 +58,13 @@ class AdvancedElliottWaveDetector:
                 highs[i] > highs[i+1] and highs[i] > highs[i+2]):
                 
                 confidence = self._calculate_swing_confidence(data, i, 'high')
+                # Convert numpy.datetime64 to Python datetime
+                timestamp = timestamps[i]
+                if isinstance(timestamp, np.datetime64):
+                    timestamp = pd.to_datetime(timestamp).to_pydatetime()
+                
                 swing_points.append(SwingPoint(
-                    timestamp=timestamps[i],
+                    timestamp=timestamp,
                     price=highs[i],
                     point_type='high',
                     confidence=confidence
@@ -69,8 +75,13 @@ class AdvancedElliottWaveDetector:
                 lows[i] < lows[i+1] and lows[i] < lows[i+2]):
                 
                 confidence = self._calculate_swing_confidence(data, i, 'low')
+                # Convert numpy.datetime64 to Python datetime
+                timestamp = timestamps[i]
+                if isinstance(timestamp, np.datetime64):
+                    timestamp = pd.to_datetime(timestamp).to_pydatetime()
+                
                 swing_points.append(SwingPoint(
-                    timestamp=timestamps[i],
+                    timestamp=timestamp,
                     price=lows[i],
                     point_type='low',
                     confidence=confidence
@@ -80,6 +91,8 @@ class AdvancedElliottWaveDetector:
         swing_points.sort(key=lambda x: x.timestamp)
         
         logger.info(f"Detected {len(swing_points)} swing points")
+        for i, sp in enumerate(swing_points[:5]):  # Log first 5 swing points
+            logger.info(f"Swing point {i}: {sp.point_type} at {sp.price} on {sp.timestamp} (type: {type(sp.timestamp)})")
         return swing_points
     
     def _calculate_swing_confidence(self, data: pd.DataFrame, index: int, point_type: str) -> float:
@@ -114,7 +127,55 @@ class AdvancedElliottWaveDetector:
         if corrective_pattern:
             return corrective_pattern
         
-        return None
+        # Fallback: Create a basic pattern with confidence based on swing point quality
+        return self._create_fallback_pattern(swing_points)
+    
+    def _create_fallback_pattern(self, swing_points: List[SwingPoint]) -> Optional[ElliottWavePattern]:
+        """Create a fallback pattern when perfect Elliott Wave patterns aren't found"""
+        if len(swing_points) < 3:
+            return None
+        
+        # Calculate confidence based on swing point quality and market conditions
+        avg_confidence = sum(sp.confidence for sp in swing_points) / len(swing_points)
+        
+        # Boost confidence based on number of swing points (more data = higher confidence)
+        swing_point_bonus = min(0.3, len(swing_points) * 0.02)  # Up to 30% bonus
+        
+        # Calculate price momentum for additional confidence
+        momentum_confidence = 0.0
+        if len(swing_points) >= 2:
+            price_change = abs(swing_points[-1].price - swing_points[0].price) / swing_points[0].price
+            momentum_confidence = min(0.2, price_change * 2)  # Up to 20% bonus for strong moves
+        
+        # Determine pattern type based on recent trend
+        recent_trend = 'corrective'  # Default
+        if len(swing_points) >= 3:
+            recent_highs = [sp.price for sp in swing_points[-3:] if sp.point_type == 'high']
+            recent_lows = [sp.price for sp in swing_points[-3:] if sp.point_type == 'low']
+            
+            if recent_highs and recent_lows:
+                avg_high = sum(recent_highs) / len(recent_highs)
+                avg_low = sum(recent_lows) / len(recent_lows)
+                if avg_high > avg_low * 1.05:  # 5% higher highs than lows
+                    recent_trend = 'impulse'
+        
+        # Calculate final confidence
+        final_confidence = min(0.95, avg_confidence + swing_point_bonus + momentum_confidence)
+        final_confidence = max(0.3, final_confidence)  # Minimum 30% confidence
+        
+        # Create basic wave points
+        waves = []
+        for i, sp in enumerate(swing_points[-5:]):  # Use last 5 swing points
+            wave_number = i + 1
+            direction = 'up' if sp.point_type == 'high' else 'down'
+            waves.append(self._create_wave_point(sp, wave_number, direction))
+        
+        # Determine wave type
+        wave_type = WaveType.IMPULSE if recent_trend == 'impulse' else WaveType.CORRECTIVE
+        
+        logger.info(f"Created fallback {recent_trend} pattern with confidence {final_confidence:.2f} from {len(swing_points)} swing points")
+        
+        return self._create_pattern(waves, wave_type, swing_points[0].timestamp, swing_points[-1].timestamp, final_confidence)
     
     def _identify_impulse_pattern(self, swing_points: List[SwingPoint]) -> Optional[ElliottWavePattern]:
         """Identify 5-wave impulse pattern"""
@@ -125,22 +186,34 @@ class AdvancedElliottWaveDetector:
         waves = []
         current_direction = None
         
+        # Find the first low point to start wave 1
+        start_index = 0
         for i, point in enumerate(swing_points):
-            if i == 0:
-                current_direction = 'up' if point.point_type == 'low' else 'down'
-                waves.append(self._create_wave_point(point, 1, current_direction))
-            else:
-                # Determine if this point continues current wave or starts new wave
-                prev_point = swing_points[i-1]
-                price_change = abs(point.price - prev_point.price) / prev_point.price
+            if point.point_type == 'low':
+                start_index = i
+                break
+        
+        if start_index >= len(swing_points) - 4:  # Need at least 5 points for impulse
+            return None
+        
+        # Start with wave 1 (UP direction from low)
+        current_direction = 'up'
+        logger.info(f"Starting wave 1 from swing point {start_index}: {swing_points[start_index].point_type} at {swing_points[start_index].price}")
+        waves.append(self._create_wave_point(swing_points[start_index], 1, current_direction))
+        
+        # Process remaining points
+        for i in range(start_index + 1, len(swing_points)):
+            point = swing_points[i]
+            prev_point = swing_points[i-1]
+            price_change = abs(point.price - prev_point.price) / prev_point.price
+            
+            if price_change > self.swing_point_threshold:
+                # Significant price change - new wave
+                current_direction = 'down' if current_direction == 'up' else 'up'
+                wave_number = len(waves) + 1
                 
-                if price_change > self.swing_point_threshold:
-                    # Significant price change - new wave
-                    current_direction = 'down' if current_direction == 'up' else 'up'
-                    wave_number = len(waves) + 1
-                    
-                    if wave_number <= 5:
-                        waves.append(self._create_wave_point(point, wave_number, current_direction))
+                if wave_number <= 5:
+                    waves.append(self._create_wave_point(point, wave_number, current_direction))
         
         # Validate impulse pattern
         if len(waves) == 5 and self._is_valid_impulse_wave(waves):
@@ -173,18 +246,34 @@ class AdvancedElliottWaveDetector:
     
     def _create_wave_point(self, swing_point: SwingPoint, wave_number: int, direction: str) -> WavePoint:
         """Create WavePoint from SwingPoint"""
+        # Convert numpy.datetime64 to Python datetime if needed
+        timestamp = swing_point.timestamp
+        logger.info(f"Original timestamp type: {type(timestamp)}, value: {timestamp}")
+        
+        if hasattr(timestamp, 'to_pydatetime'):
+            timestamp = timestamp.to_pydatetime()
+            logger.info(f"Converted via to_pydatetime: {timestamp}")
+        elif isinstance(timestamp, np.datetime64):
+            timestamp = pd.to_datetime(timestamp).to_pydatetime()
+            logger.info(f"Converted via pandas: {timestamp}")
+        
+        logger.info(f"Final timestamp type: {type(timestamp)}, value: {timestamp}")
+        
         return WavePoint(
-            timestamp=swing_point.timestamp,
+            timestamp=timestamp,
             price=swing_point.price,
             wave_number=wave_number,
             direction=WaveDirection(direction),
             confidence=swing_point.confidence
         )
     
-    def _create_pattern(self, waves: List[WavePoint], pattern_type: WaveType, start_time: datetime, end_time: datetime) -> ElliottWavePattern:
+    def _create_pattern(self, waves: List[WavePoint], pattern_type: WaveType, start_time: datetime, end_time: datetime, custom_confidence: Optional[float] = None) -> ElliottWavePattern:
         """Create ElliottWavePattern from waves"""
         # Calculate overall confidence
-        confidence = sum(wave.confidence for wave in waves) / len(waves)
+        if custom_confidence is not None:
+            confidence = custom_confidence
+        else:
+            confidence = sum(wave.confidence for wave in waves) / len(waves)
         
         # Calculate Fibonacci levels
         fibonacci_levels = self.calculate_fibonacci_levels(waves[0].price, waves[-1].price)

@@ -1,0 +1,397 @@
+# Validation Framework Makefile
+# Backtest script validation and testing framework
+
+.PHONY: validation-build validation-deploy validation-test validation-run validation-stop validation-logs validation-health validation-port-forward validation-port-stop
+
+# Validation Framework Commands
+validation-build: ## Build validation framework Docker image
+	@echo "Building validation framework Docker image..."
+	docker build -f Dockerfile.validation -t localhost:5000/validation-service:latest .
+	docker push localhost:5000/validation-service:latest
+	@echo "✅ Validation framework Docker image built and pushed"
+
+validation-deploy: ## Deploy validation framework to Kubernetes
+	@echo "Deploying validation framework to Kubernetes..."
+	kubectl apply -f k8s/validation-configmap.yaml
+	kubectl apply -f k8s/validation-database-config.yaml
+	kubectl apply -f k8s/validation-service.yaml
+	kubectl apply -f k8s/validation-service-svc.yaml
+	kubectl apply -f k8s/validation-ingress.yaml
+	@echo "✅ Validation framework deployed to Kubernetes"
+
+validation-test: ## Run validation framework tests
+	@echo "Running validation framework tests..."
+	pytest tests/ -m validation -v --cov=src/validation --cov-report=html:htmlcov/validation
+	@echo "✅ Validation framework tests completed"
+
+validation-run: ## Run validation framework locally
+	@echo "🚀 Starting validation framework locally..."
+	python -m uvicorn src.validation.api.main:app --host 0.0.0.0 --port 8000 --reload
+	@echo "✅ Validation framework running locally on http://localhost:8000"
+
+validation-run-local: ## Run validation framework locally with local filesystem config
+	@echo "🚀 Starting validation framework locally (filesystem mode)..."
+	@echo "Loading local environment configuration..."
+	@if [ -f validation-local.env ]; then \
+		export $$(cat validation-local.env | grep -v '^#' | xargs) && \
+		echo "✅ Local environment loaded"; \
+	else \
+		echo "⚠️ validation-local.env not found, using defaults"; \
+	fi
+	export VALIDATION_DB_HOST="localhost" && \
+	export VALIDATION_DB_PORT="5432" && \
+	export VALIDATION_DEFAULT_DIRECTORY="." && \
+	export VALIDATION_LOG_LEVEL="INFO" && \
+	export VALIDATION_HEALTH_DB_ENABLED="false" && \
+	python -m uvicorn src.validation.api.main:app --host 0.0.0.0 --port 8000 --reload
+	@echo "✅ Validation framework running locally in filesystem mode"
+
+validation-load-local: ## Load local environment configuration
+	@echo "📋 Loading local validation environment..."
+	@if [ -f validation-local.env ]; then \
+		export $$(cat validation-local.env | grep -v '^#' | xargs) && \
+		echo "✅ Local environment configuration loaded"; \
+		echo "Environment variables:"; \
+		env | grep VALIDATION_ | head -10; \
+	else \
+		echo "❌ validation-local.env not found"; \
+		echo "Creating default local environment file..."; \
+		touch validation-local.env; \
+		echo "Please configure validation-local.env with your local settings"; \
+	fi
+
+validation-test-local: ## Test validation framework with local filesystem
+	@echo "🧪 Testing validation framework with local filesystem..."
+	python -c "\
+import asyncio; \
+from src.validation.discovery.script_discovery import BacktestScriptDiscovery; \
+from src.validation.execution.script_executor import ScriptExecutor; \
+from src.validation.api.main import create_app; \
+async def test(): \
+    print('1. Testing discovery...'); \
+    discovery = BacktestScriptDiscovery(); \
+    scripts = discovery.discover_scripts(); \
+    print(f'   Found {len(scripts)} scripts'); \
+    print('2. Testing API creation...'); \
+    app = create_app(); \
+    print(f'   API created with {len(app.routes)} routes'); \
+    print('3. Testing execution...'); \
+    if scripts: \
+        executor = ScriptExecutor(); \
+        result = await executor.execute_script(scripts[0].file_path); \
+        print(f'   Sample execution: {result.validation_status}'); \
+    print('✅ All local tests passed!'); \
+asyncio.run(test())"
+	@echo "✅ Local filesystem tests completed"
+
+validation-stop: ## Stop validation framework
+	@echo "Stopping validation framework..."
+	kubectl delete -f k8s/validation-ingress.yaml || true
+	kubectl delete -f k8s/validation-service-svc.yaml || true
+	kubectl delete -f k8s/validation-service.yaml || true
+	kubectl delete -f k8s/validation-database-config.yaml || true
+	kubectl delete -f k8s/validation-configmap.yaml || true
+	@echo "✅ Validation framework stopped"
+
+validation-logs: ## Show validation framework logs
+	@echo "Showing validation framework logs..."
+	kubectl logs -f deployment/validation-service -n trading-system
+	@echo "✅ Validation framework logs displayed"
+
+validation-health: ## Check validation framework health (Kubernetes)
+	@echo "Checking validation framework health..."
+	curl -s http://localhost:11080/health | jq || echo "❌ Validation framework not responding"
+	@echo "✅ Validation framework health check completed"
+
+validation-health-local: ## Check validation framework health (local)
+	@echo "Checking local validation framework health..."
+	curl -s http://localhost:8000/health | jq || echo "❌ Local validation framework not responding"
+	@echo "✅ Local validation framework health check completed"
+
+validation-api-test: ## Test validation API endpoints locally
+	@echo "🧪 Testing validation API endpoints..."
+	@echo "Testing health endpoint..."
+	curl -s http://localhost:8000/health | jq || echo "❌ Health endpoint failed"
+	@echo "Testing discovery endpoint..."
+	curl -s http://localhost:8000/api/v1/scripts/discover | jq | head -10 || echo "❌ Discovery endpoint failed"
+	@echo "Testing metrics endpoint..."
+	curl -s http://localhost:8000/metrics | head -5 || echo "❌ Metrics endpoint failed"
+	@echo "✅ API endpoints tested"
+
+validation-quick-test: ## Run a quick validation test suite
+	@echo "⚡ Running quick validation test suite..."
+	@echo "1. Testing discovery..."
+	make validation-discover
+	@echo "2. Testing sample validation..."
+	make validation-validate-sample
+	@echo "3. Testing API creation..."
+	python -c "from src.validation.api.main import create_app; app = create_app(); print(f'✅ API created with {len(app.routes)} routes')"
+	@echo "4. Testing configuration..."
+	make validation-config-test
+	@echo "✅ Quick validation test suite completed"
+
+validation-port-forward: ## Port forward validation framework service
+	@echo "Port forwarding validation framework service..."
+	kubectl port-forward -n trading-system service/validation-service 11080:8000 &
+	@echo "✅ Validation framework port forwarded to localhost:11080"
+
+validation-port-stop: ## Stop validation framework port forwarding
+	@echo "Stopping validation framework port forwarding..."
+	pkill -f "kubectl port-forward.*validation-service" || true
+	@echo "✅ Validation framework port forwarding stopped"
+
+# Validation Framework Testing Commands
+validation-test-discovery: ## Test validation framework script discovery
+	@echo "Testing script discovery..."
+	pytest tests/integration/test_script_discovery.py -v
+	@echo "✅ Script discovery tests completed"
+
+validation-test-execution: ## Test validation framework script execution
+	@echo "Testing script execution..."
+	pytest tests/integration/test_script_execution.py -v
+	@echo "✅ Script execution tests completed"
+
+validation-test-api: ## Test validation framework API
+	@echo "Testing validation API..."
+	pytest tests/contract/test_validation_api.py -v
+	@echo "✅ Validation API tests completed"
+
+validation-test-integration: ## Test validation framework integration
+	@echo "Testing validation integration..."
+	pytest tests/integration/ -m validation_integration -v
+	@echo "✅ Validation integration tests completed"
+
+# Validation Framework CLI Commands
+validation-discover: ## Discover backtest scripts locally
+	@echo "🔍 Discovering backtest scripts in local filesystem..."
+	python -m src.validation.cli.validation_cli discover . --format table | head -20
+	@echo "✅ Backtest scripts discovered (showing first 20)"
+
+validation-discover-all: ## Discover all backtest scripts (full output)
+	@echo "🔍 Discovering ALL backtest scripts in local filesystem..."
+	python -m src.validation.cli.validation_cli discover . --format table
+	@echo "✅ All backtest scripts discovered"
+
+validation-discover-json: ## Discover backtest scripts and output as JSON
+	@echo "🔍 Discovering backtest scripts as JSON..."
+	python -m src.validation.cli.validation_cli discover . --format json > validation_scripts.json
+	@echo "✅ Backtest scripts discovered and saved to validation_scripts.json"
+
+validation-validate: ## Validate a specific script (SCRIPT_ID=script_id)
+	@echo "🧪 Validating backtest script: $(SCRIPT_ID)"
+	python -m src.validation.cli.validation_cli validate $(SCRIPT_ID)
+	@echo "✅ Script validation completed"
+
+validation-validate-by-name: ## Validate a script by name (NAME=script_name)
+	@echo "🔍 Finding script by name: $(NAME)"
+	@SCRIPT_ID=$$(grep -A 1 -B 1 "\"name\": \"$(NAME)\"" validation_scripts.json | grep "\"id\":" | cut -d'"' -f4 | head -1); \
+	if [ -n "$$SCRIPT_ID" ]; then \
+		echo "✅ Found script ID: $$SCRIPT_ID"; \
+		make validation-validate SCRIPT_ID=$$SCRIPT_ID; \
+	else \
+		echo "❌ Script '$(NAME)' not found"; \
+		echo "Available scripts with similar names:"; \
+		grep -i "$(NAME)" validation_scripts.json | grep "name" | head -5; \
+	fi
+
+validation-validate-by-path: ## Validate a script by file path (PATH=file_path)
+	@echo "🔍 Finding script by path: $(PATH)"
+	@SCRIPT_ID=$$(grep -A 1 -B 1 "\"file_path\": \"$(PATH)\"" validation_scripts.json | grep "\"id\":" | cut -d'"' -f4 | head -1); \
+	if [ -n "$$SCRIPT_ID" ]; then \
+		echo "✅ Found script ID: $$SCRIPT_ID"; \
+		make validation-validate SCRIPT_ID=$$SCRIPT_ID; \
+	else \
+		echo "❌ Script at path '$(PATH)' not found"; \
+		echo "Available scripts with similar paths:"; \
+		grep -i "$(PATH)" validation_scripts.json | grep "file_path" | head -5; \
+	fi
+
+validation-validate-specific: ## Validate a specific script using advanced targeting (NAME=name|PATH=path|ID=id|SEARCH=query)
+	@echo "🎯 Advanced script validation..."
+	@if [ -n "$(NAME)" ]; then \
+		python scripts/validate_specific_script.py --name "$(NAME)"; \
+	elif [ -n "$(PATH)" ]; then \
+		python scripts/validate_specific_script.py --path "$(PATH)"; \
+	elif [ -n "$(ID)" ]; then \
+		python scripts/validate_specific_script.py --id "$(ID)"; \
+	elif [ -n "$(SEARCH)" ]; then \
+		python scripts/validate_specific_script.py --search "$(SEARCH)"; \
+	else \
+		echo "❌ Please specify NAME, PATH, ID, or SEARCH parameter"; \
+		echo "Examples:"; \
+		echo "  make validation-validate-specific NAME=Strategy"; \
+		echo "  make validation-validate-specific PATH=backtest"; \
+		echo "  make validation-validate-specific ID=script-id"; \
+		echo "  make validation-validate-specific SEARCH=options"; \
+	fi
+
+validation-find-script: ## Find a script by name or partial name (NAME=partial_name)
+	@echo "🔍 Searching for scripts containing: $(NAME)"
+	@echo "Matching scripts:"
+	@grep -A 2 -B 1 -i "$(NAME)" validation_scripts.json | grep -E "(id|name|file_path)" | head -20
+	@echo ""
+	@echo "To validate one of these scripts, use:"
+	@echo "  make validation-validate SCRIPT_ID=<id_from_above>"
+	@echo "  or"
+	@echo "  make validation-validate-by-name NAME=<exact_name>"
+
+validation-list-scripts: ## List all available scripts (PATTERN=optional_pattern)
+	@echo "📋 Available backtest scripts:"
+	@if [ -n "$(PATTERN)" ]; then \
+		echo "Filtering by pattern: $(PATTERN)"; \
+		grep -A 2 -B 1 -i "$(PATTERN)" validation_scripts.json | grep -E "(id|name|file_path)" | head -30; \
+	else \
+		grep -A 2 -B 1 "\"name\":" validation_scripts.json | grep -E "(id|name|file_path)" | head -30; \
+	fi
+	@echo ""
+	@echo "Total scripts available: $$(grep -c "\"id\":" validation_scripts.json)"
+
+validation-validate-sample: ## Validate a sample script for testing
+	@echo "🧪 Validating sample backtest script..."
+	python scripts/test_validation_sample.py
+	@echo "✅ Sample script validation completed"
+
+validation-batch: ## Run batch validation on local directory (DIR=directory)
+	@echo "🧪 Running batch validation on directory: $(or $(DIR),.)"
+	python -m src.validation.cli.validation_cli batch $(or $(DIR),.) --max-concurrent 3
+	@echo "✅ Batch validation completed"
+
+validation-batch-sample: ## Run batch validation on a small sample
+	@echo "🧪 Running batch validation on sample scripts..."
+	python scripts/test_validation_batch.py
+	@echo "✅ Sample batch validation completed"
+
+validation-report: ## Generate validation report (FORMAT=json|table)
+	@echo "📊 Generating validation report (format: $(or $(FORMAT),json))..."
+	python -m src.validation.cli.validation_cli report --format $(or $(FORMAT),json)
+	@echo "✅ Validation report generated"
+
+validation-report-sample: ## Generate a sample validation report
+	@echo "📊 Generating sample validation report..."
+	python scripts/test_validation_report.py
+	@echo "✅ Sample validation report generated"
+
+# Validation Framework Configuration Commands
+validation-config-test: ## Test validation framework configuration
+	@echo "Testing validation framework configuration..."
+	python -c "from src.utils.trading_config import get_validation_config; import json; print(json.dumps(get_validation_config(), indent=2))"
+	@echo "✅ Validation framework configuration tested"
+
+validation-config-update: ## Update validation framework configuration
+	@echo "Updating validation framework configuration..."
+	kubectl apply -f k8s/validation-configmap.yaml
+	kubectl rollout restart deployment/validation-service -n trading-system
+	@echo "✅ Validation framework configuration updated"
+
+# Validation Framework Monitoring Commands
+validation-metrics: ## Get validation framework metrics
+	@echo "Getting validation framework metrics..."
+	curl -s http://localhost:11080/metrics | jq || echo "❌ Metrics not available"
+	@echo "✅ Validation framework metrics retrieved"
+
+validation-status: ## Get validation framework status
+	@echo "Getting validation framework status..."
+	curl -s http://localhost:11080/api/v1/scripts/stats/summary | jq || echo "❌ Status not available"
+	@echo "✅ Validation framework status retrieved"
+
+validation-active: ## Get active validations
+	@echo "Getting active validations..."
+	curl -s http://localhost:11080/api/v1/validation/active | jq || echo "❌ Active validations not available"
+	@echo "✅ Active validations retrieved"
+
+# Validation Framework Development Commands
+validation-dev-setup: ## Set up validation framework development environment
+	@echo "Setting up validation framework development environment..."
+	pip install -r requirements-validation.txt
+	python -m src.validation.cli.validation_cli --help
+	@echo "✅ Validation framework development environment set up"
+
+validation-dev-test: ## Run validation framework development tests
+	@echo "Running validation framework development tests..."
+	pytest tests/ -m validation -v --cov=src/validation --cov-report=term-missing
+	@echo "✅ Validation framework development tests completed"
+
+validation-dev-lint: ## Lint validation framework code
+	@echo "Linting validation framework code..."
+	flake8 src/validation/ tests/ -m validation
+	black --check src/validation/ tests/ -m validation
+	@echo "✅ Validation framework code linted"
+
+validation-dev-format: ## Format validation framework code
+	@echo "Formatting validation framework code..."
+	black src/validation/ tests/ -m validation
+	@echo "✅ Validation framework code formatted"
+
+# Help target
+validation-help: ## Show validation framework help
+	@echo "🔍 Backtest Validation Framework Commands:"
+	@echo ""
+	@echo "  🚀 Local Testing (Recommended for Development):"
+	@echo "    validation-test-local       - Test framework with local filesystem"
+	@echo "    validation-run-local        - Run framework locally (filesystem mode)"
+	@echo "    validation-quick-test       - Run quick validation test suite"
+	@echo "    validation-health-local     - Check local framework health"
+	@echo "    validation-api-test         - Test API endpoints locally"
+	@echo ""
+	@echo "  🔍 Discovery & Validation:"
+	@echo "    validation-discover         - Discover scripts (first 20)"
+	@echo "    validation-discover-all     - Discover all scripts"
+	@echo "    validation-discover-json    - Discover scripts as JSON"
+	@echo "    validation-validate-sample  - Validate sample script"
+	@echo ""
+	@echo "  🎯 Target Specific Scripts:"
+	@echo "    validation-find-script      - Find scripts by pattern (NAME=pattern)"
+	@echo "    validation-validate         - Validate by ID (SCRIPT_ID=id)"
+	@echo "    validation-validate-by-name - Validate by name (NAME=name)"
+	@echo "    validation-validate-by-path - Validate by path (PATH=path)"
+	@echo "    validation-validate-specific - Advanced targeting (NAME|PATH|ID|SEARCH)"
+	@echo "    validation-list-scripts     - List all scripts (PATTERN=optional)"
+	@echo ""
+	@echo "  📊 Batch & Reports:"
+	@echo "    validation-batch-sample     - Batch validate sample scripts"
+	@echo "    validation-batch            - Batch validate directory (DIR=path)"
+	@echo "    validation-report-sample    - Generate sample report"
+	@echo "    validation-report           - Generate report (FORMAT=json|table)"
+	@echo ""
+	@echo "  🧪 Testing:"
+	@echo "    validation-test             - Run full validation tests"
+	@echo "    validation-test-discovery   - Test script discovery"
+	@echo "    validation-test-execution   - Test script execution"
+	@echo "    validation-test-api         - Test validation API"
+	@echo "    validation-test-integration - Test validation integration"
+	@echo ""
+	@echo "  🏗️ Build & Deploy (Kubernetes):"
+	@echo "    validation-build            - Build Docker image"
+	@echo "    validation-deploy           - Deploy to Kubernetes"
+	@echo "    validation-stop             - Stop Kubernetes deployment"
+	@echo "    validation-run              - Run locally (default mode)"
+	@echo ""
+	@echo "  📊 Monitoring:"
+	@echo "    validation-health           - Check framework health (K8s)"
+	@echo "    validation-health-local     - Check framework health (local)"
+	@echo "    validation-metrics          - Get framework metrics"
+	@echo "    validation-status           - Get framework status"
+	@echo "    validation-active           - Get active validations"
+	@echo ""
+	@echo "  🔧 Development:"
+	@echo "    validation-dev-setup        - Set up development environment"
+	@echo "    validation-dev-test         - Run development tests"
+	@echo "    validation-dev-lint         - Lint framework code"
+	@echo "    validation-dev-format       - Format framework code"
+	@echo "    validation-config-test      - Test framework configuration"
+	@echo ""
+	@echo "  🌐 Port Forwarding (Kubernetes):"
+	@echo "    validation-port-forward     - Port forward service (localhost:11080)"
+	@echo "    validation-port-stop        - Stop port forwarding"
+	@echo ""
+	@echo "💡 Quick Start for Local Testing:"
+	@echo "  1. make validation-quick-test     # Run quick test suite"
+	@echo "  2. make validation-discover       # Discover your scripts"
+	@echo "  3. make validation-find-script NAME=Strategy # Find specific scripts"
+	@echo "  4. make validation-validate-by-name NAME=Strategy_Allocation # Validate specific script"
+	@echo "  5. make validation-run-local      # Start local API server"
+	@echo ""
+	@echo "🎯 Target Specific Backtests:"
+	@echo "  make validation-find-script NAME=YourPattern    # Find scripts"
+	@echo "  make validation-validate-by-name NAME=YourScript # Validate by name"
+	@echo "  python scripts/validate_specific_script.py --list YourPattern # Advanced search"

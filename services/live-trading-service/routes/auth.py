@@ -186,7 +186,7 @@ async def connect_to_public(
         
         return PublicConnectResponse(
             credential_id=credential_id,
-            account_id=account_id,
+            account_id=str(account_id),  # Convert UUID to string
             status="CONNECTED",
             message="Successfully connected to Public.com API"
         )
@@ -269,7 +269,7 @@ async def get_auth_status(
     Returns the current authentication status and token information.
     """
     try:
-        # Get account and credentials
+        # Get account and latest active credentials
         result = await db.execute(text("""
             SELECT 
                 a.account_name,
@@ -278,7 +278,13 @@ async def get_auth_status(
                 c.token_expires_at,
                 c.is_active as cred_active
             FROM live_trading_accounts a
-            LEFT JOIN api_credentials c ON a.account_id = c.account_id
+            LEFT JOIN (
+                SELECT DISTINCT ON (account_id) 
+                    account_id, last_used_at, token_expires_at, is_active
+                FROM api_credentials 
+                WHERE is_active = true
+                ORDER BY account_id, last_used_at DESC
+            ) c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id
         """), {"account_id": account_id})
         

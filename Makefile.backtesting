@@ -1,0 +1,133 @@
+# Makefile.backtesting
+# Friendly interface for the web-based backtesting dashboard
+# Usage: make -f Makefile.backtesting <target>
+
+.PHONY: help dashboard open status results clean
+
+# Colors for output
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+## help: Show this help message
+help:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)📊 Backtesting Dashboard - Easy Backtest Interface$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Main Commands:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.backtesting dashboard$(NC)     - Open backtest dashboard"
+	@echo "  $(GREEN)make -f Makefile.backtesting open$(NC)          - Open dashboard (alias)"
+	@echo "  $(GREEN)make -f Makefile.backtesting status$(NC)        - Check dashboard status"
+	@echo ""
+	@echo "$(YELLOW)Results & Cleanup:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.backtesting results$(NC)       - View latest backtest results"
+	@echo "  $(GREEN)make -f Makefile.backtesting clean$(NC)         - Clean old result files"
+	@echo ""
+	@echo "$(YELLOW)Available Strategies in Dashboard:$(NC)"
+	@echo "  📊 Basic: RSI, MACD, Bollinger Bands, SMA Crossover, etc."
+	@echo "  🎯 Options: Iron Condor, Straddle, Calendar Spread, Butterfly, etc."
+	@echo "  🚀 Advanced: $(GREEN)AdaptiveSectorWave$(NC), Elliott Wave, Quantum Momentum, etc."
+	@echo ""
+	@echo "$(YELLOW)⭐ RECOMMENDED: AdaptiveSectorWaveStrategy$(NC)"
+	@echo "  • Automatically switches between 5 options strategies"
+	@echo "  • Based on sector rotation, Elliott Wave, and volatility"
+	@echo "  • Strategies: Straddle, Iron Condor, Calendar, Butterfly, Strangle"
+	@echo ""
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Dashboard URL: $(GREEN)http://localhost:11114/$(NC)"
+	@echo ""
+
+## dashboard: Open backtest dashboard (auto-restarts if needed)
+dashboard:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)📊 Starting Backtest Dashboard$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)1️⃣ Checking dashboard deployment...$(NC)"
+	@if ! kubectl get deployment unified-analytics-dashboard -n trading-system > /dev/null 2>&1; then \
+		echo "$(RED)❌ Dashboard not deployed$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)   ✅ Dashboard is deployed$(NC)"
+	@echo ""
+	@echo "$(YELLOW)2️⃣ Checking if pod is running...$(NC)"
+	@POD_STATUS=$$(kubectl get pods -n trading-system -l app=unified-analytics-dashboard -o jsonpath='{.items[0].status.phase}' 2>/dev/null); \
+	if [ "$$POD_STATUS" != "Running" ]; then \
+		echo "$(YELLOW)   ⚠️  Pod not running, restarting...$(NC)"; \
+		kubectl rollout restart deployment/unified-analytics-dashboard -n trading-system > /dev/null 2>&1; \
+		kubectl rollout status deployment/unified-analytics-dashboard -n trading-system --timeout=60s > /dev/null 2>&1; \
+		echo "$(GREEN)   ✅ Dashboard restarted$(NC)"; \
+	else \
+		echo "$(GREEN)   ✅ Pod is running$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)3️⃣ Setting up port-forward...$(NC)"
+	@pkill -f "port-forward.*unified-analytics.*11114" 2>/dev/null || true
+	@pkill -f "port-forward.*11114" 2>/dev/null || true
+	@sleep 1
+	@nohup kubectl port-forward -n trading-system svc/unified-analytics-dashboard 11114:80 > /tmp/backtest-dashboard-pf.log 2>&1 &
+	@sleep 2
+	@if curl -s http://localhost:11114/health > /dev/null 2>&1; then \
+		echo "$(GREEN)   ✅ Port-forward active on 11114$(NC)"; \
+	else \
+		echo "$(RED)   ❌ Port-forward failed, check logs: /tmp/backtest-dashboard-pf.log$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)✨ Dashboard Ready!$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "🌐 URL: $(GREEN)http://localhost:11114/$(NC)"
+	@echo ""
+	@echo "$(YELLOW)📋 Quick Guide:$(NC)"
+	@echo "  1. Scroll to 'Comprehensive Backtest' section"
+	@echo "  2. Click '$(GREEN)🚀 Advanced$(NC)' button"
+	@echo "  3. Select '$(GREEN)AdaptiveSectorWave$(NC)' (auto-switches strategies!)"
+	@echo "  4. Configure and run"
+	@echo ""
+	@open http://localhost:11114/ || xdg-open http://localhost:11114/ || true
+
+## open: Alias for dashboard
+open: dashboard
+
+## status: Check dashboard status
+status:
+	@echo "$(BLUE)📊 Dashboard Status:$(NC)"
+	@echo ""
+	@kubectl get deployment unified-analytics-dashboard -n trading-system
+	@echo ""
+	@kubectl get pods -n trading-system | grep unified-analytics-dashboard
+	@echo ""
+	@echo "$(YELLOW)Port-forwards:$(NC)"
+	@ps aux | grep -v grep | grep "port-forward.*11114" || echo "  No port-forward active on 11114"
+
+## results: View latest backtest results
+results:
+	@echo "$(BLUE)📈 Latest Backtest Results:$(NC)"
+	@echo ""
+	@ls -lt *backtest*.json 2>/dev/null | head -5 || echo "$(YELLOW)No local backtest results found$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Note: Web dashboard results are shown in the browser$(NC)"
+
+## clean: Clean old backtest result files
+clean:
+	@echo "$(BLUE)🧹 Cleaning old backtest results...$(NC)"
+	@find . -name "*backtest*.json" -mtime +7 -delete 2>/dev/null || true
+	@echo "$(GREEN)✅ Cleaned backtest results older than 7 days$(NC)"
+
+## restart: Restart the analytics dashboard
+restart:
+	@echo "$(BLUE)🔄 Restarting Analytics Dashboard...$(NC)"
+	@kubectl rollout restart deployment/unified-analytics-dashboard -n trading-system
+	@echo "$(YELLOW)⏳ Waiting for restart...$(NC)"
+	@kubectl rollout status deployment/unified-analytics-dashboard -n trading-system --timeout=60s
+	@echo "$(GREEN)✅ Dashboard restarted$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Restart port-forward with:$(NC) make -f Makefile.backtesting dashboard"
+
+# Default target
+.DEFAULT_GOAL := help

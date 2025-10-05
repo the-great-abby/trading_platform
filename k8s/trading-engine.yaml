@@ -70,14 +70,48 @@ metadata:
 data:
   trading_config.json: |
     {
-      "initial_capital": 100000.0,
-      "max_position_size": 0.05,
-      "max_risk_per_trade": 0.01,
-      "max_daily_loss": 0.02,
-      "max_drawdown": 0.10,
+      "initial_capital": 4000.0,
+      "max_position_size": 0.15,
+      "max_risk_per_trade": 0.05,
+      "max_daily_loss": 0.05,
+      "max_drawdown": 0.20,
       "trading_interval": 60,
-      "symbols": ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"],
-      "strategies": ["RiskFirst", "MarketRegimeAdaptive", "MultiTimeframe"]
+      "symbols": ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "SPY", "QQQ", "AMZN", "META", "NFLX"],
+      "strategies": ["ELLIOTT_WAVE_IMPULSE", "ELLIOTT_WAVE_CORRECTIVE", "CALENDAR_SPREADS", "VOLATILITY_TRADING"],
+      "capital_allocation": {
+        "enabled": true,
+        "max_portfolio_utilization": 0.80,
+        "min_cash_reserve": 0.20,
+        "max_position_size": 0.15,
+        "max_risk_per_trade": 0.05,
+        "capital_efficiency_threshold": 0.70,
+        "capital_scarcity_threshold": 0.30,
+        "early_profit_target_pct": 0.08
+      },
+      "elliott_wave": {
+        "enabled": true,
+        "min_confidence_threshold": 0.65,
+        "service_url": "http://elliott-wave-service.trading-system.svc.cluster.local:8000",
+        "pattern_types": [
+          "impulse_completion",
+          "corrective_completion", 
+          "fibonacci_retracement",
+          "wave_extension"
+        ],
+        "strategy_mappings": {
+          "impulse_completion": "STRADDLE",
+          "corrective_completion": "IRON_CONDOR",
+          "fibonacci_retracement": "CALENDAR_SPREAD",
+          "wave_extension": "STRADDLE"
+        }
+      },
+      "exit_strategies": {
+        "max_holding_days": 30,
+        "min_holding_days": 1,
+        "profit_target_pct": 0.10,
+        "stop_loss_pct": 0.05,
+        "early_profit_target_pct": 0.08
+      }
     }
 ---
 apiVersion: v1

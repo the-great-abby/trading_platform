@@ -1,0 +1,583 @@
+openapi: 3.0.3
+info:
+  title: Trade Recovery Service API
+  description: API for detecting and managing active trades during system recovery
+  version: 1.0.0
+  contact:
+    name: Trading System Team
+    email: trading-team@example.com
+
+servers:
+  - url: http://trade-recovery-service.trading-system.svc.cluster.local:10001
+    description: Trade Recovery Service
+
+paths:
+  /api/v1/trades/active:
+    get:
+      summary: Detect active trades on trading account
+      description: Retrieves all active trades from the connected trading account
+      operationId: getActiveTrades
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Trading account identifier
+        - name: include_closed
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include recently closed trades
+      responses:
+        '200':
+          description: Active trades retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_id:
+                    type: string
+                  detected_at:
+                    type: string
+                    format: date-time
+                  trades:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ActiveTrade'
+                  total_count:
+                    type: integer
+        '400':
+          description: Invalid account ID
+        '500':
+          description: Internal server error
+
+  /api/v1/recovery/sessions:
+    post:
+      summary: Create recovery session
+      description: Creates a new recovery session for managing active trades
+      operationId: createRecoverySession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+                - recovery_type
+              properties:
+                account_id:
+                  type: string
+                recovery_type:
+                  type: string
+                  enum: [DATABASE_FAILURE, MANUAL_RECOVERY, SCHEDULED_RECOVERY]
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Recovery session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoverySession'
+        '400':
+          description: Invalid request data
+        '409':
+          description: Active recovery session already exists for account
+        '500':
+          description: Internal server error
+
+    get:
+      summary: List recovery sessions
+      description: Retrieves recovery sessions for an account
+      operationId: listRecoverySessions
+      parameters:
+        - name: account_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [IN_PROGRESS, COMPLETED, FAILED, CANCELLED]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Recovery sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecoverySession'
+                  total_count:
+                    type: integer
+        '400':
+          description: Invalid parameters
+        '500':
+          description: Internal server error
+
+  /api/v1/recovery/sessions/{session_id}:
+    get:
+      summary: Get recovery session details
+      description: Retrieves detailed information about a recovery session
+      operationId: getRecoverySession
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recovery session details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoverySession'
+        '404':
+          description: Recovery session not found
+        '500':
+          description: Internal server error
+
+    patch:
+      summary: Update recovery session
+      description: Updates a recovery session (e.g., cancel, complete)
+      operationId: updateRecoverySession
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [IN_PROGRESS, COMPLETED, FAILED, CANCELLED]
+                error_message:
+                  type: string
+      responses:
+        '200':
+          description: Recovery session updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoverySession'
+        '400':
+          description: Invalid request data
+        '404':
+          description: Recovery session not found
+        '500':
+          description: Internal server error
+
+  /api/v1/strategies/available:
+    get:
+      summary: Get available strategies
+      description: Retrieves all available trading strategies for assignment
+      operationId: getAvailableStrategies
+      parameters:
+        - name: trade_symbol
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter strategies suitable for specific symbol
+        - name: position_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [STOCK, OPTION, FUTURE]
+          description: Filter strategies suitable for position type
+      responses:
+        '200':
+          description: Available strategies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  strategies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Strategy'
+                  total_count:
+                    type: integer
+        '500':
+          description: Internal server error
+
+  /api/v1/strategies/match:
+    post:
+      summary: Match strategies to trade
+      description: Analyzes a trade and suggests suitable strategies
+      operationId: matchStrategiesToTrade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trade
+              properties:
+                trade:
+                  $ref: '#/components/schemas/ActiveTrade'
+                market_conditions:
+                  type: object
+                  properties:
+                    volatility:
+                      type: number
+                    trend:
+                      type: string
+                      enum: [BULLISH, BEARISH, SIDEWAYS]
+                    volume:
+                      type: number
+      responses:
+        '200':
+          description: Strategy matches retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trade_id:
+                    type: string
+                    format: uuid
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StrategyMatch'
+                  total_count:
+                    type: integer
+        '400':
+          description: Invalid trade data
+        '500':
+          description: Internal server error
+
+  /api/v1/recovery/assign-strategy:
+    post:
+      summary: Assign strategy to trade
+      description: Assigns a trading strategy to a recovered trade
+      operationId: assignStrategyToTrade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recovery_session_id
+                - active_trade_id
+                - strategy_name
+                - assigned_by
+              properties:
+                recovery_session_id:
+                  type: string
+                  format: uuid
+                active_trade_id:
+                  type: string
+                  format: uuid
+                strategy_name:
+                  type: string
+                assigned_by:
+                  type: string
+                confidence_score:
+                  type: number
+                  minimum: 0.0
+                  maximum: 1.0
+                assignment_reason:
+                  type: string
+                strategy_parameters:
+                  type: object
+      responses:
+        '201':
+          description: Strategy assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyAssignment'
+        '400':
+          description: Invalid assignment data
+        '404':
+          description: Recovery session or trade not found
+        '409':
+          description: Trade already has strategy assignment
+        '500':
+          description: Internal server error
+
+  /api/v1/recovery/sessions/{session_id}/status:
+    get:
+      summary: Get recovery session status
+      description: Retrieves current status and progress of a recovery session
+      operationId: getRecoverySessionStatus
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recovery session status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [IN_PROGRESS, COMPLETED, FAILED, CANCELLED]
+                  progress:
+                    type: object
+                    properties:
+                      total_trades_detected:
+                        type: integer
+                      trades_processed:
+                        type: integer
+                      trades_assigned:
+                        type: integer
+                      completion_percentage:
+                        type: number
+                        minimum: 0.0
+                        maximum: 100.0
+                  last_updated:
+                    type: string
+                    format: date-time
+        '404':
+          description: Recovery session not found
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    ActiveTrade:
+      type: object
+      required:
+        - id
+        - account_id
+        - symbol
+        - quantity
+        - side
+        - entry_price
+        - current_price
+        - detected_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+        symbol:
+          type: string
+        quantity:
+          type: number
+          format: decimal
+        side:
+          type: string
+          enum: [BUY, SELL]
+        entry_price:
+          type: number
+          format: decimal
+        current_price:
+          type: number
+          format: decimal
+        current_value:
+          type: number
+          format: decimal
+        unrealized_pnl:
+          type: number
+          format: decimal
+        entry_date:
+          type: string
+          format: date-time
+        detected_at:
+          type: string
+          format: date-time
+        position_type:
+          type: string
+          enum: [STOCK, OPTION, FUTURE]
+        option_details:
+          type: object
+          properties:
+            strike:
+              type: number
+            expiration:
+              type: string
+              format: date
+            option_type:
+              type: string
+              enum: [CALL, PUT]
+
+    RecoverySession:
+      type: object
+      required:
+        - id
+        - account_id
+        - started_at
+        - status
+        - recovery_type
+      properties:
+        id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [IN_PROGRESS, COMPLETED, FAILED, CANCELLED]
+        total_trades_detected:
+          type: integer
+        trades_processed:
+          type: integer
+        trades_assigned:
+          type: integer
+        error_message:
+          type: string
+        recovery_type:
+          type: string
+          enum: [DATABASE_FAILURE, MANUAL_RECOVERY, SCHEDULED_RECOVERY]
+
+    StrategyAssignment:
+      type: object
+      required:
+        - id
+        - recovery_session_id
+        - active_trade_id
+        - strategy_name
+        - assigned_at
+        - assigned_by
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        recovery_session_id:
+          type: string
+          format: uuid
+        active_trade_id:
+          type: string
+          format: uuid
+        strategy_name:
+          type: string
+        assigned_at:
+          type: string
+          format: date-time
+        assigned_by:
+          type: string
+        confidence_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        assignment_reason:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, PAUSED, CANCELLED]
+        strategy_parameters:
+          type: object
+
+    Strategy:
+      type: object
+      required:
+        - name
+        - description
+        - category
+        - enabled
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [MOMENTUM, MEAN_REVERSION, OPTIONS, ARBITRAGE]
+        enabled:
+          type: boolean
+        min_position_size:
+          type: number
+        max_position_size:
+          type: number
+        supported_symbols:
+          type: array
+          items:
+            type: string
+        supported_position_types:
+          type: array
+          items:
+            type: string
+            enum: [STOCK, OPTION, FUTURE]
+
+    StrategyMatch:
+      type: object
+      required:
+        - strategy_name
+        - confidence_score
+        - match_reason
+      properties:
+        strategy_name:
+          type: string
+        confidence_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        match_reason:
+          type: string
+        expected_performance:
+          type: number
+        risk_level:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+        estimated_duration:
+          type: string
+          enum: [SHORT_TERM, MEDIUM_TERM, LONG_TERM]
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+
+
+
+
+
+
+

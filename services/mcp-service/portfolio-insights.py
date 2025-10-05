@@ -474,3 +474,12 @@ async def generate_insights_report(portfolio_id: str) -> Dict[str, Any]:
 
 
 
+
+
+
+
+
+
+
+
+

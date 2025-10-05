@@ -1,0 +1,25 @@
+# ShellCheck configuration for Kubernetes secrets management scripts
+# This file configures shellcheck linting rules for our shell scripts
+
+# Enable all checks
+enable=all
+
+# Disable specific checks that are not applicable
+disable=SC1091,SC2034,SC2155,SC2162,SC2164
+
+# SC1091: Not following sourced files (we source .env files)
+# SC2034: Variable appears unused (environment variables from .env)
+# SC2155: Declare and assign separately (kubectl output assignment)
+# SC2162: read without -r (we handle this explicitly)
+# SC2164: cd without error checking (we validate paths first)
+
+# Set shell dialect
+shell=bash
+
+# Set severity levels
+severity=style
+
+# Allow sourcing of .env files
+# Note: This is a workaround for SC1091
+# In practice, we validate .env files before sourcing
+

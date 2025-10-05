@@ -412,6 +412,7 @@
             <button class="nav-tab" onclick="showSection('trades', event)">Trades</button>
             <button class="nav-tab" onclick="showSection('orders', event)">Order Entry</button>
             <button class="nav-tab" onclick="showSection('strategies', event)">Strategies</button>
+            <button class="nav-tab" onclick="showSection('top-performers', event)">🏆 Top Performers</button>
             <button class="nav-tab" onclick="showSection('backtesting', event)">Backtesting</button>
             <button class="nav-tab" onclick="showSection('health', event)">System Health</button>
         </div>
@@ -663,6 +664,64 @@
             </div>
         </div>
         
+        <!-- Top Performers Section -->
+        <div id="top-performers" class="dashboard-section" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🏆 Elliott Wave Pattern Leaders</div>
+                        <div class="card-icon">📈</div>
+                    </div>
+                    <div id="top-performers-list">
+                        <div class="loading">Loading top performing stocks...</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadTopPerformers()" style="margin-top: 15px;">🔄 Refresh Leaders</button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📊 Pattern Performance</div>
+                        <div class="card-icon">🎯</div>
+                    </div>
+                    <div id="pattern-stats">
+                        <div class="loading">Loading pattern statistics...</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadPatternStats()" style="margin-top: 15px;">📊 Update Stats</button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🎯 Stock Selection</div>
+                        <div class="card-icon">⚡</div>
+                    </div>
+                    <div class="info-message">
+                        <h3>Choose Your Trading Symbols</h3>
+                        <p>Select proven performers for your backtesting, paper trading, or live trading:</p>
+                        
+                        <div style="margin: 20px 0;">
+                            <div class="control-group">
+                                <label>🏆 <strong>Premium Performers</strong></label>
+                                <div id="premium-selection">
+                                    <input type="checkbox" id="select-all-premium" onchange="toggleAllPremium()"> Select All Premium
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 20px 0;">
+                            <div class="control-group">
+                                <label>⭐ <strong>Solid Performers</strong></label>
+                                <div id="solid-selection">
+                                    <input type="checkbox" id="select-all-solid" onchange="toggleAllSolid()"> Select All Solid
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-success" onclick="applySelectedSymbols()" style="margin-top: 15px;">🎯 Apply to Trading</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Backtesting Section -->
         <div id="backtesting" class="dashboard-section" style="display: none;">
             <div class="dashboard-grid">
@@ -797,7 +856,40 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadAllData();
             setInterval(loadAllData, 30000); // Refresh every 30 seconds
+            
+            // Handle URL hash navigation (e.g., #backtesting)
+            handleHashNavigation();
         });
+        
+        // Handle hash navigation on page load and hash change
+        function handleHashNavigation() {
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                // Check if the section exists
+                const section = document.getElementById(hash);
+                if (section && section.classList.contains('dashboard-section')) {
+                    // Hide all sections
+                    document.querySelectorAll('.dashboard-section').forEach(el => {
+                        el.style.display = 'none';
+                    });
+                    
+                    // Show the section from hash
+                    section.style.display = 'block';
+                    
+                    // Update active tab
+                    document.querySelectorAll('.nav-tab').forEach(tab => {
+                        tab.classList.remove('active');
+                        if (tab.textContent.toLowerCase().includes(hash) || 
+                            tab.getAttribute('onclick').includes(hash)) {
+                            tab.classList.add('active');
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Listen for hash changes
+        window.addEventListener('hashchange', handleHashNavigation);
         
         function showSection(section, event) {
             // Hide all sections
@@ -819,6 +911,9 @@
             }
             
             currentSection = section;
+            
+            // Update URL hash without scrolling
+            history.pushState(null, null, `#${section}`);
             
             // Load section-specific data
             switch(section) {
@@ -1647,6 +1742,188 @@
                     `<div class="error">Error loading backtest results: ${error.message}</div>`;
             }
         }
+        
+        // Top Performers functions
+        async function loadTopPerformers() {
+            try {
+                const response = await fetch('/api/top-performers');
+                const data = await response.json();
+                
+                const container = document.getElementById('top-performers-list');
+                
+                if (data.success) {
+                    const performers = data.data;
+                    
+                    let html = '';
+                    
+                    // Premium performers (highest performers across patterns)
+                    if (performers.premium && performers.premium.length > 0) {
+                        html += '<div style="margin-bottom: 20px;"><h4>🏆 Premium Performers (80-100% win rate)</h4>';
+                        performers.premium.forEach(stock => {
+                            html += `
+                                <div class="strategy-checkbox" style="padding: 10px; margin: 5px 0; background: #f0f8ff; border-radius: 5px;">
+                                    <input type="checkbox" id="premium-${stock.symbol}" class="premium-stock" data-symbol="${stock.symbol}">
+                                    <label for="premium-${stock.symbol}" style="margin-left: 10px; cursor: pointer;">
+                                        <strong>${stock.symbol}</strong> - ${(stock.avg_win_rate * 100).toFixed(1)}% win rate
+                                        <div style="font-size: 12px; color: #666;">Patterns: ${stock.patterns.join(', ')} | Avg Return: ${(stock.avg_return * 100).toFixed(1)}%</div>
+                                    </label>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // Solid performers (60-80% win rate)
+                    if (performers.solid && performers.solid.length > 0) {
+                        html += '<div style="margin-bottom: 20px;"><h4>⭐ Solid Performers (60-80% win rate)</h4>';
+                        performers.solid.forEach(stock => {
+                            html += `
+                                <div class="strategy-checkbox" style="padding: 10px; margin: 5px 0; background: #fff8f0; border-radius: 5px;">
+                                    <input type="checkbox" id="solid-${stock.symbol}" class="solid-stock" data-symbol="${stock.symbol}">
+                                    <label for="solid-${stock.symbol}" style="margin-left: 10px; cursor: pointer;">
+                                        <strong>${stock.symbol}</strong> - ${(stock.avg_win_rate * 100).toFixed(1)}% win rate
+                                        <div style="font-size: 12px; color: #666;">Patterns: ${stock.patterns.join(', ')} | Avg Return: ${(stock.avg_return * 100).toFixed(1)}%</div>
+                                    </label>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // Avoid these stocks
+                    if (performers.avoid && performers.avoid.length > 0) {
+                        html += '<div style="margin-bottom: 20px;"><h4>🚫 Avoid These Stocks (&lt;60% win rate)</h4>';
+                        performers.avoid.slice(0, 5).forEach(stock => {
+                            html += `
+                                <div style="padding: 10px; margin: 5px 0; background: #fff0f0; border-radius: 5px; color: #666;">
+                                    <strong>${stock.symbol}</strong> - ${(stock.avg_win_rate * 100).toFixed(1)}% win rate
+                                    <div style="font-size: 12px; color: #999;">Patterns: ${stock.patterns.join(', ')}</div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="error">Failed to load top performers</div>';
+                }
+            } catch (error) {
+                document.getElementById('top-performers-list').innerHTML = '<div class="error">Error loading top performers</div>';
+                console.error('Error loading top performers:', error);
+            }
+        }
+        
+        async function loadPatternStats() {
+            try {
+                const response = await fetch('/api/pattern-statistics');
+                const data = await response.json();
+                
+                const container = document.getElementById('pattern-stats');
+                
+                if (data.success) {
+                    const stats = data.data;
+                    
+                    let html = '<div class="metric-list">';
+                    
+                    Object.entries(stats).forEach(([pattern, data]) => {
+                        const winRateClass = data.win_rate >= 0.7 ? 'positive' : data.win_rate >= 0.6 ? 'neutral' : 'negative';
+                        html += `
+                            <div class="metric">
+                                <div class="metric-label">${pattern.replace(/_/g, ' ').toUpperCase()}</div>
+                                <div class="metric-value ${winRateClass}">${(data.win_rate * 100).toFixed(1)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label" style="font-size: 0.85em;">Avg Return</div>
+                                <div class="metric-value ${data.avg_return >= 0 ? 'positive' : 'negative'}">${(data.avg_return * 100).toFixed(1)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label" style="font-size: 0.85em;">Best Symbols</div>
+                                <div class="metric-value neutral" style="font-size: 0.85em;">${data.best_symbols.slice(0, 3).join(', ')}</div>
+                            </div>
+                            <div style="height: 10px; border-bottom: 1px dotted #eee; margin: 5px 0;"></div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="error">Failed to load pattern statistics</div>';
+                }
+            } catch (error) {
+                document.getElementById('pattern-stats').innerHTML = '<div class="error">Error loading pattern statistics</div>';
+                console.error('Error loading pattern statistics:', error);
+            }
+        }
+        
+        function toggleAllPremium() {
+            const checkAll = document.getElementById('select-all-premium').checked;
+            document.querySelectorAll('.premium-stock').forEach(checkbox => {
+                checkbox.checked = checkAll;
+            });
+        }
+        
+        function toggleAllSolid() {
+            const checkAll = document.getElementById('select-all-solid').checked;
+            document.querySelectorAll('.solid-stock').forEach(checkbox => {
+                checkbox.checked = checkAll;
+            });
+        }
+        
+        function applySelectedSymbols() {
+            const selectedSymbols = [];
+            
+            // Get premium performers
+            document.querySelectorAll('.premium-stock:checked').forEach(checkbox => {
+                selectedSymbols.push(checkbox.dataset.symbol);
+            });
+            
+            // Get solid performers  
+            document.querySelectorAll('.solid-stock:checked').forEach(checkbox => {
+                selectedSymbols.push(checkbox.dataset.symbol);
+            });
+            
+            if (selectedSymbols.length === 0) {
+                alert('Please select at least one stock from the top performers.');
+                return;
+            }
+            
+            // Update any global symbol lists or configuration
+            console.log('Selected symbols for trading:', selectedSymbols);
+            
+            // Show confirmation
+            alert(`✅ Selected ${selectedSymbols.length} stocks for trading:\n${selectedSymbols.join(', ')}\n\nThese symbols will be used in subsequent backtests, paper trading, and live trading operations.`);
+            
+            // You can add logic here to:
+            // 1. Update trading configuration 
+            // 2. Start immediate backtest with selected symbols
+            // 3. Update paper trading watch list
+            // 4. Set live trading symbol list
+        }
+        
+        // Load top performers when tab is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add tab change listener for top performers
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const topPerformersTab = document.getElementById('top-performers');
+                        if (topPerformersTab && !topPerformersTab.style.display.includes('none')) {
+                            // Top performers tab is visible, load data if not already loaded
+                            if (document.getElementById('top-performers-list').innerHTML.includes('Loading')) {
+                                loadTopPerformers();
+                                loadPatternStats();
+                            }
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(document.getElementById('top-performers'), {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        });
     </script>
 </body>
 </html> 

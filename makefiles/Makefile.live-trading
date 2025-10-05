@@ -1,0 +1,190 @@
+# Live Trading Operations Makefile
+# User-friendly targets for managing live trading system
+
+.PHONY: live-trading-help live-trading-status live-trading-refresh-token live-trading-monitor live-trading-start live-trading-stop live-trading-restart live-trading-logs live-trading-health
+
+# Live Trading Help
+live-trading-help:
+	@echo "🚀 LIVE TRADING OPERATIONS"
+	@echo "=========================="
+	@echo ""
+	@echo "📊 Status & Health:"
+	@echo "  make live-trading-status     - Check live trading system status"
+	@echo "  make live-trading-health     - Quick health check"
+	@echo "  make live-trading-logs       - View live trading service logs"
+	@echo ""
+	@echo "🔑 Token Management:"
+	@echo "  make live-trading-refresh-token  - Refresh Public.com access token"
+	@echo "  make live-trading-fix-credentials - Fix encryption key issues"
+	@echo ""
+	@echo "🔄 Service Management:"
+	@echo "  make live-trading-start      - Start live trading service"
+	@echo "  make live-trading-stop       - Stop live trading service"
+	@echo "  make live-trading-restart    - Restart live trading service"
+	@echo ""
+	@echo "📈 Monitoring:"
+	@echo "  make live-trading-monitor    - Start live trading monitoring"
+	@echo "  make live-trading-monitor-continuous - Continuous monitoring (every 5 min)"
+	@echo ""
+	@echo "🔧 Troubleshooting:"
+	@echo "  make live-trading-debug      - Debug live trading issues"
+	@echo "  make live-trading-reset      - Reset live trading system"
+
+# Live Trading Status
+live-trading-status:
+	@echo "🔍 Checking Live Trading System Status..."
+	@echo ""
+	@echo "📊 Service Health:"
+	@curl -s http://localhost:11120/health 2>/dev/null | jq -r '.status // "❌ Service Unavailable"' || echo "❌ Service Unavailable"
+	@echo ""
+	@echo "🔑 Authentication Status:"
+	@curl -s http://localhost:11120/api/v1/auth/status/19c25392-8b61-4b71-a344-0eb04d275528 2>/dev/null | jq -r 'if .is_authenticated then "✅ Authenticated" else "❌ Not Authenticated" end' || echo "❌ Cannot Check Authentication"
+	@echo ""
+	@echo "💰 Account Balance:"
+	@curl -s http://localhost:11120/api/v1/accounts/19c25392-8b61-4b71-a344-0eb04d275528/balance 2>/dev/null | jq -r 'if .cash_balance then "$$\(.cash_balance | tonumber | floor)" else "❌ Cannot Retrieve" end' || echo "❌ Cannot Retrieve Balance"
+	@echo ""
+	@echo "📈 Active Strategies:"
+	@curl -s http://localhost:11120/api/v1/strategies/19c25392-8b61-4b71-a344-0eb04d275528 2>/dev/null | jq -r '.strategies[] | select(.enabled) | "✅ \(.strategy_name)"' || echo "❌ Cannot Retrieve Strategies"
+
+# Live Trading Health Check
+live-trading-health:
+	@echo "🏥 Live Trading Health Check..."
+	@if curl -s http://localhost:11120/health >/dev/null 2>&1; then \
+		echo "✅ Service: Healthy"; \
+	else \
+		echo "❌ Service: Unhealthy"; \
+		exit 1; \
+	fi
+	@if curl -s http://localhost:11120/api/v1/auth/status/19c25392-8b61-4b71-a344-0eb04d275528 | jq -e '.is_authenticated' >/dev/null 2>&1; then \
+		echo "✅ Authentication: Active"; \
+	else \
+		echo "❌ Authentication: Expired/Invalid"; \
+		exit 1; \
+	fi
+
+# Refresh Public.com Access Token
+live-trading-refresh-token:
+	@echo "🔑 Refreshing Public.com Access Token..."
+	@echo ""
+	@echo "📋 This will:"
+	@echo "   • Use your PUBLIC_API_SECRET from .env file"
+	@echo "   • Generate a fresh access token"
+	@echo "   • Test account balance retrieval"
+	@echo ""
+	@python3 refresh_public_token.py
+	@echo ""
+	@echo "🧪 Testing token refresh..."
+	@make live-trading-health
+
+# Fix Credentials (Encryption Key Issues)
+live-trading-fix-credentials:
+	@echo "🔧 Fixing Live Trading Credentials..."
+	@echo ""
+	@echo "📋 This will:"
+	@echo "   • Generate a proper Fernet encryption key"
+	@echo "   • Update ConfigMap and Secret"
+	@echo "   • Clear old encrypted credentials"
+	@echo "   • Restart the service"
+	@echo ""
+	@echo "🔑 Generating new encryption key..."
+	@NEW_KEY=$$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"); \
+	echo "Generated key: $$NEW_KEY"; \
+	echo "Updating ConfigMap..."; \
+	kubectl patch configmap live-trading-service-config -n default --patch "{\"data\":{\"ENCRYPTION_KEY\":\"$$NEW_KEY\"}}"; \
+	echo "Updating Secret..."; \
+	ENCODED_KEY=$$(echo "$$NEW_KEY" | base64 -w 0); \
+	kubectl patch secret live-trading-service-secrets -n default --patch "{\"data\":{\"encryption-key\":\"$$ENCODED_KEY\"}}"; \
+	echo "Clearing old credentials..."; \
+	python3 clear_encrypted_credentials.py; \
+	echo "Restarting service..."; \
+	kubectl rollout restart deployment/live-trading-service -n default; \
+	echo "Waiting for restart..."; \
+	kubectl rollout status deployment/live-trading-service -n default --timeout=60s; \
+	echo "✅ Credentials fixed! Run 'make live-trading-refresh-token' to authenticate"
+
+# Start Live Trading Service
+live-trading-start:
+	@echo "🚀 Starting Live Trading Service..."
+	@kubectl scale deployment live-trading-service -n default --replicas=2
+	@kubectl rollout status deployment/live-trading-service -n default --timeout=60s
+	@echo "✅ Live Trading Service started"
+	@echo "🔌 Setting up port forwarding..."
+	@pkill -f "kubectl port-forward.*live-trading-service" 2>/dev/null || true
+	@kubectl port-forward -n default svc/live-trading-service 11120:8080 > /dev/null 2>&1 &
+	@sleep 3
+	@echo "✅ Port forwarding active on localhost:11120"
+
+# Stop Live Trading Service
+live-trading-stop:
+	@echo "🛑 Stopping Live Trading Service..."
+	@kubectl scale deployment live-trading-service -n default --replicas=0
+	@pkill -f "kubectl port-forward.*live-trading-service" 2>/dev/null || true
+	@echo "✅ Live Trading Service stopped"
+
+# Restart Live Trading Service
+live-trading-restart:
+	@echo "🔄 Restarting Live Trading Service..."
+	@kubectl rollout restart deployment/live-trading-service -n default
+	@kubectl rollout status deployment/live-trading-service -n default --timeout=60s
+	@echo "🔌 Restarting port forwarding..."
+	@pkill -f "kubectl port-forward.*live-trading-service" 2>/dev/null || true
+	@kubectl port-forward -n default svc/live-trading-service 11120:8080 > /dev/null 2>&1 &
+	@sleep 3
+	@echo "✅ Live Trading Service restarted"
+
+# View Live Trading Logs
+live-trading-logs:
+	@echo "📋 Live Trading Service Logs (last 20 lines):"
+	@kubectl logs -n default deployment/live-trading-service --tail=20
+
+# Live Trading Monitor
+live-trading-monitor:
+	@echo "📊 Running Live Trading Monitor..."
+	@python3 live_trading_monitor.py single
+
+# Continuous Live Trading Monitor
+live-trading-monitor-continuous:
+	@echo "📊 Starting Continuous Live Trading Monitor (every 5 minutes)..."
+	@echo "Press Ctrl+C to stop"
+	@python3 live_trading_monitor.py continuous 5
+
+# Debug Live Trading Issues
+live-trading-debug:
+	@echo "🔍 Live Trading Debug Information..."
+	@echo ""
+	@echo "📊 Pod Status:"
+	@kubectl get pods -n default -l app=live-trading-service
+	@echo ""
+	@echo "🔌 Port Forward Status:"
+	@ps aux | grep "kubectl port-forward.*live-trading-service" | grep -v grep || echo "No port forwards active"
+	@echo ""
+	@echo "📋 Service Logs (last 10 lines):"
+	@kubectl logs -n default deployment/live-trading-service --tail=10
+	@echo ""
+	@echo "🔧 Configuration:"
+	@kubectl get configmap live-trading-service-config -n default -o jsonpath='{.data.ENCRYPTION_KEY}' && echo ""
+
+# Reset Live Trading System
+live-trading-reset:
+	@echo "🔄 Resetting Live Trading System..."
+	@echo "⚠️  This will stop the service and clear credentials"
+	@echo ""
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "🛑 Stopping service..."
+	@make live-trading-stop
+	@echo "🧹 Clearing credentials..."
+	@python3 clear_encrypted_credentials.py
+	@echo "🔧 Fixing encryption keys..."
+	@make live-trading-fix-credentials
+	@echo "🚀 Starting service..."
+	@make live-trading-start
+	@echo "✅ Live Trading System reset complete!"
+	@echo "💡 Run 'make live-trading-refresh-token' to authenticate"
+
+
+
+
+
+
+
+

@@ -6,9 +6,12 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from typing import Optional, Dict, Any
+import logging
 
 from src.strategies.base import BaseStrategy
 from src.core.types import TradeSignal
+
+logger = logging.getLogger(__name__)
 
 
 class BollingerBandsStrategy(BaseStrategy):
@@ -47,7 +50,8 @@ class BollingerBandsStrategy(BaseStrategy):
         
         signal = None
         
-        # Buy signal: Price touches lower band and starts to bounce
+        # FIXED LOGIC: Only generate BUY signals (oversold bounce)
+        # This ensures we only buy when oversold, not sell when overbought
         if (current_price <= current_lower * (1 + self.threshold) and 
             percent_b < 0.2):
             
@@ -69,29 +73,10 @@ class BollingerBandsStrategy(BaseStrategy):
                     "historical_date": historical_date
                 }
             )
-            
-        # Sell signal: Price touches upper band and starts to fall
-        elif (current_price >= current_upper * (1 - self.threshold) and 
-              percent_b > 0.8):
-            
-            signal = TradeSignal(
-                symbol=symbol,
-                action="SELL",
-                quantity=self._calculate_quantity(current_price),
-                price=current_price,
-                timestamp=datetime.now(),
-                strategy=self.name,
-                confidence=0.8,
-                metadata={
-                    "upper_band": current_upper,
-                    "lower_band": current_lower,
-                    "sma": current_sma,
-                    "percent_b": percent_b,
-                    "bandwidth": bandwidth,
-                    "signal_type": "overbought_reversal",
-                    "historical_date": historical_date
-                }
-            )
+            logger.info(f"✅ BollingerBands BUY signal: {symbol} at ${current_price:.2f} (oversold: {percent_b:.2f})")
+        
+        # REMOVED SELL LOGIC: Only buy on oversold, let other strategies handle selling
+        # This prevents selling stocks we don't own
         
         return signal
     

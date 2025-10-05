@@ -30,6 +30,7 @@ help: ## Show main help message
 	@echo "  make backtest-help    - Backtesting commands"
 	@echo "  make build-help       - Build commands"
 	@echo "  make test-help        - Testing commands"
+	@echo "  make secrets-help     - Secrets management commands"
 	@echo ""
 
 # Quick status commands (aliases for simple commands)

@@ -21,11 +21,11 @@ class RiskMetrics:
     Value at Risk (VaR), Expected Shortfall, volatility, and other risk measures.
     """
     
+    # Portfolio reference - required field comes first
+    portfolio_id: UUID
+    
     # Primary key
     risk_metrics_id: UUID = field(default_factory=uuid4)
-    
-    # Portfolio reference
-    portfolio_id: UUID = field()
     
     # Calculation metadata
     calculation_timestamp: datetime = field(default_factory=datetime.utcnow)
@@ -199,6 +199,14 @@ class RiskMetrics:
                 f"portfolio_volatility={self.portfolio_volatility}, "
                 f"maximum_drawdown={self.maximum_drawdown}, "
                 f"sharpe_ratio={self.sharpe_ratio})")
+
+
+
+
+
+
+
+
 
 
 

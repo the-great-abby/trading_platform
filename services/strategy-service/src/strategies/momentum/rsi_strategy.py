@@ -6,19 +6,22 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 import pandas as pd
 import numpy as np
+import logging
 
 from src.strategies.base import BaseStrategy
 from src.core.types import TradeSignal
+
+logger = logging.getLogger(__name__)
 
 
 class RSIStrategy(BaseStrategy):
     """Relative Strength Index Strategy"""
     
-    def __init__(self, period: int = 14, oversold: float = 30, overbought: float = 70, **kwargs):
+    def __init__(self, period: int = 7, oversold: float = 25, overbought: float = 75, **kwargs):
         super().__init__("RSI_Strategy", kwargs)
-        self.period = period
-        self.oversold = oversold
-        self.overbought = overbought
+        self.period = period  # Reduced from 14 to 7 for faster signals
+        self.oversold = oversold  # Reduced from 30 to 25 for more sensitive signals
+        self.overbought = overbought  # Increased from 70 to 75 for more sensitive signals
         
     def _calculate_rsi(self, data: pd.DataFrame) -> pd.Series:
         """Calculate RSI from price data"""
@@ -63,8 +66,12 @@ class RSIStrategy(BaseStrategy):
         if pd.isna(current_rsi) or pd.isna(previous_rsi):
             return None
         
-        # Check for oversold condition (RSI < 30)
-        if current_rsi < self.oversold and previous_rsi >= self.oversold:
+        # DEBUG: Log RSI values for troubleshooting
+        logger.info(f"🔍 RSI DEBUG - {symbol}: current_rsi={current_rsi:.2f}, previous_rsi={previous_rsi:.2f}, oversold={self.oversold}, overbought={self.overbought}")
+        
+        # Check for oversold condition (RSI < 25) - Simple threshold, not crossover
+        if current_rsi < self.oversold:
+            logger.info(f"✅ RSI BUY SIGNAL - {symbol}: RSI is oversold at {current_rsi:.2f} (threshold: {self.oversold})")
             return TradeSignal(
                 symbol=symbol,
                 action="BUY",
@@ -79,8 +86,9 @@ class RSIStrategy(BaseStrategy):
                 }
             )
         
-        # Check for overbought condition (RSI > 70)
-        elif current_rsi > self.overbought and previous_rsi <= self.overbought:
+        # Check for overbought condition (RSI > 75) - Simple threshold, not crossover
+        elif current_rsi > self.overbought:
+            logger.info(f"✅ RSI SELL SIGNAL - {symbol}: RSI is overbought at {current_rsi:.2f} (threshold: {self.overbought})")
             return TradeSignal(
                 symbol=symbol,
                 action="SELL",
@@ -95,6 +103,40 @@ class RSIStrategy(BaseStrategy):
                 }
             )
         
+        # Check for crossover signals (more sensitive)
+        elif current_rsi < self.oversold + 5 and previous_rsi >= self.oversold + 5:
+            logger.info(f"✅ RSI BUY CROSSOVER - {symbol}: RSI crossed below {self.oversold + 5} ({previous_rsi:.2f} -> {current_rsi:.2f})")
+            return TradeSignal(
+                symbol=symbol,
+                action="BUY",
+                quantity=self._calculate_quantity(current_price),
+                price=current_price,
+                timestamp=datetime.now(),
+                strategy=self.name,
+                confidence=0.7,
+                metadata={
+                    "rsi": current_rsi,
+                    "signal_type": "crossover"
+                }
+            )
+        
+        elif current_rsi > self.overbought - 5 and previous_rsi <= self.overbought - 5:
+            logger.info(f"✅ RSI SELL CROSSOVER - {symbol}: RSI crossed above {self.overbought - 5} ({previous_rsi:.2f} -> {current_rsi:.2f})")
+            return TradeSignal(
+                symbol=symbol,
+                action="SELL",
+                quantity=self._calculate_quantity(current_price),
+                price=current_price,
+                timestamp=datetime.now(),
+                strategy=self.name,
+                confidence=0.7,
+                metadata={
+                    "rsi": current_rsi,
+                    "signal_type": "crossover"
+                }
+            )
+        
+        logger.info(f"RSI NO SIGNAL - {symbol}: RSI={current_rsi:.2f} (oversold: {self.oversold}, overbought: {self.overbought})")
         return None
     
     def _calculate_quantity(self, price: float) -> float:

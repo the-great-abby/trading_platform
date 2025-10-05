@@ -876,7 +876,7 @@
                                 <div class="strategy-categories" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                                     <button type="button" class="btn btn-outline" onclick="selectCategory('basic')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">📊 Basic Strategies</button>
                                     <button type="button" class="btn btn-outline" onclick="selectCategory('options')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🎯 Options Strategies</button>
-                                    <button type="button" class="btn btn-outline" onclick="selectCategory('advanced')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🚀 Advanced Strategies</button>
+                                    <button type="button" class="btn btn-outline" onclick="selectCategory('advanced')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🚀 Advanced (incl. 🌊 Elliott Wave)</button>
                                     <button type="button" class="btn btn-outline" onclick="selectCategory('all')" style="padding: 8px 16px; border: 2px solid #667eea; border-radius: 6px; background: transparent; color: #667eea; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;">🌟 All Strategies</button>
                         </div>
                             </div>
@@ -1389,24 +1389,31 @@
             low: ['V', 'MA', 'PYPL', 'ADBE', 'CRM', 'ORCL', 'CSCO', 'QCOM', 'TXN', 'AVGO', 'SPY', 'QQQ', 'VTI', 'VOO', 'VUG', 'XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'SMCI']
         };
         
-        // Strategy definitions
+        // Strategy definitions - Only strategies that work with BacktestEngine
         const STRATEGIES = {
             basic: [
-                'BollingerBandsStrategy', 'RSIStrategy', 'MACDStrategy', 'SMACrossoverStrategy',
+                'RSIStrategy', 'MACDStrategy', 'BollingerBandsStrategy', 'SMACrossoverStrategy',
                 'MomentumStrategy', 'MeanReversionStrategy', 'VolatilityBreakoutStrategy',
-                'VWAPStrategy', 'IchimokuStrategy', 'AdaptiveMomentumStrategy'
+                'VWAPStrategy', 'IchimokuStrategy', 'KalmanFilterStrategy', 'FibonacciStrategy',
+                'AdaptiveMomentumStrategy', 'PortfolioStrategy'
             ],
             options: [
-                'GreeksEnhancedStrategy', 'IronCondorStrategy', 'EnhancedIronCondorStrategy',
+                'IronCondorStrategy', 'EnhancedIronCondorStrategy', 'GreeksEnhancedStrategy',
                 'CashSecuredPutStrategy', 'CoveredCallStrategy', 'CalendarSpreadStrategy',
-                'ButterflySpreadStrategy', 'VolatilityStrategy', 'EarningsStrategy'
+                'ButterflySpreadStrategy', 'DiagonalSpreadStrategy', 'OptionsWheelStrategy',
+                'StraddleStrategy', 'StrangleStrategy', 'VolatilityStrategy', 'EarningsStrategy'
             ],
             advanced: [
-                'WinningEnsembleStrategy', 'TrailingStopStrategy', 'FibonacciStrategy', 'NeuralNetworkStrategy',
-                'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'KalmanFilterStrategy',
-                'MLEnsembleStrategy', 'EnhancedDayTradingStrategy'
+                'AdaptiveSectorWaveStrategy', 'ElliottWaveCorrectiveStrategy', 'ElliottWaveImpulseStrategy',
+                'WinningEnsembleStrategy', 'TrailingStopStrategy', 'NeuralNetworkStrategy',
+                'QuantumMomentumStrategy', 'RegimeSwitchingStrategy', 'MLEnsembleStrategy',
+                'RiskFirstStrategy', 'MarketRegimeAdaptiveStrategy', 'MultiTimeframeStrategy',
+                'NewsEnhancedStrategy', 'PairsTradingStrategy'
             ]
         };
+        
+        // Note: Elliott Wave functionality is available as a standalone backtest
+        // Run it with: make -f Makefile.backtesting elliott-wave
         
         let selectedSymbols = new Set();
         

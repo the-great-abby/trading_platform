@@ -1,0 +1,109 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-2year-real-data
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: historical
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+    spec:
+      containers:
+      - name: backtest
+        image: localhost:32000/trading-system:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python3"]
+        args: ["run/run_2year_automated_backtest.py"]
+        env:
+        # ✅ Use Kubernetes internal service address - NO PORT-FORWARD NEEDED!
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: POLYGON_API_KEY
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"  # Disable for faster backtest
+        - name: DATABASE_ONLY
+          value: "true"  # Use only database, don't fetch from API
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      restartPolicy: Never
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600  # Clean up after 1 hour
+---
+# Alternative: Use password from secret
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backtest-2year-with-secrets
+  namespace: trading-system
+  labels:
+    app: backtest
+    type: historical
+spec:
+  template:
+    metadata:
+      labels:
+        app: backtest
+    spec:
+      containers:
+      - name: backtest
+        image: localhost:32000/trading-system:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash"]
+        args:
+        - "-c"
+        - |
+          # ✅ Construct DATABASE_URL with Kubernetes service address
+          export DATABASE_URL="postgresql://trading_user:${DB_PASSWORD}@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          echo "🎯 Using Kubernetes internal service: timescaledb.trading-system.svc.cluster.local"
+          echo "📊 Running 2-year backtest with REAL market data from database..."
+          python3 run/run_2year_automated_backtest.py
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: POSTGRES_PASSWORD
+              optional: true
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: POLYGON_API_KEY
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DATABASE_ONLY
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+      restartPolicy: Never
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+
+
+
+
+
+
+

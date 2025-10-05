@@ -36,7 +36,7 @@ class EnhancedDayTradingStrategy(BaseStrategy):
                  portfolio_value: float = 100000.0):
         super().__init__(name="EnhancedDayTradingStrategy")
         self.risk_manager = AdvancedRiskManager(risk_params or RiskParameters())
-        self.risk_manager.update_portfolio_value(portfolio_value)
+        self.portfolio_value = portfolio_value
         
         # Strategy parameters
         self.rsi_period = 14

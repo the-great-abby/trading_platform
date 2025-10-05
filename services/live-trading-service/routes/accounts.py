@@ -172,7 +172,7 @@ async def get_account_balance(
         Real-time account balance information
     """
     try:
-        # Get stored credentials
+        # Get stored credentials (latest active)
         result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
@@ -180,8 +180,14 @@ async def get_account_balance(
                 c.refresh_token,
                 c.token_expires_at
             FROM live_trading_accounts a
-            JOIN api_credentials c ON a.account_id = c.account_id
-            WHERE a.account_id = :account_id AND c.is_active = true
+            JOIN (
+                SELECT DISTINCT ON (account_id) 
+                    account_id, access_token, refresh_token, token_expires_at
+                FROM api_credentials 
+                WHERE is_active = true
+                ORDER BY account_id, last_used_at DESC
+            ) c ON a.account_id = c.account_id
+            WHERE a.account_id = :account_id
         """), {"account_id": account_id})
         
         account_data = result.fetchone()
@@ -273,7 +279,7 @@ async def sync_account_data(
         Sync result
     """
     try:
-        # Get stored credentials
+        # Get stored credentials (latest active)
         result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
@@ -281,8 +287,14 @@ async def sync_account_data(
                 c.refresh_token,
                 c.token_expires_at
             FROM live_trading_accounts a
-            JOIN api_credentials c ON a.account_id = c.account_id
-            WHERE a.account_id = :account_id AND c.is_active = true
+            JOIN (
+                SELECT DISTINCT ON (account_id) 
+                    account_id, access_token, refresh_token, token_expires_at
+                FROM api_credentials 
+                WHERE is_active = true
+                ORDER BY account_id, last_used_at DESC
+            ) c ON a.account_id = c.account_id
+            WHERE a.account_id = :account_id
         """), {"account_id": account_id})
         
         account_data = result.fetchone()

@@ -358,3 +358,9 @@ kubectl top pods -n trading-system | grep -E "(vector|postgres)"
 
 
 
+
+
+
+
+
+

@@ -1,0 +1,45 @@
+# Validation Framework Docker Image
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements files
+COPY requirements.txt requirements-validation.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-validation.txt
+
+# Copy source code
+COPY src/ ./src/
+COPY k8s/ ./k8s/
+COPY specs/ ./specs/
+
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/backtests /app/config
+
+# Set environment variables
+ENV PYTHONPATH=/app/src
+ENV VALIDATION_LOG_LEVEL=INFO
+ENV VALIDATION_LOG_FORMAT=json
+ENV VALIDATION_DEFAULT_DIRECTORY=/app/backtests
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the validation service
+CMD ["python", "-m", "uvicorn", "src.validation.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

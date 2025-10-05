@@ -38,11 +38,11 @@ class CashSecuredPutStrategy(BaseStrategy):
                  profit_target_pct: float = 0.7,  # 70% of max profit
                  stop_loss_pct: float = 1.5,  # 1.5x max profit
                  max_risk_per_trade: float = 0.02,  # 2% of portfolio
-                 min_delta: float = -0.7,  # Maximum delta (negative for puts)
-                 max_delta: float = -0.3,  # Minimum delta (negative for puts)
-                 min_premium_pct: float = 0.015,  # 1.5% minimum premium relative to stock price
-                 min_dte: int = 21,
-                 max_dte: int = 45,
+                 min_delta: float = -0.99,  # Very permissive delta range
+                 max_delta: float = -0.01,  # Very permissive delta range
+                 min_premium_pct: float = 0.001,  # Very low premium requirement (0.1%)
+                 min_dte: int = 7,   # Very permissive DTE range
+                 max_dte: int = 60,  # Very permissive DTE range
                  max_cash_utilization: float = 0.8):  # 80% max cash utilization
         super().__init__(name)
         self.days_to_expiration = days_to_expiration
@@ -55,6 +55,10 @@ class CashSecuredPutStrategy(BaseStrategy):
         self.min_dte = min_dte
         self.max_dte = max_dte
         self.max_cash_utilization = max_cash_utilization
+        
+        # Cache for options data to avoid database exhaustion
+        self._options_cache = {}
+        self._cache_timestamp = None
         
         # Initialize options service
         self.options_service = OptionsDataService()
@@ -164,11 +168,11 @@ class CashSecuredPutStrategy(BaseStrategy):
         
         current_price = data['Close'].iloc[-1]
         
-        # Check volatility (prefer moderate to high volatility)
+        # Check volatility (prefer moderate to high volatility) - Very permissive
         if 'ATR' in data.columns:
             atr = data['ATR'].iloc[-1]
             volatility = atr / current_price
-            if volatility < 0.015:  # At least 1.5% daily volatility
+            if volatility < 0.001:  # Very low threshold: 0.1% daily volatility
                 return False
         
         # Check trend (prefer neutral to slightly bullish)
@@ -177,8 +181,8 @@ class CashSecuredPutStrategy(BaseStrategy):
             sma_50 = data['SMA_50'].iloc[-1]
             trend_strength = (sma_20 - sma_50) / sma_50
             
-            # Avoid strongly bearish trends
-            if trend_strength < -0.08:
+            # Avoid strongly bearish trends - More permissive
+            if trend_strength < -0.15:  # Reduced from -0.08 to -0.15
                 return False
         
         # Check options liquidity
@@ -186,37 +190,53 @@ class CashSecuredPutStrategy(BaseStrategy):
             return False
         
         liquid_puts = [opt for opt in options_chain 
-                      if opt.option_type == 'put' and opt.volume > 10]
+                      if opt.option_type == 'put' and opt.volume > 1]  # Reduced from 10 to 1
         
         if len(liquid_puts) < 3:
             return False
         
         return True
     
-    async def generate_signal(self, symbol: str, data: pd.DataFrame, 
-                            options_data: Optional[Dict[str, Any]] = None) -> Optional[TradeSignal]:
+    async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate Cash Secured Put signal"""
         
         if len(data) < 20:
+            logger.info(f"🔍 CashSecuredPut DEBUG: Insufficient data for {symbol} ({len(data)} days)")
             return None
         
         current_price = data['Close'].iloc[-1]
         
-        # Get options chain
-        options_chain = self.options_service.get_liquid_options_with_historical_support(
-            symbol, min_volume=5, historical_date=options_data.get('historical_date') if options_data else None
-        )
+        # Get options chain - Use real options data directly
+        try:
+            logger.info(f"🔍 CashSecuredPut DEBUG: Fetching real options for {symbol}")
+            # Use the real options service with very permissive parameters
+            options_chain = self.options_service.get_liquid_options_with_historical_support(
+                symbol, min_volume=1, historical_date=None
+            )
+            logger.info(f"🔍 CashSecuredPut DEBUG: Got {len(options_chain) if options_chain else 0} options for {symbol}")
+        except Exception as e:
+            logger.info(f"🔍 CashSecuredPut DEBUG: Options service error for {symbol}: {e}")
+            options_chain = None
         if not options_chain:
+            logger.info(f"🔍 CashSecuredPut DEBUG: No options chain found for {symbol}")
             return None
+        
+        logger.info(f"🔍 CashSecuredPut DEBUG: Found {len(options_chain)} options for {symbol}")
         
         # Check market conditions
         if not self.check_market_conditions(data, options_chain):
+            logger.info(f"🔍 CashSecuredPut DEBUG: Market conditions not suitable for {symbol}")
             return None
+        
+        logger.info(f"🔍 CashSecuredPut DEBUG: Market conditions passed for {symbol}")
         
         # Select optimal strike
         strike = self.select_optimal_strike(symbol, current_price, options_chain)
         if not strike:
+            logger.info(f"🔍 CashSecuredPut DEBUG: No suitable strike found for {symbol}")
             return None
+        
+        logger.info(f"🔍 CashSecuredPut DEBUG: Selected strike {strike} for {symbol}")
         
         # Find the selected option
         selected_option = None
@@ -343,4 +363,9 @@ class CashSecuredPutStrategy(BaseStrategy):
             return 0.0
         
         winning_trades = sum(1 for pos in self.position_history if pos.get('pnl', 0) > 0)
-        return winning_trades / len(self.position_history) 
+        return winning_trades / len(self.position_history)
+    
+    def set_options_service(self, options_service):
+        """Set the options service from the backtest engine"""
+        self.options_service = options_service
+        logger.info(f"🔍 CashSecuredPut DEBUG: Options service set from backtest engine") 

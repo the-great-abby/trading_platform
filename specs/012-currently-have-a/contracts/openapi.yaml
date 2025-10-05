@@ -1,0 +1,727 @@
+openapi: 3.0.3
+info:
+  title: Backtest Validation Framework API
+  description: API for discovering, executing, and validating backtest scripts
+  version: 1.0.0
+  contact:
+    name: Trading System Team
+    email: trading-system@company.com
+
+servers:
+  - url: http://localhost:11080/api/validation
+    description: Development server
+  - url: https://trading-system.company.com/api/validation
+    description: Production server
+
+paths:
+  /scripts:
+    get:
+      summary: Discover and list backtest scripts
+      description: Automatically discover all backtest scripts in the codebase
+      operationId: discoverBacktestScripts
+      parameters:
+        - name: script_type
+          in: query
+          description: Filter by script type
+          schema:
+            type: string
+            enum: [INDIVIDUAL_STRATEGY, MULTI_STRATEGY, OPTIONS, COMPREHENSIVE]
+        - name: status
+          in: query
+          description: Filter by validation status
+          schema:
+            type: string
+            enum: [NEVER_RUN, PASSING, FAILING, ERROR]
+        - name: limit
+          in: query
+          description: Maximum number of scripts to return
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: offset
+          in: query
+          description: Number of scripts to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: List of discovered backtest scripts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scripts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BacktestScript'
+                  total_count:
+                    type: integer
+                  has_more:
+                    type: boolean
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scripts/{script_id}:
+    get:
+      summary: Get backtest script details
+      description: Retrieve detailed information about a specific backtest script
+      operationId: getBacktestScript
+      parameters:
+        - name: script_id
+          in: path
+          required: true
+          description: UUID of the backtest script
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Backtest script details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestScript'
+        '404':
+          description: Script not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scripts/{script_id}/validate:
+    post:
+      summary: Execute validation for a backtest script
+      description: Run validation tests for a specific backtest script
+      operationId: validateBacktestScript
+      parameters:
+        - name: script_id
+          in: path
+          required: true
+          description: UUID of the backtest script
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  description: Override default script parameters
+                configuration_id:
+                  type: string
+                  format: uuid
+                  description: Use specific validation configuration
+                timeout_seconds:
+                  type: integer
+                  description: Override default timeout
+                  minimum: 1
+                  maximum: 3600
+      responses:
+        '200':
+          description: Validation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestResult'
+        '202':
+          description: Validation started asynchronously
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [STARTED]
+                  estimated_completion:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Script not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scripts/validate/batch:
+    post:
+      summary: Execute batch validation for multiple scripts
+      description: Run validation tests for multiple backtest scripts in parallel
+      operationId: validateBatchBacktestScripts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - script_ids
+              properties:
+                script_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: List of script IDs to validate
+                  minItems: 1
+                  maxItems: 50
+                configuration_id:
+                  type: string
+                  format: uuid
+                  description: Use specific validation configuration
+                parallel_execution:
+                  type: boolean
+                  description: Enable parallel execution
+                  default: true
+                max_parallel_jobs:
+                  type: integer
+                  description: Maximum number of parallel jobs
+                  default: 4
+                  minimum: 1
+                  maximum: 10
+      responses:
+        '200':
+          description: Batch validation completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BacktestResult'
+                  summary:
+                    type: object
+                    properties:
+                      total_scripts:
+                        type: integer
+                      passed_scripts:
+                        type: integer
+                      failed_scripts:
+                        type: integer
+                      error_scripts:
+                        type: integer
+                      execution_time_seconds:
+                        type: number
+        '202':
+          description: Batch validation started asynchronously
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [STARTED]
+                  estimated_completion:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /results/{execution_id}:
+    get:
+      summary: Get validation result
+      description: Retrieve the result of a specific validation execution
+      operationId: getValidationResult
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          description: UUID of the validation execution
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BacktestResult'
+        '404':
+          description: Result not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports:
+    post:
+      summary: Generate validation report
+      description: Generate a comprehensive validation report for multiple scripts
+      operationId: generateValidationReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - report_name
+                - script_ids
+              properties:
+                report_name:
+                  type: string
+                  description: Name for the validation report
+                  minLength: 1
+                  maxLength: 100
+                script_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: List of script IDs to include in report
+                  minItems: 1
+                include_consistency_analysis:
+                  type: boolean
+                  description: Include consistency analysis across multiple runs
+                  default: true
+                include_performance_analysis:
+                  type: boolean
+                  description: Include performance trend analysis
+                  default: true
+                include_recommendations:
+                  type: boolean
+                  description: Include improvement recommendations
+                  default: true
+      responses:
+        '200':
+          description: Validation report generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationReport'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /configurations:
+    get:
+      summary: List validation configurations
+      description: Get all available validation configurations
+      operationId: listValidationConfigurations
+      responses:
+        '200':
+          description: List of validation configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configurations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestConfiguration'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /configurations/{config_id}:
+    get:
+      summary: Get validation configuration
+      description: Get details of a specific validation configuration
+      operationId: getValidationConfiguration
+      parameters:
+        - name: config_id
+          in: path
+          required: true
+          description: UUID of the validation configuration
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Validation configuration details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestConfiguration'
+        '404':
+          description: Configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    BacktestScript:
+      type: object
+      required:
+        - id
+        - name
+        - file_path
+        - function_name
+        - script_type
+        - validation_status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Script name/identifier
+        file_path:
+          type: string
+          description: Absolute path to script file
+        function_name:
+          type: string
+          description: Entry point function name
+        class_name:
+          type: string
+          description: Class name if applicable
+          nullable: true
+        script_type:
+          type: string
+          enum: [INDIVIDUAL_STRATEGY, MULTI_STRATEGY, OPTIONS, COMPREHENSIVE]
+        parameters:
+          type: object
+          description: Default parameters for execution
+        expected_outputs:
+          type: object
+          description: Expected result structure
+        timeout_seconds:
+          type: integer
+          description: Execution timeout in seconds
+        dependencies:
+          type: array
+          items:
+            type: string
+          description: Required modules/packages
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_validated_at:
+          type: string
+          format: date-time
+          nullable: true
+        validation_status:
+          type: string
+          enum: [NEVER_RUN, PASSING, FAILING, ERROR]
+
+    BacktestResult:
+      type: object
+      required:
+        - id
+        - script_id
+        - execution_id
+        - start_time
+        - end_time
+        - duration_seconds
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        script_id:
+          type: string
+          format: uuid
+        execution_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        status:
+          type: string
+          enum: [SUCCESS, FAILED, TIMEOUT, ERROR]
+        exit_code:
+          type: integer
+        stdout:
+          type: string
+        stderr:
+          type: string
+        performance_metrics:
+          type: object
+          properties:
+            total_return_pct:
+              type: number
+            sharpe_ratio:
+              type: number
+            max_drawdown_pct:
+              type: number
+            win_rate:
+              type: number
+            total_trades:
+              type: integer
+            initial_capital:
+              type: number
+            final_capital:
+              type: number
+        trade_data:
+          type: array
+          items:
+            type: object
+        validation_errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+              severity:
+                type: string
+                enum: [ERROR, WARNING, INFO]
+        resource_usage:
+          type: object
+          properties:
+            peak_memory_mb:
+              type: number
+            average_cpu_percent:
+              type: number
+        created_at:
+          type: string
+          format: date-time
+
+    ValidationReport:
+      type: object
+      required:
+        - id
+        - report_name
+        - generated_at
+        - total_scripts
+        - passed_scripts
+        - failed_scripts
+        - error_scripts
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        report_name:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        total_scripts:
+          type: integer
+        passed_scripts:
+          type: integer
+        failed_scripts:
+          type: integer
+        error_scripts:
+          type: integer
+        execution_summary:
+          type: object
+          properties:
+            total_execution_time_seconds:
+              type: number
+            average_execution_time_seconds:
+              type: number
+            parallel_execution_enabled:
+              type: boolean
+        consistency_results:
+          type: object
+        performance_analysis:
+          type: object
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              script_id:
+                type: string
+                format: uuid
+              recommendation:
+                type: string
+              priority:
+                type: string
+                enum: [HIGH, MEDIUM, LOW]
+        detailed_results:
+          type: array
+          items:
+            type: object
+        created_at:
+          type: string
+          format: date-time
+
+    TestConfiguration:
+      type: object
+      required:
+        - id
+        - name
+        - tolerances
+        - timeouts
+        - validation_rules
+        - execution_settings
+        - is_default
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        tolerances:
+          type: object
+          properties:
+            returns_tolerance_pct:
+              type: number
+            ratios_tolerance:
+              type: number
+            drawdown_tolerance_pct:
+              type: number
+            win_rate_tolerance_pct:
+              type: number
+        timeouts:
+          type: object
+          properties:
+            quick_test_seconds:
+              type: integer
+            standard_test_seconds:
+              type: integer
+            comprehensive_test_seconds:
+              type: integer
+            options_test_seconds:
+              type: integer
+        validation_rules:
+          type: object
+          properties:
+            require_exact_trade_counts:
+              type: boolean
+            allow_missing_metrics:
+              type: array
+              items:
+                type: string
+            required_metrics:
+              type: array
+              items:
+                type: string
+        execution_settings:
+          type: object
+          properties:
+            parallel_execution:
+              type: boolean
+            max_parallel_jobs:
+              type: integer
+            retry_failed_tests:
+              type: boolean
+            max_retries:
+              type: integer
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error type/code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          description: Unique request identifier for tracing
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
+

@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: validation-db-secret
+  namespace: trading-system
+  labels:
+    app: validation-service
+    component: database
+type: Opaque
+stringData:
+  host: "postgres.external-namespace.svc.cluster.local"
+  port: "5432"
+  database: "validation_framework"
+  username: "validation_user"
+  password: "validation_password_change_me"
+  ssl_mode: "require"
+  connection_pool_size: "10"
+  max_overflow: "20"
+  pool_timeout: "30"
+  pool_recycle: "3600"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: validation-database-config
+  namespace: trading-system
+  labels:
+    app: validation-service
+    component: database
+data:
+  # Database connection configuration
+  connection-config.json: |
+    {
+      "database": {
+        "host": "postgres.external-namespace.svc.cluster.local",
+        "port": 5432,
+        "database": "validation_framework",
+        "ssl_mode": "require",
+        "connection_pool": {
+          "size": 10,
+          "max_overflow": 20,
+          "timeout": 30,
+          "recycle": 3600
+        }
+      },
+      "retry": {
+        "max_attempts": 3,
+        "base_delay": 1.0,
+        "max_delay": 60.0,
+        "strategy": "exponential",
+        "jitter": true
+      },
+      "circuit_breaker": {
+        "failure_threshold": 5,
+        "recovery_timeout": 60.0,
+        "expected_exceptions": ["OperationalError", "DatabaseError"]
+      },
+      "health_check": {
+        "enabled": true,
+        "interval_seconds": 30,
+        "timeout_seconds": 5
+      }
+    }
+  
+  # Database schema configuration
+  schema-config.json: |
+    {
+      "tables": {
+        "backtest_scripts": {
+          "columns": {
+            "script_id": "VARCHAR(255) PRIMARY KEY",
+            "file_path": "VARCHAR(500) NOT NULL",
+            "script_name": "VARCHAR(255) NOT NULL",
+            "script_type": "VARCHAR(100)",
+            "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "updated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+          },
+          "indexes": [
+            "CREATE INDEX idx_scripts_file_path ON backtest_scripts(file_path)",
+            "CREATE INDEX idx_scripts_type ON backtest_scripts(script_type)",
+            "CREATE INDEX idx_scripts_created_at ON backtest_scripts(created_at)"
+          ]
+        },
+        "validation_results": {
+          "columns": {
+            "result_id": "VARCHAR(255) PRIMARY KEY",
+            "script_id": "VARCHAR(255) NOT NULL",
+            "execution_time": "TIMESTAMP NOT NULL",
+            "validation_status": "VARCHAR(50) NOT NULL",
+            "metrics": "JSONB",
+            "metadata": "JSONB",
+            "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+          },
+          "indexes": [
+            "CREATE INDEX idx_results_script_id ON validation_results(script_id)",
+            "CREATE INDEX idx_results_execution_time ON validation_results(execution_time)",
+            "CREATE INDEX idx_results_status ON validation_results(validation_status)"
+          ]
+        },
+        "validation_reports": {
+          "columns": {
+            "report_id": "VARCHAR(255) PRIMARY KEY",
+            "report_type": "VARCHAR(100) NOT NULL",
+            "script_ids": "JSONB",
+            "batch_id": "VARCHAR(255)",
+            "report_data": "JSONB NOT NULL",
+            "generated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+          },
+          "indexes": [
+            "CREATE INDEX idx_reports_type ON validation_reports(report_type)",
+            "CREATE INDEX idx_reports_batch_id ON validation_reports(batch_id)",
+            "CREATE INDEX idx_reports_generated_at ON validation_reports(generated_at)"
+          ]
+        }
+      },
+      "migrations": {
+        "enabled": true,
+        "auto_migrate": true,
+        "backup_before_migrate": true
+      }
+    }
+  
+  # Database monitoring configuration
+  monitoring-config.json: |
+    {
+      "metrics": {
+        "enabled": true,
+        "collection_interval": 30,
+        "retention_days": 30
+      },
+      "slow_query_log": {
+        "enabled": true,
+        "threshold_ms": 1000
+      },
+      "connection_monitoring": {
+        "enabled": true,
+        "alert_on_high_usage": true,
+        "usage_threshold_percent": 80
+      },
+      "health_checks": {
+        "database_connectivity": true,
+        "table_availability": true,
+        "index_health": true
+      }
+    }
+

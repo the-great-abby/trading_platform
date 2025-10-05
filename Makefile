@@ -10,6 +10,10 @@ include makefiles/Makefile.port-forward
 include makefiles/Makefile.backtest
 include makefiles/Makefile.build
 include makefiles/Makefile.test
+include makefiles/Makefile.live-trading
+include makefiles/Makefile.paper-trading
+include makefiles/Makefile.validation
+include makefiles/Makefile.secrets
 
 # Include semantic versioning system
 include Makefile.versioning

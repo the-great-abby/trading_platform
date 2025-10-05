@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: validation-configmap
+  namespace: trading-system
+  labels:
+    app: validation-service
+    component: validation
+data:
+  # Validation framework configuration
+  validation-config.json: |
+    {
+      "discovery": {
+        "default_directory": "/app/backtests",
+        "patterns": ["*_backtest*.py", "*_simulation*.py"],
+        "max_depth": 3,
+        "include_subdirectories": true
+      },
+      "execution": {
+        "default_timeout": 300,
+        "max_concurrent": 5,
+        "resource_limits": {
+          "memory_mb": 1024,
+          "cpu_percent": 80
+        }
+      },
+      "validation": {
+        "default_tolerance": {
+          "total_return_pct": 0.01,
+          "sharpe_ratio": 0.1,
+          "max_drawdown_pct": 0.05
+        },
+        "validation_strategies": ["exact", "tolerance", "range"]
+      },
+      "reporting": {
+        "default_format": "json",
+        "include_charts": false,
+        "include_metrics": true
+      },
+      "logging": {
+        "level": "INFO",
+        "format": "json",
+        "file_rotation": {
+          "max_bytes": 10485760,
+          "backup_count": 5
+        }
+      }
+    }
+  
+  # Database configuration
+  database-config.json: |
+    {
+      "connection": {
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_timeout": 30,
+        "pool_recycle": 3600
+      },
+      "retry": {
+        "max_attempts": 3,
+        "base_delay": 1.0,
+        "max_delay": 60.0,
+        "strategy": "exponential"
+      },
+      "circuit_breaker": {
+        "failure_threshold": 5,
+        "recovery_timeout": 60.0
+      }
+    }
+  
+  # Metrics configuration
+  metrics-config.json: |
+    {
+      "collection": {
+        "enabled": true,
+        "interval_seconds": 30,
+        "retention_hours": 24
+      },
+      "prometheus": {
+        "enabled": true,
+        "port": 8000,
+        "path": "/metrics"
+      },
+      "custom_metrics": {
+        "validation_duration": true,
+        "validation_success_rate": true,
+        "script_discovery_count": true,
+        "database_operation_count": true
+      }
+    }
+  
+  # Health check configuration
+  health-config.json: |
+    {
+      "checks": {
+        "database": {
+          "enabled": true,
+          "timeout_seconds": 5
+        },
+        "disk_space": {
+          "enabled": true,
+          "threshold_percent": 90
+        },
+        "memory": {
+          "enabled": true,
+          "threshold_percent": 85
+        }
+      },
+      "endpoints": {
+        "liveness": "/health",
+        "readiness": "/health/ready"
+      }
+    }
+  
+  # API configuration
+  api-config.json: |
+    {
+      "cors": {
+        "allow_origins": ["*"],
+        "allow_methods": ["GET", "POST", "PUT", "DELETE"],
+        "allow_headers": ["*"]
+      },
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 100,
+        "burst_size": 20
+      },
+      "pagination": {
+        "default_limit": 20,
+        "max_limit": 100
+      },
+      "timeouts": {
+        "request_timeout": 30,
+        "validation_timeout": 300
+      }
+    }
+

@@ -63,15 +63,15 @@ class StressTestResult:
     including scenario details, portfolio value changes, and impact analysis.
     """
     
+    # Portfolio reference - required field comes first
+    portfolio_id: UUID
+    
+    # Scenario information - required fields
+    scenario_name: str
+    scenario_type: ScenarioType
+    
     # Primary key
     stress_test_id: UUID = field(default_factory=uuid4)
-    
-    # Portfolio reference
-    portfolio_id: UUID = field()
-    
-    # Scenario information
-    scenario_name: str = field()
-    scenario_type: ScenarioType = field()
     test_timestamp: datetime = field(default_factory=datetime.utcnow)
     
     # Portfolio values
@@ -267,6 +267,14 @@ class StressTestResult:
                 f"scenario_type={self.scenario_type.value}, "
                 f"portfolio_value_change_pct={self.portfolio_value_change_pct:.3f}, "
                 f"status={self.status.value})")
+
+
+
+
+
+
+
+
 
 
 

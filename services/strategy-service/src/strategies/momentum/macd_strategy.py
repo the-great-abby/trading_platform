@@ -15,10 +15,10 @@ class MACDStrategy(BaseStrategy):
     """MACD Strategy implementation"""
     
     def __init__(self, 
-                 fast_period: int = 12,
-                 slow_period: int = 26,
-                 signal_period: int = 9,
-                 threshold: float = 0.001,
+                 fast_period: int = 5,  # Reduced from 12
+                 slow_period: int = 10,  # Reduced from 26
+                 signal_period: int = 3,  # Reduced from 9
+                 threshold: float = 0.0001,  # Reduced from 0.001
                  **kwargs):
         super().__init__(name="MACD", **kwargs)
         self.fast_period = fast_period
@@ -45,14 +45,11 @@ class MACDStrategy(BaseStrategy):
         prev_histogram = histogram.iloc[-2] if len(histogram) > 1 else 0
         current_price = data['Close'].iloc[-1]
         
-        # Generate signals
+        # Generate signals - Simplified and more aggressive
         signal = None
         
-        # Bullish signal: MACD crosses above signal line and histogram is increasing
-        if (current_macd > current_signal and 
-            current_histogram > prev_histogram and 
-            abs(current_histogram) > self.threshold):
-            
+        # Simple bullish signal: MACD above signal line
+        if current_macd > current_signal:
             signal = TradeSignal(
                 symbol=symbol,
                 action="BUY",
@@ -65,15 +62,12 @@ class MACDStrategy(BaseStrategy):
                     "macd": current_macd,
                     "signal": current_signal,
                     "histogram": current_histogram,
-                    "signal_type": "bullish_crossover"
+                    "signal_type": "bullish"
                 }
             )
             
-        # Bearish signal: MACD crosses below signal line and histogram is decreasing
-        elif (current_macd < current_signal and 
-              current_histogram < prev_histogram and 
-              abs(current_histogram) > self.threshold):
-            
+        # Simple bearish signal: MACD below signal line
+        elif current_macd < current_signal:
             signal = TradeSignal(
                 symbol=symbol,
                 action="SELL",
@@ -86,7 +80,7 @@ class MACDStrategy(BaseStrategy):
                     "macd": current_macd,
                     "signal": current_signal,
                     "histogram": current_histogram,
-                    "signal_type": "bearish_crossover"
+                    "signal_type": "bearish"
                 }
             )
         

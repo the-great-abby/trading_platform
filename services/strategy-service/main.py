@@ -48,6 +48,7 @@ class BacktestRequest(BaseModel):
     start_date: str
     end_date: str
     strategies: List[str]
+    initial_capital: float = 100000.0
 
 class BacktestResult(BaseModel):
     name: str
@@ -57,6 +58,8 @@ class BacktestResult(BaseModel):
     win_rate: float
     total_trades: int
     profit_factor: float
+    final_capital: float  # Add the missing final_capital field
+    trades: List[dict] = []  # Add trades field
 
 @app.get("/")
 async def root():
@@ -102,7 +105,9 @@ async def run_backtest(request: BacktestRequest):
         logger.info(f"   enable_options_strategies: {ENABLE_OPTIONS_STRATEGIES}")
         
         # Initialize backtest engine with containerized configuration
-        engine = BacktestEngine(use_real_data=use_real_data, use_cache=use_cache)
+        logger.info(f"🔧 DEBUG: Initial capital from request: {request.initial_capital}")
+        engine = BacktestEngine(use_real_data=use_real_data, use_cache=use_cache, initial_capital=request.initial_capital)
+        logger.info(f"🔧 DEBUG: Engine initial capital: {engine.initial_capital}")
         
         # Run backtest
         print(f"🚀 Starting backtest for {request.strategies} on {request.symbols}")
@@ -123,7 +128,9 @@ async def run_backtest(request: BacktestRequest):
                 max_drawdown=result.max_drawdown,
                 win_rate=result.win_rate,
                 total_trades=result.total_trades,
-                profit_factor=result.profit_factor
+                profit_factor=result.profit_factor,
+                final_capital=result.final_capital,  # Add the missing final_capital field
+                trades=[trade.__dict__ for trade in result.trades] if hasattr(result, 'trades') and result.trades else []
             ))
         
         return {

@@ -51,8 +51,8 @@ spec:
     spec:
       containers:
       - name: live-trading-service
-        image: live-trading-service:latest
-        imagePullPolicy: Never
+        image: localhost:32000/live-trading-service:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
           name: http
@@ -119,11 +119,11 @@ spec:
               key: REDIS_URL
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
+            memory: "256Mi"  # Increased from 128Mi to accommodate recovery functionality
+            cpu: "200m"      # Increased from 100m to accommodate recovery functionality
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "512Mi"  # Increased from 256Mi to accommodate recovery functionality
+            cpu: "500m"      # Increased from 200m to accommodate recovery functionality
         livenessProbe:
           httpGet:
             path: /health
