@@ -313,3 +313,246 @@ services-risk-management-start: ## Start Risk Management Framework
 	@echo "Waiting for services to be ready..."
 	sleep 10
 	kubectl get pods -n trading-system -l app=risk-management-service
+
+# Comprehensive Status Monitoring
+status-comprehensive: ## Comprehensive system status check including Elliott Wave
+	@echo "$(GREEN)🔍 COMPREHENSIVE TRADING SYSTEM STATUS$(NC)"
+	@echo "$(YELLOW)=====================================$(NC)"
+	@echo ""
+	@echo "$(BLUE)📊 SYSTEM OVERVIEW$(NC)"
+	@echo "Last Updated: $$(date '+%Y-%m-%d %H:%M:%S')"
+	@echo "Active Port Forwards: $$(ps aux | grep 'kubectl port-forward' | grep -v grep | wc -l)"
+	@echo ""
+	@echo "$(BLUE)🏗️  KUBERNETES SERVICES$(NC)"
+	@echo "Namespace: trading-system"
+	@echo "Total Pods: $$(kubectl get pods -n trading-system --no-headers | wc -l)"
+	@echo "Running Pods: $$(kubectl get pods -n trading-system --no-headers | grep Running | wc -l)"
+	@echo "Failed Pods: $$(kubectl get pods -n trading-system --no-headers | grep -E '(Failed|Error|CrashLoopBackOff)' | wc -l)"
+	@echo ""
+	@echo "$(BLUE)🌊 ELLIOTT WAVE SERVICE$(NC)"
+	@echo "Service Status:"
+	@kubectl get pods -n trading-system | grep -E "(elliott|wave)" || echo "  ❌ No Elliott Wave service found"
+	@echo ""
+	@echo "Port Forward Status:"
+	@ps aux | grep "kubectl port-forward.*11085" | grep -v grep || echo "  ❌ Elliott Wave service not port-forwarded"
+	@echo ""
+	@echo "Health Check:"
+	@curl -s --max-time 5 http://localhost:11085/elliott-wave/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "  ❌ Service unreachable"
+	@echo ""
+	@echo "Tracked Symbols:"
+	@curl -s --max-time 5 http://localhost:11085/elliott-wave/symbols 2>/dev/null | jq -r '.symbols[] // "UNREACHABLE"' || echo "  ❌ Cannot fetch symbols"
+	@echo ""
+	@echo "$(BLUE)📈 LIVE TRADING SERVICES$(NC)"
+	@echo "Live Trading Service (11120):"
+	@curl -s --max-time 5 http://localhost:11120/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "  ❌ Service unreachable"
+	@echo ""
+	@echo "Multi-Strategy Ensemble (11180):"
+	@curl -s --max-time 5 http://localhost:11180/api/v1/status 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "  ❌ Service unreachable"
+	@echo ""
+	@echo "Market Hours:"
+	@curl -s --max-time 5 http://localhost:11120/api/v1/status/market-hours 2>/dev/null | jq -r '.is_open // "UNREACHABLE"' || echo "  ❌ Cannot fetch market status"
+	@echo ""
+	@echo "$(BLUE)📊 DASHBOARDS$(NC)"
+	@echo "Unified Trading Dashboard (11115):"
+	@curl -s --max-time 5 http://localhost:11115/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "  ❌ Service unreachable"
+	@echo ""
+	@echo "Unified Trading Dashboard (11181):"
+	@curl -s --max-time 5 http://localhost:11181/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "  ❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)🔌 PORT FORWARD STATUS$(NC)"
+	@echo "Active Port Forwards:"
+	@ps aux | grep "kubectl port-forward" | grep -v grep | awk '{print "  " $$2 ": " $$NF}' || echo "  No active port forwards"
+	@echo ""
+	@echo "$(BLUE)📋 RECENT ACTIVITY$(NC)"
+	@echo "Strategy Service Logs (last 5 lines):"
+	@kubectl logs -n trading-system deployment/strategy-service --tail=5 2>/dev/null | grep -E "(ERROR|WARN|signal|trade)" || echo "  No recent activity logs"
+	@echo ""
+	@echo "$(BLUE)💡 QUICK COMMANDS$(NC)"
+	@echo "  make status-elliott-wave    - Detailed Elliott Wave status"
+	@echo "  make status-trading        - Detailed trading status"
+	@echo "  make status-dashboards    - Dashboard status"
+	@echo "  make status-port-forwards - Port forward status"
+	@echo "  make live-trading-monitor  - Run live trading monitor"
+	@echo ""
+
+status-elliott-wave: ## Detailed Elliott Wave service status
+	@echo "$(GREEN)🌊 ELLIOTT WAVE SERVICE STATUS$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo ""
+	@echo "$(BLUE)Service Information:$(NC)"
+	@curl -s --max-time 5 http://localhost:11085/ 2>/dev/null | jq '.' || echo "❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)Health Check:$(NC)"
+	@curl -s --max-time 5 http://localhost:11085/elliott-wave/health 2>/dev/null | jq '.' || echo "❌ Health check failed"
+	@echo ""
+	@echo "$(BLUE)Tracked Symbols:$(NC)"
+	@curl -s --max-time 5 http://localhost:11085/elliott-wave/symbols 2>/dev/null | jq '.' || echo "❌ Cannot fetch symbols"
+	@echo ""
+	@echo "$(BLUE)Recent Analysis (SPY):$(NC)"
+	@curl -s --max-time 5 http://localhost:11085/elliott-wave/analyze/SPY 2>/dev/null | jq '.' || echo "❌ Analysis failed"
+	@echo ""
+	@echo "$(BLUE)Options Analysis (SPY):$(NC)"
+	@curl -s --max-time 5 http://localhost:11085/elliott-wave/options-analysis/SPY 2>/dev/null | jq '.' || echo "❌ Options analysis failed"
+	@echo ""
+
+status-trading: ## Detailed trading system status
+	@echo "$(GREEN)📈 TRADING SYSTEM STATUS$(NC)"
+	@echo "$(YELLOW)=======================$(NC)"
+	@echo ""
+	@echo "$(BLUE)Live Trading Service:$(NC)"
+	@curl -s --max-time 5 http://localhost:11120/health 2>/dev/null | jq '.' || echo "❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)Multi-Strategy Ensemble:$(NC)"
+	@curl -s --max-time 5 http://localhost:11180/api/v1/status 2>/dev/null | jq '.' || echo "❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)Market Hours:$(NC)"
+	@curl -s --max-time 5 http://localhost:11120/api/v1/status/market-hours 2>/dev/null | jq '.' || echo "❌ Cannot fetch market status"
+	@echo ""
+	@echo "$(BLUE)Account Status:$(NC)"
+	@python3 live_trading_monitor.py single 2>/dev/null | grep -E "(Account Balance|Active Strategies|Recent Orders)" || echo "❌ Cannot fetch account status"
+	@echo ""
+
+status-dashboards: ## Dashboard status check
+	@echo "$(GREEN)📊 DASHBOARD STATUS$(NC)"
+	@echo "$(YELLOW)==================$(NC)"
+	@echo ""
+	@echo "$(BLUE)Unified Trading Dashboard (11115):$(NC)"
+	@curl -s --max-time 5 http://localhost:11115/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)Unified Trading Dashboard (11181):$(NC)"
+	@curl -s --max-time 5 http://localhost:11181/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)Strategy Testing Framework (11003):$(NC)"
+	@curl -s --max-time 5 http://localhost:11003/api/v1/testing/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "❌ Service unreachable"
+	@echo ""
+	@echo "$(BLUE)RSS Feed Service (11004):$(NC)"
+	@curl -s --max-time 5 http://localhost:11004/health 2>/dev/null | jq -r '.status // "UNREACHABLE"' || echo "❌ Service unreachable"
+	@echo ""
+
+status-port-forwards: ## Port forward status check
+	@echo "$(GREEN)🔌 PORT FORWARD STATUS$(NC)"
+	@echo "$(YELLOW)=====================$(NC)"
+	@echo ""
+	@echo "$(BLUE)Active Port Forwards:$(NC)"
+	@ps aux | grep "kubectl port-forward" | grep -v grep | awk '{print "  " $$2 ": " $$NF}' || echo "  No active port forwards"
+	@echo ""
+	@echo "$(BLUE)Port Forward Health Checks:$(NC)"
+	@echo "  Elliott Wave (11085): $$(curl -s --max-time 3 http://localhost:11085/elliott-wave/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "  Live Trading (11120): $$(curl -s --max-time 3 http://localhost:11120/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "  Multi-Strategy (11180): $$(curl -s --max-time 3 http://localhost:11180/api/v1/status >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "  Trading Dashboard (11115): $$(curl -s --max-time 3 http://localhost:11115/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "  Trading Dashboard (11181): $$(curl -s --max-time 3 http://localhost:11181/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "  Strategy Testing (11003): $$(curl -s --max-time 3 http://localhost:11003/api/v1/testing/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "  RSS Feed (11004): $$(curl -s --max-time 3 http://localhost:11004/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo ""
+
+status-quick: ## Quick status check (minimal output)
+	@echo "$(GREEN)⚡ QUICK STATUS$(NC)"
+	@echo "$(YELLOW)===============$(NC)"
+	@echo "Elliott Wave: $$(curl -s --max-time 3 http://localhost:11085/elliott-wave/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "Live Trading: $$(curl -s --max-time 3 http://localhost:11120/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "Multi-Strategy: $$(curl -s --max-time 3 http://localhost:11180/api/v1/status >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "Trading Dashboard: $$(curl -s --max-time 3 http://localhost:11115/health >/dev/null 2>&1 && echo '✅' || echo '❌')"
+	@echo "Port Forwards: $$(ps aux | grep 'kubectl port-forward' | grep -v grep | wc -l)"
+	@echo "Running Pods: $$(kubectl get pods -n trading-system --no-headers | grep Running | wc -l)"
+
+# Aliases for common typos and variations
+status-elliot-wave: status-elliott-wave ## Alias for status-elliott-wave (common typo)
+status-elliott: status-elliott-wave ## Alias for status-elliott-wave (shorthand)
+status-wave: status-elliott-wave ## Alias for status-elliott-wave (shorthand)
+status-ew: status-elliott-wave ## Alias for status-elliott-wave (shorthand)
+
+# Additional helpful aliases
+status-all: status-comprehensive ## Alias for status-comprehensive
+status-full: status-comprehensive ## Alias for status-comprehensive
+status-system: status-comprehensive ## Alias for status-comprehensive
+
+# =============================================================================
+# TRADE RECOMMENDATION TARGETS
+# =============================================================================
+
+# Get Top Trade Recommendations
+recommendations: ## Get top trade recommendations combining Elliott Wave + Strategy signals
+	@echo "$(GREEN)🎯 TOP TRADE RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)==========================$(NC)"
+	@echo ""
+	@echo "$(BLUE)📊 Analyzing symbols with Elliott Wave + Strategy signals...$(NC)"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations?limit=5" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations?limit=5" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Reasons: \(.reasons | join(", "))"' || echo ""
+
+# Get Recommendations for Specific Symbol
+recommendation: ## Get trade recommendation for specific symbol (use SYMBOL=symbol)
+	@echo "$(GREEN)🎯 TRADE RECOMMENDATION FOR $(SYMBOL)$(NC)"
+	@echo "$(YELLOW)==============================$(NC)"
+	@echo ""
+	@if [ -z "$(SYMBOL)" ]; then \
+		echo "$(RED)❌ Please specify SYMBOL=SYMBOL_NAME$(NC)"; \
+		echo "$(YELLOW)   Example: make recommendation SYMBOL=AAPL$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)📊 Analyzing $(SYMBOL) with Elliott Wave + Strategy signals...$(NC)"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '"🎯 " + .symbol + " - " + .action' || echo "❌ Could not fetch recommendation for $(SYMBOL)"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '"📊 Score: " + (.score | tostring) + " (Confidence: " + ((.confidence * 100 | floor) | tostring) + "%)"' || echo ""
+	@echo ""
+	@echo "$(BLUE)📋 Analysis Details:$(NC)"
+	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '.reasons[] | "   • " + .' || echo ""
+	@echo ""
+	@echo "$(BLUE)🌊 Elliott Wave Analysis:$(NC)"
+	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Pattern: " + (.elliott_wave.pattern_type // "None") else "   No Elliott Wave data available" end' || echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Signal: " + (.elliott_wave.signal // "None") else "" end' || echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Confidence: " + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%" else "" end' || echo ""
+
+# Get All Available Recommendations
+recommendations-all: ## Get all available trade recommendations (up to 10)
+	@echo "$(GREEN)🎯 ALL AVAILABLE TRADE RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)=====================================$(NC)"
+	@echo ""
+	@echo "$(BLUE)📊 Analyzing all symbols with Elliott Wave + Strategy signals...$(NC)"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations?limit=10" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations?limit=10" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Elliott Wave: " + (.elliott_wave.signal // "None") + " (" + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%)"' || echo ""
+	@echo ""
+
+# Quick Recommendation Check
+recommendations-quick: ## Quick trade recommendations (top 3 only)
+	@echo "$(GREEN)⚡ QUICK TRADE RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations?limit=3" | jq -r '.recommendations[] | "🎯 \(.symbol) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch quick recommendations"
+
+# Trade Recommendation Help
+recommendations-help: ## Show trade recommendation help
+	@echo "$(GREEN)🎯 TRADE RECOMMENDATION SYSTEM$(NC)"
+	@echo "$(YELLOW)=============================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Available Commands:$(NC)"
+	@echo "  recommendations        - Get top 5 trade recommendations"
+	@echo "  recommendations-all   - Get all available recommendations (up to 10)"
+	@echo "  recommendations-quick - Get quick top 3 recommendations"
+	@echo "  recommendation        - Get recommendation for specific symbol"
+	@echo "  recommendations-help  - Show this help"
+	@echo ""
+	@echo "$(GREEN)Examples:$(NC)"
+	@echo "  make recommendations"
+	@echo "  make recommendations-all"
+	@echo "  make recommendations-quick"
+	@echo "  make recommendation SYMBOL=AAPL"
+	@echo "  make recommendation SYMBOL=TSLA"
+	@echo ""
+	@echo "$(GREEN)How It Works:$(NC)"
+	@echo "  • Combines Elliott Wave analysis with strategy signals"
+	@echo "  • Analyzes market conditions and risk factors"
+	@echo "  • Provides confidence scores and detailed reasoning"
+	@echo "  • Ranks recommendations by overall score"
+	@echo ""
+	@echo "$(GREEN)Recommendation Levels:$(NC)"
+	@echo "  🟢 STRONG BUY  - Score > 60"
+	@echo "  🟡 BUY         - Score 40-60"
+	@echo "  🟠 HOLD        - Score 20-40"
+	@echo "  🔴 WEAK SELL   - Score 0-20"
+	@echo "  🔴 SELL        - Score < 0"

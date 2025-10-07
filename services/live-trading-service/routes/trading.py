@@ -14,6 +14,7 @@ from decimal import Decimal
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from src.services.live_trading.database import get_db_session
 from src.services.live_trading.public_api_client import PublicAPIClient
@@ -102,6 +103,88 @@ async def submit_order(
         Order submission result
     """
     try:
+        # Check if we're in paper trading mode
+        import os
+        if os.getenv("TRADING_MODE") == "paper" or os.getenv("ENVIRONMENT") == "paper":
+            # For paper trading, create actual database records
+            try:
+                # Create a paper trading order record
+                order_id = f"paper_order_{int(datetime.utcnow().timestamp())}"
+                total_quantity = sum(leg.quantity for leg in order_request.legs)
+                
+                # Insert order into database
+                await db.execute(text("""
+                    INSERT INTO paper_trading_orders (
+                        order_id, account_id, symbol, strategy, order_type,
+                        total_quantity, estimated_premium, estimated_risk,
+                        status, created_at, filled_at, filled_quantity,
+                        average_price, remaining_quantity, greeks_data
+                    ) VALUES (
+                        :order_id, :account_id, :symbol, :strategy, :order_type,
+                        :total_quantity, :estimated_premium, :estimated_risk,
+                        :status, :created_at, :filled_at, :filled_quantity,
+                        :average_price, :remaining_quantity, :greeks_data
+                    )
+                """), {
+                    "order_id": order_id,
+                    "account_id": account_id,
+                    "symbol": order_request.symbol,
+                    "strategy": order_request.strategy,
+                    "order_type": order_request.order_type,
+                    "total_quantity": total_quantity,
+                    "estimated_premium": order_request.estimated_premium,
+                    "estimated_risk": order_request.estimated_risk,
+                    "status": "FILLED",
+                    "created_at": datetime.utcnow(),
+                    "filled_at": datetime.utcnow(),
+                    "filled_quantity": total_quantity,
+                    "average_price": order_request.estimated_premium,
+                    "remaining_quantity": 0,
+                    "greeks_data": json.dumps(order_request.greeks or {})
+                })
+                
+                # Insert trade legs
+                for i, leg in enumerate(order_request.legs):
+                    await db.execute(text("""
+                        INSERT INTO paper_trading_order_legs (
+                            order_id, leg_number, action, option_type, strike_price,
+                            expiration_date, quantity, premium
+                        ) VALUES (
+                            :order_id, :leg_number, :action, :option_type, :strike_price,
+                            :expiration_date, :quantity, :premium
+                        )
+                    """), {
+                        "order_id": order_id,
+                        "leg_number": i + 1,
+                        "action": leg.action,
+                        "option_type": leg.option_type,
+                        "strike_price": leg.strike_price,
+                        "expiration_date": leg.expiration_date.isoformat() if leg.expiration_date and hasattr(leg.expiration_date, 'isoformat') else leg.expiration_date,
+                        "quantity": leg.quantity,
+                        "premium": leg.premium
+                    })
+                
+                await db.commit()
+                
+                return OrderResponse(
+                    success=True,
+                    order_id=order_id,
+                    status="FILLED",
+                    filled_quantity=total_quantity,
+                    remaining_quantity=0,
+                    average_price=order_request.estimated_premium,
+                    warnings=[]
+                )
+                
+            except Exception as e:
+                logger.error(f"Error creating paper trading order: {e}")
+                await db.rollback()
+                return OrderResponse(
+                    success=False,
+                    error="Failed to create paper trading order",
+                    details=[str(e)]
+                )
+        
         # Check market hours
         market_hours_service = MarketHoursService()
         market_status = await market_hours_service.get_market_status()
@@ -360,7 +443,58 @@ async def get_account_orders(
         Orders list
     """
     try:
-        # Create services
+        # Check if we're in paper trading mode
+        import os
+        if os.getenv("TRADING_MODE") == "paper" or os.getenv("ENVIRONMENT") == "paper":
+            # Return paper trading orders
+            query = """
+                SELECT 
+                    order_id, symbol, strategy, order_type, total_quantity,
+                    estimated_premium, estimated_risk, status, created_at,
+                    filled_at, filled_quantity, average_price, remaining_quantity,
+                    greeks_data
+                FROM paper_trading_orders 
+                WHERE account_id = :account_id
+            """
+            params = {"account_id": account_id}
+            
+            if status_filter:
+                query += " AND status = :status_filter"
+                params["status_filter"] = status_filter
+            
+            query += " ORDER BY created_at DESC LIMIT :limit"
+            params["limit"] = limit
+            
+            result = await db.execute(text(query), params)
+            orders = result.fetchall()
+            
+            orders_list = []
+            for order in orders:
+                orders_list.append({
+                    "order_id": order[0],
+                    "symbol": order[1],
+                    "strategy": order[2],
+                    "order_type": order[3],
+                    "quantity": order[4],
+                    "premium": order[5],
+                    "risk": order[6],
+                    "status": order[7],
+                    "created_at": order[8].isoformat() if order[8] else None,
+                    "filled_at": order[9].isoformat() if order[9] else None,
+                    "filled_quantity": order[10],
+                    "average_price": order[11],
+                    "remaining_quantity": order[12],
+                    "greeks": json.loads(order[13]) if order[13] else {}
+                })
+            
+            return OrdersListResponse(
+                success=True,
+                orders=orders_list,
+                total_count=len(orders_list),
+                error=None
+            )
+        
+        # Create services for live trading
         risk_service = RiskService(db)
         position_service = PositionService(db)
         trading_service = TradingService(db, None, risk_service, position_service)

@@ -36,22 +36,13 @@ port-help: ## Show port forwarding help
 	@echo ""
 
 # Basic Operations
-port-start: ## Start all port forwards
-	@echo "$(GREEN)🔌 Starting All Port Forwards...$(NC)"
-	@echo "Starting registry port forward..."
-	kubectl port-forward -n default service/registry 32000:5000 &
-	@echo "Starting unified analytics dashboard..."
-	kubectl port-forward -n trading-system service/unified-analytics-dashboard 11114:8000 &
-	@echo "Starting unified trading dashboard..."
-	kubectl port-forward -n trading-system service/unified-trading-dashboard 11115:8000 &
-	@echo "Starting market data service..."
-	kubectl port-forward -n trading-system service/market-data-service 11113:8000 &
-	@echo "Starting AI analysis service..."
-	kubectl port-forward -n trading-system service/ai-analysis-service 11084:8000 &
-	@echo "Starting analytics service..."
-	kubectl port-forward -n trading-system service/analytics-service 11081:8000 &
-	@echo "✅ All port forwards started!"
-	@echo "📋 Run 'make port-status' to check status"
+port-start: ## Start all port forwards using startup script
+	@echo "$(GREEN)🏴‍☠️ Starting All Port Forwards...$(NC)"
+	@./scripts/start-all-services.sh
+
+port-restart-quick: ## Quick restart all port forwards (no questions)
+	@echo "$(GREEN)🔄 Quick Restarting All Port Forwards...$(NC)"
+	@./scripts/restart-all-ports.sh
 
 port-stop: ## Stop all port forwards
 	@echo "$(RED)🛑 Stopping All Port Forwards...$(NC)"

@@ -1,0 +1,198 @@
+asset_allocation:
+  cash_reserve_pct: 0.05
+  day_trading_time_window_minutes: 15
+  enabled: true
+  max_options_day_position_pct: 0.2
+  max_options_swing_position_pct: 0.2
+  max_stock_position_pct: 0.2
+  options_allocation_pct: 0.75
+  options_day_trading_pct: 0.333
+  options_swing_trading_pct: 0.667
+  stock_allocation_pct: 0.2
+  swing_trading_time_window_days: 1
+backtesting:
+  enabled: true
+  min_backtest_period_days: 30
+  min_success_rate: 0.6
+  service_url: http://backtest-api.trading-system.svc.cluster.local:10001
+  test_strategies_before_live: true
+cost_controls:
+  enabled: true
+  trading_costs:
+    commission_per_contract: 0.0
+    commission_per_trade: 0.0
+    max_contracts_per_trade: 5
+    options_rebate_per_contract: 0.06
+    slippage: 0.0003
+    spread_cost: 0.001
+data_sources:
+  backup: mock
+  historical_days: 365
+  primary: polygon
+execution:
+  data_point_buffer_size: 1000
+  day_trading_execution:
+    enabled: true
+    interval_minutes: 5
+    max_trades_per_session: 50  # Increased to match backtest frequency
+    quick_exit_enabled: true
+  disable_engine_stop_loss: true
+  disable_engine_take_profit: true
+  extended_hours: false
+  market_hours_only: true
+  max_data_points_per_day: 390
+  parallel_processing: true
+  process_every_data_point: true
+  real_time_data: true
+  swing_trading_execution:
+    enabled: true
+    interval_minutes: 60
+    max_trades_per_day: 50  # Increased to match backtest frequency
+    patient_exit_enabled: true
+  trading_interval: 5
+market_regime_detection:
+  enabled: true
+  position_multipliers:
+    high_fear: 0.5
+    low_fear: 1.7
+    normal_fear: 1.0
+  vix_thresholds:
+    high_fear: 30.0
+    low_fear: 15.0
+monitoring:
+  alerts:
+    cost_alerts: true
+    drawdown_alerts: true
+    performance_alerts: true
+    quality_alerts: true
+  enabled: true
+  performance_targets:
+    annual_return_target: 3.0
+    max_drawdown_limit: 0.1
+    sharpe_ratio_target: 2.0
+    win_rate_target: 0.8
+options_strategies:
+  base_premium_multiplier: 0.05
+  enabled: true
+  strategy_costs:
+    butterfly_spread: 200
+    calendar_spread: 150
+    iron_condor: 100
+    straddle: 500
+    strangle: 400
+  volatility_multiplier: 0.5
+portfolio:
+  cash_reserve_pct: 0.05
+  initial_capital: 4000.0
+  max_daily_loss: 300.0
+  max_daily_trades: 30
+  max_monthly_trades: 200
+  max_position_size_pct: 0.2
+  max_single_symbol: 0.2
+  max_total_exposure: 0.95
+  min_cash_reserve: 0.05
+strategies:
+  MultiStrategyEnsemble:
+    adaptive_wave:
+      correlation_limit: 0.8
+      day_trading_enabled: true
+      elliott_wave_min_confidence: 0.03
+      enable_ichimoku: true
+      ichimoku_min_confidence: 0.03
+      max_daily_loss_pct: 0.03
+      max_position_size_pct: 0.15
+      swing_trading_enabled: true
+      volatility_adjustment: true
+    asset_allocation:
+      cash_reserve_pct: 0.05
+      options_allocation_pct: 0.75
+      stock_allocation_pct: 0.2
+    correlation_threshold: 0.7
+    enabled: true
+    enhanced_multi:
+      entry_confidence_threshold: 0.5
+      max_concurrent_positions: 3
+      max_loss_stop: 0.03
+      max_position_duration_days: 30
+      min_profit_target: 0.05
+      momentum_exit_threshold: 0.02
+      position_size_pct: 0.05
+      volatility_exit_threshold: 0.03
+    max_total_exposure: 0.95
+    momentum:
+      bottom_percentile: 0.2
+      lookback_period: 60
+      max_position_size: 0.1
+      momentum_periods:
+      - 20
+      - 60
+      - 120
+      rebalance_frequency: 20
+      top_percentile: 0.2
+      volatility_adjustment: true
+    name: MultiStrategyEnsemble
+    performance_window: 50
+    rebalance_frequency: 10
+    regime_switching:
+      lookback_period: 100
+      min_regime_duration: 20
+      regime_confidence_threshold: 0.7
+    strategy_weights:
+      adaptive_wave: 0.35
+      enhanced_multi: 0.25
+      momentum: 0.15
+      regime_switching: 0.25
+strategy:
+  confidence_threshold: 0.45
+  max_concurrent_positions: 5
+symbols:
+  primary:
+  - SPY
+  - AAPL
+  - NVDA
+  secondary:
+  - QQQ
+  - TSLA
+  - META
+  - GOOG
+trading:
+  interval_seconds: 300
+  max_daily_trades: 50
+  max_monthly_trades: 800
+  max_trades_per_day: 3
+  max_trades_per_month: 60
+  max_trades_per_week: 15
+  max_weekly_trades: 200
+trading_frequency:
+  day_trading:
+    allocation_pct: 0.25
+    enabled: true
+    interval_minutes: 5
+    max_daily_trades: 20
+    max_position_duration_hours: 6
+    strategies:
+    - AdaptiveSectorWaveStrategy
+    symbols:
+    - SPY
+    - QQQ
+    - NVDA
+    - AAPL
+  swing_trading:
+    allocation_pct: 0.5
+    enabled: true
+    interval_minutes: 60
+    max_daily_trades: 8
+    max_position_duration_days: 7
+    strategies:
+    - MultiStrategyEnsemble
+    symbols:
+    - SPY
+    - AAPL
+    - NVDA
+    - TSLA
+    - META
+trading_limits:
+  max_daily_trades: 8
+  max_monthly_trades: 60
+  max_weekly_trades: 20
+  trading_frequency_penalty: false

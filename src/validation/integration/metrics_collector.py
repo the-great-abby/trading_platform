@@ -351,3 +351,13 @@ def record_batch_metric(script_count: int, successful: int, failed: int) -> None
     collector = get_metrics_collector()
     collector.record_batch_metric(script_count, successful, failed)
 
+
+
+
+
+
+
+
+
+
+

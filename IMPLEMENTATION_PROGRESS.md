@@ -174,3 +174,13 @@ pytest tests/ -m validation --validation-config=config.json
 
 The framework successfully addresses the original requirement of ensuring backtest script trustworthiness while providing a robust, scalable foundation for future enhancements.
 
+
+
+
+
+
+
+
+
+
+

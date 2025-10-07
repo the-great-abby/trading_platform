@@ -58,7 +58,7 @@ class EnhancedOptionsMultiStrategy(BaseStrategy):
                  enable_options_wheel: bool = True,  # Enable options wheel for income generation
                  
                  # Asset allocation
-                 stock_allocation_pct: float = 0.30,  # 30% stocks
+                 stock_allocation_pct: float = 0.20,  # 30% stocks
                  options_allocation_pct: float = 0.50,  # 50% options
                  cash_reserve_pct: float = 0.20,  # 20% cash reserve
                  
@@ -283,13 +283,13 @@ class EnhancedOptionsMultiStrategy(BaseStrategy):
         # Determine asset class based on strategy and market conditions
         asset_class = self._determine_asset_class(signal, data)
         
-        # Calculate available capital for this asset class
+        # Calculate available capital for this asset class (5% cash reserve)
         if asset_class == 'STOCK':
-            available_capital = 4000 * self.stock_allocation_pct  # 30% of $4,000 = $1,200
+            available_capital = 4000 * 0.95 * 0.20  # 20% of available $3,800 = $760
         elif asset_class == 'OPTIONS':
-            available_capital = 4000 * self.options_allocation_pct  # 50% of $4,000 = $2,000
+            available_capital = 4000 * 0.95 * 0.75  # 75% of available $3,800 = $2,850
         else:
-            available_capital = 4000 * self.stock_allocation_pct  # Default to stocks
+            available_capital = 4000 * 0.95 * 0.20  # Default to stocks
         
         # Calculate position size based on confidence
         base_position_pct = self.min_position_size_pct + (confidence - 0.5) * (self.max_position_size_pct - self.min_position_size_pct)

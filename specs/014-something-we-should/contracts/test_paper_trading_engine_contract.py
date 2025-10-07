@@ -166,3 +166,13 @@ class TestStrategyIntegrationContract:
         except jsonschema.exceptions.ValidationError:
             pytest.fail("Valid strategy integration should pass validation")
 
+
+
+
+
+
+
+
+
+
+

@@ -59,13 +59,17 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Get database URL from environment variable
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is required")
+    
     # Convert asyncpg URL to psycopg2 URL for Alembic
-    url = config.get_main_option("sqlalchemy.url")
-    if url and "asyncpg" in url:
-        url = url.replace("+asyncpg", "")
+    if "asyncpg" in database_url:
+        database_url = database_url.replace("+asyncpg", "")
     
     connectable = engine_from_config(
-        {"sqlalchemy.url": url},
+        {"sqlalchemy.url": database_url},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

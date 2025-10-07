@@ -1,7 +1,7 @@
 # Paper Trading Operations Makefile
 # User-friendly targets for managing paper trading system
 
-.PHONY: paper-trading-help paper-trading-status paper-trading-monitor paper-trading-start paper-trading-stop paper-trading-restart paper-trading-logs paper-trading-health paper-trading-setup paper-trading-config paper-trading-reset paper-trading-debug paper-trading-performance paper-trading-strategies paper-trading-portfolio paper-trading-trades paper-trading-dashboard hybrid-ichimoku-status hybrid-ichimoku-monitor hybrid-ichimoku-deploy hybrid-ichimoku-performance
+.PHONY: paper-trading-help paper-trading-status paper-trading-monitor paper-trading-start paper-trading-stop paper-trading-restart paper-trading-logs paper-trading-health paper-trading-setup paper-trading-config paper-trading-reset paper-trading-debug paper-trading-performance paper-trading-strategies paper-trading-portfolio paper-trading-trades paper-trading-dashboard paper-trading-service-status paper-trading-service-health paper-trading-service-logs paper-trading-service-restart paper-trading-monitor-api paper-trading-orders paper-trading-positions paper-trading-account hybrid-ichimoku-status hybrid-ichimoku-monitor hybrid-ichimoku-deploy hybrid-ichimoku-performance
 
 # Paper Trading Help
 paper-trading-sync-enhanced:
@@ -20,44 +20,52 @@ paper-trading-sync-enhanced:
 	@echo "📊 This configuration achieved +8,522% returns in the backtest!"
 
 paper-trading-help:
-	@echo "📊 LIVE DATA OPTIONS PAPER TRADING OPERATIONS"
-	@echo "=============================================="
+	@echo "📊 PAPER TRADING OPERATIONS"
+	@echo "==========================="
 	@echo ""
-	@echo "🚀 NEW: Uses REAL market data when available!"
-	@echo "🔄 Falls back to realistic simulated data if live data unavailable"
+	@echo "🚀 NEW: Database-backed paper trading with persistent orders!"
+	@echo "🔄 Real-time monitoring with API integration"
 	@echo ""
-	@echo "📊 Status & Health:"
-	@echo "  make paper-trading-status     - Check live data options paper trading status"
-	@echo "  make paper-trading-health     - Quick health check"
-	@echo "  make paper-trading-logs       - View paper trading service logs"
+	@echo "📊 Service Status & Health:"
+	@echo "  make paper-trading-service-status  - Check paper trading service status"
+	@echo "  make paper-trading-service-health  - Quick service health check"
+	@echo "  make paper-trading-service-logs    - View paper trading service logs"
+	@echo "  make paper-trading-service-restart - Restart paper trading service"
 	@echo ""
-	@echo "🔄 Service Management:"
-	@echo "  make paper-trading-start      - Start live data options paper trading service"
-	@echo "  make paper-trading-stop       - Stop live data options paper trading service"
-	@echo "  make paper-trading-restart    - Restart live data options paper trading service"
+	@echo "📈 Database & API Monitoring:"
+	@echo "  make paper-trading-monitor-api     - Start API-based monitor (NEW!)"
+	@echo "  make paper-trading-orders          - View orders from database"
+	@echo "  make paper-trading-positions       - View positions from database"
+	@echo "  make paper-trading-account         - View account information"
+	@echo ""
+	@echo "🔄 Legacy System (for compatibility):"
+	@echo "  make paper-trading-status          - Check legacy paper trading status"
+	@echo "  make paper-trading-health         - Legacy health check"
+	@echo "  make paper-trading-monitor        - Legacy monitor"
+	@echo "  make paper-trading-start          - Start legacy paper trading"
+	@echo "  make paper-trading-stop           - Stop legacy paper trading"
 	@echo ""
 	@echo "⚙️  Configuration:"
-	@echo "  make paper-trading-sync-enhanced - Sync enhanced live trading config to paper trading"
+	@echo "  make paper-trading-sync-enhanced  - Sync enhanced live trading config"
 	@echo ""
-	@echo "📈 Monitoring & Analysis:"
-	@echo "  make paper-trading-monitor    - Start options trading monitoring"
-	@echo "  make paper-trading-performance - View performance metrics"
-	@echo "  make paper-trading-strategies - Check active options strategies"
-	@echo "  make paper-trading-portfolio  - View portfolio status"
-	@echo "  make paper-trading-trades     - View recent options trades"
+	@echo "📈 Legacy Monitoring & Analysis:"
+	@echo "  make paper-trading-performance    - View performance metrics"
+	@echo "  make paper-trading-strategies     - Check active strategies"
+	@echo "  make paper-trading-portfolio      - View portfolio status"
+	@echo "  make paper-trading-trades         - View recent trades"
 	@echo ""
-	@echo "🔧 Configuration:"
-	@echo "  make paper-trading-setup      - Setup paper trading system"
-	@echo "  make paper-trading-config     - View current configuration"
-	@echo "  make paper-trading-verify-balance - Verify balance settings match live trading"
-	@echo "  make paper-trading-copy-live-settings - Copy live trading settings to paper trading"
-	@echo "  make paper-trading-reset      - Reset paper trading system"
+	@echo "🔧 Legacy Configuration:"
+	@echo "  make paper-trading-setup          - Setup paper trading system"
+	@echo "  make paper-trading-config         - View current configuration"
+	@echo "  make paper-trading-verify-balance - Verify balance settings"
+	@echo "  make paper-trading-copy-live-settings - Copy live trading settings"
+	@echo "  make paper-trading-reset          - Reset paper trading system"
 	@echo ""
 	@echo "🌐 Dashboard Access:"
-	@echo "  make paper-trading-dashboard  - Open paper trading dashboard"
+	@echo "  make paper-trading-dashboard      - Open paper trading dashboard"
 	@echo ""
 	@echo "🔍 Troubleshooting:"
-	@echo "  make paper-trading-debug      - Debug paper trading issues"
+	@echo "  make paper-trading-debug          - Debug paper trading issues"
 
 # Paper Trading Status
 paper-trading-status:
@@ -286,6 +294,94 @@ paper-trading-dashboard:
 	else \
 		echo "Please open http://localhost:11115/paper-trading in your browser"; \
 	fi
+
+# =============================================================================
+# NEW DATABASE-BACKED PAPER TRADING SERVICE TARGETS
+# =============================================================================
+
+# Paper Trading Service Status
+paper-trading-service-status:
+	@echo "🔍 Checking Paper Trading Service Status..."
+	@echo ""
+	@echo "📊 Service Health:"
+	@curl -s http://localhost:11190/health 2>/dev/null | jq -r '.status // "❌ Service Unavailable"' || echo "❌ Service Unavailable"
+	@echo ""
+	@echo "📊 Database Connection:"
+	@curl -s http://localhost:11190/health 2>/dev/null | jq -r '.checks.database // "❌ Database Unavailable"' || echo "❌ Database Unavailable"
+	@echo ""
+	@echo "📊 Redis Connection:"
+	@curl -s http://localhost:11190/health 2>/dev/null | jq -r '.checks.redis // "❌ Redis Unavailable"' || echo "❌ Redis Unavailable"
+	@echo ""
+	@echo "📊 Service Version:"
+	@curl -s http://localhost:11190/health 2>/dev/null | jq -r '.version // "Unknown"' || echo "Unknown"
+
+# Paper Trading Service Health Check
+paper-trading-service-health:
+	@echo "🏥 Paper Trading Service Health Check..."
+	@if curl -s http://localhost:11190/health >/dev/null 2>&1; then \
+		echo "✅ Service: Healthy"; \
+	else \
+		echo "❌ Service: Unhealthy"; \
+		exit 1; \
+	fi
+	@if curl -s http://localhost:11190/health | jq -e '.checks.database == "healthy"' >/dev/null 2>&1; then \
+		echo "✅ Database: Connected"; \
+	else \
+		echo "❌ Database: Disconnected"; \
+		exit 1; \
+	fi
+	@if curl -s http://localhost:11190/health | jq -e '.checks.redis == "healthy"' >/dev/null 2>&1; then \
+		echo "✅ Redis: Connected"; \
+	else \
+		echo "❌ Redis: Disconnected"; \
+		exit 1; \
+	fi
+
+# Paper Trading Service Logs
+paper-trading-service-logs:
+	@echo "📋 Paper Trading Service Logs (last 20 lines):"
+	@kubectl logs -n trading-system deployment/paper-trading-k8s --tail=20
+
+# Paper Trading Service Restart
+paper-trading-service-restart:
+	@echo "🔄 Restarting Paper Trading Service..."
+	@kubectl rollout restart deployment paper-trading-k8s -n trading-system
+	@echo "⏳ Waiting for service to restart..."
+	@sleep 15
+	@kubectl get pods -n trading-system | grep paper
+	@echo "✅ Paper Trading Service restarted"
+
+# Paper Trading Monitor (API-based)
+paper-trading-monitor-api:
+	@echo "📊 Starting API-based Paper Trading Monitor..."
+	@echo "🔗 This monitor fetches data from the database via API"
+	@echo "📊 Shows persistent orders and real-time performance"
+	@echo ""
+	@python3 scripts/paper_trading_monitor_api.py
+
+# Paper Trading Orders
+paper-trading-orders:
+	@echo "📈 Paper Trading Orders from Database..."
+	@echo ""
+	@echo "📊 Total Orders:"
+	@curl -s "http://localhost:11190/api/v1/trading/orders?account_id=19c25392-8b61-4b71-a344-0eb04d275528" | jq -r '.total_count // "0"' || echo "0"
+	@echo ""
+	@echo "📈 Recent Orders:"
+	@curl -s "http://localhost:11190/api/v1/trading/orders?account_id=19c25392-8b61-4b71-a344-0eb04d275528" | jq -r '.orders[]? | "\(.created_at): \(.symbol) \(.strategy) - \(.status) - P&L: $\(.premium)"' || echo "No orders found"
+
+# Paper Trading Positions
+paper-trading-positions:
+	@echo "💼 Paper Trading Positions from Database..."
+	@echo ""
+	@echo "📊 Active Positions:"
+	@curl -s "http://localhost:11190/api/v1/trading/positions?account_id=19c25392-8b61-4b71-a344-0eb04d275528" | jq -r '.positions[]? | "\(.symbol): \(.quantity) @ $\(.average_price) - P&L: $\(.unrealized_pnl // 0)"' || echo "No positions found"
+
+# Paper Trading Account
+paper-trading-account:
+	@echo "💰 Paper Trading Account Information..."
+	@echo ""
+	@echo "📊 Account Details:"
+	@curl -s "http://localhost:11190/api/v1/accounts/19c25392-8b61-4b71-a344-0eb04d275528" | jq -r 'if .account then "Account ID: \(.account.account_id)\nBalance: $\(.account.balance // 0)\nBuying Power: $\(.account.buying_power // 0)" else "❌ Account not found" end' || echo "❌ Cannot retrieve account info"
 
 # =============================================================================
 # HYBRID ICHIMOKU STRATEGY TARGETS

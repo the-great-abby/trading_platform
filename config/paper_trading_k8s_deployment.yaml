@@ -1,0 +1,181 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paper-trading-k8s
+  namespace: trading-system
+  labels:
+    app: paper-trading-k8s
+    strategy: MultiStrategyEnsemble
+    environment: paper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paper-trading-k8s
+  template:
+    metadata:
+      labels:
+        app: paper-trading-k8s
+        strategy: MultiStrategyEnsemble
+        environment: paper
+    spec:
+      containers:
+      - name: paper-trading-k8s
+        image: localhost:32000/live-trading-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ENVIRONMENT
+          value: "paper"
+        - name: TRADING_MODE
+          value: "paper"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: polygon-api-key
+              key: api-key
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+        - name: REDIS_URL
+          value: "redis://redis.trading-system.svc.cluster.local:6379"
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DISABLE_AI_SERVICES
+          value: "true"
+        - name: DISABLE_OLLAMA
+          value: "true"
+        - name: DISABLE_TRADE_EVALUATOR
+          value: "true"
+        - name: DISABLE_PUBLIC_API
+          value: "true"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: config-volume
+        configMap:
+          name: multi-strategy-ensemble-paper-config
+      - name: logs-volume
+        emptyDir: {}
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-strategy-ensemble-paper-config
+  namespace: trading-system
+data:
+  multi_strategy_ensemble_paper_trading.yaml: |
+    # Paper Trading Configuration for Multi-Strategy Ensemble
+    # Aggressive Capital Allocation: 5% cash, 20% stocks, 50% options (25% day, 25% swing)
+    
+    backtesting:
+      enabled: true
+      min_backtest_period_days: 30
+      min_success_rate: 0.6
+      service_url: http://backtest-api.trading-system.svc.cluster.local:10001
+      test_strategies_before_live: true
+    
+    portfolio:
+      initial_capital: 4000.0
+      max_daily_loss: 250.0
+      max_daily_trades: 25
+      max_monthly_trades: 150
+      max_single_symbol: 0.18
+      max_total_exposure: 0.95
+      min_cash_reserve: 0.05
+    
+    strategies:
+      MultiStrategyEnsemble:
+        enabled: true
+        name: MultiStrategyEnsemble
+        strategy_weights:
+          adaptive_wave: 0.35
+          regime_switching: 0.25
+          enhanced_multi: 0.25
+          momentum: 0.15
+        min_signal_confidence: 0.3
+        min_strategies_for_entry: 1
+    
+    asset_allocation:
+      enabled: true
+      cash_reserve_pct: 0.05
+      stock_allocation_pct: 0.2
+      options_allocation_pct: 0.5
+      options_day_trading_pct: 0.25
+      options_swing_trading_pct: 0.25
+      day_trading_time_window_minutes: 15
+      swing_trading_time_window_days: 1
+    
+    trading:
+      enabled: true
+      max_position_size: 0.2
+      max_risk_per_trade: 0.05
+      trading_interval: 60
+      max_daily_trades: 25
+      max_weekly_trades: 50
+      max_monthly_trades: 150
+      symbols: ["SPY", "AAPL", "NVDA", "QQQ"]
+      use_real_strategies: true
+      enable_alerts: true
+      performance_tracking: true
+      max_portfolio_utilization: 0.95
+      min_cash_reserve: 0.05
+      disable_engine_stop_loss: true
+      disable_engine_take_profit: true
+    
+    risk_management:
+      enabled: true
+      max_daily_loss_pct: 0.06
+      max_position_size_pct: 0.2
+      max_correlation: 0.7
+      volatility_adjustment: true
+      portfolio_heat_limit: 0.15
+      stop_loss_pct: 0.03
+      take_profit_pct: 0.15
+    
+    monitoring:
+      enabled: true
+      log_level: "INFO"
+      metrics_interval: 60
+      alert_thresholds:
+        daily_loss_pct: 0.05
+        drawdown_pct: 0.1
+        win_rate_pct: 0.4
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paper-trading-k8s-service
+  namespace: trading-system
+  labels:
+    app: paper-trading-k8s
+spec:
+  selector:
+    app: paper-trading-k8s
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  type: ClusterIP
+
+
+
+
+
+

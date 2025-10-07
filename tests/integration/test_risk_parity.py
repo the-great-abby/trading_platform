@@ -357,3 +357,12 @@ class TestRiskParityIntegration:
 
 
 
+
+
+
+
+
+
+
+
+

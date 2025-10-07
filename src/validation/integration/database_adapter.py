@@ -480,3 +480,13 @@ class DatabaseAdapter:
         if hasattr(self, 'sync_engine') and self.sync_engine:
             self.sync_engine.dispose()
 
+
+
+
+
+
+
+
+
+
+

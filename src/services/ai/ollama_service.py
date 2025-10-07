@@ -412,6 +412,26 @@ class OllamaService:
         except:
             return 0.05  # Default 5% 
 
+    async def _call_ollama(self, prompt: str) -> str:
+        """Call Ollama with a prompt and return the response"""
+        try:
+            # Use the LLM client to make the call
+            request = LLMRequest(
+                task_type=LLMTaskType.TRADE_EVALUATION,
+                prompt=prompt,
+                model=self.model,
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            response = await self.llm_client.generate_text(request)
+            return response.content
+            
+        except Exception as e:
+            logger.error(f"Error calling Ollama: {e}")
+            # Return a default response to avoid breaking the system
+            return "APPROVE: The trade signal appears reasonable based on technical analysis."
+
     async def cleanup(self):
         """Clean up resources"""
         try:

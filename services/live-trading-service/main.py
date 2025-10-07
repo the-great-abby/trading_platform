@@ -202,6 +202,8 @@ from routes.strategies import router as strategies_router
 from routes.risk_management import router as risk_management_router
 from routes.trailing_stops import router as trailing_stops_router
 from routes.recovery import router as recovery_router
+from routes.orders import router as orders_router
+from routes.account_sync import router as account_sync_router
 
 app.include_router(auth_router)
 app.include_router(accounts_router)
@@ -212,6 +214,8 @@ app.include_router(strategies_router)
 app.include_router(risk_management_router)
 app.include_router(trailing_stops_router)
 app.include_router(recovery_router)
+app.include_router(orders_router)
+app.include_router(account_sync_router)
 
 
 @app.get("/health")

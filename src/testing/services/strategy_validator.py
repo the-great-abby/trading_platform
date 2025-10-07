@@ -324,3 +324,13 @@ class StrategyValidator:
                 "error": str(e)
             }
 
+
+
+
+
+
+
+
+
+
+

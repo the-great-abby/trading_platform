@@ -91,6 +91,41 @@ class TradingService:
                 }
             
             # Risk validation
+            # Calculate position size as percentage of portfolio
+            # Get portfolio value and buying power
+            from sqlalchemy import select
+            from .models import LiveTradingAccount
+            result = await self.db_session.execute(
+                select(
+                    LiveTradingAccount.cash_balance,
+                    LiveTradingAccount.equity,
+                    LiveTradingAccount.buying_power
+                ).where(
+                    LiveTradingAccount.account_id == account_id
+                )
+            )
+            account_data = result.fetchone()
+            
+            if account_data:
+                cash_balance = float(account_data[0]) if account_data[0] else 4000.0
+                equity = float(account_data[1]) if account_data[1] else 0.0
+                buying_power = float(account_data[2]) if account_data[2] else cash_balance
+            else:
+                cash_balance = 4000.0
+                equity = 0.0
+                buying_power = 4000.0
+            
+            portfolio_value = cash_balance + equity
+            
+            # Position size as percentage of portfolio (but check against buying power)
+            position_size_pct = (order_data.estimated_premium / portfolio_value) if portfolio_value > 0 else 0
+            
+            # Also validate we have sufficient buying power
+            has_buying_power = buying_power >= order_data.estimated_premium
+            
+            # Determine if this is a BUY or SELL order
+            order_action = order_data.legs[0].action.value if order_data.legs else "BUY"
+            
             risk_data = OrderRiskData(
                 symbol=order_data.symbol,
                 strategy=order_data.strategy.value,
@@ -98,8 +133,18 @@ class TradingService:
                 estimated_premium=order_data.estimated_premium,
                 estimated_risk=order_data.estimated_risk,
                 greeks=order_data.greeks or {},
-                position_size=order_data.estimated_premium
+                position_size=position_size_pct,  # Now a percentage (e.g., 0.0635 = 6.35%)
+                action=order_action  # BUY or SELL
             )
+            
+            # Check buying power first
+            if order_action == "BUY" and not has_buying_power:
+                logger.error(f"❌ Insufficient buying power: ${buying_power:.2f} < ${order_data.estimated_premium:.2f}")
+                return {
+                    "success": False,
+                    "error": "Insufficient buying power",
+                    "details": [f"Required: ${order_data.estimated_premium:.2f}, Available: ${buying_power:.2f}"]
+                }
             
             risk_result = await self.risk_service.validate_order(account_id, risk_data)
             if not risk_result.approved:
@@ -381,10 +426,25 @@ class TradingService:
     
     async def _submit_order_to_public(self, account_id: str, order_data: OrderRequest, trade: LiveTrade) -> Dict[str, Any]:
         """Submit order to Public.com API."""
+        # Get public_account_id for Public.com API
+        from sqlalchemy import select
+        from .models import LiveTradingAccount
+        result = await self.db_session.execute(
+            select(LiveTradingAccount.public_account_id).where(
+                LiveTradingAccount.account_id == account_id
+            )
+        )
+        public_account_id = result.scalar_one_or_none()
+        if not public_account_id:
+            raise Exception(f"Public account ID not found for {account_id}")
+        
         # Convert order data to Public.com format
+        # Get the action from the first leg (BUY or SELL)
+        order_side = order_data.legs[0].action.value.lower() if order_data.legs else "buy"
+        
         public_order = {
             "symbol": order_data.symbol,
-            "side": "buy",  # Will be determined by strategy
+            "side": order_side,  # BUY or SELL from trade leg
             "quantity": trade.quantity,
             "type": order_data.order_type.value.lower(),
             "time_in_force": order_data.time_in_force.lower(),
@@ -395,14 +455,16 @@ class TradingService:
         if order_data.limit_price:
             public_order["price"] = order_data.limit_price
         
-        # Submit to Public.com
-        response = await self.public_api_client.submit_order(account_id, public_order)
+        # Submit to Public.com using public_account_id
+        logger.info(f"Submitting order to Public.com account: {public_account_id}")
+        response = await self.public_api_client.submit_order(public_account_id, public_order)
         
         return response
     
     async def _update_trade_with_order_response(self, trade: LiveTrade, order_response: Dict[str, Any]):
         """Update trade record with order response from Public.com."""
-        trade.public_order_id = order_response.get("order_id", trade.public_order_id)
+        # Public.com returns orderId (camelCase), not order_id
+        trade.public_order_id = order_response.get("orderId") or order_response.get("order_id", trade.public_order_id)
         
         # Map Public.com status to our status
         status_mapping = {

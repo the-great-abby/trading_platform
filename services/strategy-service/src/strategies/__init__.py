@@ -126,3 +126,9 @@ try:
     __all__.append('ServiceElliottWaveCorrectiveStrategy')
 except ImportError:
     pass
+
+try:
+    from .advanced.multi_strategy_ensemble import MultiStrategyEnsemble
+    __all__.append('MultiStrategyEnsemble')
+except ImportError:
+    pass

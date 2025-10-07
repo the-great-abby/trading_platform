@@ -1,0 +1,196 @@
+backtesting:
+  enabled: true
+  min_backtest_period_days: 30
+  min_success_rate: 0.6
+  service_url: http://backtest-api.trading-system.svc.cluster.local:10001
+  test_strategies_before_live: true
+cost_controls:
+  enabled: true
+  tax_optimization:
+    enabled: true
+    long_term_tax_rate: 0.2
+    min_holding_period: 30
+    preferred_holding_period: 365
+    short_term_tax_rate: 0.37
+    wash_sale_rule: true
+  trading_costs:
+    commission_per_contract: 0.0
+    commission_per_trade: 0.0
+    options_rebate_per_contract: 0.06
+    max_contracts_per_trade: 3
+    slippage: 0.0003
+    spread_cost: 0.001
+    extended_hours_fee: 2.99
+    premium_membership_cost: 10.0
+    inactivity_fee: 3.99
+    account_maintenance_fee: 5.0
+  trading_limits:
+    max_daily_trades: 6  # Increased from backtest success
+    max_monthly_trades: 15  # Increased from backtest success
+    max_weekly_trades: 10  # Increased from backtest success
+    trading_frequency_penalty: false  # Disabled for more aggressive trading
+public_com_optimization:
+  enabled: true
+  api_settings:
+    commission_free_trading: true
+    options_rebates_enabled: true
+    extended_hours_trading: false
+    premium_membership: false
+  rebate_optimization:
+    target_monthly_contracts: 30
+    tier_4_threshold: 1000
+    volume_tracking: true
+    quality_over_quantity: true
+  cost_monitoring:
+    track_rebates: true
+    track_extended_hours_fees: true
+    track_premium_costs: true
+    monthly_cost_reporting: true
+    quality_metrics: true
+    overtrading_detection: true
+dynamic_sizing:
+  enabled: true
+  base_position_size: 0.08  # Increased from backtest success
+  momentum_multiplier: 1.6  # Increased from backtest success
+  regime_multiplier: 1.5  # Increased from backtest success
+  max_position_size: 0.15  # Increased to match backtest
+  volatility_multiplier: 2.0  # Increased from backtest success
+  volatility_thresholds:
+    high_vol: 0.35
+    low_vol: 0.15
+  # Enhanced capital allocation settings
+  capital_efficiency_threshold: 0.70
+  capital_scarcity_threshold: 0.30
+  early_profit_target_pct: 0.08
+portfolio:
+  initial_capital: 4000.0
+  max_daily_loss: 200.0  # Increased from backtest success
+  max_daily_trades: 6  # Increased from backtest success
+  max_monthly_trades: 15  # Increased from backtest success
+  max_single_symbol: 0.25  # Increased from backtest success
+  max_total_exposure: 0.80  # Increased to match backtest
+  min_cash_reserve: 0.20  # Increased to 20% like backtest
+
+# Advanced Capital Allocation Settings (from successful backtest)
+capital_allocation:
+  enabled: true
+  max_portfolio_utilization: 0.80  # Use max 80% of portfolio
+  min_cash_reserve: 0.20  # Keep 20% in cash
+  max_position_size: 0.15  # Max 15% per position
+  max_risk_per_trade: 0.05  # Max 5% risk per trade
+  capital_efficiency_threshold: 0.70  # Increase sizing when utilization > 70%
+  capital_scarcity_threshold: 0.30  # Decrease sizing when utilization < 30%
+  early_profit_target_pct: 0.08  # 8% early profit target for capital optimization
+
+# Elliott Wave Analysis Settings (from successful backtest)
+elliott_wave:
+  enabled: true
+  min_confidence_threshold: 0.65  # Minimum confidence for Elliott Wave signals
+  service_url: "http://elliott-wave-service.trading-system.svc.cluster.local:8000"
+  pattern_types:
+    - "impulse_completion"
+    - "corrective_completion"
+    - "fibonacci_retracement"
+    - "wave_extension"
+  strategy_mappings:
+    impulse_completion: "STRADDLE"
+    corrective_completion: "IRON_CONDOR"
+    fibonacci_retracement: "CALENDAR_SPREAD"
+    wave_extension: "STRADDLE"
+monitoring:
+  enabled: true
+  performance_targets:
+    annual_return_target: 0.15  # Increased from backtest success (8,522% over 2 years = ~15% annualized)
+    max_drawdown_limit: 0.05  # Decreased from backtest success (1.39% max drawdown)
+    sharpe_ratio_target: 3.0  # Increased from backtest success (9.13 Sharpe ratio)
+    win_rate_target: 0.85  # Increased from backtest success (100% win rate)
+  alerts:
+    performance_alerts: true
+    drawdown_alerts: true
+    cost_alerts: true
+    quality_alerts: true
+  public_com_rebate_tracking: true
+  extended_hours_fee_alert: true
+  premium_membership_roi: true
+  quality_metrics: true
+  overtrading_detection: true
+strategies:
+  ELLIOTT_WAVE_CORRECTIVE:
+    enabled: true
+    max_daily_trades: 3  # Increased from backtest success
+    max_monthly_trades: 5  # Increased from backtest success
+    max_position_size: 0.15  # Increased to match backtest
+    max_risk_per_trade: 0.05  # Increased to match backtest
+    name: ELLIOTT_WAVE_CORRECTIVE
+    base_return: 0.08  # Increased from backtest success
+    win_rate: 0.85  # Increased from backtest success
+    confidence_threshold: 0.65  # Lowered to match backtest
+    volatility_multiplier: 1.3
+    regime_boost: 1.2
+    news_delay_days: 2
+    news_quality_threshold: 0.85
+    news_impact_threshold: 0.75
+    # Enhanced Elliott Wave settings
+    pattern_types: ["corrective_completion", "fibonacci_retracement"]
+    options_strategy: "IRON_CONDOR"
+    early_profit_target: 0.08
+    max_holding_days: 30
+  ELLIOTT_WAVE_IMPULSE:
+    enabled: true
+    max_daily_trades: 3  # Increased from backtest success
+    max_monthly_trades: 5  # Increased from backtest success
+    max_position_size: 0.15  # Increased to match backtest
+    max_risk_per_trade: 0.05  # Increased to match backtest
+    name: ELLIOTT_WAVE_IMPULSE
+    base_return: 0.10  # Increased from backtest success
+    win_rate: 0.80  # Increased from backtest success
+    confidence_threshold: 0.65  # Lowered to match backtest
+    momentum_multiplier: 1.4
+    regime_boost: 1.3
+    news_delay_days: 3
+    news_quality_threshold: 0.9
+    news_impact_threshold: 0.85
+    # Enhanced Elliott Wave settings
+    pattern_types: ["impulse_completion", "wave_extension"]
+    options_strategy: "STRADDLE"
+    early_profit_target: 0.08
+    max_holding_days: 30
+  CALENDAR_SPREADS:
+    enabled: true
+    max_daily_trades: 3  # Increased from backtest success
+    max_monthly_trades: 5  # Increased from backtest success
+    max_position_size: 0.15  # Increased to match backtest
+    max_risk_per_trade: 0.05  # Increased to match backtest
+    name: CALENDAR_SPREADS
+    base_return: 0.06  # Increased from backtest success
+    win_rate: 0.82  # Increased from backtest success
+    confidence_threshold: 0.65  # Lowered to match backtest
+    time_decay_multiplier: 1.2
+    regime_boost: 1.1
+    news_delay_days: 1
+    news_quality_threshold: 0.8
+    news_impact_threshold: 0.65
+    # Enhanced settings
+    options_strategy: "CALENDAR_SPREAD"
+    early_profit_target: 0.08
+    max_holding_days: 30
+  VOLATILITY_TRADING:
+    enabled: true
+    max_daily_trades: 3  # Increased from backtest success
+    max_monthly_trades: 5  # Increased from backtest success
+    max_position_size: 0.15  # Increased to match backtest
+    max_risk_per_trade: 0.05  # Increased to match backtest
+    name: VOLATILITY_TRADING
+    base_return: 0.08  # Increased from backtest success
+    win_rate: 0.75  # Increased from backtest success
+    confidence_threshold: 0.65  # Lowered to match backtest
+    volatility_threshold: 0.18
+    volatility_multiplier: 1.8
+    regime_boost: 1.4
+    news_delay_days: 2
+    news_quality_threshold: 0.8
+    news_impact_threshold: 0.7
+    # Enhanced settings
+    options_strategy: "STRADDLE"
+    early_profit_target: 0.08
+    max_holding_days: 30

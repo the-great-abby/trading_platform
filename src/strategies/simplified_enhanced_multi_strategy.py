@@ -56,7 +56,7 @@ class SimplifiedEnhancedMultiStrategy(BaseStrategy):
                  enable_ichimoku: bool = True,
                  
                  # Asset allocation
-                 stock_allocation_pct: float = 0.80,  # 80% stocks
+                 stock_allocation_pct: float = 0.95,  # 80% stocks
                  cash_reserve_pct: float = 0.20,  # 20% cash reserve
                  
                  # Position sizing
@@ -255,8 +255,8 @@ class SimplifiedEnhancedMultiStrategy(BaseStrategy):
         current_price = signal.price
         confidence = signal.confidence
         
-        # Calculate available capital for stocks
-        available_capital = 4000 * self.stock_allocation_pct  # 80% of $4,000 = $3,200
+        # Calculate available capital for stocks (5% cash reserve)
+        available_capital = 4000 * 0.95  # 95% of $4,000 = $3,800 (5% cash reserve)
         
         # Calculate position size based on confidence
         base_position_pct = self.min_position_size_pct + (confidence - 0.5) * (self.max_position_size_pct - self.min_position_size_pct)

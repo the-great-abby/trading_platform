@@ -76,80 +76,90 @@ async def main():
         logger.info(f"   • CrossSectionalMomentumStrategy: 15%")
         logger.info(f"   • Target Combined Return: 313%+")
         
-        # Initialize backtest engine with AGGRESSIVE optimization
-        engine = BacktestEngine()
-        engine.initial_capital = 4000.0  # $4,000 starting capital
-        engine.use_real_data = True  # Use REAL market data from Polygon API
+    # Initialize backtest engine with AGGRESSIVE optimization
+    engine = BacktestEngine()
+    engine.initial_capital = 4000.0  # $4,000 starting capital
+    engine.use_real_data = True  # Use REAL market data from Polygon API
+    
+    # AGGRESSIVE CAPITAL ALLOCATION (NEW REQUESTED SPLIT)
+    engine.cash_reserve_pct = 0.05  # 5% cash reserve (AGGRESSIVE)
+    engine.max_position_size_pct = 0.20  # 20% max position size (more aggressive)
+    
+    # NEW AGGRESSIVE ALLOCATION SETTINGS
+    engine.stock_allocation_pct = 0.20  # 20% stocks (reduced)
+    engine.options_allocation_pct = 0.50  # 50% options (same)
+    engine.options_day_trading_pct = 0.25  # 25% total for day trading (HUGE INCREASE)
+    engine.options_swing_trading_pct = 0.25  # 25% total for swing trading (reduced)
+    
+    # Test symbols (including QQQ for more day trading opportunities)
+    symbols = ['SPY', 'AAPL', 'NVDA', 'QQQ']
+    
+    # Backtest period (2024 data for complete options coverage)
+    start_date = '2024-01-01'
+    end_date = '2024-12-31'
+    
+    logger.info("📊 Backtest Configuration (AGGRESSIVE ALLOCATION):")
+    logger.info(f"   • Symbols: {symbols}")
+    logger.info(f"   • Period: {start_date} to {end_date}")
+    logger.info(f"   • Initial Capital: ${engine.initial_capital:,.2f}")
+    logger.info(f"   • Cash Reserve: {engine.cash_reserve_pct*100}% (AGGRESSIVE)")
+    logger.info(f"   • Stock Allocation: {engine.stock_allocation_pct*100}%")
+    logger.info(f"   • Options Allocation: {engine.options_allocation_pct*100}%")
+    logger.info(f"     - Day Trading: {engine.options_day_trading_pct*100}% (HUGE INCREASE)")
+    logger.info(f"     - Swing Trading: {engine.options_swing_trading_pct*100}%")
+    logger.info(f"   • Max Position Size: {engine.max_position_size_pct*100}%")
+    logger.info(f"   • Real Data: {engine.use_real_data}")
+    
+    # Run backtest
+    logger.info("🏃‍♂️ Running Multi-Strategy Ensemble backtest with AGGRESSIVE allocation...")
+    
+    results = await engine.run_backtest(
+        strategies=['MultiStrategyEnsemble'],
+        symbols=symbols,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    # Display results
+    if 'MultiStrategyEnsemble' in results:
+        result = results['MultiStrategyEnsemble']
         
-        # AGGRESSIVE CAPITAL ALLOCATION (from 313%+ configs)
-        engine.cash_reserve_pct = 0.05  # 5% cash reserve (vs 20% - much more aggressive)
-        engine.max_position_size_pct = 0.25  # 25% max position size (vs 15% - more capital deployment)
+        logger.info("📈 MULTI-STRATEGY ENSEMBLE RESULTS (AGGRESSIVE ALLOCATION)")
+        logger.info("=" * 60)
+        logger.info(f"Strategy: MultiStrategyEnsemble")
+        logger.info(f"Total Return: {result.total_return_pct:.2f}%")
+        logger.info(f"Final Value: ${result.final_capital:,.2f}")
+        logger.info(f"Max Drawdown: {result.max_drawdown_pct:.2f}%")
+        logger.info(f"Sharpe Ratio: {result.sharpe_ratio:.2f}")
+        logger.info(f"Win Rate: {result.win_rate:.2f}%")
+        logger.info(f"Total Trades: {result.total_trades}")
+        logger.info(f"Profitable Trades: {result.winning_trades}")
+        logger.info(f"Losing Trades: {result.losing_trades}")
+        logger.info("")
+        logger.info("📊 Trade Summary:")
+        logger.info(f"   Average Win: ${result.avg_win:.2f}")
+        logger.info(f"   Average Loss: ${result.avg_loss:.2f}")
+        logger.info("")
         
-        # Test symbols (proven high performers)
-        symbols = ['SPY', 'AAPL', 'NVDA']
+        # Show recent trades
+        logger.info("🔍 Recent Trades (Last 10):")
+        recent_trades = result.trades[-10:] if len(result.trades) > 10 else result.trades
+        for i, trade in enumerate(recent_trades, 1):
+            logger.info(f"   {i}. {trade.symbol}: {trade.action} {trade.quantity:.4f} shares @ ${trade.price:.2f} | P&L: ${trade.pnl:.2f}")
         
-        # Backtest period (2024 data for complete options coverage)
-        start_date = '2024-01-01'
-        end_date = '2024-12-31'
+        logger.info("=" * 60)
         
-        logger.info(f"📊 Backtest Configuration:")
-        logger.info(f"   • Symbols: {symbols}")
-        logger.info(f"   • Period: {start_date} to {end_date}")
-        logger.info(f"   • Initial Capital: ${engine.initial_capital:,.2f}")
-        logger.info(f"   • Cash Reserve: {engine.cash_reserve_pct*100}%")
-        logger.info(f"   • Max Position Size: {engine.max_position_size_pct*100}%")
-        logger.info(f"   • Real Data: {engine.use_real_data}")
+        # Performance comparison
+        logger.info("🔄 Performance vs Targets (AGGRESSIVE ALLOCATION):")
+        logger.info(f"   • Target (313%+): 313.00%")
+        logger.info(f"   • Current Result: {result.total_return_pct:.2f}%")
+        gap = 313.0 - result.total_return_pct
+        if gap > 0:
+            logger.info(f"   • Gap to Target: -{gap:.2f} percentage points")
+        else:
+            logger.info(f"   • 🎉 EXCEEDED TARGET by {abs(gap):.2f} percentage points!")
         
-        # Run backtest
-        logger.info("🏃‍♂️ Running Multi-Strategy Ensemble backtest...")
-        
-        results = await engine.run_backtest(
-            strategies=['MultiStrategyEnsemble'],
-            symbols=symbols,
-            start_date=start_date,
-            end_date=end_date
-        )
-        
-        # Display results
-        if 'MultiStrategyEnsemble' in results:
-            result = results['MultiStrategyEnsemble']
-            
-            logger.info("📈 MULTI-STRATEGY ENSEMBLE RESULTS")
-            logger.info("=" * 60)
-            logger.info(f"Strategy: MultiStrategyEnsemble")
-            logger.info(f"Total Return: {result.total_return_pct:.2f}%")
-            logger.info(f"Final Value: ${result.final_capital:,.2f}")
-            logger.info(f"Max Drawdown: {result.max_drawdown_pct:.2f}%")
-            logger.info(f"Sharpe Ratio: {result.sharpe_ratio:.2f}")
-            logger.info(f"Win Rate: {result.win_rate:.2f}%")
-            logger.info(f"Total Trades: {result.total_trades}")
-            logger.info(f"Profitable Trades: {result.winning_trades}")
-            logger.info(f"Losing Trades: {result.losing_trades}")
-            logger.info("")
-            logger.info("📊 Trade Summary:")
-            logger.info(f"   Average Win: ${result.avg_win:.2f}")
-            logger.info(f"   Average Loss: ${result.avg_loss:.2f}")
-            logger.info("")
-            
-            # Show recent trades
-            logger.info("🔍 Recent Trades (Last 10):")
-            recent_trades = result.trades[-10:] if len(result.trades) > 10 else result.trades
-            for i, trade in enumerate(recent_trades, 1):
-                logger.info(f"   {i}. {trade.symbol}: {trade.action} {trade.quantity:.4f} shares @ ${trade.price:.2f} | P&L: ${trade.pnl:.2f}")
-            
-            logger.info("=" * 60)
-            
-            # Performance comparison
-            logger.info("🔄 Performance vs Targets:")
-            logger.info(f"   • Target (313%+): 313.00%")
-            logger.info(f"   • Current Result: {result.total_return_pct:.2f}%")
-            gap = 313.0 - result.total_return_pct
-            if gap > 0:
-                logger.info(f"   • Gap to Target: -{gap:.2f} percentage points")
-            else:
-                logger.info(f"   • 🎉 EXCEEDED TARGET by {abs(gap):.2f} percentage points!")
-            
-            # Strategy component analysis
+        # Strategy component analysis
             logger.info("")
             logger.info("🎯 Strategy Component Analysis:")
             strategy_summary = ensemble_strategy.get_strategy_summary()

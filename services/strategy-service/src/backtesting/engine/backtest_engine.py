@@ -126,7 +126,7 @@ class BacktestEngine:
                  use_public_com_pricing: bool = True,
                  batch_size: int = 5,
                  progress_callback: Optional[callable] = None,
-                 initial_capital: float = 100000.0):
+                 initial_capital: float = 4000.0):
         """
         Initialize the backtest engine with enhanced features
         
@@ -136,7 +136,7 @@ class BacktestEngine:
             use_public_com_pricing: Whether to use Public.com pricing
             batch_size: Number of symbols to process in each batch
             progress_callback: Function to call with progress updates
-            initial_capital: Initial capital for backtesting (default: $100,000)
+            initial_capital: Initial capital for backtesting (default: $4,000)
         """
         self.use_real_data = use_real_data
         self.use_cache = use_cache
@@ -208,11 +208,12 @@ class BacktestEngine:
             'RegimeSwitchingStrategy': 0.40
         }
         
-        # Capital allocation system
+        # Capital allocation system (as requested)
         self.capital_allocation = {
-            'cash_reserve_pct': 0.10,      # Reduced from 20% to 10%
-            'stock_allocation_pct': 0.45,   # Increased from 40% to 45%
-            'options_allocation_pct': 0.45  # Increased from 40% to 45%
+            'cash_reserve_pct': 0.10,          # 10% cash reserve
+            'stock_allocation_pct': 0.40,      # 40% stocks swing trading
+            'options_day_trading_pct': 0.25,   # 25% day trading options
+            'options_swing_trading_pct': 0.25  # 25% swing trading options
         }
         
         # Portfolio heat tracking
@@ -1279,7 +1280,30 @@ class BacktestEngine:
                 logger.error(f"❌ Strategy {strategy_name} not found")
                 return None
             
-            strategy = strategy_class()
+            # Special handling for MultiStrategyEnsemble to use backtesting configuration
+            if strategy_name == 'MultiStrategyEnsemble':
+                from src.utils.multi_strategy_ensemble_config import get_backtesting_config
+                backtest_config = get_backtesting_config()
+                
+                strategy = strategy_class(
+                    adaptive_wave_weight=backtest_config['adaptive_wave_weight'],
+                    regime_switching_weight=backtest_config['regime_switching_weight'],
+                    enhanced_multi_weight=backtest_config['enhanced_multi_weight'],
+                    momentum_weight=backtest_config['momentum_weight'],
+                    max_total_exposure=backtest_config['max_total_exposure'],
+                    correlation_threshold=backtest_config['correlation_threshold'],
+                    performance_window=backtest_config['performance_window'],
+                    rebalance_frequency=backtest_config['rebalance_frequency']
+                )
+                logger.info(f"✅ Initialized {strategy_name} with backtesting config:")
+                logger.info(f"   Weights: adaptive_wave={backtest_config['adaptive_wave_weight']}, "
+                           f"regime_switching={backtest_config['regime_switching_weight']}, "
+                           f"enhanced_multi={backtest_config['enhanced_multi_weight']}, "
+                           f"momentum={backtest_config['momentum_weight']}")
+                logger.info(f"   Risk: max_exposure={backtest_config['max_total_exposure']}, "
+                           f"correlation_threshold={backtest_config['correlation_threshold']}")
+            else:
+                strategy = strategy_class()
             
             # Set options service for strategies that need it
             if hasattr(strategy, 'set_options_service') and self.options_service:
@@ -1636,6 +1660,7 @@ class BacktestEngine:
             'EnhancedDayTrading': 'src.strategies.enhanced_day_trading_strategy.EnhancedDayTradingStrategy',
             'NewsEnhanced': 'src.strategies.news_enhanced_strategy.NewsEnhancedStrategy',
             'SocialMediaSentiment': 'src.strategies.sentiment.social_media_sentiment_strategy.SocialMediaSentimentStrategy',
+            'MultiStrategyEnsemble': 'src.strategies.advanced.multi_strategy_ensemble.MultiStrategyEnsemble',
             # New Options Strategies
             'CashSecuredPut': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',
             'CashSecuredPutStrategy': 'src.strategies.options.cash_secured_put_strategy.CashSecuredPutStrategy',

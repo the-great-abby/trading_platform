@@ -213,3 +213,13 @@ class ValidationReport(BaseModel):
         
         return cls(**data)
 
+
+
+
+
+
+
+
+
+
+

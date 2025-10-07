@@ -1,0 +1,87 @@
+.PHONY: help deploy-account-sync suspend-account-sync resume-account-sync status-account-sync logs-account-sync manual-sync check-balance set-sync-interval-1 set-sync-interval-5 set-sync-interval-10 set-sync-interval-30
+
+ACCOUNT_ID := 19c25392-8b61-4b71-a344-0eb04d275528
+
+help: ## Show this help message
+	@echo "Account Balance Sync Worker Management"
+	@echo "======================================"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+
+deploy-account-sync: ## Deploy the account sync worker
+	@echo "🚀 Deploying account sync worker..."
+	kubectl apply -f k8s/account-sync-cronjob.yaml
+	@echo "✅ Account sync worker deployed"
+	@echo ""
+	@echo "The worker will:"
+	@echo "  • Sync account balance every 5 minutes"
+	@echo "  • Update cash, equity, and buying power"
+	@echo "  • Sync position quantities and prices"
+	@echo ""
+	@echo "Check status: make -f Makefile.account-sync status-account-sync"
+
+suspend-account-sync: ## Suspend the account sync worker
+	@echo "⏸️  Suspending account sync worker..."
+	kubectl patch cronjob account-sync-worker -n default -p '{"spec":{"suspend":true}}'
+	@echo "✅ Account sync worker suspended"
+
+resume-account-sync: ## Resume the account sync worker
+	@echo "▶️  Resuming account sync worker..."
+	kubectl patch cronjob account-sync-worker -n default -p '{"spec":{"suspend":false}}'
+	@echo "✅ Account sync worker resumed"
+
+status-account-sync: ## Check account sync worker status
+	@echo "📊 Account Sync Worker Status"
+	@echo "=============================="
+	@echo ""
+	@echo "CronJob Status:"
+	@kubectl get cronjob account-sync-worker -n default 2>/dev/null || echo "  ❌ Not deployed"
+	@echo ""
+	@echo "Recent Jobs:"
+	@kubectl get jobs -n default -l app=account-sync-worker --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -6 || echo "  No jobs yet"
+	@echo ""
+	@echo "Current Balance:"
+	@make -f Makefile.account-sync check-balance
+
+logs-account-sync: ## View account sync worker logs
+	@echo "📋 Account Sync Worker Logs (last 50 lines)"
+	@echo "==========================================="
+	@kubectl logs -n default -l app=account-sync-worker --tail=50 --timestamps 2>/dev/null || echo "No logs available yet"
+
+manual-sync: ## Manually trigger account sync now
+	@echo "🔄 Manually triggering account sync..."
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl exec -n default $$POD -- curl -s -X POST \
+		-H "Content-Type: application/json" \
+		"http://live-trading-service.default.svc.cluster.local:8080/api/v1/account/sync/$(ACCOUNT_ID)" | python3 -m json.tool
+	@echo ""
+	@echo "✅ Manual sync completed"
+
+check-balance: ## Check current account balance
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl exec -n default $$POD -- curl -s \
+		"http://live-trading-service.default.svc.cluster.local:8080/api/v1/account/balance/$(ACCOUNT_ID)" | python3 -m json.tool
+
+# Set sync intervals
+set-sync-interval-1: ## Set sync interval to 1 minute
+	@echo "⏱️  Setting sync interval to 1 minute..."
+	@kubectl patch cronjob account-sync-worker -n default --type='json' -p='[{"op": "replace", "path": "/spec/schedule", "value": "*/1 * * * *"}]'
+	@echo "✅ Sync interval set to 1 minute"
+
+set-sync-interval-5: ## Set sync interval to 5 minutes (default)
+	@echo "⏱️  Setting sync interval to 5 minutes..."
+	@kubectl patch cronjob account-sync-worker -n default --type='json' -p='[{"op": "replace", "path": "/spec/schedule", "value": "*/5 * * * *"}]'
+	@echo "✅ Sync interval set to 5 minutes"
+
+set-sync-interval-10: ## Set sync interval to 10 minutes
+	@echo "⏱️  Setting sync interval to 10 minutes..."
+	@kubectl patch cronjob account-sync-worker -n default --type='json' -p='[{"op": "replace", "path": "/spec/schedule", "value": "*/10 * * * *"}]'
+	@echo "✅ Sync interval set to 10 minutes"
+
+set-sync-interval-30: ## Set sync interval to 30 minutes
+	@echo "⏱️  Setting sync interval to 30 minutes..."
+	@kubectl patch cronjob account-sync-worker -n default --type='json' -p='[{"op": "replace", "path": "/spec/schedule", "value": "*/30 * * * *"}]'
+	@echo "✅ Sync interval set to 30 minutes"
+
+.DEFAULT_GOAL := help

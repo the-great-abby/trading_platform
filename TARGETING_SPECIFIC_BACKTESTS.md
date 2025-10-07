@@ -306,3 +306,13 @@ python scripts/validate_specific_script.py --name YourScript
 
 With **2,613 backtest scripts** available, you can easily find and validate any script using multiple targeting methods.
 
+
+
+
+
+
+
+
+
+
+

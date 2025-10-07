@@ -2,23 +2,30 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-01-15 12:45:00 EST
-**Active Port Forwards**: 4  
+**Last Updated**: 2025-10-07 12:48:00 EST
+**Active Port Forwards**: 9  
 **Total Services**: 50+  
-**Paper Trading**: ✅ **ACTIVE** (Running since 16:54:38)  
+**Paper Trading Service**: ✅ **ACTIVE** (Database-backed with persistent orders)  
+**Paper Trading Monitor**: ✅ **NEW** (API-based real-time monitoring)  
 **RSS Feed Service**: ✅ **ACTIVE** (Running since 11:01:00)  
 **RSS Dashboard**: ✅ **ACTIVE** (Running since 11:01:00)  
 **Strategy Service**: ✅ **ACTIVE** (Updated with Public.com config)  
+**Live Trading Monitoring**: ✅ **NEW** (Comprehensive monitoring system)  
 **Secrets Management**: ✅ **ACTIVE** (Kubernetes secrets via Makefile)  
 
 ## 🎯 Currently Active Port Forwards
 
 | Service | External Port | Internal Port | Status | URL | Last Checked |
 |---------|---------------|---------------|--------|-----|--------------|
-| Strategy Service | 11001 | 80 | ✅ Active | http://localhost:11001/ | 2025-09-29 08:10 |
-| **Strategy Testing Framework** | **11003** | **8000** | ✅ **New** | **http://localhost:11003/** | **2025-01-15 12:45** |
-| Live Trading Service | 11120 | 8080 | ✅ Active | http://localhost:11120/ | 2025-09-29 08:10 |
-| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-09-29 08:10 |
+| Strategy Service | 11001 | 80 | ✅ Active | http://localhost:11001/ | 2025-10-07 12:48 |
+| Elliott Wave Service | 11085 | 8000 | ✅ Active | http://localhost:11085/ | 2025-10-07 12:48 |
+| Market Data Service | 11084 | 11084 | ✅ Active | http://localhost:11084/ | 2025-10-07 12:48 |
+| RSS Feed Service | 11004 | 11004 | ✅ Active | http://localhost:11004/ | 2025-10-07 12:48 |
+| RSS Dashboard | 8080 | 80 | ✅ Active | http://localhost:8080/ | 2025-10-07 12:48 |
+| Unified Analytics Dashboard | 11114 | 80 | ✅ Active | http://localhost:11114/ | 2025-10-07 12:48 |
+| Unified Trading Dashboard | 11115 | 80 | ✅ Active | http://localhost:11115/ | 2025-10-07 12:48 |
+| Paper Trading Service | 11190 | 8080 | ✅ Active | http://localhost:11190/ | 2025-10-07 12:48 |
+| Trading Engine | 11080 | 8080 | 🔧 Disabled | http://localhost:11080/ | Intentionally disabled |
 
 ## 🚀 Live Trading System Status
 
@@ -26,7 +33,17 @@
 **Expected Annual Return**: +7.53% (vs previous -1.23%)  
 **Sharpe Ratio**: +2.177 (vs previous +0.384)  
 **Status**: All optimized strategies active and trading  
-**Monitoring**: Live trading monitor available  
+**Monitoring**: ✅ **COMPREHENSIVE** (Real-time position monitoring & exit strategies)
+
+### 🎯 **Multi-Strategy Ensemble Live Trading Service**
+- **📊 Live Trading Service**: http://localhost:11180/ (Multi-Strategy Ensemble with Swagger docs)
+- **🔌 Trading Dashboard**: http://localhost:11181/ (Unified Trading Dashboard)
+- **⚡ Features**: 
+  - Multi-Strategy Ensemble execution
+  - Live trading with optimized strategies
+  - Swagger API documentation
+  - Real-time position tracking
+  - Risk management integration  
 
 ### 🎯 Active Strategies
 - **Calendar Spread**: ✅ 12% max position, 4 daily trades
@@ -156,6 +173,36 @@ python3 simplified_system_monitor.py single
 | VAPID Service | 11170 | 11170 | ❌ Not Forwarded | localhost:11170 | VAPID key management |
 
 ## 🚀 Quick Commands
+
+### **🏴‍☠️ Port Forward Management**
+```bash
+# Start all port forwards (interactive - asks before killing existing)
+./scripts/start-all-services.sh
+
+# Quick restart all port forwards (no questions asked)
+./scripts/restart-all-ports.sh
+
+# Stop all port forwards
+pkill -f "kubectl port-forward"
+
+# Check what's running
+ps aux | grep "kubectl port-forward" | grep -v grep
+```
+
+### **🎯 Trade Recommendations**
+```bash
+# Get quick top 3 recommendations
+make recommendations-quick
+
+# Get all recommendations (up to 10)
+make recommendations-all
+
+# Get recommendation for specific symbol
+make recommendation SYMBOL=AAPL
+
+# Show recommendation help
+make recommendations-help
+```
 
 ### **Check Current Status**
 ```bash

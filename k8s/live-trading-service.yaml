@@ -117,6 +117,11 @@ spec:
             configMapKeyRef:
               name: live-trading-service-config
               key: REDIS_URL
+        - name: DISCORD_WEBHOOK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: discord-config
+              key: DISCORD_WEBHOOK_URL
         resources:
           requests:
             memory: "256Mi"  # Increased from 128Mi to accommodate recovery functionality

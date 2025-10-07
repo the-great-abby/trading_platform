@@ -228,3 +228,13 @@ class BacktestResult(BaseModel):
         
         return cls(**data)
 
+
+
+
+
+
+
+
+
+
+

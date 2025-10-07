@@ -27,6 +27,10 @@ import sys
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import uuid
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -63,16 +67,15 @@ class LiveTradingStrategySetup:
             logger.error(f"❌ Error checking live trading service health: {e}")
             return False
     
-    async def connect_to_public(self, access_token: str, account_name: str = "Live Trading Account") -> bool:
+    async def connect_to_public(self, secret_key: str, account_name: str = "Live Trading Account") -> bool:
         """Connect to Public.com API"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
                     f"{self.live_trading_url}/api/v1/auth/public-connect",
                     json={
-                        "access_token": access_token,
-                        "account_name": account_name,
-                        "account_type": "CASH"
+                        "secret_key": secret_key,
+                        "account_name": account_name
                     }
                 )
                 
@@ -113,15 +116,31 @@ class LiveTradingStrategySetup:
             for strategy in strategies:
                 logger.info(f"📊 Configuring strategy: {strategy['name']}")
                 
-                # For now, we'll store strategy configuration in the risk profile
-                # In a full implementation, you'd have dedicated strategy endpoints
-                strategy_config = {
-                    "max_position_size": strategy.get("max_position_size", 0.05),
-                    "max_risk_per_trade": strategy.get("max_risk_per_trade", 0.01),
-                    "allowed_strategies": [strategy["name"]],
-                    "max_daily_trades": strategy.get("max_daily_trades", 10),
-                    "max_daily_loss": strategy.get("max_daily_loss", 1000.0)
-                }
+                # Special handling for MultiStrategyEnsemble
+                if strategy['name'] == 'MULTI_STRATEGY_ENSEMBLE':
+                    # Configure MultiStrategyEnsemble with enhanced parameters
+                    strategy_config = {
+                        "max_position_size": strategy.get("max_position_size", 0.15),
+                        "max_risk_per_trade": strategy.get("max_risk_per_trade", 0.05),
+                        "allowed_strategies": [strategy["name"]],
+                        "max_daily_trades": strategy.get("max_daily_trades", 10),
+                        "max_daily_loss": strategy.get("max_daily_loss", 200.0),
+                        "strategy_weights": strategy.get("strategy_weights", {
+                            "adaptive_wave": 0.35,
+                            "regime_switching": 0.25,
+                            "enhanced_multi": 0.25,
+                            "momentum": 0.15
+                        })
+                    }
+                else:
+                    # Standard strategy configuration
+                    strategy_config = {
+                        "max_position_size": strategy.get("max_position_size", 0.05),
+                        "max_risk_per_trade": strategy.get("max_risk_per_trade", 0.01),
+                        "allowed_strategies": [strategy["name"]],
+                        "max_daily_trades": strategy.get("max_daily_trades", 10),
+                        "max_daily_loss": strategy.get("max_daily_loss", 1000.0)
+                    }
                 
                 success = await self.setup_risk_profile(account_id, strategy_config)
                 if not success:
@@ -239,60 +258,46 @@ class LiveTradingStrategySetup:
             logger.error(f"❌ Error submitting sample order: {e}")
             return False
 
-def get_default_strategy_config() -> Dict[str, Any]:
-    """Get default strategy configuration based on paper trading setup"""
-    return {
-        "strategies": [
-            {
-                "name": "IRON_CONDOR",
-                "max_position_size": 0.05,  # 5% of portfolio
-                "max_risk_per_trade": 0.01,  # 1% risk per trade
-                "max_daily_trades": 5,
-                "max_daily_loss": 500.0,
-                "description": "Iron Condor strategy for range-bound markets"
+    def get_default_strategy_config() -> Dict[str, Any]:
+        """Get default strategy configuration for MultiStrategyEnsemble with correct capital allocation"""
+        return {
+            "strategies": [
+                {
+                    "name": "MULTI_STRATEGY_ENSEMBLE",
+                    "max_position_size": 0.15,  # 15% of portfolio (conservative)
+                    "max_risk_per_trade": 0.05,  # 5% risk per trade
+                    "max_daily_trades": 10,  # Aligned with other systems
+                    "max_daily_loss": 200.0,  # Conservative daily loss limit
+                    "description": "Multi-Strategy Ensemble combining multiple proven strategies",
+                    "strategy_weights": {
+                        "adaptive_wave": 0.35,      # 35% - Elliott Wave + Options
+                        "regime_switching": 0.25,   # 25% - Market timing
+                        "enhanced_multi": 0.25,     # 25% - Sector rotation
+                        "momentum": 0.15            # 15% - Cross-sectional momentum
+                    }
+                }
+            ],
+            "trailing_stops": {
+                "multi_strategy_ensemble": {
+                    "profit_threshold": 0.3,  # 30% profit
+                    "trail_percentage": 0.05,  # 5% below current
+                    "min_profit": 0.2  # Minimum profit to activate
+                }
             },
-            {
-                "name": "BUTTERFLY_SPREAD",
-                "max_position_size": 0.03,  # 3% of portfolio
-                "max_risk_per_trade": 0.008,  # 0.8% risk per trade
-                "max_daily_trades": 3,
-                "max_daily_loss": 300.0,
-                "description": "Butterfly spread strategy for directional plays"
+            "portfolio_limits": {
+                "max_total_exposure": 0.90,  # 90% max total exposure (10% cash reserve)
+                "max_single_symbol": 0.15,  # 15% max per symbol
+                "max_daily_loss": 200.0,  # $200 max daily loss (conservative)
+                "max_daily_trades": 10,  # 10 trades per day max
+                "min_cash_reserve": 0.10  # 10% cash reserve
             },
-            {
-                "name": "CALENDAR_SPREAD",
-                "max_position_size": 0.04,  # 4% of portfolio
-                "max_risk_per_trade": 0.009,  # 0.9% risk per trade
-                "max_daily_trades": 4,
-                "max_daily_loss": 400.0,
-                "description": "Calendar spread strategy for time decay"
+            "capital_allocation": {
+                "cash_reserve_pct": 0.10,          # 10% cash reserve
+                "stock_allocation_pct": 0.40,      # 40% stocks swing trading
+                "options_day_trading_pct": 0.25,   # 25% day trading options
+                "options_swing_trading_pct": 0.25  # 25% swing trading options
             }
-        ],
-        "trailing_stops": {
-            "iron_condor": {
-                "profit_threshold": 0.5,  # 50% profit
-                "trail_percentage": 0.05,  # 5% below current
-                "min_profit": 0.3  # Minimum profit to activate
-            },
-            "butterfly_spread": {
-                "profit_threshold": 0.3,  # 30% profit
-                "trail_percentage": 0.03,  # 3% below current
-                "min_profit": 0.2
-            },
-            "calendar_spread": {
-                "profit_threshold": 0.4,  # 40% profit
-                "trail_percentage": 0.04,  # 4% below current
-                "min_profit": 0.25
-            }
-        },
-        "portfolio_limits": {
-            "max_total_exposure": 0.20,  # 20% total portfolio exposure
-            "max_single_symbol": 0.10,  # 10% max per symbol
-            "max_daily_loss": 1000.0,  # $1000 max daily loss
-            "max_daily_trades": 15,  # 15 trades per day max
-            "min_cash_reserve": 0.20  # 20% cash reserve
         }
-    }
 
 async def main():
     """Main function to set up live trading strategies"""
@@ -309,17 +314,17 @@ async def main():
             logger.error("❌ Live trading service is not healthy. Exiting.")
             return
         
-        # Get Public.com access token from environment or user input
-        access_token = os.getenv("PUBLIC_API_KEY")
-        if not access_token:
-            access_token = input("Enter your Public.com access token: ").strip()
-            if not access_token:
-                logger.error("❌ No access token provided. Exiting.")
+        # Get Public.com secret key from environment or user input
+        secret_key = os.getenv("PUBLIC_API_SECRET")
+        if not secret_key:
+            secret_key = input("Enter your Public.com secret key: ").strip()
+            if not secret_key:
+                logger.error("❌ No secret key provided. Exiting.")
                 return
         
         # Connect to Public.com
         logger.info("🔗 Connecting to Public.com...")
-        if not await setup.connect_to_public(access_token):
+        if not await setup.connect_to_public(secret_key):
             logger.error("❌ Failed to connect to Public.com. Exiting.")
             return
         
@@ -377,6 +382,12 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+
+
+
+
 
 
 

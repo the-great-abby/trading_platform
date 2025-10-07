@@ -111,3 +111,13 @@ Represents the user interface for performing secret management operations.
 4. **Namespace**: All operations must be scoped to specified namespace
 5. **Validation**: All secret values must pass validation before cluster operations
 
+
+
+
+
+
+
+
+
+
+

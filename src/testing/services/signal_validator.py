@@ -386,3 +386,13 @@ class SignalValidator:
             'recommendations': recommendations
         }
 
+
+
+
+
+
+
+
+
+
+

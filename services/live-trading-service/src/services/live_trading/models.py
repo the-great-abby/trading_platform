@@ -79,6 +79,9 @@ class StrategyType(str, Enum):
     # Advanced options
     ENHANCED_IRON_CONDOR = "ENHANCED_IRON_CONDOR"
     OPTIONS_WHEEL = "OPTIONS_WHEEL"
+    
+    # Multi-Strategy Ensemble
+    MULTI_STRATEGY_ENSEMBLE = "MULTI_STRATEGY_ENSEMBLE"
 
 
 class OptionType(str, Enum):

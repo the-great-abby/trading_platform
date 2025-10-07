@@ -1,0 +1,73 @@
+# Makefile for Fixing TEMP Orders
+# Easy commands to link TEMP orders to real Public.com order IDs
+
+.PHONY: help show-temp-orders update-order verify-orders list-public-orders match-orders
+
+help:
+	@echo "🔗 Order Linking Helper"
+	@echo ""
+	@echo "Commands:"
+	@echo "  make -f Makefile.order-fix show-temp-orders              - Show all TEMP orders"
+	@echo "  make -f Makefile.order-fix list-public-orders            - List recent orders from Public.com (with UUIDs)"
+	@echo "  make -f Makefile.order-fix match-orders                  - Auto-match TEMP orders to Public.com orders"
+	@echo "  make -f Makefile.order-fix update-order TEMP=xxx REAL=yyy PRICE=zzz - Update one order manually"
+	@echo "  make -f Makefile.order-fix verify-orders                 - Verify all orders are linked"
+	@echo ""
+	@echo "Workflow:"
+	@echo "  1. make -f Makefile.order-fix show-temp-orders           - See what needs fixing"
+	@echo "  2. make -f Makefile.order-fix list-public-orders         - Get Public.com order IDs"
+	@echo "  3. make -f Makefile.order-fix match-orders               - Auto-match by symbol/time/qty"
+	@echo ""
+
+# Show all TEMP orders that need to be linked
+show-temp-orders:
+	@echo "📋 TEMP Orders Needing Real Order IDs:"
+	@echo ""
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}') && \
+	kubectl exec -n default $$POD -- python3 /tmp/show_temp_orders.py
+	@echo ""
+	@echo "Next: make -f Makefile.order-fix update-order TEMP=xxx REAL=yyy PRICE=zzz"
+
+# Update a single TEMP order with real order ID
+update-order:
+	@if [ -z "$(TEMP)" ] || [ -z "$(REAL)" ] || [ -z "$(PRICE)" ]; then \
+		echo "❌ Missing parameters!"; \
+		echo ""; \
+		echo "Usage:"; \
+		echo "  make -f Makefile.order-fix update-order TEMP=xxx REAL=yyy PRICE=zzz"; \
+		echo ""; \
+		echo "Example:"; \
+		echo "  make -f Makefile.order-fix update-order \\"; \
+		echo "    TEMP=TEMP_1759862702.040189 \\"; \
+		echo "    REAL=abc12345-1234-5678-9012-123456789012 \\"; \
+		echo "    PRICE=450.25"; \
+		exit 1; \
+	fi
+	@echo "🔄 Updating order..."
+	@echo "   TEMP ID: $(TEMP)"
+	@echo "   Real ID: $(REAL)"
+	@echo "   Price: $$$(PRICE)"
+	@echo ""
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}') && \
+	kubectl exec -n default $$POD -- python3 /tmp/update_temp_order.py "$(TEMP)" "$(REAL)" "$(PRICE)"
+	@echo ""
+	@echo "Run 'make -f Makefile.order-fix show-temp-orders' to see remaining TEMP orders"
+
+# Auto-match TEMP orders to Public.com orders
+match-orders:
+	@echo "🤖 Auto-Matching Orders..."
+	@echo ""
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}') && \
+	kubectl cp scripts/auto_match_orders.py $$POD:/tmp/auto_match_orders.py && \
+	kubectl exec -n default $$POD -- python3 /tmp/auto_match_orders.py
+	@echo ""
+	@echo "Run 'make -f Makefile.order-fix verify-orders' to check results"
+
+# Verify all orders are properly linked
+verify-orders:
+	@echo "🔍 Verifying Order Linkage:"
+	@echo ""
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}') && \
+	kubectl exec -n default $$POD -- python3 /tmp/verify_orders.py 2>/dev/null || \
+	kubectl exec -n default $$POD -- python3 -c "import asyncio; from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession; from sqlalchemy.orm import sessionmaker; from sqlalchemy import text; import os; async def verify(): engine = create_async_engine(os.getenv('DATABASE_URL')); async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False); async with async_session() as session: temp_result = await session.execute(text('SELECT COUNT(*) FROM live_trades WHERE public_order_id LIKE \\'TEMP_%\\'')); temp_count = temp_result.scalar(); filled_result = await session.execute(text('SELECT COUNT(*) FROM live_trades WHERE status = \\'FILLED\\' AND public_order_id NOT LIKE \\'TEMP_%\\'')); filled_count = filled_result.scalar(); pending_result = await session.execute(text('SELECT COUNT(*) FROM live_trades WHERE status = \\'PENDING\\' AND public_order_id NOT LIKE \\'TEMP_%\\'')); pending_count = pending_result.scalar(); print(f'📊 Order Status:'); print(f'   ⚠️  TEMP orders (need fixing): {temp_count}'); print(f'   ✅ Filled orders (linked): {filled_count}'); print(f'   ⏳ Pending orders (linked): {pending_count}'); print('\\n🎉 All orders are properly linked!' if temp_count == 0 else f'\\n⚠️  You still have {temp_count} TEMP orders to fix'); asyncio.run(verify())"
+	@echo ""

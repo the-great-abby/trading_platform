@@ -1,33 +1,44 @@
 # Live Trading Operations Makefile
 # User-friendly targets for managing live trading system
 
-.PHONY: live-trading-help live-trading-status live-trading-refresh-token live-trading-monitor live-trading-start live-trading-stop live-trading-restart live-trading-logs live-trading-health
+.PHONY: live-trading-help live-trading-status live-trading-refresh-token live-trading-monitor live-trading-start live-trading-stop live-trading-restart live-trading-logs live-trading-health live-trading-service-status live-trading-service-health live-trading-service-logs live-trading-service-restart live-trading-monitor-api live-trading-orders live-trading-positions live-trading-account live-trading-debug
 
 # Live Trading Help
 live-trading-help:
 	@echo "🚀 LIVE TRADING OPERATIONS"
 	@echo "=========================="
 	@echo ""
-	@echo "📊 Status & Health:"
-	@echo "  make live-trading-status     - Check live trading system status"
-	@echo "  make live-trading-health     - Quick health check"
-	@echo "  make live-trading-logs       - View live trading service logs"
+	@echo "🚀 NEW: Database-backed live trading with persistent orders!"
+	@echo "🔄 Real-time monitoring with API integration"
+	@echo ""
+	@echo "📊 Service Status & Health:"
+	@echo "  make live-trading-service-status  - Check live trading service status"
+	@echo "  make live-trading-service-health  - Quick service health check"
+	@echo "  make live-trading-service-logs    - View live trading service logs"
+	@echo "  make live-trading-service-restart - Restart live trading service"
+	@echo ""
+	@echo "📈 Database & API Monitoring:"
+	@echo "  make live-trading-monitor-api     - Start API-based monitor (NEW!)"
+	@echo "  make live-trading-orders          - View orders from database"
+	@echo "  make live-trading-positions       - View positions from database"
+	@echo "  make live-trading-account         - View account information"
+	@echo ""
+	@echo "🔄 Legacy System (for compatibility):"
+	@echo "  make live-trading-status          - Check legacy live trading status"
+	@echo "  make live-trading-health         - Legacy health check"
+	@echo "  make live-trading-monitor        - Legacy monitor"
+	@echo "  make live-trading-start          - Start legacy live trading"
+	@echo "  make live-trading-stop           - Stop legacy live trading"
 	@echo ""
 	@echo "🔑 Token Management:"
 	@echo "  make live-trading-refresh-token  - Refresh Public.com access token"
 	@echo "  make live-trading-fix-credentials - Fix encryption key issues"
 	@echo ""
-	@echo "🔄 Service Management:"
-	@echo "  make live-trading-start      - Start live trading service"
-	@echo "  make live-trading-stop       - Stop live trading service"
-	@echo "  make live-trading-restart    - Restart live trading service"
-	@echo ""
-	@echo "📈 Monitoring:"
-	@echo "  make live-trading-monitor    - Start live trading monitoring"
+	@echo "📈 Legacy Monitoring:"
 	@echo "  make live-trading-monitor-continuous - Continuous monitoring (every 5 min)"
 	@echo ""
 	@echo "🔧 Troubleshooting:"
-	@echo "  make live-trading-debug      - Debug live trading issues"
+	@echo "  make live-trading-debug          - Debug live trading issues"
 	@echo "  make live-trading-reset      - Reset live trading system"
 
 # Live Trading Status
@@ -181,10 +192,92 @@ live-trading-reset:
 	@echo "✅ Live Trading System reset complete!"
 	@echo "💡 Run 'make live-trading-refresh-token' to authenticate"
 
+# =============================================================================
+# NEW DATABASE-BACKED LIVE TRADING SERVICE TARGETS
+# =============================================================================
 
+# Live Trading Service Status
+live-trading-service-status:
+	@echo "🔍 Checking Live Trading Service Status..."
+	@echo ""
+	@echo "📊 Service Health:"
+	@curl -s http://localhost:11120/health 2>/dev/null | jq -r '.status // "❌ Service Unavailable"' || echo "❌ Service Unavailable"
+	@echo ""
+	@echo "📊 Database Connection:"
+	@curl -s http://localhost:11120/health 2>/dev/null | jq -r '.checks.database // "❌ Database Unavailable"' || echo "❌ Database Unavailable"
+	@echo ""
+	@echo "📊 Redis Connection:"
+	@curl -s http://localhost:11120/health 2>/dev/null | jq -r '.checks.redis // "❌ Redis Unavailable"' || echo "❌ Redis Unavailable"
+	@echo ""
+	@echo "📊 Service Version:"
+	@curl -s http://localhost:11120/health 2>/dev/null | jq -r '.version // "Unknown"' || echo "Unknown"
 
+# Live Trading Service Health Check
+live-trading-service-health:
+	@echo "🏥 Live Trading Service Health Check..."
+	@if curl -s http://localhost:11120/health >/dev/null 2>&1; then \
+		echo "✅ Service: Healthy"; \
+	else \
+		echo "❌ Service: Unhealthy"; \
+		exit 1; \
+	fi
+	@if curl -s http://localhost:11120/health | jq -e '.checks.database == "healthy"' >/dev/null 2>&1; then \
+		echo "✅ Database: Connected"; \
+	else \
+		echo "❌ Database: Disconnected"; \
+		exit 1; \
+	fi
+	@if curl -s http://localhost:11120/health | jq -e '.checks.redis == "healthy"' >/dev/null 2>&1; then \
+		echo "✅ Redis: Connected"; \
+	else \
+		echo "❌ Redis: Disconnected"; \
+		exit 1; \
+	fi
 
+# Live Trading Service Logs
+live-trading-service-logs:
+	@echo "📋 Live Trading Service Logs (last 20 lines):"
+	@kubectl logs -n trading-system deployment/live-trading-service --tail=20
 
+# Live Trading Service Restart
+live-trading-service-restart:
+	@echo "🔄 Restarting Live Trading Service..."
+	@kubectl rollout restart deployment live-trading-service -n trading-system
+	@echo "⏳ Waiting for service to restart..."
+	@sleep 15
+	@kubectl get pods -n trading-system | grep live-trading
+	@echo "✅ Live Trading Service restarted"
 
+# Live Trading Monitor (API-based)
+live-trading-monitor-api:
+	@echo "📊 Starting API-based Live Trading Monitor..."
+	@echo "🔗 This monitor fetches data from the database via API"
+	@echo "📊 Shows persistent orders and real-time performance"
+	@echo ""
+	@python3 scripts/live_trading_monitor_api.py
+
+# Live Trading Orders
+live-trading-orders:
+	@echo "📈 Live Trading Orders from Database..."
+	@echo ""
+	@echo "📊 Total Orders:"
+	@curl -s "http://localhost:11120/api/v1/trading/orders?account_id=19c25392-8b61-4b71-a344-0eb04d275528" | jq -r '.total_count // "0"' || echo "0"
+	@echo ""
+	@echo "📈 Recent Orders:"
+	@curl -s "http://localhost:11120/api/v1/trading/orders?account_id=19c25392-8b61-4b71-a344-0eb04d275528" | jq -r '.orders[]? | "\(.created_at): \(.symbol) \(.strategy) - \(.status) - P&L: $\(.premium)"' || echo "No orders found"
+
+# Live Trading Positions
+live-trading-positions:
+	@echo "💼 Live Trading Positions from Database..."
+	@echo ""
+	@echo "📊 Active Positions:"
+	@curl -s "http://localhost:11120/api/v1/trading/positions?account_id=19c25392-8b61-4b71-a344-0eb04d275528" | jq -r '.positions[]? | "\(.symbol): \(.quantity) @ $\(.average_price) - P&L: $\(.unrealized_pnl // 0)"' || echo "No positions found"
+
+# Live Trading Account
+live-trading-account:
+	@echo "💰 Live Trading Account Information..."
+	@echo ""
+	@echo "📊 Account Details:"
+	@curl -s "http://localhost:11120/api/v1/accounts" | jq -r '.accounts[0] | "Account ID: \(.account_id)\nBalance: $\(.cash_balance)\nBuying Power: $\(.buying_power)\nEquity: $\(.equity)"' || echo "❌ Cannot retrieve account info"
 
 

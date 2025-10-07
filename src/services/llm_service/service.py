@@ -116,6 +116,17 @@ class LLMService:
         #     max_retries=self.max_retries
         # )
         self.llm_client = None
+        # Enhanced timeout handling
+        self.timeout_handler = EnhancedTimeoutHandler()
+        self.timeout_handler.register_timeout_callback('llm_service', self._handle_llm_timeout)
+        
+        # Circuit breaker for LLM calls
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=5,
+            recovery_timeout=60,
+            expected_exception=Exception
+        )
+
         
         # Service state
         self.is_initialized = False

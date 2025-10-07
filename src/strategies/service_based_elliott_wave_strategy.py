@@ -11,6 +11,9 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+from src.services.circuit_breaker import CircuitBreaker
+from src.services.service_health_monitor import ServiceHealthMonitor
+
 from .base import BaseStrategy
 from ..core.types import TradeSignal
 
@@ -31,9 +34,42 @@ class ServiceBasedElliottWaveStrategy(BaseStrategy):
                  confidence_threshold: float = 0.6,
                  **kwargs):
         super().__init__(name=name, **kwargs)
+        
+        # Service resilience
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=3,
+            recovery_timeout=30,
+            expected_exception=Exception
+        )
+        self.service_health_monitor = ServiceHealthMonitor()
         self.service_url = service_url
         self.confidence_threshold = confidence_threshold
         
+    async def _safe_service_call(self, service_name: str, call_func, *args, **kwargs):
+        """Make a safe service call with circuit breaker protection"""
+        try:
+            # Check circuit breaker
+            if not self.circuit_breaker.can_execute():
+                logger.warning(f"🚫 Circuit breaker OPEN for {service_name}")
+                return None
+            
+            # Make the call
+            result = await call_func(*args, **kwargs)
+            
+            # Record success
+            self.circuit_breaker.record_success()
+            self.service_health_monitor.record_success(service_name)
+            
+            return result
+            
+        except Exception as e:
+            # Record failure
+            self.circuit_breaker.record_failure()
+            self.service_health_monitor.record_failure(service_name, str(e))
+            
+            logger.error(f"❌ Service call failed for {service_name}: {e}")
+            return None
+
     async def analyze_elliott_wave_pattern(self, symbol: str, historical_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Analyze Elliott Wave pattern using the service"""
         try:
@@ -117,12 +153,12 @@ class ServiceBasedElliottWaveStrategy(BaseStrategy):
             return None
         
         # Calculate position size with conservative risk management
-        capital_allocation = 1000.0  # $1000 per strategy
-        risk_percentage = min(0.005, confidence * 0.01)  # 0.5% max risk, scaled by confidence
+        capital_allocation = 4000.0 * 0.95  # $3800 available (5% cash reserve)
+        risk_percentage = min(0.20, confidence * 0.20)  # 20% max position size, scaled by confidence
         quantity = self.calculate_position_size(capital_allocation, current_price, risk_percentage)
         
         # Additional safety: limit maximum position size to 5% of capital
-        max_shares = int(capital_allocation * 0.05 / current_price)  # 5% of capital max
+        max_shares = int(capital_allocation * 0.20 / current_price)  # 20% of capital max
         quantity = min(quantity, max_shares)
         
         # Ensure minimum viable position
@@ -162,6 +198,14 @@ class ServiceBasedElliottWaveImpulseStrategy(ServiceBasedElliottWaveStrategy):
                  confidence_threshold: float = 0.7,  # Higher threshold for impulse patterns
                  **kwargs):
         super().__init__(name=name, service_url=service_url, confidence_threshold=confidence_threshold, **kwargs)
+        
+        # Service resilience
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=3,
+            recovery_timeout=30,
+            expected_exception=Exception
+        )
+        self.service_health_monitor = ServiceHealthMonitor()
     
     async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate Elliott Wave impulse trading signal using the service"""
@@ -197,12 +241,12 @@ class ServiceBasedElliottWaveImpulseStrategy(ServiceBasedElliottWaveStrategy):
             action = 'SELL'
         
         # Calculate position size with conservative risk management
-        capital_allocation = 1000.0  # $1000 per strategy
+        capital_allocation = 4000.0 * 0.95  # $3800 available (5% cash reserve)
         risk_percentage = min(0.003, confidence * 0.005)  # 0.3% max risk, scaled by confidence
         quantity = self.calculate_position_size(capital_allocation, current_price, risk_percentage)
         
         # Additional safety: limit maximum position size to 3% of capital
-        max_shares = int(capital_allocation * 0.03 / current_price)  # 3% of capital max
+        max_shares = int(capital_allocation * 0.20 / current_price)  # 20% of capital max
         quantity = min(quantity, max_shares)
         
         # Ensure minimum viable position
@@ -243,6 +287,14 @@ class ServiceBasedElliottWaveCorrectiveStrategy(ServiceBasedElliottWaveStrategy)
                  confidence_threshold: float = 0.6,  # Lower threshold for corrective patterns
                  **kwargs):
         super().__init__(name=name, service_url=service_url, confidence_threshold=confidence_threshold, **kwargs)
+        
+        # Service resilience
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=3,
+            recovery_timeout=30,
+            expected_exception=Exception
+        )
+        self.service_health_monitor = ServiceHealthMonitor()
     
     async def generate_signal(self, symbol: str, data: pd.DataFrame, historical_date: Optional[str] = None) -> Optional[TradeSignal]:
         """Generate Elliott Wave corrective trading signal using the service"""
@@ -279,7 +331,7 @@ class ServiceBasedElliottWaveCorrectiveStrategy(ServiceBasedElliottWaveStrategy)
             action = 'BUY'   # Expecting upward correction
         
         # Calculate position size with conservative risk management
-        capital_allocation = 1000.0  # $1000 per strategy
+        capital_allocation = 4000.0 * 0.95  # $3800 available (5% cash reserve)
         risk_percentage = min(0.004, confidence * 0.008)  # 0.4% max risk, scaled by confidence
         quantity = self.calculate_position_size(capital_allocation, current_price, risk_percentage)
         

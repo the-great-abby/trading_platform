@@ -9,7 +9,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers
 revision = 'add_trade_recovery_tables'
-down_revision = 'previous_revision'  # Update this to the latest revision
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -116,6 +116,12 @@ def downgrade():
     
     op.drop_index(op.f('ix_active_trades_account_id'), table_name='active_trades')
     op.drop_table('active_trades')
+
+
+
+
+
+
 
 
 

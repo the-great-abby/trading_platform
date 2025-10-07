@@ -58,6 +58,9 @@ class EnhancedMultiStrategy(BaseStrategy):
                  **kwargs):
         super().__init__(name="Enhanced_Multi_Strategy", **kwargs)
         
+        # Strategy type for ensemble compatibility
+        self.strategy_type = 'swing_trading'
+        
         # Entry strategy
         self.entry_strategy = AdaptiveSectorWaveStrategy()
         
@@ -113,8 +116,8 @@ class EnhancedMultiStrategy(BaseStrategy):
         if not entry_signal or entry_signal.confidence < self.entry_confidence_threshold:
             return None
         
-        # Adjust position size based on available cash
-        available_cash = 3200  # $4,000 - $800 cash reserve
+        # Adjust position size based on available cash (from configuration)
+        available_cash = 3800  # $4,000 - $200 cash reserve (5% cash reserve)
         position_size_pct = self.position_size_pct
         quantity = (available_cash * position_size_pct) / entry_signal.price
         
@@ -159,10 +162,20 @@ class EnhancedMultiStrategy(BaseStrategy):
         entry_date = position['entry_date']
         quantity = position['quantity']
         
-        # Check position duration
-        position_duration = (datetime.now() - entry_date).days
-        if position_duration > self.max_position_duration_days:
-            logger.info(f"⏰ TIME EXIT: {symbol} - Position held for {position_duration} days")
+        # Check position duration (realistic holding periods)
+        # Use historical_date for backtesting, current time for live trading
+        if historical_date:
+            current_date = datetime.strptime(historical_date, '%Y-%m-%d')
+        else:
+            current_date = datetime.now()
+        
+        position_duration = (current_date - entry_date).days
+        
+        # Realistic holding periods based on strategy type
+        max_holding_days = 7 if self.strategy_type == 'day_trading' else 30
+        
+        if position_duration > max_holding_days:
+            logger.info(f"⏰ TIME EXIT: {symbol} - Position held for {position_duration} days (max: {max_holding_days})")
             return self._create_exit_signal(symbol, data, "TIME_EXIT", 0.8)
         
         # Check profit/loss targets

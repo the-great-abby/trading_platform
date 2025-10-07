@@ -606,3 +606,13 @@ class _MockIronCondorStrategy:
     def calculate_position_size(self, capital: float, price: float, risk_percentage: float = 0.02):
         return (capital * risk_percentage) / price
 
+
+
+
+
+
+
+
+
+
+

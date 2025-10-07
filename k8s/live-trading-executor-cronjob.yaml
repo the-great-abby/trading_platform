@@ -1,0 +1,223 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: live-trading-executor
+  namespace: default
+  labels:
+    app: live-trading-executor
+    job-type: cronjob
+    purpose: automated-trading
+spec:
+  # Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
+  # This translates to: */15 14-21 * * 1-5 (UTC time for ET market hours)
+  # However, we'll run more frequently and let the script check market hours
+  schedule: "*/15 * * * 1-5"  # Every 15 minutes, Monday-Friday
+  
+  # Don't run concurrent jobs - wait for previous to complete
+  concurrencyPolicy: Forbid
+  
+  # Keep history for debugging
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  
+  # Timeout if job runs too long
+  startingDeadlineSeconds: 300  # 5 minutes grace period to start
+  
+  jobTemplate:
+    spec:
+      # Timeout for the job itself
+      activeDeadlineSeconds: 900  # 15 minutes max runtime
+      
+      # Don't retry on failure - wait for next scheduled run
+      backoffLimit: 0
+      
+      template:
+        metadata:
+          labels:
+            app: live-trading-executor
+            job-type: cronjob-instance
+        spec:
+          restartPolicy: Never
+          
+          containers:
+          - name: live-trading-executor
+            image: curlimages/curl:latest
+            imagePullPolicy: IfNotPresent
+            
+            # Execute strategy via API call
+            command: 
+              - /bin/sh
+              - -c
+              - |
+                echo "🚀 Live Trading Executor - $(date)"
+                
+                # Check emergency stop
+                if [ "$TRADING_ENABLED" = "false" ]; then
+                  echo "🛑 Trading halted by TRADING_ENABLED flag"
+                  exit 0
+                fi
+                
+                # Check market hours (simple check - day and hour)
+                DAY=$(date +%u)
+                if [ "$DAY" -ge 6 ]; then
+                  echo "📴 Weekend - skipping execution"
+                  exit 0
+                fi
+                
+                echo "✅ Executing trading strategy: $STRATEGY_NAME"
+                
+                # Call Live Trading Service API
+                curl -X POST \
+                  "$LIVE_TRADING_SERVICE_URL/api/v1/strategies/execute?account_id=$TRADING_ACCOUNT_ID" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"strategy_name\":\"$STRATEGY_NAME\"}" \
+                  -v
+                
+                exit_code=$?
+                if [ $exit_code -eq 0 ]; then
+                  echo "✅ Execution completed"
+                else
+                  echo "❌ Execution failed with code $exit_code"
+                fi
+                exit $exit_code
+            
+            env:
+            # Live Trading Service connection
+            - name: LIVE_TRADING_SERVICE_URL
+              value: "http://live-trading-service.default.svc.cluster.local:8080"
+            
+            # Strategy Service connection
+            - name: STRATEGY_SERVICE_URL
+              value: "http://strategy-service.trading-system.svc.cluster.local:80"
+            
+            # Market Data Service connection
+            - name: MARKET_DATA_SERVICE_URL
+              value: "http://market-data-service.trading-system.svc.cluster.local:11084"
+            
+            # Account ID for trading (replace with your actual account ID)
+            - name: TRADING_ACCOUNT_ID
+              value: "19c25392-8b61-4b71-a344-0eb04d275528"
+            
+            # Trading mode (paper or live)
+            - name: TRADING_MODE
+              value: "paper"  # Change to "live" when ready for real trading
+            
+            # Risk limits
+            - name: MAX_DAILY_LOSS
+              value: "500"  # Max $500 loss per day
+            
+            - name: MAX_POSITION_SIZE
+              value: "0.20"  # Max 20% of portfolio per position
+            
+            - name: MAX_POSITIONS
+              value: "5"  # Max 5 concurrent positions
+            
+            - name: MAX_PORTFOLIO_HEAT
+              value: "0.30"  # Max 30% of portfolio at risk
+            
+            # Market hours enforcement
+            - name: ENFORCE_MARKET_HOURS
+              value: "true"
+            
+            - name: MARKET_OPEN_TIME
+              value: "09:30"
+            
+            - name: MARKET_CLOSE_TIME
+              value: "16:00"
+            
+            - name: MARKET_TIMEZONE
+              value: "America/New_York"
+            
+            # Strategy selection
+            - name: STRATEGY_NAME
+              value: "MultiStrategyEnsemble"
+            
+            # Symbols to trade
+            - name: TRADING_SYMBOLS
+              value: "SPY,QQQ,AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX"
+            
+            # Logging
+            - name: LOG_LEVEL
+              value: "INFO"
+            
+            - name: PYTHONPATH
+              value: "/app"
+            
+            # Timeouts
+            - name: REQUEST_TIMEOUT
+              value: "30"
+            
+            # Enable/disable trading (emergency kill switch)
+            - name: TRADING_ENABLED
+              value: "true"  # Set to "false" to disable all trading
+            
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: live-trading-executor-emergency-stop
+  namespace: default
+data:
+  # Set to "true" to emergency stop all trading
+  emergency_stop: "false"
+  
+  # Reason for emergency stop (for logging)
+  stop_reason: ""
+  
+  # When emergency stop was triggered
+  stop_timestamp: ""
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: live-trading-executor-role
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["live-trading-executor-emergency-stop"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: live-trading-executor-rolebinding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: Role
+  name: live-trading-executor-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Service Monitor for Prometheus (optional)
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-trading-executor-metrics
+  namespace: default
+  labels:
+    app: live-trading-executor
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: live-trading-executor
+  ports:
+  - name: metrics
+    port: 8000
+    targetPort: 8000
+

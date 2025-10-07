@@ -4,6 +4,8 @@ Live Data Options Paper Trading Engine
 Uses real market data when available, falls back to realistic simulated data
 """
 
+import sys
+import os
 import asyncio
 import aiohttp
 import json
@@ -15,6 +17,12 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import math
+
+# Add project root to Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+from src.services.market_data.unified_options_pricing_service import unified_options_pricing
 
 # Configure logging
 logging.basicConfig(
@@ -1049,6 +1057,9 @@ class LiveDataOptionsPaperTradingEngine:
         # Add to active positions for exit tracking
         self.active_positions.append(trade.copy())
         
+        # Send trade to paper trading service
+        await self.send_trade_to_paper_service(trade)
+        
         # Log trade
         if elliott_analysis:
             logger.info(f"🌊 Elliott Wave Trade: {strategy} -> {trade['options_strategy']} {contracts} contracts {symbol} @ ${current_price:.2f}")
@@ -1066,6 +1077,51 @@ class LiveDataOptionsPaperTradingEngine:
         self.save_portfolio_status()
         
         return trade
+    
+    async def send_trade_to_paper_service(self, trade: Dict):
+        """Send trade to the paper trading service"""
+        try:
+            paper_service_url = "http://localhost:11190"
+            account_id = "19c25392-8b61-4b71-a344-0eb04d275528"
+            
+            # Convert trade to order format expected by paper trading service
+            order_data = {
+                "symbol": trade['symbol'],
+                "strategy": trade.get('options_strategy', trade['strategy']),
+                "legs": [
+                    {
+                        "action": "BUY",
+                        "option_type": "CALL",  # Default to CALL for butterfly spread
+                        "strike_price": trade['current_price'] * 1.02,  # 2% OTM
+                        "expiration_date": (datetime.now() + timedelta(days=30)).isoformat(),
+                        "quantity": trade['contracts'],
+                        "premium": trade['premium']
+                    }
+                ],
+                "order_type": "MARKET",
+                "time_in_force": "DAY",
+                "estimated_premium": trade['premium'],
+                "estimated_risk": trade['trade_value'],
+                "greeks": trade.get('greeks', {})
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                # Send order to paper trading service
+                async with session.post(
+                    f"{paper_service_url}/api/v1/trading/orders",
+                    json=order_data,
+                    params={"account_id": account_id},
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        logger.info(f"✅ Trade sent to paper trading service: Order ID {result.get('order_id', 'unknown')}")
+                    else:
+                        error_text = await response.text()
+                        logger.warning(f"⚠️ Failed to send trade to paper service: {response.status} - {error_text}")
+                        
+        except Exception as e:
+            logger.error(f"❌ Error sending trade to paper service: {e}")
 
     async def run_continuous_trading(self, interval_seconds: int = 60):
         """Run continuous options trading with live data and advanced capital allocation"""

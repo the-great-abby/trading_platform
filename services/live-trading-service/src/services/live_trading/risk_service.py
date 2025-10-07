@@ -53,6 +53,7 @@ class OrderRiskData:
     estimated_risk: float
     greeks: Dict[str, float]
     position_size: float
+    action: str = "BUY"  # BUY or SELL
 
 
 class RiskService:
@@ -101,7 +102,19 @@ class RiskService:
             violations = []
             risk_score = 0.0
             
-            # Validate position size
+            # SELL orders (exits) bypass most risk checks
+            is_exit = order_data.action == "SELL"
+            if is_exit:
+                logger.info(f"✅ SELL order for {order_data.symbol} - bypassing risk checks (exit position)")
+                return RiskValidationResult(
+                    approved=True,
+                    risk_score=0.0,
+                    warnings=["Exit order - risk checks bypassed"],
+                    errors=[],
+                    violations=[]
+                )
+            
+            # Validate position size (only for BUY orders)
             position_size_result = await self._validate_position_size(risk_profile, order_data)
             if not position_size_result["approved"]:
                 errors.append(position_size_result["message"])
@@ -289,7 +302,7 @@ class RiskService:
             
             # Calculate portfolio value for risk percentage
             portfolio_value = await self._get_portfolio_value(account_id)
-            max_risk_amount = portfolio_value * risk_profile.max_portfolio_risk
+            max_risk_amount = portfolio_value * float(risk_profile.max_portfolio_risk)
             
             if new_total_risk > max_risk_amount:
                 return {
@@ -408,15 +421,18 @@ class RiskService:
         current_size = await self._get_current_position_size(str(risk_profile.account_id))
         new_total_size = current_size + order_data.position_size
         
-        if new_total_size > risk_profile.max_position_size:
+        # Convert Decimal to float for comparison
+        max_position_size = float(risk_profile.max_position_size)
+        
+        if new_total_size > max_position_size:
             return {
                 "approved": False,
-                "message": f"Position size limit exceeded: {new_total_size} > {risk_profile.max_position_size}"
+                "message": f"Position size limit exceeded: {new_total_size} > {max_position_size}"
             }
-        elif new_total_size > risk_profile.max_position_size * 0.9:
+        elif new_total_size > max_position_size * 0.9:
             return {
                 "approved": True,
-                "warning": f"Approaching position size limit: {new_total_size}/{risk_profile.max_position_size}"
+                "warning": f"Approaching position size limit: {new_total_size}/{max_position_size}"
             }
         
         return {"approved": True, "warning": None}
@@ -426,7 +442,9 @@ class RiskService:
         portfolio_value = await self._get_portfolio_value(account_id)
         current_risk = await self._get_current_portfolio_risk(account_id)
         new_total_risk = current_risk + order_data.estimated_risk
-        max_risk_amount = portfolio_value * risk_profile.max_portfolio_risk
+        
+        # Convert Decimal to float for calculation
+        max_risk_amount = portfolio_value * float(risk_profile.max_portfolio_risk)
         
         if new_total_risk > max_risk_amount:
             return {
@@ -447,15 +465,18 @@ class RiskService:
         potential_loss = order_data.estimated_risk
         new_total_loss = current_loss + potential_loss
         
-        if new_total_loss > risk_profile.max_daily_loss:
+        # Convert Decimal to float for comparison
+        max_daily_loss = float(risk_profile.max_daily_loss)
+        
+        if new_total_loss > max_daily_loss:
             return {
                 "approved": False,
-                "message": f"Daily loss limit exceeded: {new_total_loss} > {risk_profile.max_daily_loss}"
+                "message": f"Daily loss limit exceeded: {new_total_loss} > {max_daily_loss}"
             }
-        elif new_total_loss > risk_profile.max_daily_loss * 0.9:
+        elif new_total_loss > max_daily_loss * 0.9:
             return {
                 "approved": True,
-                "warning": f"Approaching daily loss limit: {new_total_loss}/{risk_profile.max_daily_loss}"
+                "warning": f"Approaching daily loss limit: {new_total_loss}/{max_daily_loss}"
             }
         
         return {"approved": True, "warning": None}
@@ -464,12 +485,15 @@ class RiskService:
         """Validate daily trade count against limits."""
         current_trades = await self._get_current_daily_trades(account_id)
         
-        if current_trades >= risk_profile.max_daily_trades:
+        # Convert Decimal to int for comparison  
+        max_daily_trades = int(risk_profile.max_daily_trades)
+        
+        if current_trades >= max_daily_trades:
             return {
                 "approved": False,
-                "message": f"Daily trade limit exceeded: {current_trades} >= {risk_profile.max_daily_trades}"
+                "message": f"Daily trade limit exceeded: {current_trades} >= {max_daily_trades}"
             }
-        elif current_trades >= risk_profile.max_daily_trades * 0.9:
+        elif current_trades >= max_daily_trades * 0.9:
             return {
                 "approved": True,
                 "warning": f"Approaching daily trade limit: {current_trades}/{risk_profile.max_daily_trades}"

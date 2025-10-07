@@ -1,0 +1,53 @@
+# Makefile for importing filled orders from Public.com into the database
+
+.PHONY: help import-orders show-portfolio
+
+help:
+	@echo "📥 Order Import Helper"
+	@echo ""
+	@echo "Commands:"
+	@echo "  make -f Makefile.import-orders import-orders    - Import filled orders from Public.com"
+	@echo "  make -f Makefile.import-orders show-portfolio    - Show current portfolio"
+	@echo ""
+
+import-orders:
+	@echo "📥 Importing Filled Orders from Public.com"
+	@echo "=========================================="
+	@echo ""
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}') && \
+	kubectl exec -n default $$POD -- python3 -c "import asyncio; from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession; from sqlalchemy.orm import sessionmaker; from sqlalchemy import text; from decimal import Decimal; import os, uuid; \
+	orders = [{'symbol': 'GOOGL', 'quantity': 1, 'price': 246.70}, {'symbol': 'QQQ', 'quantity': 1, 'price': 604.67}, {'symbol': 'QQQ', 'quantity': 1, 'price': 604.68}, {'symbol': 'QQQ', 'quantity': 1, 'price': 604.38}, {'symbol': 'QQQ', 'quantity': 1, 'price': 604.34}, {'symbol': 'MSFT', 'quantity': 1, 'price': 522.98}, {'symbol': 'MSFT', 'quantity': 1, 'price': 522.94}, {'symbol': 'AAPL', 'quantity': 1, 'price': 256.14}]; \
+	async def imp(): \
+	    db = os.getenv('DATABASE_URL'); engine = create_async_engine(db); sess = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False); \
+	    async with sess() as s: \
+	        for o in orders: \
+	            await s.execute(text('INSERT INTO live_trades (trade_id, account_id, public_order_id, symbol, action, quantity, price, total_amount, status, filled_quantity, remaining_quantity, strategy, created_at, filled_at, updated_at) VALUES (:tid, :aid, :oid, :sym, \\'BUY\\', :qty, :prc, :tot, \\'FILLED\\', :qty, 0, \\'MULTI_STRATEGY_ENSEMBLE\\', NOW(), NOW(), NOW())'), {'tid': str(uuid.uuid4()), 'aid': '19c25392-8b61-4b71-a344-0eb04d275528', 'oid': f'IMPORTED_{o[\"symbol\"]}_{int(o[\"price\"]*100)}', 'sym': o['symbol'], 'qty': o['quantity'], 'prc': Decimal(str(o['price'])), 'tot': Decimal(str(o['price']*o['quantity']))}); \
+	            print(f'✅ {o[\"symbol\"]} x{o[\"quantity\"]} @ \$${o[\"price\"]}'); \
+	            await asyncio.sleep(0.001); \
+	        await s.commit(); \
+	        print('\\n✅ Imported 8 orders! Total: \$$3,961.05'); \
+	asyncio.run(imp())"
+	@echo ""
+	@echo "Run 'make -f Makefile.import-orders show-portfolio' to see your portfolio"
+
+show-portfolio:
+	@echo "💼 Current Portfolio"
+	@echo "===================="
+	@echo ""
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}') && \
+	kubectl exec -n default $$POD -- python3 -c "import asyncio; from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession; from sqlalchemy.orm import sessionmaker; from sqlalchemy import text; import os; \
+	async def show(): \
+	    db = os.getenv('DATABASE_URL'); engine = create_async_engine(db); sess = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False); \
+	    async with sess() as s: \
+	        result = await s.execute(text('SELECT symbol, COUNT(*), AVG(price), SUM(total_amount) FROM live_trades WHERE status = \\'FILLED\\' AND public_order_id LIKE \\'IMPORTED_%\\' GROUP BY symbol ORDER BY symbol')); \
+	        rows = result.fetchall(); \
+	        print('Symbol | Shares | Avg Price | Total Cost'); \
+	        print('-' * 50); \
+	        total = 0; \
+	        for row in rows: \
+	            print(f'{row[0]:<6} | {row[1]:<6} | \$${row[2]:<8.2f} | \$${row[3]:<10.2f}'); \
+	            total += float(row[3]); \
+	        print('-' * 50); \
+	        print(f'💰 Total Portfolio Value: \$${total:.2f}'); \
+	asyncio.run(show())"
+

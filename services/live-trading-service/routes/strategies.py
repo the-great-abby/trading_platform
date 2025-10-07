@@ -16,6 +16,11 @@ from sqlalchemy import text
 
 from src.services.live_trading.database import get_db_session
 from src.services.live_trading.models import StrategyType
+from src.services.live_trading.strategy_execution_service import StrategyExecutionService
+from src.services.live_trading.public_api_client import PublicAPIClient
+from src.services.live_trading.trading_service import TradingService
+from src.services.live_trading.risk_service import RiskService
+from src.services.live_trading.position_service import PositionService
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +268,164 @@ async def delete_strategy(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete strategy: {str(e)}"
         )
+
+
+class StrategyExecutionRequest(BaseModel):
+    """Strategy execution request model."""
+    strategy_name: str = Field(..., description="Name of strategy to execute")
+
+
+class StrategyExecutionResponse(BaseModel):
+    """Strategy execution response model."""
+    success: bool = Field(..., description="Whether execution was successful")
+    message: str = Field(..., description="Execution result message")
+    orders_submitted: int = Field(0, description="Number of orders submitted")
+    orders_successful: int = Field(0, description="Number of orders successful")
+    strategy_result: Optional[Dict[str, Any]] = Field(None, description="Strategy execution details")
+    error: Optional[str] = Field(None, description="Error message if execution failed")
+
+
+@router.post("/execute", response_model=StrategyExecutionResponse)
+async def execute_strategy(
+    account_id: str,
+    execution_request: StrategyExecutionRequest,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """
+    Execute a trading strategy for an account.
+    
+    Args:
+        account_id: Account ID
+        execution_request: Strategy execution request
+        
+    Returns:
+        Strategy execution result
+    """
+    try:
+        # Validate strategy name
+        try:
+            StrategyType(execution_request.strategy_name)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid strategy name: {execution_request.strategy_name}"
+            )
+        
+        # Check if account exists and is authenticated (get newest valid token)
+        result = await db.execute(text("""
+            SELECT 
+                a.public_account_id,
+                c.access_token,
+                c.refresh_token,
+                c.token_expires_at
+            FROM live_trading_accounts a
+            JOIN api_credentials c ON a.account_id = c.account_id
+            WHERE a.account_id = :account_id 
+                AND c.is_active = true
+                AND (c.token_expires_at IS NULL OR c.token_expires_at > NOW())
+            ORDER BY c.created_at DESC
+            LIMIT 1
+        """), {"account_id": account_id})
+        
+        account_data = result.fetchone()
+        
+        if not account_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Account not found or not authenticated"
+            )
+        
+        # Create API client and authenticate
+        api_client = PublicAPIClient()
+        
+        # Check if token is expired and refresh if needed
+        if account_data[3] and datetime.utcnow() > account_data[3]:
+            logger.info(f"Token expired for account {account_id}, refreshing...")
+            refresh_token = account_data[2]  # Use plaintext refresh token
+            api_client.refresh_token = refresh_token
+            await api_client.refresh_access_token()
+        else:
+            # Access token is stored as plaintext in the database
+            access_token = account_data[1]
+            logger.info(f"Using access token for account {account_id} (expires: {account_data[3]})")
+            api_client.access_token = access_token
+            api_client.is_authenticated = True
+            api_client.client.headers.update({
+                "Authorization": f"Bearer {access_token}"
+            })
+        
+        # Create services
+        risk_service = RiskService(db)
+        position_service = PositionService(db)
+        trading_service = TradingService(db, api_client, risk_service, position_service)
+        strategy_execution_service = StrategyExecutionService(db, trading_service)
+        
+        # Execute strategy
+        result = await strategy_execution_service.execute_strategy(account_id, execution_request.strategy_name)
+        
+        return StrategyExecutionResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_detail = str(e) if str(e) else repr(e)
+        logger.error(f"Error executing strategy: {error_detail}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to execute strategy: {error_detail}"
+        )
+
+
+@router.post("/test-execute", response_model=StrategyExecutionResponse)
+async def test_execute_strategy(
+    execution_request: StrategyExecutionRequest
+):
+    """
+    Test strategy execution without database authentication.
+    This is for testing the strategy service integration.
+    """
+    try:
+        # Validate strategy name
+        try:
+            StrategyType(execution_request.strategy_name)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid strategy name: {execution_request.strategy_name}"
+            )
+        
+        # Create a mock strategy execution service for testing
+        from src.services.live_trading.strategy_execution_service import StrategyExecutionService
+        
+        # Create a mock trading service (we won't actually execute orders)
+        class MockTradingService:
+            async def execute_order(self, account_id, order_data):
+                return {"success": True, "trade_id": "test-123"}
+        
+        mock_trading_service = MockTradingService()
+        strategy_execution_service = StrategyExecutionService(None, mock_trading_service)
+        
+        # Execute strategy
+        result = await strategy_execution_service.execute_strategy("test-account", execution_request.strategy_name)
+        
+        return StrategyExecutionResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error testing strategy execution: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to test strategy execution: {str(e)}"
+        )
+
+
+
+
+
+
 
 
 

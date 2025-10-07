@@ -1,0 +1,125 @@
+# Makefile for Order Sync Worker Management
+# Manages the automated order synchronization CronJob
+
+.PHONY: help deploy-sync-worker suspend-sync-worker resume-sync-worker status-sync-worker logs-sync-worker test-sync manual-sync set-sync-interval clean-sync-jobs check-order-links
+
+help:
+	@echo "📦 Order Sync Worker Management"
+	@echo ""
+	@echo "Core Commands:"
+	@echo "  make -f Makefile.order-sync deploy-sync-worker    - Deploy order sync CronJob (every 2 min)"
+	@echo "  make -f Makefile.order-sync suspend-sync-worker    - Pause order syncing"
+	@echo "  make -f Makefile.order-sync resume-sync-worker     - Resume order syncing"
+	@echo "  make -f Makefile.order-sync status-sync-worker     - Show sync worker status"
+	@echo ""
+	@echo "Testing & Monitoring:"
+	@echo "  make -f Makefile.order-sync test-sync              - Trigger immediate sync (manual)"
+	@echo "  make -f Makefile.order-sync manual-sync            - Same as test-sync"
+	@echo "  make -f Makefile.order-sync logs-sync-worker       - View recent sync logs"
+	@echo ""
+	@echo "Schedule Management:"
+	@echo "  make -f Makefile.order-sync set-sync-interval-1    - Sync every 1 minute"
+	@echo "  make -f Makefile.order-sync set-sync-interval-2    - Sync every 2 minutes (default)"
+	@echo "  make -f Makefile.order-sync set-sync-interval-5    - Sync every 5 minutes"
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  make -f Makefile.order-sync clean-sync-jobs        - Clean up old job history"
+	@echo ""
+
+# Deploy the order sync CronJob
+deploy-sync-worker:
+	@echo "🚀 Deploying order sync worker..."
+	kubectl apply -f k8s/order-sync-cronjob.yaml
+	@echo "✅ Order sync worker deployed"
+	@echo "📅 Schedule: Every 2 minutes during market hours (9 AM - 4 PM ET, Mon-Fri)"
+	@echo ""
+	@make -f Makefile.order-sync status-sync-worker
+
+# Suspend the CronJob (stop creating new jobs)
+suspend-sync-worker:
+	@echo "⏸️  Suspending order sync worker..."
+	kubectl patch cronjob order-sync-worker -n default -p '{"spec":{"suspend":true}}'
+	@echo "✅ Order sync worker suspended"
+
+# Resume the CronJob
+resume-sync-worker:
+	@echo "▶️  Resuming order sync worker..."
+	kubectl patch cronjob order-sync-worker -n default -p '{"spec":{"suspend":false}}'
+	@echo "✅ Order sync worker resumed"
+
+# Show status of the CronJob
+status-sync-worker:
+	@echo "📊 Order Sync Worker Status:"
+	@echo ""
+	@kubectl get cronjob order-sync-worker -n default -o wide 2>/dev/null || echo "❌ Order sync worker not deployed"
+	@echo ""
+	@echo "📋 Recent Jobs:"
+	@kubectl get jobs -n default -l app=order-sync-worker --sort-by=.metadata.creationTimestamp | tail -5 || true
+	@echo ""
+	@echo "🔍 Current Status:"
+	@SUSPENDED=$$(kubectl get cronjob order-sync-worker -n default -o jsonpath='{.spec.suspend}' 2>/dev/null) && \
+	if [ "$$SUSPENDED" = "true" ]; then \
+		echo "   Status: ⏸️  SUSPENDED"; \
+	else \
+		echo "   Status: ▶️  ACTIVE"; \
+	fi
+
+# View logs from recent sync jobs
+logs-sync-worker:
+	@echo "📜 Recent Order Sync Logs:"
+	@echo ""
+	@LATEST_JOB=$$(kubectl get jobs -n default -l app=order-sync-worker --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}' 2>/dev/null) && \
+	if [ -n "$$LATEST_JOB" ]; then \
+		echo "Latest job: $$LATEST_JOB" && \
+		kubectl logs -n default job/$$LATEST_JOB --tail=50; \
+	else \
+		echo "No sync jobs found yet"; \
+	fi
+
+# Trigger immediate sync (create manual job)
+test-sync:
+	@echo "🧪 Triggering manual order sync..."
+	@TIMESTAMP=$$(date +%s) && \
+	kubectl create job -n default order-sync-manual-$$TIMESTAMP \
+		--from=cronjob/order-sync-worker 2>/dev/null || \
+		(echo "❌ Error: CronJob not deployed. Run 'make deploy-sync-worker' first" && exit 1)
+	@echo "✅ Manual sync triggered"
+	@echo "Watch logs with: make -f Makefile.order-sync logs-sync-worker"
+
+manual-sync: test-sync
+
+# Set sync interval to 1 minute
+set-sync-interval-1:
+	@echo "⏱️  Setting sync interval to 1 minute..."
+	kubectl patch cronjob order-sync-worker -n default --type='json' \
+		-p='[{"op":"replace","path":"/spec/schedule","value":"*/1 9-16 * * 1-5"}]'
+	@echo "✅ Sync interval set to 1 minute"
+
+# Set sync interval to 2 minutes (default)
+set-sync-interval-2:
+	@echo "⏱️  Setting sync interval to 2 minutes..."
+	kubectl patch cronjob order-sync-worker -n default --type='json' \
+		-p='[{"op":"replace","path":"/spec/schedule","value":"*/2 9-16 * * 1-5"}]'
+	@echo "✅ Sync interval set to 2 minutes"
+
+# Set sync interval to 5 minutes
+set-sync-interval-5:
+	@echo "⏱️  Setting sync interval to 5 minutes..."
+	kubectl patch cronjob order-sync-worker -n default --type='json' \
+		-p='[{"op":"replace","path":"/spec/schedule","value":"*/5 9-16 * * 1-5"}]'
+	@echo "✅ Sync interval set to 5 minutes"
+
+# Clean up old job history
+clean-sync-jobs:
+	@echo "🧹 Cleaning up old sync jobs..."
+	@kubectl delete jobs -n default -l app=order-sync-worker \
+		--field-selector status.successful=1 2>/dev/null || true
+	@echo "✅ Old sync jobs cleaned up"
+
+# Delete the CronJob entirely
+delete-sync-worker:
+	@echo "🗑️  Deleting order sync worker..."
+	@kubectl delete cronjob order-sync-worker -n default 2>/dev/null || echo "Already deleted"
+	@kubectl delete jobs -n default -l app=order-sync-worker 2>/dev/null || true
+	@echo "✅ Order sync worker deleted"
+

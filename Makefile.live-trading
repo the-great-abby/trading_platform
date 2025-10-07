@@ -1,0 +1,342 @@
+# Makefile for Live Trading Automation Management
+# ================================================
+# Convenient targets for managing automated live trading CronJob
+
+.PHONY: help
+
+# Color output
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+help: ## Show this help message
+	@echo "$(BLUE)Live Trading Automation Management$(NC)"
+	@echo "===================================="
+	@echo ""
+	@echo "$(GREEN)Deployment:$(NC)"
+	@echo "  make deploy-auto-trading     Deploy automated trading CronJob (paper mode)"
+	@echo "  make undeploy-auto-trading   Remove automated trading CronJob"
+	@echo "  make redeploy-auto-trading   Redeploy automated trading CronJob"
+	@echo ""
+	@echo "$(GREEN)Emergency Controls:$(NC)"
+	@echo "  make emergency-stop          IMMEDIATELY stop all automated trading"
+	@echo "  make emergency-resume        Resume automated trading after emergency stop"
+	@echo "  make kill-auto-trading       Nuclear option: delete CronJob completely"
+	@echo ""
+	@echo "$(GREEN)Configuration:$(NC)"
+	@echo "  make set-paper-mode          Switch to paper trading mode (safe)"
+	@echo "  make set-live-mode           Switch to LIVE trading mode (⚠️  REAL MONEY)"
+	@echo "  make set-interval-15         Set execution interval to 15 minutes"
+	@echo "  make set-interval-30         Set execution interval to 30 minutes"
+	@echo "  make set-interval-60         Set execution interval to 60 minutes"
+	@echo ""
+	@echo "$(GREEN)Monitoring:$(NC)"
+	@echo "  make status-auto-trading     Show CronJob status and recent executions"
+	@echo "  make logs-auto-trading       View logs from most recent execution"
+	@echo "  make logs-auto-trading-live  Follow logs in real-time"
+	@echo "  make jobs-auto-trading       List all execution jobs (history)"
+	@echo ""
+	@echo "$(GREEN)Risk Management:$(NC)"
+	@echo "  make set-risk-conservative   Set conservative risk limits"
+	@echo "  make set-risk-moderate       Set moderate risk limits"
+	@echo "  make set-risk-aggressive     Set aggressive risk limits"
+	@echo "  make show-risk-limits        Show current risk limit configuration"
+	@echo ""
+	@echo "$(GREEN)Testing:$(NC)"
+	@echo "  make test-execution          Manually trigger one execution cycle"
+	@echo "  make test-market-hours       Check if currently in market hours"
+	@echo ""
+	@echo "$(GREEN)Maintenance:$(NC)"
+	@echo "  make clean-old-jobs          Remove old completed jobs (keep last 10)"
+	@echo "  make backup-config           Backup current CronJob configuration"
+	@echo "  make restore-config          Restore CronJob from backup"
+
+# ============================================================================
+# DEPLOYMENT TARGETS
+# ============================================================================
+
+deploy-auto-trading: ## Deploy automated trading CronJob
+	@echo "$(GREEN)Deploying automated trading CronJob...$(NC)"
+	kubectl apply -f k8s/live-trading-executor-cronjob.yaml
+	@echo "$(GREEN)✅ CronJob deployed successfully$(NC)"
+	@echo "$(YELLOW)⚠️  Trading mode: PAPER (safe for testing)$(NC)"
+	@echo "$(BLUE)Monitor with: make logs-auto-trading-live$(NC)"
+
+undeploy-auto-trading: ## Remove automated trading CronJob
+	@echo "$(YELLOW)Removing automated trading CronJob...$(NC)"
+	kubectl delete cronjob live-trading-executor -n default || true
+	@echo "$(GREEN)✅ CronJob removed$(NC)"
+
+redeploy-auto-trading: undeploy-auto-trading deploy-auto-trading ## Redeploy automated trading CronJob
+
+# ============================================================================
+# EMERGENCY CONTROLS
+# ============================================================================
+
+emergency-stop: ## IMMEDIATELY stop all automated trading
+	@echo "$(RED)🚨 EMERGENCY STOP - Halting all automated trading$(NC)"
+	@kubectl patch configmap live-trading-executor-emergency-stop -n default \
+		--type merge -p '{"data":{"emergency_stop":"true","stop_reason":"Manual emergency stop via Makefile","stop_timestamp":"'$$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}}' 2>/dev/null || \
+		echo "$(YELLOW)⚠️  Emergency stop ConfigMap not found (CronJob may not be deployed)$(NC)"
+	@kubectl set env cronjob/live-trading-executor -n default TRADING_ENABLED=false 2>/dev/null || true
+	@echo "$(RED)🛑 TRADING STOPPED$(NC)"
+	@echo "$(BLUE)Resume with: make emergency-resume$(NC)"
+
+emergency-resume: ## Resume automated trading after emergency stop
+	@echo "$(GREEN)Resuming automated trading...$(NC)"
+	@kubectl patch configmap live-trading-executor-emergency-stop -n default \
+		--type merge -p '{"data":{"emergency_stop":"false","stop_reason":"","stop_timestamp":""}}' 2>/dev/null || true
+	@kubectl set env cronjob/live-trading-executor -n default TRADING_ENABLED=true 2>/dev/null || true
+	@echo "$(GREEN)✅ Trading resumed$(NC)"
+	@echo "$(BLUE)Next execution will proceed normally$(NC)"
+
+kill-auto-trading: ## Nuclear option: delete CronJob completely
+	@echo "$(RED)⚠️  NUCLEAR OPTION: Deleting CronJob completely$(NC)"
+	@read -p "Are you sure? Type 'yes' to confirm: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		kubectl delete cronjob live-trading-executor -n default; \
+		kubectl delete configmap live-trading-executor-emergency-stop -n default || true; \
+		echo "$(RED)🗑️  CronJob deleted completely$(NC)"; \
+	else \
+		echo "$(YELLOW)Cancelled$(NC)"; \
+	fi
+
+# ============================================================================
+# CONFIGURATION TARGETS
+# ============================================================================
+
+set-paper-mode: ## Switch to paper trading mode (safe)
+	@echo "$(GREEN)Switching to PAPER trading mode...$(NC)"
+	@kubectl set env cronjob/live-trading-executor -n default TRADING_MODE=paper
+	@echo "$(GREEN)✅ Paper trading mode enabled (safe)$(NC)"
+
+set-live-mode: ## Switch to LIVE trading mode (⚠️ REAL MONEY)
+	@echo "$(RED)⚠️  WARNING: Switching to LIVE trading mode$(NC)"
+	@echo "$(RED)⚠️  This will trade with REAL MONEY$(NC)"
+	@read -p "Type 'LIVE' to confirm: " confirm; \
+	if [ "$$confirm" = "LIVE" ]; then \
+		kubectl set env cronjob/live-trading-executor -n default TRADING_MODE=live; \
+		echo "$(RED)💰 LIVE TRADING MODE ENABLED$(NC)"; \
+		echo "$(YELLOW)Monitor closely: make logs-auto-trading-live$(NC)"; \
+	else \
+		echo "$(YELLOW)Cancelled - staying in paper mode$(NC)"; \
+	fi
+
+set-interval-15: ## Set execution interval to 15 minutes
+	@echo "$(BLUE)Setting execution interval to 15 minutes...$(NC)"
+	@kubectl patch cronjob live-trading-executor -n default -p '{"spec":{"schedule":"*/15 * * * 1-5"}}'
+	@echo "$(GREEN)✅ Interval set to 15 minutes$(NC)"
+
+set-interval-30: ## Set execution interval to 30 minutes
+	@echo "$(BLUE)Setting execution interval to 30 minutes...$(NC)"
+	@kubectl patch cronjob live-trading-executor -n default -p '{"spec":{"schedule":"*/30 * * * 1-5"}}'
+	@echo "$(GREEN)✅ Interval set to 30 minutes$(NC)"
+
+set-interval-60: ## Set execution interval to 60 minutes
+	@echo "$(BLUE)Setting execution interval to 60 minutes...$(NC)"
+	@kubectl patch cronjob live-trading-executor -n default -p '{"spec":{"schedule":"0 * * * 1-5"}}'
+	@echo "$(GREEN)✅ Interval set to 60 minutes$(NC)"
+
+# ============================================================================
+# MONITORING TARGETS
+# ============================================================================
+
+status-auto-trading: ## Show CronJob status and recent executions
+	@echo "$(BLUE)=== CronJob Status ===$(NC)"
+	@kubectl get cronjob live-trading-executor -n default 2>/dev/null || echo "$(RED)CronJob not deployed$(NC)"
+	@echo ""
+	@echo "$(BLUE)=== Recent Jobs (Last 10) ===$(NC)"
+	@kubectl get jobs -n default 2>/dev/null | grep live-trading-executor | head -10 || echo "$(YELLOW)No jobs found$(NC)"
+	@echo ""
+	@echo "$(BLUE)=== Active Pods ===$(NC)"
+	@kubectl get pods -n default 2>/dev/null | grep live-trading-executor | grep -v Completed || echo "$(YELLOW)No active pods$(NC)"
+	@echo ""
+	@echo "$(BLUE)=== Emergency Stop Status ===$(NC)"
+	@kubectl get configmap live-trading-executor-emergency-stop -n default -o jsonpath='{.data.emergency_stop}' 2>/dev/null && echo "" || echo "$(YELLOW)Not configured$(NC)"
+
+logs-auto-trading: ## View logs from most recent execution
+	@echo "$(BLUE)Fetching logs from most recent execution...$(NC)"
+	@kubectl logs -n default -l app=live-trading-executor --tail=100 2>/dev/null || echo "$(YELLOW)No logs available$(NC)"
+
+logs-auto-trading-live: ## Follow logs in real-time
+	@echo "$(BLUE)Following logs in real-time... (Ctrl+C to stop)$(NC)"
+	@kubectl logs -n default -l app=live-trading-executor -f --tail=50
+
+jobs-auto-trading: ## List all execution jobs (history)
+	@echo "$(BLUE)=== All Execution Jobs ===$(NC)"
+	@kubectl get jobs -n default 2>/dev/null | grep live-trading-executor || echo "$(YELLOW)No jobs found$(NC)"
+	@echo ""
+	@echo "$(BLUE)Statistics:$(NC)"
+	@echo -n "  Total jobs: "
+	@kubectl get jobs -n default 2>/dev/null | grep -c live-trading-executor || echo "0"
+	@echo -n "  Completed: "
+	@kubectl get jobs -n default 2>/dev/null | grep live-trading-executor | grep -c "1/1" || echo "0"
+	@echo -n "  Failed: "
+	@kubectl get jobs -n default 2>/dev/null | grep live-trading-executor | grep -c "0/1" || echo "0"
+
+# ============================================================================
+# RISK MANAGEMENT TARGETS
+# ============================================================================
+
+set-risk-conservative: ## Set conservative risk limits
+	@echo "$(GREEN)Setting conservative risk limits...$(NC)"
+	@kubectl set env cronjob/live-trading-executor -n default \
+		MAX_DAILY_LOSS=250 \
+		MAX_POSITION_SIZE=0.10 \
+		MAX_POSITIONS=3 \
+		MAX_PORTFOLIO_HEAT=0.20
+	@echo "$(GREEN)✅ Conservative limits set:$(NC)"
+	@echo "  • Max Daily Loss: $$250"
+	@echo "  • Max Position Size: 10%"
+	@echo "  • Max Positions: 3"
+	@echo "  • Max Portfolio Heat: 20%"
+
+set-risk-moderate: ## Set moderate risk limits
+	@echo "$(BLUE)Setting moderate risk limits...$(NC)"
+	@kubectl set env cronjob/live-trading-executor -n default \
+		MAX_DAILY_LOSS=500 \
+		MAX_POSITION_SIZE=0.20 \
+		MAX_POSITIONS=5 \
+		MAX_PORTFOLIO_HEAT=0.30
+	@echo "$(GREEN)✅ Moderate limits set:$(NC)"
+	@echo "  • Max Daily Loss: $$500"
+	@echo "  • Max Position Size: 20%"
+	@echo "  • Max Positions: 5"
+	@echo "  • Max Portfolio Heat: 30%"
+
+set-risk-aggressive: ## Set aggressive risk limits
+	@echo "$(YELLOW)Setting aggressive risk limits...$(NC)"
+	@kubectl set env cronjob/live-trading-executor -n default \
+		MAX_DAILY_LOSS=1000 \
+		MAX_POSITION_SIZE=0.30 \
+		MAX_POSITIONS=8 \
+		MAX_PORTFOLIO_HEAT=0.50
+	@echo "$(YELLOW)⚠️  Aggressive limits set:$(NC)"
+	@echo "  • Max Daily Loss: $$1000"
+	@echo "  • Max Position Size: 30%"
+	@echo "  • Max Positions: 8"
+	@echo "  • Max Portfolio Heat: 50%"
+
+show-risk-limits: ## Show current risk limit configuration
+	@echo "$(BLUE)=== Current Risk Limits ===$(NC)"
+	@echo -n "Max Daily Loss: $$"
+	@kubectl get cronjob live-trading-executor -n default -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].env[?(@.name=="MAX_DAILY_LOSS")].value}' 2>/dev/null || echo "Not set"
+	@echo ""
+	@echo -n "Max Position Size: "
+	@kubectl get cronjob live-trading-executor -n default -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].env[?(@.name=="MAX_POSITION_SIZE")].value}' 2>/dev/null || echo "Not set"
+	@echo ""
+	@echo -n "Max Positions: "
+	@kubectl get cronjob live-trading-executor -n default -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].env[?(@.name=="MAX_POSITIONS")].value}' 2>/dev/null || echo "Not set"
+	@echo ""
+	@echo -n "Max Portfolio Heat: "
+	@kubectl get cronjob live-trading-executor -n default -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].env[?(@.name=="MAX_PORTFOLIO_HEAT")].value}' 2>/dev/null || echo "Not set"
+	@echo ""
+
+# ============================================================================
+# TESTING TARGETS
+# ============================================================================
+
+test-execution: ## Manually trigger one execution cycle
+	@echo "$(BLUE)Manually triggering execution cycle...$(NC)"
+	@kubectl create job --from=cronjob/live-trading-executor live-trading-manual-$$(date +%s) -n default
+	@echo "$(GREEN)✅ Manual execution triggered$(NC)"
+	@echo "$(BLUE)Watch logs with: make logs-auto-trading-live$(NC)"
+
+test-market-hours: ## Check if currently in market hours
+	@echo "$(BLUE)Checking market hours...$(NC)"
+	@python3 -c "from datetime import datetime; import pytz; tz = pytz.timezone('America/New_York'); now = datetime.now(tz); print(f'Current ET time: {now.strftime(\"%Y-%m-%d %H:%M:%S %Z\")}'); print(f'Weekday: {now.strftime(\"%A\")} ({now.weekday()})'); market_open = now.weekday() < 5 and now.time() >= datetime.strptime('09:30', '%H:%M').time() and now.time() <= datetime.strptime('16:00', '%H:%M').time(); print(f'Market is: {\"OPEN ✅\" if market_open else \"CLOSED ❌\"}')"
+
+# ============================================================================
+# MAINTENANCE TARGETS
+# ============================================================================
+
+clean-old-jobs: ## Remove old completed jobs (keep last 10)
+	@echo "$(YELLOW)Cleaning old completed jobs...$(NC)"
+	@kubectl get jobs -n default 2>/dev/null | grep live-trading-executor | grep "1/1" | tail -n +11 | awk '{print $$1}' | xargs -r kubectl delete job -n default || echo "$(GREEN)No old jobs to clean$(NC)"
+	@echo "$(GREEN)✅ Cleanup complete$(NC)"
+
+backup-config: ## Backup current CronJob configuration
+	@echo "$(BLUE)Backing up CronJob configuration...$(NC)"
+	@mkdir -p backups
+	@kubectl get cronjob live-trading-executor -n default -o yaml > backups/live-trading-executor-cronjob-backup-$$(date +%Y%m%d-%H%M%S).yaml 2>/dev/null || echo "$(YELLOW)CronJob not found$(NC)"
+	@kubectl get configmap live-trading-executor-emergency-stop -n default -o yaml >> backups/live-trading-executor-cronjob-backup-$$(date +%Y%m%d-%H%M%S).yaml 2>/dev/null || true
+	@echo "$(GREEN)✅ Configuration backed up to backups/$(NC)"
+	@ls -lht backups/live-trading-executor-cronjob-backup-* | head -5
+
+restore-config: ## Restore CronJob from backup
+	@echo "$(BLUE)Available backups:$(NC)"
+	@ls -1t backups/live-trading-executor-cronjob-backup-* 2>/dev/null | head -5 || echo "$(YELLOW)No backups found$(NC)"
+	@echo ""
+	@read -p "Enter backup filename to restore: " backup; \
+	if [ -f "$$backup" ]; then \
+		kubectl apply -f "$$backup"; \
+		echo "$(GREEN)✅ Configuration restored from $$backup$(NC)"; \
+	else \
+		echo "$(RED)❌ Backup file not found$(NC)"; \
+	fi
+
+# ============================================================================
+# QUICK ACTIONS
+# ============================================================================
+
+.PHONY: quick-status quick-stop quick-resume quick-logs
+
+quick-status: status-auto-trading ## Quick status check (alias)
+
+quick-stop: emergency-stop ## Quick emergency stop (alias)
+
+quick-resume: emergency-resume ## Quick resume (alias)
+
+quick-logs: logs-auto-trading-live ## Quick log view (alias)
+
+
+# ============================================================================
+# Token Management
+# ============================================================================
+
+.PHONY: update-token
+update-token: ## Update the Public.com access token
+	@if [ -z "$(TOKEN)" ]; then \
+		echo "❌ Please provide TOKEN=<your_token>"; \
+		echo ""; \
+		echo "Usage:"; \
+		echo "  make -f Makefile.live-trading update-token TOKEN=eyJhbGc..."; \
+		exit 1; \
+	fi
+	@./scripts/update_access_token.sh "$(TOKEN)"
+
+.PHONY: check-token-expiry
+check-token-expiry: ## Check when the current token expires
+	@echo "🔍 Checking token expiry..."
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl exec -n default $$POD -- python3 -c "\
+import asyncio; \
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession; \
+from sqlalchemy.orm import sessionmaker; \
+from sqlalchemy import text; \
+import os; \
+from datetime import datetime; \
+async def check(): \
+    db_url = os.getenv('DATABASE_URL'); \
+    engine = create_async_engine(db_url); \
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False); \
+    async with async_session() as session: \
+        result = await session.execute(text(''' \
+            SELECT token_expires_at, \
+                   EXTRACT(EPOCH FROM (token_expires_at - NOW())) / 3600 as hours_remaining \
+            FROM api_credentials \
+            WHERE account_id = '19c25392-8b61-4b71-a344-0eb04d275528' \
+            ORDER BY created_at DESC LIMIT 1 \
+        ''')); \
+        row = result.fetchone(); \
+        if row: \
+            expires, hours = row; \
+            print(f'Token expires: {expires}'); \
+            if hours > 0: \
+                print(f'⏰ {hours:.1f} hours remaining'); \
+            else: \
+                print(f'❌ EXPIRED {-hours:.1f} hours ago'); \
+asyncio.run(check())"
+

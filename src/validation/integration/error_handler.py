@@ -342,3 +342,13 @@ class ErrorHandler:
         self.error_history.clear()
         logger.info("Error history cleared")
 
+
+
+
+
+
+
+
+
+
+

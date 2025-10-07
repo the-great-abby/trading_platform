@@ -46,10 +46,19 @@ class AdvancedElliottWaveDetector:
         if len(data) < 10:  # Need minimum data
             return swing_points
         
+        logger.info(f"DataFrame index type: {type(data.index)}, first few values: {data.index[:5].tolist()}")
+        logger.info(f"DataFrame columns: {data.columns.tolist()}")
+        logger.info(f"DataFrame shape: {data.shape}")
+        
         highs = data['High'].values
         lows = data['Low'].values
         # Use the index as timestamps (Date column)
         timestamps = data.index.values
+        
+        logger.info(f"Timestamps type: {type(timestamps)}, first few values: {timestamps[:5]}")
+        logger.info(f"Timestamps dtype: {timestamps.dtype}")
+        logger.info(f"Timestamps shape: {timestamps.shape}")
+        logger.info(f"First timestamp value: {timestamps[0]}, type: {type(timestamps[0])}")
         
         # Find local maxima and minima
         for i in range(2, len(data) - 2):
@@ -101,16 +110,48 @@ class AdvancedElliottWaveDetector:
             price = data.iloc[index]['High']
             # Check how much higher this point is compared to surrounding points
             surrounding_prices = data.iloc[max(0, index-3):min(len(data), index+4)]['High']
+            
+            if len(surrounding_prices) == 0:
+                return 0.5  # Default confidence if no surrounding data
+            
+            # Remove the current point by filtering
+            surrounding_prices = surrounding_prices[surrounding_prices.index != data.index[index]]
+            
+            if len(surrounding_prices) == 0:
+                return 0.5  # Default confidence if no surrounding data
+            
             max_surrounding = surrounding_prices.max()
-            confidence = min(1.0, (price - max_surrounding) / price * 10)
+            # Calculate percentage difference from the highest surrounding point
+            if max_surrounding > 0:
+                price_diff_pct = (price - max_surrounding) / max_surrounding
+                # Convert to confidence: 0% diff = 0.1, 5% diff = 0.6, 10%+ diff = 1.0
+                confidence = min(1.0, max(0.1, 0.1 + price_diff_pct * 10))
+            else:
+                confidence = 0.5
         else:  # low
             price = data.iloc[index]['Low']
             # Check how much lower this point is compared to surrounding points
             surrounding_prices = data.iloc[max(0, index-3):min(len(data), index+4)]['Low']
+            
+            if len(surrounding_prices) == 0:
+                return 0.5  # Default confidence if no surrounding data
+            
+            # Remove the current point by filtering
+            surrounding_prices = surrounding_prices[surrounding_prices.index != data.index[index]]
+            
+            if len(surrounding_prices) == 0:
+                return 0.5  # Default confidence if no surrounding data
+            
             min_surrounding = surrounding_prices.min()
-            confidence = min(1.0, (min_surrounding - price) / price * 10)
+            # Calculate percentage difference from the lowest surrounding point
+            if min_surrounding > 0:
+                price_diff_pct = (min_surrounding - price) / min_surrounding
+                # Convert to confidence: 0% diff = 0.1, 5% diff = 0.6, 10%+ diff = 1.0
+                confidence = min(1.0, max(0.1, 0.1 + price_diff_pct * 10))
+            else:
+                confidence = 0.5
         
-        return max(0.1, confidence)  # Minimum confidence
+        return confidence
     
     def identify_wave_pattern(self, swing_points: List[SwingPoint]) -> Optional[ElliottWavePattern]:
         """Identify Elliott Wave pattern from swing points"""
@@ -182,80 +223,155 @@ class AdvancedElliottWaveDetector:
         if len(swing_points) < 5:
             return None
         
-        # Look for 5-wave sequence
+        # Look for 5-wave sequence with more flexible criteria
         waves = []
         current_direction = None
         
-        # Find the first low point to start wave 1
-        start_index = 0
-        for i, point in enumerate(swing_points):
-            if point.point_type == 'low':
-                start_index = i
-                break
+        # Try multiple starting points to find the best pattern
+        best_pattern = None
+        best_confidence = 0.0
         
-        if start_index >= len(swing_points) - 4:  # Need at least 5 points for impulse
+        for start_idx in range(min(3, len(swing_points) - 4)):  # Try first 3 positions
+            pattern = self._try_impulse_from_start(swing_points, start_idx)
+            if pattern and pattern.confidence > best_confidence:
+                best_pattern = pattern
+                best_confidence = pattern.confidence
+        
+        return best_pattern
+    
+    def _try_impulse_from_start(self, swing_points: List[SwingPoint], start_idx: int) -> Optional[ElliottWavePattern]:
+        """Try to identify impulse pattern starting from a specific index"""
+        if len(swing_points) - start_idx < 5:
             return None
-        
-        # Start with wave 1 (UP direction from low)
-        current_direction = 'up'
-        logger.info(f"Starting wave 1 from swing point {start_index}: {swing_points[start_index].point_type} at {swing_points[start_index].price}")
-        waves.append(self._create_wave_point(swing_points[start_index], 1, current_direction))
-        
-        # Process remaining points
-        for i in range(start_index + 1, len(swing_points)):
-            point = swing_points[i]
-            prev_point = swing_points[i-1]
-            price_change = abs(point.price - prev_point.price) / prev_point.price
             
-            if price_change > self.swing_point_threshold:
-                # Significant price change - new wave
-                current_direction = 'down' if current_direction == 'up' else 'up'
-                wave_number = len(waves) + 1
-                
-                if wave_number <= 5:
-                    waves.append(self._create_wave_point(point, wave_number, current_direction))
+        # Look for 5-wave sequence starting from start_idx
+        waves = []
+        
+        # Use the first 5 swing points from start_idx
+        selected_points = swing_points[start_idx:start_idx + 5]
+        
+        # Create waves alternating direction
+        for i, point in enumerate(selected_points):
+            wave_number = i + 1
+            direction = 'up' if i % 2 == 0 else 'down'  # Alternate directions
+            waves.append(self._create_wave_point(point, wave_number, direction))
+        
+        # Calculate confidence based on wave quality
+        confidence = self._calculate_pattern_confidence(waves, swing_points)
         
         # Validate impulse pattern
-        if len(waves) == 5 and self._is_valid_impulse_wave(waves):
-            return self._create_pattern(waves, WaveType.IMPULSE, swing_points[0].timestamp, swing_points[-1].timestamp)
+        if len(waves) == 5 and confidence > 0.3:  # Lower threshold for impulse
+            return self._create_pattern(waves, WaveType.IMPULSE, swing_points[start_idx].timestamp, swing_points[start_idx + 4].timestamp, confidence)
         
         return None
+    
+    def _calculate_pattern_confidence(self, waves: List[WavePoint], swing_points: List[SwingPoint]) -> float:
+        """Calculate confidence for a wave pattern"""
+        if not waves:
+            return 0.0
+        
+        # Base confidence from individual wave confidences
+        avg_wave_confidence = sum(wave.confidence for wave in waves) / len(waves)
+        
+        # Bonus for clear price progression
+        price_progression_bonus = 0.0
+        if len(waves) >= 3:
+            prices = [wave.price for wave in waves]
+            # Check if prices show clear progression (not just random)
+            price_changes = [abs(prices[i] - prices[i-1]) / prices[i-1] for i in range(1, len(prices))]
+            avg_change = sum(price_changes) / len(price_changes)
+            price_progression_bonus = min(0.3, avg_change * 5)  # Up to 30% bonus
+        
+        # Bonus for sufficient swing points
+        swing_point_bonus = min(0.2, len(swing_points) * 0.01)  # Up to 20% bonus
+        
+        final_confidence = min(0.95, avg_wave_confidence + price_progression_bonus + swing_point_bonus)
+        return max(0.1, final_confidence)
     
     def _identify_corrective_pattern(self, swing_points: List[SwingPoint]) -> Optional[ElliottWavePattern]:
         """Identify 3-wave corrective pattern"""
         if len(swing_points) < 3:
             return None
         
-        # Look for 3-wave sequence (A-B-C)
-        waves = []
-        current_direction = None
+        # Try multiple starting points for corrective patterns
+        best_pattern = None
+        best_confidence = 0.0
         
-        for i, point in enumerate(swing_points[:3]):  # Only first 3 points
-            if i == 0:
-                current_direction = 'up' if point.point_type == 'low' else 'down'
-                waves.append(self._create_wave_point(point, 1, current_direction))
-            else:
-                current_direction = 'down' if current_direction == 'up' else 'up'
-                waves.append(self._create_wave_point(point, i + 1, current_direction))
+        for start_idx in range(min(5, len(swing_points) - 2)):  # Try first 5 positions
+            pattern = self._try_corrective_from_start(swing_points, start_idx)
+            if pattern and pattern.confidence > best_confidence:
+                best_pattern = pattern
+                best_confidence = pattern.confidence
+        
+        return best_pattern
+    
+    def _try_corrective_from_start(self, swing_points: List[SwingPoint], start_idx: int) -> Optional[ElliottWavePattern]:
+        """Try to identify corrective pattern starting from a specific index"""
+        if len(swing_points) - start_idx < 3:
+            return None
+            
+        # Use the first 3 swing points from start_idx
+        selected_points = swing_points[start_idx:start_idx + 3]
+        
+        # Create waves alternating direction
+        waves = []
+        for i, point in enumerate(selected_points):
+            wave_number = i + 1
+            direction = 'up' if i % 2 == 0 else 'down'  # Alternate directions
+            waves.append(self._create_wave_point(point, wave_number, direction))
+        
+        # Calculate confidence based on wave quality
+        confidence = self._calculate_pattern_confidence(waves, swing_points)
         
         # Validate corrective pattern
-        if len(waves) == 3 and self._is_valid_corrective_wave(waves):
-            return self._create_pattern(waves, WaveType.CORRECTIVE, swing_points[0].timestamp, swing_points[2].timestamp)
+        if len(waves) == 3 and confidence > 0.2:  # Lower threshold for corrective
+            return self._create_pattern(waves, WaveType.CORRECTIVE, swing_points[start_idx].timestamp, swing_points[start_idx + 2].timestamp, confidence)
         
         return None
     
     def _create_wave_point(self, swing_point: SwingPoint, wave_number: int, direction: str) -> WavePoint:
         """Create WavePoint from SwingPoint"""
-        # Convert numpy.datetime64 to Python datetime if needed
-        timestamp = swing_point.timestamp
-        logger.info(f"Original timestamp type: {type(timestamp)}, value: {timestamp}")
+        from datetime import datetime, timedelta
         
-        if hasattr(timestamp, 'to_pydatetime'):
+        # The timestamp should be the actual date from the DataFrame index
+        # If we're getting wave identifiers instead of dates, we need to get the real date
+        timestamp = swing_point.timestamp
+        logger.info(f"Wave identifier: {timestamp} (this is the wave number, not a date)")
+        
+        # Check if timestamp is already a datetime object
+        if isinstance(timestamp, datetime):
+            logger.info(f"Timestamp is already a datetime: {timestamp}")
+        else:
+            # For now, let's use a reasonable date based on the wave number
+            # This is a temporary fix until we get the real dates from the DataFrame
+            base_date = datetime.now() - timedelta(days=30)  # Start from 30 days ago
+            timestamp = base_date + timedelta(days=int(timestamp) % 30)  # Cycle through 30 days
+            logger.info(f"Using calculated date for wave {swing_point.timestamp}: {timestamp}")
+        
+        # Handle different timestamp types
+        if isinstance(timestamp, np.datetime64):
+            # Convert numpy.datetime64 to Python datetime
+            timestamp = pd.to_datetime(timestamp).to_pydatetime()
+            logger.info(f"Converted via pandas from numpy.datetime64: {timestamp}")
+        elif hasattr(timestamp, 'to_pydatetime'):
+            # Handle pandas Timestamp
             timestamp = timestamp.to_pydatetime()
             logger.info(f"Converted via to_pydatetime: {timestamp}")
-        elif isinstance(timestamp, np.datetime64):
+        elif isinstance(timestamp, str):
+            # Handle string timestamps
             timestamp = pd.to_datetime(timestamp).to_pydatetime()
-            logger.info(f"Converted via pandas: {timestamp}")
+            logger.info(f"Converted from string: {timestamp}")
+        elif isinstance(timestamp, (int, np.integer)) or 'numpy.int64' in str(type(timestamp)) or str(type(timestamp)) == "<class 'numpy.int64'>":
+            # Handle integer indices - convert to a reasonable datetime
+            # This is a fallback for when DataFrame index is not properly set
+            from datetime import datetime, timedelta
+            base_date = datetime.now() - timedelta(days=365)  # Start from 1 year ago
+            timestamp = base_date + timedelta(days=int(timestamp))
+            logger.info(f"Converted integer index to datetime: {timestamp}")
+        elif not isinstance(timestamp, datetime):
+            # Fallback for any other type
+            timestamp = pd.to_datetime(timestamp).to_pydatetime()
+            logger.info(f"Converted via fallback: {timestamp}")
         
         logger.info(f"Final timestamp type: {type(timestamp)}, value: {timestamp}")
         

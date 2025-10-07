@@ -101,6 +101,11 @@ class ElliottWaveOptionsIntegrator:
         """Generate signals for wave completion"""
         signals = []
         
+        # Safety check for None pattern
+        if pattern is None:
+            logger.warning(f"No pattern provided for wave completion signals for {symbol}")
+            return signals
+        
         if pattern.pattern_type == WaveType.IMPULSE and len(pattern.waves) == 5:
             # 5-wave impulse completed
             confidence = pattern.confidence * 0.9  # Slightly reduce confidence for signal generation
@@ -147,6 +152,11 @@ class ElliottWaveOptionsIntegrator:
         """Generate signals based on Fibonacci levels"""
         signals = []
         
+        # Safety check for None pattern
+        if pattern is None:
+            logger.warning(f"No pattern provided for Fibonacci signals for {symbol}")
+            return signals
+        
         if not pattern.fibonacci_levels:
             return signals
         
@@ -183,6 +193,11 @@ class ElliottWaveOptionsIntegrator:
         """Generate signals based on volatility expansion"""
         signals = []
         
+        # Safety check for None pattern
+        if pattern is None:
+            logger.warning(f"No pattern provided for volatility signals for {symbol}")
+            return signals
+        
         if pattern.enhanced_analysis and pattern.enhanced_analysis.wave_extensions:
             extensions = pattern.enhanced_analysis.wave_extensions.get("extensions", [])
             
@@ -213,6 +228,11 @@ class ElliottWaveOptionsIntegrator:
     def _generate_invalidation_signals(self, symbol: str, pattern: ElliottWavePattern, current_price: float) -> List[TradingSignal]:
         """Generate signals for pattern invalidation"""
         signals = []
+        
+        # Safety check for None pattern
+        if pattern is None:
+            logger.warning(f"No pattern provided for invalidation signals for {symbol}")
+            return signals
         
         if pattern.invalidation_level:
             invalidation_distance = abs(current_price - pattern.invalidation_level) / current_price

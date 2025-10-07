@@ -113,26 +113,27 @@ def get_market_data_for_backtest(symbol: str, timeframe: str = "1d", historical_
             logger.error(f"Missing required columns in historical market data for {symbol}")
             return pd.DataFrame()
         
+        # Convert date string to datetime first
+        df['date'] = pd.to_datetime(df['date'])
+        
         # Filter data to only include data up to historical_date
         if historical_date:
-            df['date'] = pd.to_datetime(df['date'])
             historical_dt = pd.to_datetime(historical_date)
             df = df[df['date'] <= historical_dt]
         
         # Sort by date and limit results
         df = df.sort_values('date').tail(limit)
         
+        # Set date as index BEFORE renaming columns
+        df = df.set_index('date')
+        
         # Rename columns to match expected format
         df = df.rename(columns={
-            'date': 'Date',
             'high': 'High',
             'low': 'Low',
             'close': 'Close',
             'volume': 'Volume'
         })
-        
-        # Set date as index
-        df = df.set_index('Date')
         
         logger.info(f"Retrieved {len(df)} historical data points for {symbol} up to {historical_date}")
         return df
@@ -190,21 +191,32 @@ def get_market_data(symbol: str, timeframe: str = "1d", limit: int = 1000) -> pd
             logger.error(f"Missing required columns in market data for {symbol}")
             return pd.DataFrame()
         
-        # Rename columns to match expected format and add timestamp
+        # Convert date string to datetime first
+        df['date'] = pd.to_datetime(df['date'])
+        logger.info(f"After date conversion - DataFrame shape: {df.shape}")
+        logger.info(f"Date column type: {df['date'].dtype}")
+        logger.info(f"First few dates: {df['date'].head().tolist()}")
+
+        # Set date as index BEFORE renaming columns
+        df = df.set_index('date')
+        logger.info(f"After setting index - DataFrame index type: {type(df.index)}")
+        logger.info(f"DataFrame index dtype: {df.index.dtype}")
+        logger.info(f"First few index values: {df.index[:5].tolist()}")
+
+        # Rename columns to match expected format
         df = df.rename(columns={
-            'date': 'timestamp',
             'high': 'High',
-            'low': 'Low', 
+            'low': 'Low',
             'close': 'Close',
             'volume': 'Volume'
         })
-        
-        # Convert date string to datetime
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        
+
         # Sort by timestamp
-        df = df.sort_values('timestamp').reset_index(drop=True)
-        
+        df = df.sort_index()
+        logger.info(f"Final DataFrame - Index type: {type(df.index)}, dtype: {df.index.dtype}")
+        logger.info(f"Final DataFrame shape: {df.shape}")
+        logger.info(f"Final index sample: {df.index[:3].tolist()}")
+
         logger.info(f"Retrieved {len(df)} data points for {symbol} from market-data-service")
         return df
         
@@ -444,7 +456,8 @@ async def analyze_options_single_symbol(symbol: str):
     
     # Generate options analysis
     current_price = 100.0
-    trading_plan = options_integrator.generate_options_trading_plan(symbol.upper(), None, current_price)
+    pattern = wave_result.get("pattern")  # Get the actual pattern from the analysis
+    trading_plan = options_integrator.generate_options_trading_plan(symbol.upper(), pattern, current_price)
     
     return {
         "symbol": symbol.upper(),

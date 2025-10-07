@@ -75,3 +75,13 @@ CMD ["python", "-m", "uvicorn", "services.risk-management-service.main:app", "--
 
 
 
+
+
+
+
+
+
+
+
+
+

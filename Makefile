@@ -15,6 +15,9 @@ include makefiles/Makefile.paper-trading
 include makefiles/Makefile.validation
 include makefiles/Makefile.secrets
 
+# Standalone Makefiles (not in makefiles/ directory)
+-include Makefile.order-sync
+
 # Include semantic versioning system
 include Makefile.versioning
 

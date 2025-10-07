@@ -202,3 +202,13 @@ kubectl get pods -n trading-system
 
 
 
+
+
+
+
+
+
+
+
+
+
