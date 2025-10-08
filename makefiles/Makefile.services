@@ -472,58 +472,109 @@ status-system: status-comprehensive ## Alias for status-comprehensive
 # =============================================================================
 
 # Get Top Trade Recommendations
-recommendations: ## Get top trade recommendations combining Elliott Wave + Strategy signals
+recommendations: ## Get top trade recommendations combining Elliott Wave + Strategy signals (use TIMEFRAME=1D/1H/4H/1W)
 	@echo "$(GREEN)🎯 TOP TRADE RECOMMENDATIONS$(NC)"
 	@echo "$(YELLOW)==========================$(NC)"
 	@echo ""
-	@echo "$(BLUE)📊 Analyzing symbols with Elliott Wave + Strategy signals...$(NC)"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		echo "$(BLUE)📊 Analyzing symbols with Elliott Wave + Strategy signals (Timeframe: $(TIMEFRAME))...$(NC)"; \
+	else \
+		echo "$(BLUE)📊 Analyzing symbols with Elliott Wave + Strategy signals...$(NC)"; \
+	fi
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations?limit=5" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=5&timeframe=$(TIMEFRAME)" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=5" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"; \
+	fi
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations?limit=5" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Reasons: \(.reasons | join(", "))"' || echo ""
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=5&timeframe=$(TIMEFRAME)" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Reasons: \(.reasons | join(", "))"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=5" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Reasons: \(.reasons | join(", "))"' || echo ""; \
+	fi
 
 # Get Recommendations for Specific Symbol
-recommendation: ## Get trade recommendation for specific symbol (use SYMBOL=symbol)
+recommendation: ## Get trade recommendation for specific symbol (use SYMBOL=symbol TIMEFRAME=1D/1H/4H/1W)
 	@echo "$(GREEN)🎯 TRADE RECOMMENDATION FOR $(SYMBOL)$(NC)"
 	@echo "$(YELLOW)==============================$(NC)"
 	@echo ""
 	@if [ -z "$(SYMBOL)" ]; then \
 		echo "$(RED)❌ Please specify SYMBOL=SYMBOL_NAME$(NC)"; \
 		echo "$(YELLOW)   Example: make recommendation SYMBOL=AAPL$(NC)"; \
+		echo "$(YELLOW)   With timeframe: make recommendation SYMBOL=AAPL TIMEFRAME=1D$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(BLUE)📊 Analyzing $(SYMBOL) with Elliott Wave + Strategy signals...$(NC)"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		echo "$(BLUE)📊 Analyzing $(SYMBOL) with Elliott Wave + Strategy signals (Timeframe: $(TIMEFRAME))...$(NC)"; \
+	else \
+		echo "$(BLUE)📊 Analyzing $(SYMBOL) with Elliott Wave + Strategy signals...$(NC)"; \
+	fi
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '"🎯 " + .symbol + " - " + .action' || echo "❌ Could not fetch recommendation for $(SYMBOL)"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)?timeframe=$(TIMEFRAME)" | jq -r '"🎯 " + .symbol + " - " + .action' || echo "❌ Could not fetch recommendation for $(SYMBOL)"; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '"🎯 " + .symbol + " - " + .action' || echo "❌ Could not fetch recommendation for $(SYMBOL)"; \
+	fi
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '"📊 Score: " + (.score | tostring) + " (Confidence: " + ((.confidence * 100 | floor) | tostring) + "%)"' || echo ""
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)?timeframe=$(TIMEFRAME)" | jq -r '"📊 Score: " + (.score | tostring) + " (Confidence: " + ((.confidence * 100 | floor) | tostring) + "%)"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '"📊 Score: " + (.score | tostring) + " (Confidence: " + ((.confidence * 100 | floor) | tostring) + "%)"' || echo ""; \
+	fi
 	@echo ""
 	@echo "$(BLUE)📋 Analysis Details:$(NC)"
-	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '.reasons[] | "   • " + .' || echo ""
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)?timeframe=$(TIMEFRAME)" | jq -r '.reasons[] | "   • " + .' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r '.reasons[] | "   • " + .' || echo ""; \
+	fi
 	@echo ""
 	@echo "$(BLUE)🌊 Elliott Wave Analysis:$(NC)"
-	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Pattern: " + (.elliott_wave.pattern_type // "None") else "   No Elliott Wave data available" end' || echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Signal: " + (.elliott_wave.signal // "None") else "" end' || echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Confidence: " + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%" else "" end' || echo ""
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)?timeframe=$(TIMEFRAME)" | jq -r 'if .elliott_wave then "   Pattern: " + (.elliott_wave.pattern_type // "None") else "   No Elliott Wave data available" end' || echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)?timeframe=$(TIMEFRAME)" | jq -r 'if .elliott_wave then "   Signal: " + (.elliott_wave.signal // "None") else "" end' || echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)?timeframe=$(TIMEFRAME)" | jq -r 'if .elliott_wave then "   Confidence: " + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%" else "" end' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Pattern: " + (.elliott_wave.pattern_type // "None") else "   No Elliott Wave data available" end' || echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Signal: " + (.elliott_wave.signal // "None") else "" end' || echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/$(SYMBOL)" | jq -r 'if .elliott_wave then "   Confidence: " + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%" else "" end' || echo ""; \
+	fi
 
 # Get All Available Recommendations
-recommendations-all: ## Get all available trade recommendations (up to 10)
+recommendations-all: ## Get all available trade recommendations (up to 10, use TIMEFRAME=1D/1H/4H/1W)
 	@echo "$(GREEN)🎯 ALL AVAILABLE TRADE RECOMMENDATIONS$(NC)"
 	@echo "$(YELLOW)=====================================$(NC)"
 	@echo ""
-	@echo "$(BLUE)📊 Analyzing all symbols with Elliott Wave + Strategy signals...$(NC)"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		echo "$(BLUE)📊 Analyzing all symbols with Elliott Wave + Strategy signals (Timeframe: $(TIMEFRAME))...$(NC)"; \
+	else \
+		echo "$(BLUE)📊 Analyzing all symbols with Elliott Wave + Strategy signals...$(NC)"; \
+	fi
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations?limit=10" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=10&timeframe=$(TIMEFRAME)" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=10" | jq -r '.recommendations[] | "🎯 \(.symbol) @ $\(.current_price) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch recommendations"; \
+	fi
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations?limit=10" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Elliott Wave: " + (.elliott_wave.signal // "None") + " (" + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%)"' || echo ""
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=10&timeframe=$(TIMEFRAME)" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Elliott Wave: " + (.elliott_wave.signal // "None") + " (" + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%)"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=10" | jq -r '.recommendations[] | "   Confidence: \(.confidence * 100 | floor)% | Elliott Wave: " + (.elliott_wave.signal // "None") + " (" + ((.elliott_wave.confidence // 0) * 100 | floor | tostring) + "%)"' || echo ""; \
+	fi
 	@echo ""
 
 # Quick Recommendation Check
-recommendations-quick: ## Quick trade recommendations (top 3 only)
+recommendations-quick: ## Quick trade recommendations (top 3 only, use TIMEFRAME=1D/1H/4H/1W)
 	@echo "$(GREEN)⚡ QUICK TRADE RECOMMENDATIONS$(NC)"
 	@echo "$(YELLOW)============================$(NC)"
 	@echo ""
-	@curl -s "http://localhost:11001/api/trading/recommendations?limit=3" | jq -r '.recommendations[] | "🎯 \(.symbol) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch quick recommendations"
+	@if [ -n "$(TIMEFRAME)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=3&timeframe=$(TIMEFRAME)" | jq -r '.recommendations[] | "🎯 \(.symbol) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch quick recommendations"; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations?limit=3" | jq -r '.recommendations[] | "🎯 \(.symbol) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch quick recommendations"; \
+	fi
 
 # Trade Recommendation Help
 recommendations-help: ## Show trade recommendation help
@@ -539,16 +590,30 @@ recommendations-help: ## Show trade recommendation help
 	@echo ""
 	@echo "$(GREEN)Examples:$(NC)"
 	@echo "  make recommendations"
-	@echo "  make recommendations-all"
-	@echo "  make recommendations-quick"
+	@echo "  make recommendations TIMEFRAME=1D"
+	@echo "  make recommendations TIMEFRAME=1H"
+	@echo "  make recommendations-all TIMEFRAME=4H"
+	@echo "  make recommendations-quick TIMEFRAME=1W"
 	@echo "  make recommendation SYMBOL=AAPL"
-	@echo "  make recommendation SYMBOL=TSLA"
+	@echo "  make recommendation SYMBOL=AAPL TIMEFRAME=1D"
+	@echo "  make recommendation SYMBOL=TSLA TIMEFRAME=4H"
+	@echo ""
+	@echo "$(GREEN)Supported Timeframes:$(NC)"
+	@echo "  1m  - 1 minute"
+	@echo "  5m  - 5 minutes"
+	@echo "  15m - 15 minutes"
+	@echo "  1H  - 1 hour"
+	@echo "  4H  - 4 hours"
+	@echo "  1D  - 1 day (default)"
+	@echo "  1W  - 1 week"
+	@echo "  1M  - 1 month"
 	@echo ""
 	@echo "$(GREEN)How It Works:$(NC)"
 	@echo "  • Combines Elliott Wave analysis with strategy signals"
 	@echo "  • Analyzes market conditions and risk factors"
 	@echo "  • Provides confidence scores and detailed reasoning"
 	@echo "  • Ranks recommendations by overall score"
+	@echo "  • Supports multiple timeframes for multi-timeframe analysis"
 	@echo ""
 	@echo "$(GREEN)Recommendation Levels:$(NC)"
 	@echo "  🟢 STRONG BUY  - Score > 60"

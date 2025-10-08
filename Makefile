@@ -14,6 +14,7 @@ include makefiles/Makefile.live-trading
 include makefiles/Makefile.paper-trading
 include makefiles/Makefile.validation
 include makefiles/Makefile.secrets
+include makefiles/Makefile.database
 
 # Standalone Makefiles (not in makefiles/ directory)
 -include Makefile.order-sync

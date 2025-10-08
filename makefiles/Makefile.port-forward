@@ -7,7 +7,7 @@ RED := \033[0;31m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help port-start port-stop port-status port-check port-start-dashboards port-start-analytics port-start-monitoring port-start-unified-dashboards port-restart port-cleanup port-health-check port-start-risk-management port-risk-management-status
+.PHONY: help port-start port-stop port-status port-check port-start-dashboards port-start-analytics port-start-monitoring port-start-unified-dashboards port-restart port-cleanup port-health-check port-start-risk-management port-risk-management-status port-forward port-list
 
 port-help: ## Show port forwarding help
 	@echo "$(GREEN)🔌 Port Forwarding$(NC)"
@@ -20,6 +20,14 @@ port-help: ## Show port forwarding help
 	@echo "  port-check      - Check if essential ports are responding"
 	@echo "  port-restart    - Restart all port forwards"
 	@echo "  port-cleanup    - Clean up old port forwards"
+	@echo ""
+	@echo "$(GREEN)Generic Port Forward:$(NC)"
+	@echo "  port-forward    - Forward a specific service (use SERVICE=name)"
+	@echo "  port-list       - List all available services"
+	@echo "  Examples:"
+	@echo "    make port-forward SERVICE=strategy"
+	@echo "    make port-forward SERVICE=market-data"
+	@echo "    make port-forward SERVICE=unified-analytics"
 	@echo ""
 	@echo "$(GREEN)Service Categories:$(NC)"
 	@echo "  port-start-dashboards - Start dashboard port forwards"
@@ -182,3 +190,159 @@ port-risk-management-status: ## Show Risk Management Framework port status
 	@curl -s -X POST http://localhost:11182/api/risk/var-calculation \
 		-H "Content-Type: application/json" \
 		-d '{"portfolio_id": "test", "confidence_levels": [0.95]}' | jq '.status' 2>/dev/null || echo "  ⚠️  VaR API not yet ready"
+
+# Generic Port Forward Command
+port-forward: ## Forward a specific service port (use SERVICE=name)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Please specify SERVICE=service-name$(NC)"; \
+		echo "$(YELLOW)   Example: make port-forward SERVICE=strategy$(NC)"; \
+		echo "$(YELLOW)   Run 'make port-list' to see all available services$(NC)"; \
+		exit 1; \
+	fi
+	@case "$(SERVICE)" in \
+		strategy|strategy-service) \
+			echo "$(GREEN)🔌 Forwarding Strategy Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/strategy-service 11001:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Strategy Service → http://localhost:11001/$(NC)"; \
+			;; \
+		market-data|market-data-service) \
+			echo "$(GREEN)🔌 Forwarding Market Data Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/market-data-service 11084:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Market Data Service → http://localhost:11084/$(NC)"; \
+			;; \
+		unified-analytics|analytics-dashboard) \
+			echo "$(GREEN)🔌 Forwarding Unified Analytics Dashboard...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/unified-analytics-dashboard 11114:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Unified Analytics → http://localhost:11114/$(NC)"; \
+			;; \
+		unified-trading|trading-dashboard) \
+			echo "$(GREEN)🔌 Forwarding Unified Trading Dashboard...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/unified-trading-dashboard 11115:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Unified Trading → http://localhost:11115/$(NC)"; \
+			;; \
+		unified-news|news-dashboard) \
+			echo "$(GREEN)🔌 Forwarding Unified News Dashboard...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/unified-news-dashboard 11116:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Unified News → http://localhost:11116/$(NC)"; \
+			;; \
+		mcp|mcp-service) \
+			echo "$(GREEN)🔌 Forwarding MCP Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/mcp-service 11117:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ MCP Service → http://localhost:11117/$(NC)"; \
+			;; \
+		live-trading|paper-trading) \
+			echo "$(GREEN)🔌 Forwarding Live Trading Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/paper-trading-k8s 11120:8080 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Live Trading → http://localhost:11120/$(NC)"; \
+			;; \
+		elliott-wave|elliott) \
+			echo "$(GREEN)🔌 Forwarding Elliott Wave Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/elliott-wave-analysis-service 11085:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Elliott Wave → http://localhost:11085/$(NC)"; \
+			;; \
+		ai-analysis|ai) \
+			echo "$(GREEN)🔌 Forwarding AI Analysis Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/ai-analysis-service 11084:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ AI Analysis → http://localhost:11084/$(NC)"; \
+			;; \
+		analytics|analytics-service) \
+			echo "$(GREEN)🔌 Forwarding Analytics Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/analytics-service 11081:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Analytics → http://localhost:11081/$(NC)"; \
+			;; \
+		risk-management|risk) \
+			echo "$(GREEN)🔌 Forwarding Risk Management Service...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/risk-management-service 11182:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Risk Management → http://localhost:11182/$(NC)"; \
+			;; \
+		backtest|backtest-api) \
+			echo "$(GREEN)🔌 Forwarding Backtest API...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/backtest-api 11101:10001 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Backtest API → http://localhost:11101/$(NC)"; \
+			;; \
+		validation|validation-framework) \
+			echo "$(GREEN)🔌 Forwarding Validation Framework...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/validation-framework-api 11080:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Validation Framework → http://localhost:11080/$(NC)"; \
+			;; \
+		strategy-testing|testing) \
+			echo "$(GREEN)🔌 Forwarding Strategy Testing Framework...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/strategy-testing-framework 11003:80 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Strategy Testing → http://localhost:11003/$(NC)"; \
+			;; \
+		registry) \
+			echo "$(GREEN)🔌 Forwarding Docker Registry...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/registry 32000:5000 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Docker Registry → http://localhost:32000/$(NC)"; \
+			;; \
+		prometheus) \
+			echo "$(GREEN)🔌 Forwarding Prometheus...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/prometheus 11190:9090 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ Prometheus → http://localhost:11190/$(NC)"; \
+			;; \
+		cqrs|cqrs-api) \
+			echo "$(GREEN)🔌 Forwarding CQRS API...$(NC)"; \
+			nohup kubectl port-forward -n trading-system svc/cqrs-api 11080:8080 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ CQRS API → http://localhost:11080/$(NC)"; \
+			;; \
+		*) \
+			echo "$(RED)❌ Unknown service: $(SERVICE)$(NC)"; \
+			echo "$(YELLOW)Run 'make port-list' to see all available services$(NC)"; \
+			exit 1; \
+			;; \
+	esac
+
+port-list: ## List all available services for port forwarding
+	@echo "$(GREEN)📋 Available Services for Port Forwarding$(NC)"
+	@echo "$(YELLOW)=========================================$(NC)"
+	@echo ""
+	@echo "$(BLUE)🎯 Trading Services:$(NC)"
+	@echo "  strategy               - Strategy Service (11001)"
+	@echo "  market-data            - Market Data Service (11084)"
+	@echo "  live-trading           - Live Trading Service (11120)"
+	@echo "  elliott-wave           - Elliott Wave Analysis (11085)"
+	@echo "  backtest               - Backtest API (11101)"
+	@echo "  cqrs                   - CQRS API (11080)"
+	@echo ""
+	@echo "$(BLUE)📊 Dashboards:$(NC)"
+	@echo "  unified-analytics      - Unified Analytics Dashboard (11114)"
+	@echo "  unified-trading        - Unified Trading Dashboard (11115)"
+	@echo "  unified-news           - Unified News Dashboard (11116)"
+	@echo ""
+	@echo "$(BLUE)🤖 AI/ML Services:$(NC)"
+	@echo "  ai-analysis            - AI Analysis Service (11084)"
+	@echo "  analytics              - Analytics Service (11081)"
+	@echo "  mcp                    - MCP Service (11117)"
+	@echo ""
+	@echo "$(BLUE)🛡️  Risk & Validation:$(NC)"
+	@echo "  risk-management        - Risk Management Service (11182)"
+	@echo "  validation             - Validation Framework (11080)"
+	@echo "  strategy-testing       - Strategy Testing Framework (11003)"
+	@echo ""
+	@echo "$(BLUE)🔧 Infrastructure:$(NC)"
+	@echo "  registry               - Docker Registry (32000)"
+	@echo "  prometheus             - Prometheus Monitoring (11190)"
+	@echo ""
+	@echo "$(GREEN)Usage:$(NC)"
+	@echo "  make port-forward SERVICE=strategy"
+	@echo "  make port-forward SERVICE=unified-analytics"
+	@echo "  make port-forward SERVICE=live-trading"
+	@echo ""
+	@echo "$(YELLOW)💡 Tip: Most service names have aliases (e.g., 'strategy' or 'strategy-service')$(NC)"

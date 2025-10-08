@@ -104,7 +104,13 @@ archive/
 
 # Old backup directories
 backup/
-old-*/ 
+old-*/
+
+# Database backups (optional - remove to track in git)
+backups/database/*.sql.gz
+backups/database/*.sql
+# Keep backup directory structure
+!backups/database/.gitkeep 
 
 test-data/
 
