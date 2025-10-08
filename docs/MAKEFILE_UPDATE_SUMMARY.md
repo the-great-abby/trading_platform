@@ -10,8 +10,8 @@ Updated script references to point to new locations:
 
 | Old Path | New Path | Line(s) |
 |----------|----------|---------|
-| `python3 refresh_public_token.py` | `python3 scripts/refresh_public_token.py` | 85 |
-| `python3 clear_encrypted_credentials.py` | `python3 scripts/clear_encrypted_credentials.py` | 109, 188 |
+| `python3 refresh_public_token.py` | `python3 scripts/utilities/refresh_public_token.py` | 85 |
+| `python3 clear_encrypted_credentials.py` | `python3 scripts/utilities/clear_encrypted_credentials.py` | 109, 188 |
 | `python3 live_trading_monitor.py single` | `python3 scripts/monitoring/live_trading_monitor.py single` | 154 |
 | `python3 live_trading_monitor.py continuous 5` | `python3 scripts/monitoring/live_trading_monitor.py continuous 5` | 160 |
 
@@ -158,7 +158,7 @@ If you encounter "script not found" errors:
 
 ```bash
 # Verify script exists
-ls -la scripts/refresh_public_token.py
+ls -la scripts/utilities/refresh_public_token.py
 ls -la scripts/monitoring/live_trading_monitor.py
 
 # Check if path is correct in Makefile
@@ -214,8 +214,8 @@ python3 -c "import sys; print('\n'.join(sys.path))"
 ```makefile
 validate-scripts: ## Validate all script paths exist
 	@echo "Validating script paths..."
-	@test -f scripts/refresh_public_token.py && echo "✅ refresh_public_token.py" || echo "❌ refresh_public_token.py"
-	@test -f scripts/clear_encrypted_credentials.py && echo "✅ clear_encrypted_credentials.py" || echo "❌ clear_encrypted_credentials.py"
+	@test -f scripts/utilities/refresh_public_token.py && echo "✅ refresh_public_token.py" || echo "❌ refresh_public_token.py"
+	@test -f scripts/utilities/clear_encrypted_credentials.py && echo "✅ clear_encrypted_credentials.py" || echo "❌ clear_encrypted_credentials.py"
 	@test -f scripts/monitoring/live_trading_monitor.py && echo "✅ live_trading_monitor.py" || echo "❌ live_trading_monitor.py"
 ```
 

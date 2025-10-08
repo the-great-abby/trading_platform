@@ -7,7 +7,7 @@ RED := \033[0;31m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help build-all build-service build-push build-registry build-clean build-list
+.PHONY: help build-all build-service build-push build-registry build-clean build-list docker-prune docker-prune-all docker-prune-images docker-prune-containers
 
 build-help: ## Show build help
 	@echo "$(GREEN)🔨 Build Commands$(NC)"
@@ -20,6 +20,12 @@ build-help: ## Show build help
 	@echo "  build-registry - Check registry status"
 	@echo "  build-clean    - Clean build artifacts"
 	@echo "  build-list     - List available services"
+	@echo ""
+	@echo "$(GREEN)Docker Cleanup:$(NC)"
+	@echo "  docker-prune             - Prune unused containers, networks, images (keeps volumes)"
+	@echo "  docker-prune-all         - Aggressive cleanup (keeps volumes)"
+	@echo "  docker-prune-images      - Remove dangling images only"
+	@echo "  docker-prune-containers  - Remove stopped containers only"
 	@echo ""
 
 build-all: ## Build all services
@@ -66,3 +72,62 @@ build-list: ## List available services
 	@echo ""
 	@echo "First 10 services:"
 	@ls services/ | head -10
+
+# ============================================================================
+# DOCKER CLEANUP TARGETS
+# ============================================================================
+
+docker-prune: ## Prune unused Docker resources (keeps volumes)
+	@echo "$(YELLOW)🧹 Pruning Unused Docker Resources...$(NC)"
+	@echo ""
+	@echo "$(BLUE)This will remove:$(NC)"
+	@echo "  • Stopped containers"
+	@echo "  • Unused networks"
+	@echo "  • Dangling images"
+	@echo "  • Build cache"
+	@echo ""
+	@echo "$(GREEN)This will preserve:$(NC)"
+	@echo "  ✅ Volumes (your data is safe!)"
+	@echo "  ✅ Running containers"
+	@echo "  ✅ Images in use"
+	@echo ""
+	@docker system prune -f
+	@echo ""
+	@echo "$(GREEN)✅ Docker cleanup complete!$(NC)"
+
+docker-prune-all: ## Aggressive Docker cleanup (keeps volumes)
+	@echo "$(RED)⚠️  AGGRESSIVE Docker Cleanup$(NC)"
+	@echo ""
+	@echo "$(BLUE)This will remove:$(NC)"
+	@echo "  • ALL stopped containers"
+	@echo "  • ALL unused networks"
+	@echo "  • ALL dangling AND unused images"
+	@echo "  • ALL build cache"
+	@echo ""
+	@echo "$(GREEN)This will preserve:$(NC)"
+	@echo "  ✅ Volumes (your data is safe!)"
+	@echo "  ✅ Running containers"
+	@echo ""
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@docker system prune -af
+	@echo ""
+	@echo "$(GREEN)✅ Aggressive cleanup complete!$(NC)"
+	@make docker-stats
+
+docker-prune-images: ## Remove dangling images only
+	@echo "$(YELLOW)🧹 Removing Dangling Images...$(NC)"
+	@docker image prune -f
+	@echo "$(GREEN)✅ Dangling images removed$(NC)"
+
+docker-prune-containers: ## Remove stopped containers only
+	@echo "$(YELLOW)🧹 Removing Stopped Containers...$(NC)"
+	@docker container prune -f
+	@echo "$(GREEN)✅ Stopped containers removed$(NC)"
+
+docker-stats: ## Show Docker disk usage
+	@echo "$(BLUE)📊 Docker Disk Usage$(NC)"
+	@echo "$(YELLOW)===================$(NC)"
+	@docker system df
+	@echo ""
+	@echo "$(BLUE)Detailed breakdown:$(NC)"
+	@docker system df -v | head -20

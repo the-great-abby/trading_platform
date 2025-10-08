@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-08-12T14:46:52.200047",
+  "check_duration": 0.9,
+  "external_services": {
+    "unified-trading-dashboard": {
+      "status": "healthy",
+      "response_time": 16.58,
+      "status_code": 200,
+      "error": null
+    },
+    "unified-news-dashboard": {
+      "status": "healthy",
+      "response_time": 16.16,
+      "status_code": 200,
+      "error": null
+    },
+    "unified-analytics-dashboard": {
+      "status": "healthy",
+      "response_time": 16.32,
+      "status_code": 200,
+      "error": null
+    },
+    "backtest-api": {
+      "status": "healthy",
+      "response_time": 70.89,
+      "status_code": 200,
+      "error": null
+    }
+  },
+  "databases": {
+    "timescaledb": {
+      "status": "healthy",
+      "response_time": 26.78,
+      "error": null
+    }
+  },
+  "vector_storage": {
+    "postgres-vector-storage": {
+      "status": "healthy",
+      "response_time": 7.36,
+      "status_code": 200,
+      "error": null
+    }
+  },
+  "caches": {
+    "redis": {
+      "status": "healthy",
+      "response_time": 5.25,
+      "error": null
+    }
+  },
+  "internal_communication": {
+    "trading-to-backtest": {
+      "status": "healthy",
+      "error": null
+    },
+    "news-to-rss": {
+      "status": "healthy",
+      "error": null
+    }
+  }
+}

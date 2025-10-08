@@ -1,0 +1,19 @@
+{
+  "connection_pooling": {
+    "pool_size": 20,
+    "max_overflow": 40,
+    "pool_timeout": 30,
+    "pool_recycle": 3600,
+    "pool_pre_ping": true
+  },
+  "query_optimization": {
+    "enable_query_caching": true,
+    "cache_ttl": 300,
+    "slow_query_threshold": 1.0
+  },
+  "index_optimization": {
+    "auto_create_indexes": true,
+    "index_maintenance": true,
+    "vacuum_schedule": "daily"
+  }
+}

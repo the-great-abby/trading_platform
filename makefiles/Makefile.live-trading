@@ -82,7 +82,7 @@ live-trading-refresh-token:
 	@echo "   • Generate a fresh access token"
 	@echo "   • Test account balance retrieval"
 	@echo ""
-	@python3 scripts/refresh_public_token.py
+	@python3 scripts/utilities/refresh_public_token.py
 	@echo ""
 	@echo "🧪 Testing token refresh..."
 	@make live-trading-health
@@ -106,7 +106,7 @@ live-trading-fix-credentials:
 	ENCODED_KEY=$$(echo "$$NEW_KEY" | base64 -w 0); \
 	kubectl patch secret live-trading-service-secrets -n default --patch "{\"data\":{\"encryption-key\":\"$$ENCODED_KEY\"}}"; \
 	echo "Clearing old credentials..."; \
-	python3 scripts/clear_encrypted_credentials.py; \
+	python3 scripts/utilities/clear_encrypted_credentials.py; \
 	echo "Restarting service..."; \
 	kubectl rollout restart deployment/live-trading-service -n default; \
 	echo "Waiting for restart..."; \

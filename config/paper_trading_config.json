@@ -1,0 +1,65 @@
+{
+  "initial_capital": 4000.0,
+  "max_position_size": 0.15,
+  "max_risk_per_trade": 0.05,
+  "max_portfolio_utilization": 0.80,
+  "min_cash_reserve": 0.20,
+  "capital_efficiency_threshold": 0.70,
+  "capital_scarcity_threshold": 0.30,
+  "hybrid_allocation": {
+    "enabled": true,
+    "cash_reserve_pct": 0.20,
+    "stock_allocation_pct": 0.20,
+    "options_allocation_pct": 0.60,
+    "description": "Hybrid allocation: 20% cash, 20% stocks, 60% options for optimal risk-adjusted returns"
+  },
+  "trading_interval": 1800,
+  "max_daily_trades": 8,
+  "max_weekly_trades": 12,
+  "max_monthly_trades": 20,
+  "strategies": [
+    "SimpleTestStrategy",
+    "AggressiveTestStrategy"
+  ],
+  "symbols": ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"],
+  "use_real_strategies": true,
+  "enable_alerts": true,
+  "performance_tracking": true,
+  "strategy_options": {
+    "SimpleTestStrategy": {
+      "enabled": true,
+      "weight": 0.5,
+      "description": "Simple test strategy that always generates signals"
+    },
+    "AggressiveTestStrategy": {
+      "enabled": true,
+      "weight": 0.5,
+      "description": "Aggressive test strategy that always generates BUY signals"
+    },
+    "RSIStrategy": {
+      "enabled": false,
+      "weight": 0.0,
+      "description": "RSI momentum strategy"
+    },
+    "MACDStrategy": {
+      "enabled": false,
+      "weight": 0.0,
+      "description": "MACD trend following strategy"
+    },
+    "BollingerBandsStrategy": {
+      "enabled": false,
+      "weight": 0.0,
+      "description": "Bollinger Bands mean reversion strategy"
+    },
+    "ElliottWaveCorrectiveStrategy": {
+      "enabled": false,
+      "weight": 0.0,
+      "description": "Elliott Wave corrective pattern strategy"
+    },
+    "ElliottWaveImpulseStrategy": {
+      "enabled": false,
+      "weight": 0.0,
+      "description": "Elliott Wave impulse pattern strategy"
+    }
+  }
+}

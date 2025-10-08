@@ -1,0 +1,1196 @@
+{
+  "timestamp": "20250929_165452",
+  "options_results": {
+    "initial_capital": 4000.0,
+    "final_capital": 1339.3599999999997,
+    "total_pnl": -2660.6400000000003,
+    "total_return": -0.6651600000000001,
+    "annual_return": -0.4213463903162792,
+    "sharpe_ratio": 1.4663193002833657,
+    "max_drawdown": 0.6651600000000001,
+    "total_trades": 60,
+    "winning_trades": 60,
+    "losing_trades": 0,
+    "win_rate": 1.0,
+    "avg_trade_pnl": 10.93933333333333,
+    "strategy_breakdown": {
+      "IRON_CONDOR": {
+        "trades": 7,
+        "total_pnl": 100.3,
+        "avg_pnl": 14.328571428571427,
+        "win_rate": 1.0
+      },
+      "BUTTERFLY_SPREAD": {
+        "trades": 32,
+        "total_pnl": 272.6,
+        "avg_pnl": 8.51875,
+        "win_rate": 1.0
+      },
+      "CALENDAR_SPREAD": {
+        "trades": 16,
+        "total_pnl": 170.77999999999997,
+        "avg_pnl": 10.673749999999998,
+        "win_rate": 1.0
+      },
+      "STRADDLE": {
+        "trades": 1,
+        "total_pnl": 16.22,
+        "avg_pnl": 16.22,
+        "win_rate": 1.0
+      },
+      "STRANGLE": {
+        "trades": 4,
+        "total_pnl": 96.46000000000001,
+        "avg_pnl": 24.115000000000002,
+        "win_rate": 1.0
+      }
+    },
+    "trades": [
+      {
+        "day": 4,
+        "symbol": "QQQ",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.52,
+        "current_price": 398.32,
+        "trade_value": 52.0,
+        "pnl": 9.18,
+        "position_pct": 1.3,
+        "greeks": {
+          "delta": -0.16455528654429807,
+          "gamma": 0.04526110896474541,
+          "theta": -0.039011132354608985,
+          "vega": 0.25391975396703803
+        },
+        "status": "closed",
+        "exit_day": 5
+      },
+      {
+        "day": 7,
+        "symbol": "NFLX",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.91,
+        "current_price": 506.93,
+        "trade_value": 91.0,
+        "pnl": 22.98,
+        "position_pct": 2.2996174043131723,
+        "greeks": {
+          "delta": 0.40942538087533864,
+          "gamma": 0.04797555581308529,
+          "theta": -0.0266175635672777,
+          "vega": 0.29620430845228785
+        },
+        "status": "closed",
+        "exit_day": 8
+      },
+      {
+        "day": 8,
+        "symbol": "MSFT",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.65,
+        "current_price": 366.22,
+        "trade_value": 65.0,
+        "pnl": 11.82,
+        "position_pct": 1.671312057102305,
+        "greeks": {
+          "delta": 0.3890329150321342,
+          "gamma": 0.011453855655654061,
+          "theta": -0.04439108559630754,
+          "vega": 0.22325727248663035
+        },
+        "status": "closed",
+        "exit_day": 9
+      },
+      {
+        "day": 9,
+        "symbol": "QQQ",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.74,
+        "current_price": 404.7,
+        "trade_value": 74.0,
+        "pnl": 14.16,
+        "position_pct": 1.9291028628929243,
+        "greeks": {
+          "delta": 0.4052703468864366,
+          "gamma": 0.04238205701772776,
+          "theta": -0.028926656529259926,
+          "vega": 0.14336672162372643
+        },
+        "status": "closed",
+        "exit_day": 10
+      },
+      {
+        "day": 11,
+        "symbol": "MSFT",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.46,
+        "current_price": 376.22,
+        "trade_value": 46.0,
+        "pnl": 6.08,
+        "position_pct": 1.2181751735899624,
+        "greeks": {
+          "delta": -0.18206374855109453,
+          "gamma": 0.042165626334075654,
+          "theta": -0.023114269892045333,
+          "vega": 0.21638131037127512
+        },
+        "status": "closed",
+        "exit_day": 12
+      },
+      {
+        "day": 12,
+        "symbol": "AMZN",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.36,
+        "current_price": 152.57,
+        "trade_value": 36.0,
+        "pnl": 7.05,
+        "position_pct": 0.9635406908586753,
+        "greeks": {
+          "delta": 0.11202128789675025,
+          "gamma": 0.032863491815341955,
+          "theta": -0.020695215014433995,
+          "vega": 0.1490322887073507
+        },
+        "status": "closed",
+        "exit_day": 13
+      },
+      {
+        "day": 15,
+        "symbol": "NFLX",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.69,
+        "current_price": 506.88,
+        "trade_value": 69.0,
+        "pnl": 16.62,
+        "position_pct": 1.861207842968006,
+        "greeks": {
+          "delta": 0.03826081196175357,
+          "gamma": 0.015599033197953874,
+          "theta": -0.04370783764501464,
+          "vega": 0.262724134395652
+        },
+        "status": "closed",
+        "exit_day": 16
+      },
+      {
+        "day": 16,
+        "symbol": "NFLX",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.32,
+        "current_price": 508.17,
+        "trade_value": 32.0,
+        "pnl": 6.02,
+        "position_pct": 0.8755393459173875,
+        "greeks": {
+          "delta": -0.4393063576448131,
+          "gamma": 0.034363691691034925,
+          "theta": -0.015578535338241502,
+          "vega": 0.20779023047608855
+        },
+        "status": "closed",
+        "exit_day": 17
+      },
+      {
+        "day": 29,
+        "symbol": "TSLA",
+        "strategy": "STRANGLE",
+        "contracts": 1,
+        "premium": 0.96,
+        "current_price": 219.33,
+        "trade_value": 96.0,
+        "pnl": 41.38,
+        "position_pct": 2.6454224546764733,
+        "greeks": {
+          "delta": -0.09572349267208713,
+          "gamma": 0.011751245828224436,
+          "theta": -0.040724725105763866,
+          "vega": 0.2895846023803731
+        },
+        "status": "closed",
+        "exit_day": 30
+      },
+      {
+        "day": 34,
+        "symbol": "QQQ",
+        "strategy": "STRADDLE",
+        "contracts": 1,
+        "premium": 1.04,
+        "current_price": 402.88,
+        "trade_value": 104.0,
+        "pnl": 16.22,
+        "position_pct": 2.909668773378769,
+        "greeks": {
+          "delta": -0.3029225496707342,
+          "gamma": 0.03676715189120114,
+          "theta": -0.015537154318586537,
+          "vega": 0.19886785967831894
+        },
+        "status": "closed",
+        "exit_day": 35
+      },
+      {
+        "day": 35,
+        "symbol": "TSLA",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.6,
+        "current_price": 218.25,
+        "trade_value": 60.0,
+        "pnl": 14.1,
+        "position_pct": 1.7209186263627525,
+        "greeks": {
+          "delta": 0.16104746374475676,
+          "gamma": 0.018212630148400105,
+          "theta": -0.02946524563005869,
+          "vega": 0.1740420348290268
+        },
+        "status": "closed",
+        "exit_day": 36
+      },
+      {
+        "day": 36,
+        "symbol": "TSLA",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.46,
+        "current_price": 225.72,
+        "trade_value": 46.0,
+        "pnl": 10.71,
+        "position_pct": 1.3369722229488377,
+        "greeks": {
+          "delta": -0.4058998031268438,
+          "gamma": 0.020270458399521966,
+          "theta": -0.0430407990735104,
+          "vega": 0.15349312527489736
+        },
+        "status": "closed",
+        "exit_day": 37
+      },
+      {
+        "day": 37,
+        "symbol": "NVDA",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.56,
+        "current_price": 551.59,
+        "trade_value": 56.00000000000001,
+        "pnl": 10.04,
+        "position_pct": 1.6444856871013596,
+        "greeks": {
+          "delta": 0.3809646582333974,
+          "gamma": 0.02132219721313209,
+          "theta": -0.03383119874988451,
+          "vega": 0.2180461444742152
+        },
+        "status": "closed",
+        "exit_day": 38
+      },
+      {
+        "day": 38,
+        "symbol": "QQQ",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.9,
+        "current_price": 402.1,
+        "trade_value": 90.0,
+        "pnl": 22.7,
+        "position_pct": 2.679081729853306,
+        "greeks": {
+          "delta": -0.293731691608193,
+          "gamma": 0.028795545480960333,
+          "theta": -0.02126926109670675,
+          "vega": 0.25826574473250896
+        },
+        "status": "closed",
+        "exit_day": 39
+      },
+      {
+        "day": 41,
+        "symbol": "META",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.59,
+        "current_price": 347.55,
+        "trade_value": 59.0,
+        "pnl": 22.94,
+        "position_pct": 1.7921909078206355,
+        "greeks": {
+          "delta": 0.19912396293857693,
+          "gamma": 0.012135200422464557,
+          "theta": -0.02700822508872786,
+          "vega": 0.23606457047622426
+        },
+        "status": "closed",
+        "exit_day": 42
+      },
+      {
+        "day": 51,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.68,
+        "current_price": 494.5,
+        "trade_value": 68.0,
+        "pnl": 6.87,
+        "position_pct": 2.0884520884520885,
+        "greeks": {
+          "delta": -0.33838651198405234,
+          "gamma": 0.031308806096282955,
+          "theta": -0.03117610089611761,
+          "vega": 0.2640422752455248
+        },
+        "status": "closed",
+        "exit_day": 52
+      },
+      {
+        "day": 54,
+        "symbol": "TSLA",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.7,
+        "current_price": 224.61,
+        "trade_value": 70.0,
+        "pnl": 4.16,
+        "position_pct": 2.1910124668609368,
+        "greeks": {
+          "delta": 0.03119943267066727,
+          "gamma": 0.03888135616066359,
+          "theta": -0.017296630840390938,
+          "vega": 0.2987808254621748
+        },
+        "status": "closed",
+        "exit_day": 55
+      },
+      {
+        "day": 55,
+        "symbol": "AMZN",
+        "strategy": "STRANGLE",
+        "contracts": 1,
+        "premium": 0.88,
+        "current_price": 152.81,
+        "trade_value": 88.0,
+        "pnl": 29.38,
+        "position_pct": 2.812373163568263,
+        "greeks": {
+          "delta": -0.11158800406630587,
+          "gamma": 0.018298564763862633,
+          "theta": -0.020776907414436937,
+          "vega": 0.15455739994116094
+        },
+        "status": "closed",
+        "exit_day": 56
+      },
+      {
+        "day": 58,
+        "symbol": "GOOGL",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.7,
+        "current_price": 143.37,
+        "trade_value": 70.0,
+        "pnl": 6.22,
+        "position_pct": 2.2798258213072526,
+        "greeks": {
+          "delta": 0.10671844538874475,
+          "gamma": 0.03818143290222242,
+          "theta": -0.02533051275814333,
+          "vega": 0.11394163310413302
+        },
+        "status": "closed",
+        "exit_day": 59
+      },
+      {
+        "day": 61,
+        "symbol": "NFLX",
+        "strategy": "STRANGLE",
+        "contracts": 1,
+        "premium": 0.66,
+        "current_price": 513.54,
+        "trade_value": 66.0,
+        "pnl": 19.98,
+        "position_pct": 2.1951487213258702,
+        "greeks": {
+          "delta": -0.04494775010453356,
+          "gamma": 0.011379106638790933,
+          "theta": -0.034322811999523105,
+          "vega": 0.15506555680121537
+        },
+        "status": "closed",
+        "exit_day": 62
+      },
+      {
+        "day": 62,
+        "symbol": "META",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 2,
+        "premium": 0.31,
+        "current_price": 354.99,
+        "trade_value": 62.0,
+        "pnl": 3.36,
+        "position_pct": 2.094163027213987,
+        "greeks": {
+          "delta": 0.2369541566243062,
+          "gamma": 0.04189952324705245,
+          "theta": -0.04181957663041482,
+          "vega": 0.10637591193078821
+        },
+        "status": "closed",
+        "exit_day": 63
+      },
+      {
+        "day": 64,
+        "symbol": "NFLX",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 2,
+        "premium": 0.32,
+        "current_price": 509.62,
+        "trade_value": 64.0,
+        "pnl": 13.84,
+        "position_pct": 2.205398401775346,
+        "greeks": {
+          "delta": 0.21643935685014404,
+          "gamma": 0.03205525207146776,
+          "theta": -0.04721242398936771,
+          "vega": 0.19428594064114466
+        },
+        "status": "closed",
+        "exit_day": 65
+      },
+      {
+        "day": 66,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.44,
+        "current_price": 513.05,
+        "trade_value": 44.0,
+        "pnl": 7.53,
+        "position_pct": 1.5428797851189247,
+        "greeks": {
+          "delta": 0.15856736478729605,
+          "gamma": 0.01046959809805613,
+          "theta": -0.023317603860801006,
+          "vega": 0.13707201120848073
+        },
+        "status": "closed",
+        "exit_day": 67
+      },
+      {
+        "day": 68,
+        "symbol": "NFLX",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.8,
+        "current_price": 493.4,
+        "trade_value": 80.0,
+        "pnl": 14.64,
+        "position_pct": 2.8415750850696546,
+        "greeks": {
+          "delta": 0.3177918121042176,
+          "gamma": 0.01488646594088967,
+          "theta": -0.041338836690200165,
+          "vega": 0.25509106744829113
+        },
+        "status": "closed",
+        "exit_day": 69
+      },
+      {
+        "day": 86,
+        "symbol": "TSLA",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.67,
+        "current_price": 229.61,
+        "trade_value": 67.0,
+        "pnl": 11.82,
+        "position_pct": 2.436381355500768,
+        "greeks": {
+          "delta": -0.44592243363832296,
+          "gamma": 0.020790795017472812,
+          "theta": -0.041513825683063874,
+          "vega": 0.18047740810415647
+        },
+        "status": "closed",
+        "exit_day": 87
+      },
+      {
+        "day": 90,
+        "symbol": "MSFT",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.39,
+        "current_price": 377.18,
+        "trade_value": 39.0,
+        "pnl": 12.84,
+        "position_pct": 1.4472317055069022,
+        "greeks": {
+          "delta": 0.13759234716300728,
+          "gamma": 0.04297953932109179,
+          "theta": -0.049556282979965935,
+          "vega": 0.1830498203008613
+        },
+        "status": "closed",
+        "exit_day": 91
+      },
+      {
+        "day": 95,
+        "symbol": "MSFT",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.75,
+        "current_price": 384.54,
+        "trade_value": 75.0,
+        "pnl": 13.83,
+        "position_pct": 2.8104202889861503,
+        "greeks": {
+          "delta": 0.3128392440641963,
+          "gamma": 0.03038546289388673,
+          "theta": -0.024823765951424763,
+          "vega": 0.12089551412562297
+        },
+        "status": "closed",
+        "exit_day": 96
+      },
+      {
+        "day": 96,
+        "symbol": "TSLA",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.45,
+        "current_price": 224.12,
+        "trade_value": 45.0,
+        "pnl": 5.4,
+        "position_pct": 1.7258108434612864,
+        "greeks": {
+          "delta": -0.18471503812533285,
+          "gamma": 0.022018402540664214,
+          "theta": -0.013728053186812285,
+          "vega": 0.17766979408988953
+        },
+        "status": "closed",
+        "exit_day": 97
+      },
+      {
+        "day": 112,
+        "symbol": "TSLA",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.47,
+        "current_price": 219.3,
+        "trade_value": 47.0,
+        "pnl": 4.25,
+        "position_pct": 1.830310724452562,
+        "greeks": {
+          "delta": -0.05331757720761621,
+          "gamma": 0.029498345972066076,
+          "theta": -0.029268491457460587,
+          "vega": 0.17636134179365304
+        },
+        "status": "closed",
+        "exit_day": 113
+      },
+      {
+        "day": 118,
+        "symbol": "SPY",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.7,
+        "current_price": 485.56,
+        "trade_value": 70.0,
+        "pnl": 11.94,
+        "position_pct": 2.772145482194906,
+        "greeks": {
+          "delta": -0.43331755785609183,
+          "gamma": 0.016027239652388843,
+          "theta": -0.01700034790978036,
+          "vega": 0.21123923148785362
+        },
+        "status": "closed",
+        "exit_day": 119
+      },
+      {
+        "day": 121,
+        "symbol": "AMZN",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.62,
+        "current_price": 149.66,
+        "trade_value": 62.0,
+        "pnl": 20.68,
+        "position_pct": 2.5131127739090253,
+        "greeks": {
+          "delta": -0.24329340682533118,
+          "gamma": 0.0409180764690558,
+          "theta": -0.019906916317063875,
+          "vega": 0.22136708510557596
+        },
+        "status": "closed",
+        "exit_day": 122
+      },
+      {
+        "day": 122,
+        "symbol": "AAPL",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.51,
+        "current_price": 176.54,
+        "trade_value": 51.0,
+        "pnl": 15.47,
+        "position_pct": 2.10245121076455,
+        "greeks": {
+          "delta": -0.3918495683371903,
+          "gamma": 0.03350748694927821,
+          "theta": -0.04391122623965211,
+          "vega": 0.285904144307612
+        },
+        "status": "closed",
+        "exit_day": 123
+      },
+      {
+        "day": 127,
+        "symbol": "GOOGL",
+        "strategy": "STRANGLE",
+        "contracts": 1,
+        "premium": 0.57,
+        "current_price": 140.97,
+        "trade_value": 56.99999999999999,
+        "pnl": 5.72,
+        "position_pct": 2.3847277017500557,
+        "greeks": {
+          "delta": 0.493548676550841,
+          "gamma": 0.04714762884059675,
+          "theta": -0.019902090935576038,
+          "vega": 0.13715611857540672
+        },
+        "status": "closed",
+        "exit_day": 128
+      },
+      {
+        "day": 129,
+        "symbol": "SPY",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.51,
+        "current_price": 501.08,
+        "trade_value": 51.0,
+        "pnl": 9.61,
+        "position_pct": 2.1804842385193237,
+        "greeks": {
+          "delta": 0.49297120840177466,
+          "gamma": 0.028757267706014805,
+          "theta": -0.02155513118805236,
+          "vega": 0.14610383423362946
+        },
+        "status": "closed",
+        "exit_day": 130
+      },
+      {
+        "day": 131,
+        "symbol": "SPY",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.63,
+        "current_price": 505.84,
+        "trade_value": 63.0,
+        "pnl": 19.09,
+        "position_pct": 2.742063250258973,
+        "greeks": {
+          "delta": -0.15812414572808564,
+          "gamma": 0.01554625907344943,
+          "theta": -0.021708826471360874,
+          "vega": 0.194244997341407
+        },
+        "status": "closed",
+        "exit_day": 132
+      },
+      {
+        "day": 136,
+        "symbol": "GOOGL",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.62,
+        "current_price": 143.49,
+        "trade_value": 62.0,
+        "pnl": 16.0,
+        "position_pct": 2.7511170866557513,
+        "greeks": {
+          "delta": 0.1573670284452282,
+          "gamma": 0.02487783507067736,
+          "theta": -0.017344480948579447,
+          "vega": 0.24799612537838847
+        },
+        "status": "closed",
+        "exit_day": 137
+      },
+      {
+        "day": 147,
+        "symbol": "NFLX",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.49,
+        "current_price": 491.21,
+        "trade_value": 49.0,
+        "pnl": 4.14,
+        "position_pct": 2.2195748381748754,
+        "greeks": {
+          "delta": -0.07959304167405579,
+          "gamma": 0.021774542343123884,
+          "theta": -0.03166667653284522,
+          "vega": 0.15760867882078344
+        },
+        "status": "closed",
+        "exit_day": 148
+      },
+      {
+        "day": 149,
+        "symbol": "AMZN",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.52,
+        "current_price": 154.49,
+        "trade_value": 52.0,
+        "pnl": 7.17,
+        "position_pct": 2.4043240843917757,
+        "greeks": {
+          "delta": -0.42180584996964876,
+          "gamma": 0.02056382788564248,
+          "theta": -0.028759879964891887,
+          "vega": 0.10275063657097093
+        },
+        "status": "closed",
+        "exit_day": 150
+      },
+      {
+        "day": 162,
+        "symbol": "MSFT",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.6,
+        "current_price": 364.87,
+        "trade_value": 60.0,
+        "pnl": 15.69,
+        "position_pct": 2.8329414431003714,
+        "greeks": {
+          "delta": -0.19261143077195386,
+          "gamma": 0.039140110295793284,
+          "theta": -0.01689834989267785,
+          "vega": 0.24274201963807407
+        },
+        "status": "closed",
+        "exit_day": 163
+      },
+      {
+        "day": 167,
+        "symbol": "AAPL",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.47,
+        "current_price": 172.11,
+        "trade_value": 47.0,
+        "pnl": 8.58,
+        "position_pct": 2.2665567145537056,
+        "greeks": {
+          "delta": 0.4124601294020179,
+          "gamma": 0.0364051930373863,
+          "theta": -0.013552389280110953,
+          "vega": 0.10639066368425035
+        },
+        "status": "closed",
+        "exit_day": 168
+      },
+      {
+        "day": 175,
+        "symbol": "TSLA",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.5,
+        "current_price": 222.1,
+        "trade_value": 50.0,
+        "pnl": 6.91,
+        "position_pct": 2.456748934999337,
+        "greeks": {
+          "delta": 0.0910488728526011,
+          "gamma": 0.04883681841781663,
+          "theta": -0.03601444389222947,
+          "vega": 0.16695781669634885
+        },
+        "status": "closed",
+        "exit_day": 176
+      },
+      {
+        "day": 181,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.43,
+        "current_price": 486.78,
+        "trade_value": 43.0,
+        "pnl": 4.76,
+        "position_pct": 2.158504507760577,
+        "greeks": {
+          "delta": 0.3437006446668135,
+          "gamma": 0.012080074583057435,
+          "theta": -0.043968780502628604,
+          "vega": 0.23887675211072287
+        },
+        "status": "closed",
+        "exit_day": 182
+      },
+      {
+        "day": 197,
+        "symbol": "NVDA",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.41,
+        "current_price": 549.62,
+        "trade_value": 41.0,
+        "pnl": 8.67,
+        "position_pct": 2.0983888468073784,
+        "greeks": {
+          "delta": 0.09840415593640428,
+          "gamma": 0.030577034764715495,
+          "theta": -0.03191771885326038,
+          "vega": 0.16099709310247115
+        },
+        "status": "closed",
+        "exit_day": 198
+      },
+      {
+        "day": 203,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.48,
+        "current_price": 489.16,
+        "trade_value": 48.0,
+        "pnl": 5.28,
+        "position_pct": 2.497983398818662,
+        "greeks": {
+          "delta": -0.490099592927286,
+          "gamma": 0.019445522121679562,
+          "theta": -0.03176042100653794,
+          "vega": 0.1148902289181611
+        },
+        "status": "closed",
+        "exit_day": 204
+      },
+      {
+        "day": 204,
+        "symbol": "META",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.5,
+        "current_price": 350.81,
+        "trade_value": 50.0,
+        "pnl": 5.63,
+        "position_pct": 2.6612306595061823,
+        "greeks": {
+          "delta": 0.35756824686173316,
+          "gamma": 0.04897027063473394,
+          "theta": -0.04398406465857476,
+          "vega": 0.11842568378707444
+        },
+        "status": "closed",
+        "exit_day": 205
+      },
+      {
+        "day": 246,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.31,
+        "current_price": 509.12,
+        "trade_value": 31.0,
+        "pnl": 1.9,
+        "position_pct": 1.6898705886200844,
+        "greeks": {
+          "delta": 0.029908655408126594,
+          "gamma": 0.011115525555204125,
+          "theta": -0.01838639073680682,
+          "vega": 0.25499617690080456
+        },
+        "status": "closed",
+        "exit_day": 247
+      },
+      {
+        "day": 290,
+        "symbol": "GOOGL",
+        "strategy": "IRON_CONDOR",
+        "contracts": 1,
+        "premium": 0.52,
+        "current_price": 143.1,
+        "trade_value": 52.0,
+        "pnl": 11.85,
+        "position_pct": 2.8803119599415075,
+        "greeks": {
+          "delta": -0.4487728835367889,
+          "gamma": 0.04656298698696684,
+          "theta": -0.02953338224287102,
+          "vega": 0.22505996873939133
+        },
+        "status": "closed",
+        "exit_day": 291
+      },
+      {
+        "day": 303,
+        "symbol": "AAPL",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.31,
+        "current_price": 176.56,
+        "trade_value": 31.0,
+        "pnl": 3.83,
+        "position_pct": 1.75616498886818,
+        "greeks": {
+          "delta": -0.029508718046039162,
+          "gamma": 0.01681690265222966,
+          "theta": -0.038412592142111575,
+          "vega": 0.20156689097800307
+        },
+        "status": "closed",
+        "exit_day": 304
+      },
+      {
+        "day": 308,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.41,
+        "current_price": 501.84,
+        "trade_value": 41.0,
+        "pnl": 11.71,
+        "position_pct": 2.358979079883087,
+        "greeks": {
+          "delta": 0.23635896891450558,
+          "gamma": 0.03996897482995519,
+          "theta": -0.025421792730607858,
+          "vega": 0.19174162921738203
+        },
+        "status": "closed",
+        "exit_day": 309
+      },
+      {
+        "day": 352,
+        "symbol": "AMZN",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.38,
+        "current_price": 146.59,
+        "trade_value": 38.0,
+        "pnl": 4.4,
+        "position_pct": 2.223847841989759,
+        "greeks": {
+          "delta": -0.04766738171005991,
+          "gamma": 0.025182100969729573,
+          "theta": -0.04208023162100044,
+          "vega": 0.14587892731341948
+        },
+        "status": "closed",
+        "exit_day": 353
+      },
+      {
+        "day": 384,
+        "symbol": "QQQ",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.48,
+        "current_price": 392.97,
+        "trade_value": 48.0,
+        "pnl": 8.54,
+        "position_pct": 2.865415037459332,
+        "greeks": {
+          "delta": -0.24698524123475574,
+          "gamma": 0.03290925546206751,
+          "theta": -0.04494742638405261,
+          "vega": 0.18873406534868561
+        },
+        "status": "closed",
+        "exit_day": 385
+      },
+      {
+        "day": 398,
+        "symbol": "NFLX",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.45,
+        "current_price": 496.76,
+        "trade_value": 45.0,
+        "pnl": 10.0,
+        "position_pct": 2.7511325495662384,
+        "greeks": {
+          "delta": -0.29190351489984845,
+          "gamma": 0.03917376313733754,
+          "theta": -0.01897753349333382,
+          "vega": 0.2794189689121291
+        },
+        "status": "closed",
+        "exit_day": 399
+      },
+      {
+        "day": 425,
+        "symbol": "QQQ",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.37,
+        "current_price": 389.05,
+        "trade_value": 37.0,
+        "pnl": 4.59,
+        "position_pct": 2.311503164260413,
+        "greeks": {
+          "delta": -0.16021249953569427,
+          "gamma": 0.017161771291588912,
+          "theta": -0.037299856318773895,
+          "vega": 0.17848004969586367
+        },
+        "status": "closed",
+        "exit_day": 426
+      },
+      {
+        "day": 545,
+        "symbol": "AMZN",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.33,
+        "current_price": 146.32,
+        "trade_value": 33.0,
+        "pnl": 3.27,
+        "position_pct": 2.104216083862576,
+        "greeks": {
+          "delta": 0.37081681398833777,
+          "gamma": 0.033335583462425156,
+          "theta": -0.015685094457746032,
+          "vega": 0.15419586901613214
+        },
+        "status": "closed",
+        "exit_day": 546
+      },
+      {
+        "day": 563,
+        "symbol": "QQQ",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.41,
+        "current_price": 409.09,
+        "trade_value": 41.0,
+        "pnl": 9.49,
+        "position_pct": 2.66484677131065,
+        "greeks": {
+          "delta": -0.41879374322030893,
+          "gamma": 0.02684729454857917,
+          "theta": -0.04179039677448114,
+          "vega": 0.10252068798248692
+        },
+        "status": "closed",
+        "exit_day": 564
+      },
+      {
+        "day": 611,
+        "symbol": "AAPL",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.45,
+        "current_price": 173.27,
+        "trade_value": 45.0,
+        "pnl": 9.64,
+        "position_pct": 2.985985773436671,
+        "greeks": {
+          "delta": 0.3539462510684629,
+          "gamma": 0.0181669410962425,
+          "theta": -0.048180335102806025,
+          "vega": 0.1369498194601792
+        },
+        "status": "closed",
+        "exit_day": 612
+      },
+      {
+        "day": 622,
+        "symbol": "QQQ",
+        "strategy": "CALENDAR_SPREAD",
+        "contracts": 1,
+        "premium": 0.4,
+        "current_price": 399.27,
+        "trade_value": 40.0,
+        "pnl": 6.8,
+        "position_pct": 2.7179821700369646,
+        "greeks": {
+          "delta": -0.366215484503122,
+          "gamma": 0.013594181771937257,
+          "theta": -0.02588431293218295,
+          "vega": 0.23277035325885903
+        },
+        "status": "closed",
+        "exit_day": 623
+      },
+      {
+        "day": 642,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.38,
+        "current_price": 513.71,
+        "trade_value": 38.0,
+        "pnl": 4.93,
+        "position_pct": 2.6416773260664037,
+        "greeks": {
+          "delta": -0.38727127947618034,
+          "gamma": 0.04384734881134438,
+          "theta": -0.022568570119984005,
+          "vega": 0.2093904383925947
+        },
+        "status": "closed",
+        "exit_day": 643
+      },
+      {
+        "day": 665,
+        "symbol": "SPY",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.39,
+        "current_price": 501.51,
+        "trade_value": 39.0,
+        "pnl": 9.12,
+        "position_pct": 2.774990927914274,
+        "greeks": {
+          "delta": 0.26984169213552656,
+          "gamma": 0.027535201930817342,
+          "theta": -0.012677421352848488,
+          "vega": 0.17035905403801627
+        },
+        "status": "closed",
+        "exit_day": 666
+      },
+      {
+        "day": 708,
+        "symbol": "GOOGL",
+        "strategy": "BUTTERFLY_SPREAD",
+        "contracts": 1,
+        "premium": 0.41,
+        "current_price": 141.29,
+        "trade_value": 41.0,
+        "pnl": 4.83,
+        "position_pct": 2.9806692692998342,
+        "greeks": {
+          "delta": 0.05681798899348778,
+          "gamma": 0.015777471505222414,
+          "theta": -0.029346641726457866,
+          "vega": 0.20983754225885393
+        },
+        "status": "closed",
+        "exit_day": 709
+      }
+    ]
+  },
+  "stock_comparison": {
+    "stock_annual_return": -0.239,
+    "stock_sharpe_ratio": -1.24,
+    "stock_max_drawdown": 0.246
+  }
+}

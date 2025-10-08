@@ -1,0 +1,65 @@
+{
+  "timestamp": "2025-10-07T06:46:31.226769",
+  "initial_capital": 4000.0,
+  "current_capital": 3946.05,
+  "allocated_capital": 275.0,
+  "available_capital": 2881.84,
+  "capital_utilization": 6.968994310766462,
+  "total_pnl": -53.94999999999982,
+  "pnl_percentage": -1.3487499999999955,
+  "total_trades": 0,
+  "active_positions": 1,
+  "live_data_enabled": true,
+  "current_prices": {
+    "AAPL": 150.0,
+    "MSFT": 306.0,
+    "GOOGL": 139.0,
+    "TSLA": 201.0,
+    "NVDA": 450.0,
+    "SPY": 420.0,
+    "QQQ": 350.0,
+    "AMZN": 0.0,
+    "META": 280.0,
+    "NFLX": 400.0
+  },
+  "recent_trades": [],
+  "active_positions_detail": [
+    {
+      "timestamp": "2025-10-07T06:46:31.000660",
+      "symbol": "AMZN",
+      "strategy": "ELLIOTT_WAVE_CORRECTIVE",
+      "contracts": 1,
+      "premium": 2.75,
+      "current_price": 0.0,
+      "trade_value": 275.0,
+      "pnl": 221.05,
+      "position_pct": 6.875000000000001,
+      "greeks": {
+        "delta": -0.019,
+        "gamma": 0.028,
+        "theta": -0.196,
+        "vega": 0.251,
+        "dte": 48,
+        "volatility": 0.398
+      },
+      "data_source": "live",
+      "status": "open",
+      "elliott_wave_analysis": null,
+      "options_strategy": "ELLIOTT_WAVE_CORRECTIVE",
+      "exit_strategy": {
+        "max_holding_days": 30,
+        "min_holding_days": 1,
+        "profit_target_pct": 0.1,
+        "stop_loss_pct": 0.05,
+        "early_profit_target_pct": 0.08
+      }
+    }
+  ],
+  "capital_allocation_settings": {
+    "max_portfolio_utilization": 0.8,
+    "min_cash_reserve": 0.2,
+    "max_position_size": 0.12,
+    "max_risk_per_trade": 0.05,
+    "early_profit_target_pct": 0.08
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "position_sizing": {
+    "enabled": true,
+    "kelly_criterion": true,
+    "volatility_adjustment": true,
+    "correlation_adjustment": true,
+    "max_position_size": 0.2,
+    "max_portfolio_risk": 0.1,
+    "dynamic_sizing": true,
+    "risk_adjusted_sizing": true
+  },
+  "var_calculation": {
+    "enabled": true,
+    "confidence_levels": [
+      0.95,
+      0.99
+    ],
+    "calculation_method": "historical_simulation",
+    "lookback_period": 252,
+    "monte_carlo_simulations": 10000,
+    "var_monitoring": true
+  },
+  "stress_testing": {
+    "enabled": true,
+    "scenarios": [
+      "market_crash",
+      "volatility_spike",
+      "sector_rotation",
+      "liquidity_crisis"
+    ],
+    "stress_levels": [
+      0.1,
+      0.2,
+      0.3,
+      0.5
+    ],
+    "stress_testing_frequency": "weekly"
+  },
+  "correlation_analysis": {
+    "enabled": true,
+    "rolling_window": 30,
+    "correlation_threshold": 0.7,
+    "diversification_target": 0.3,
+    "sector_analysis": true,
+    "correlation_monitoring": true
+  },
+  "risk_limits": {
+    "enabled": true,
+    "daily_loss_limit": 0.04,
+    "monthly_loss_limit": 0.1,
+    "max_drawdown_limit": 0.06,
+    "concentration_limit": 0.25,
+    "leverage_limit": 1.5,
+    "risk_limit_enforcement": true
+  },
+  "portfolio_hedging": {
+    "enabled": true,
+    "dynamic_hedging": true,
+    "correlation_hedging": true,
+    "volatility_hedging": true,
+    "sector_hedging": true
+  }
+}

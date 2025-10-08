@@ -1,0 +1,68 @@
+{
+  "momentum_exit": {
+    "enabled": true,
+    "indicators": [
+      "MACD",
+      "RSI",
+      "ADX"
+    ],
+    "trend_strength_threshold": 0.6,
+    "momentum_reversal_threshold": 0.3,
+    "exit_confidence_threshold": 0.7,
+    "profit_protection": true,
+    "trailing_stop_adjustment": true
+  },
+  "volatility_exit": {
+    "enabled": true,
+    "volatility_regime_detection": true,
+    "extreme_volatility_threshold": 0.4,
+    "volatility_expansion_threshold": 1.5,
+    "vix_spike_threshold": 25.0,
+    "volatility_based_exits": true,
+    "risk_reduction": true
+  },
+  "correlation_exit": {
+    "enabled": true,
+    "correlation_window": 20,
+    "correlation_breakdown_threshold": 0.3,
+    "market_correlation_threshold": 0.7,
+    "sector_correlation_threshold": 0.8,
+    "diversification_protection": true,
+    "correlation_risk_management": true
+  },
+  "ml_exit": {
+    "enabled": true,
+    "lookback_period": 60,
+    "retrain_frequency": 30,
+    "confidence_threshold": 0.75,
+    "feature_engineering": true,
+    "pattern_recognition": true,
+    "predictive_exits": true
+  },
+  "options_exit": {
+    "enabled": true,
+    "greeks_thresholds": {
+      "delta_threshold": 0.8,
+      "gamma_threshold": 0.1,
+      "theta_decay_threshold": 0.02,
+      "vega_sensitivity_threshold": 0.2
+    },
+    "options_volume_threshold": 1000,
+    "implied_volatility_threshold": 0.3,
+    "greeks_based_exits": true,
+    "options_risk_management": true
+  },
+  "market_regime_exit": {
+    "enabled": true,
+    "regime_detection_window": 30,
+    "regime_confidence_threshold": 0.75,
+    "regime_transition_threshold": 0.5,
+    "regime_specific_exits": {
+      "bull_market": "momentum_exit",
+      "bear_market": "volatility_exit",
+      "sideways_market": "correlation_exit",
+      "high_volatility": "options_exit"
+    },
+    "adaptive_exit_strategies": true
+  }
+}

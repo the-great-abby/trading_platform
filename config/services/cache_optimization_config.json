@@ -1,0 +1,20 @@
+{
+  "l1_cache": {
+    "enabled": true,
+    "max_size_mb": 512,
+    "eviction_policy": "lru",
+    "ttl_seconds": 300
+  },
+  "l2_cache": {
+    "enabled": false,
+    "fallback_to_l1": true
+  },
+  "predictive_caching": {
+    "enabled": true,
+    "preload_patterns": [
+      "market_data",
+      "options_data",
+      "news_data"
+    ]
+  }
+}

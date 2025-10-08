@@ -1,0 +1,35 @@
+{
+  "monitoring": {
+    "enabled": true,
+    "cpu_threshold": 80.0,
+    "memory_threshold": 85.0,
+    "disk_threshold": 90.0,
+    "network_threshold": 70.0
+  },
+  "optimization": {
+    "enabled": true,
+    "auto_cleanup": true,
+    "memory_optimization": true,
+    "cpu_optimization": true,
+    "garbage_collection": true
+  },
+  "alerting": {
+    "enabled": true,
+    "alert_thresholds": {
+      "critical": 95.0,
+      "warning": 80.0,
+      "info": 70.0
+    },
+    "notification_channels": [
+      "log",
+      "email",
+      "webhook"
+    ]
+  },
+  "emergency_cleanup": {
+    "enabled": true,
+    "memory_cleanup_threshold": 90.0,
+    "process_termination_threshold": 95.0,
+    "cache_clear_threshold": 85.0
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "automated_performance": {
+    "total_return": 0.29125,
+    "sharpe_ratio": 1.4962499999999999,
+    "max_drawdown": 0.11375,
+    "win_rate": 0.6112500000000001,
+    "total_trades": 435,
+    "strategy_distribution": {
+      "Momentum": 1,
+      "MACD": 1,
+      "SMACrossover": 3,
+      "BollingerBands": 1,
+      "VolatilityBreakout": 1,
+      "RegimeSwitching": 1
+    }
+  },
+  "individual_averages": {
+    "SMACrossover": {
+      "total_return": 0.22,
+      "sharpe_ratio": 1.0374999999999999,
+      "max_drawdown": 0.12000000000000001,
+      "win_rate": 0.6200000000000001
+    },
+    "RSI": {
+      "total_return": 0.06250000000000003,
+      "sharpe_ratio": 0.95125,
+      "max_drawdown": 0.11875,
+      "win_rate": 0.6087500000000001
+    },
+    "MACD": {
+      "total_return": 0.11624999999999999,
+      "sharpe_ratio": 1.1900000000000002,
+      "max_drawdown": 0.135,
+      "win_rate": 0.62875
+    },
+    "BollingerBands": {
+      "total_return": -0.007500000000000007,
+      "sharpe_ratio": 1.2550000000000001,
+      "max_drawdown": 0.0975,
+      "win_rate": 0.615
+    },
+    "MeanReversion": {
+      "total_return": 0.0024999999999999988,
+      "sharpe_ratio": 1.1649999999999998,
+      "max_drawdown": 0.09625,
+      "win_rate": 0.5812499999999999
+    },
+    "Momentum": {
+      "total_return": 0.19625,
+      "sharpe_ratio": 1.1475,
+      "max_drawdown": 0.10999999999999999,
+      "win_rate": 0.5800000000000001
+    },
+    "VolatilityBreakout": {
+      "total_return": 0.14875,
+      "sharpe_ratio": 1.2137499999999999,
+      "max_drawdown": 0.14250000000000002,
+      "win_rate": 0.65
+    },
+    "RegimeSwitching": {
+      "total_return": 0.125,
+      "sharpe_ratio": 1.2500000000000002,
+      "max_drawdown": 0.11499999999999999,
+      "win_rate": 0.62
+    }
+  },
+  "best_individual": [
+    "SMACrossover",
+    {
+      "total_return": 0.22,
+      "sharpe_ratio": 1.0374999999999999,
+      "max_drawdown": 0.12000000000000001,
+      "win_rate": 0.6200000000000001
+    }
+  ],
+  "symbol_results": {
+    "AAPL": {
+      "symbol": "AAPL",
+      "market_condition": "bull_market",
+      "selected_strategy": "Momentum",
+      "performance": {
+        "total_return": 0.59,
+        "sharpe_ratio": 1.08,
+        "max_drawdown": 0.1,
+        "win_rate": 0.49,
+        "total_trades": 53
+      },
+      "selection_score": 0.748
+    },
+    "MSFT": {
+      "symbol": "MSFT",
+      "market_condition": "bull_market",
+      "selected_strategy": "MACD",
+      "performance": {
+        "total_return": -0.02,
+        "sharpe_ratio": 1.9,
+        "max_drawdown": 0.16,
+        "win_rate": 0.54,
+        "total_trades": 45
+      },
+      "selection_score": 0.7539999999999999
+    },
+    "GOOGL": {
+      "symbol": "GOOGL",
+      "market_condition": "bull_market",
+      "selected_strategy": "SMACrossover",
+      "performance": {
+        "total_return": 0.03,
+        "sharpe_ratio": 1.95,
+        "max_drawdown": 0.07,
+        "win_rate": 0.72,
+        "total_trades": 90
+      },
+      "selection_score": 0.834
+    },
+    "AMZN": {
+      "symbol": "AMZN",
+      "market_condition": "sideways",
+      "selected_strategy": "BollingerBands",
+      "performance": {
+        "total_return": 0.56,
+        "sharpe_ratio": 1.25,
+        "max_drawdown": 0.09,
+        "win_rate": 0.55,
+        "total_trades": 26
+      },
+      "selection_score": 0.7999999999999999
+    },
+    "TSLA": {
+      "symbol": "TSLA",
+      "market_condition": "volatile",
+      "selected_strategy": "VolatilityBreakout",
+      "performance": {
+        "total_return": 0.38,
+        "sharpe_ratio": 1.54,
+        "max_drawdown": 0.11,
+        "win_rate": 0.68,
+        "total_trades": 76
+      },
+      "selection_score": 0.839
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "market_condition": "volatile",
+      "selected_strategy": "RegimeSwitching",
+      "performance": {
+        "total_return": -0.04,
+        "sharpe_ratio": 1.71,
+        "max_drawdown": 0.19,
+        "win_rate": 0.55,
+        "total_trades": 60
+      },
+      "selection_score": 0.688
+    },
+    "META": {
+      "symbol": "META",
+      "market_condition": "bear_market",
+      "selected_strategy": "SMACrossover",
+      "performance": {
+        "total_return": 0.31,
+        "sharpe_ratio": 1.27,
+        "max_drawdown": 0.06,
+        "win_rate": 0.7,
+        "total_trades": 46
+      },
+      "selection_score": 0.739
+    },
+    "NFLX": {
+      "symbol": "NFLX",
+      "market_condition": "bear_market",
+      "selected_strategy": "SMACrossover",
+      "performance": {
+        "total_return": 0.52,
+        "sharpe_ratio": 1.27,
+        "max_drawdown": 0.13,
+        "win_rate": 0.66,
+        "total_trades": 39
+      },
+      "selection_score": 0.8079999999999999
+    }
+  },
+  "improvement_over_best": 0.07125000000000001,
+  "improvement_over_average": 0.18328125
+}

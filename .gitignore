@@ -61,7 +61,8 @@ pip-delete-this-directory.txt
 *~
 
 # Logs
-logs/
+logs/*
+!logs/README.md
 *.log
 
 # Database
@@ -70,9 +71,16 @@ logs/
 *.sqlite3
 
 # Data files
-data/
+data/*
+!data/README.md
 *.csv
+
+# JSON files - be selective
 *.json
+!config/**/*.json
+!results/*.json
+!package.json
+!tsconfig.json
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
@@ -89,7 +97,14 @@ Thumbs.db
 # Trading specific
 *.pkl
 backtest_results/
-trading_data/ 
+trading_data/
+
+# Archive directory
+archive/
+
+# Old backup directories
+backup/
+old-*/ 
 
 test-data/
 
