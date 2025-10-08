@@ -109,14 +109,14 @@ status:
 results:
 	@echo "$(BLUE)📈 Latest Backtest Results:$(NC)"
 	@echo ""
-	@ls -lt *backtest*.json 2>/dev/null | head -5 || echo "$(YELLOW)No local backtest results found$(NC)"
+	@ls -lt results/*backtest*.json 2>/dev/null | head -5 || echo "$(YELLOW)No local backtest results found$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Note: Web dashboard results are shown in the browser$(NC)"
 
 ## clean: Clean old backtest result files
 clean:
 	@echo "$(BLUE)🧹 Cleaning old backtest results...$(NC)"
-	@find . -name "*backtest*.json" -mtime +7 -delete 2>/dev/null || true
+	@find results/ -name "*backtest*.json" -mtime +7 -delete 2>/dev/null || true
 	@echo "$(GREEN)✅ Cleaned backtest results older than 7 days$(NC)"
 
 ## restart: Restart the analytics dashboard

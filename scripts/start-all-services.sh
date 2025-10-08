@@ -188,3 +188,5 @@ echo "   Restart this script:     $0"
 echo ""
 log_success "All services started! Happy trading, matey! ⚓"
 
+
+

@@ -44,3 +44,5 @@ ps aux | grep "kubectl port-forward" | grep -v grep | wc -l | xargs -I {} echo "
 echo ""
 echo "💡 Quick test: curl http://localhost:11001/health"
 
+
+

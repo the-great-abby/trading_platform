@@ -52,7 +52,7 @@ services-start: ## Start all essential services
 	kubectl scale deployment market-data-service --replicas=1 -n trading-system
 	@echo "Phase 3: Trading Core..."
 	kubectl scale deployment trading-service --replicas=1 -n trading-system
-	kubectl scale deployment trading-engine --replicas=1 -n trading-system
+	# kubectl scale deployment trading-engine --replicas=1 -n trading-system  # DEPRECATED: 2025-10-07
 	kubectl scale deployment order-service --replicas=1 -n trading-system
 	kubectl scale deployment risk-service --replicas=1 -n trading-system
 	@echo "Phase 4: Analytics & Workers..."
@@ -98,7 +98,7 @@ services-start-dashboards: ## Start dashboard services
 services-start-trading: ## Start trading services
 	@echo "$(GREEN)📈 Starting Trading Services...$(NC)"
 	kubectl scale deployment trading-service --replicas=1 -n trading-system
-	kubectl scale deployment trading-engine --replicas=1 -n trading-system
+	# kubectl scale deployment trading-engine --replicas=1 -n trading-system  # DEPRECATED: 2025-10-07
 	kubectl scale deployment order-service --replicas=1 -n trading-system
 	kubectl scale deployment risk-service --replicas=1 -n trading-system
 	kubectl scale deployment strategy-service --replicas=1 -n trading-system
@@ -169,7 +169,7 @@ services-consolidate-trading: ## Consolidate trading services
 	@echo "Consolidating trading services..."
 	kubectl scale deployment signal-management-service --replicas=0 -n trading-system
 	kubectl scale deployment strategy-service --replicas=0 -n trading-system
-	@echo "Trading services consolidated to core trading-service, trading-engine, order-service, risk-service"
+	@echo "Trading services consolidated to core trading-service, order-service, risk-service"
 
 services-consolidate-high-resource: ## Scale down high-resource services
 	@echo "Scaling down high-resource services..."
@@ -211,7 +211,7 @@ services-core-status: ## Show core services status
 	@echo ""
 	@echo "Trading Core:"
 	kubectl get pods -n trading-system -l app=trading-service
-	kubectl get pods -n trading-system -l app=trading-engine
+	# kubectl get pods -n trading-system -l app=trading-engine  # DEPRECATED: 2025-10-07
 	kubectl get pods -n trading-system -l app=order-service
 	kubectl get pods -n trading-system -l app=risk-service
 	@echo ""

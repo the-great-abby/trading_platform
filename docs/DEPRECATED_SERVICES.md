@@ -5,6 +5,40 @@ This document tracks services that have been deprecated and should be removed fr
 
 ---
 
+## 🚀 **Deprecated Trading Services**
+
+### **trading-engine** ❌ **DEPRECATED**
+**Status**: Deprecated - CrashLoopBackOff (233 restarts)
+**Reason**: Module import errors, functionality moved to other services
+**Date Deprecated**: 2025-10-07
+
+#### **Details:**
+- **Old Service**: `trading-engine` (trading execution engine)
+- **Replacement**: Functionality distributed across `paper-trading-k8s` and `strategy-service`
+- **Issue**: ModuleNotFoundError: No module named 'src' - Docker image build issue
+
+#### **Impact:**
+- ✅ **No Breaking Changes**: Other trading services continue to operate
+- ✅ **Better Architecture**: Distributed functionality more maintainable
+- ✅ **Resource Savings**: Eliminates crash-looping pod consuming resources
+
+#### **Cleanup Actions:**
+- [x] Scale deployment to 0 replicas
+- [x] Move to `k8s/deprecated/trading-engine.yaml`
+- [ ] Remove from Makefile references
+- [ ] Clean up service directory if no longer needed
+
+#### **Verification:**
+```bash
+# Verify trading-engine is scaled down
+kubectl get pods -n trading-system | grep trading-engine
+
+# Verify other trading services are working
+kubectl get pods -n trading-system | grep -E "(paper-trading|strategy-service)"
+```
+
+---
+
 ## 📊 **Deprecated Database Services**
 
 ### **postgres-dev** ❌ **DEPRECATED**

@@ -443,66 +443,53 @@ async def get_account_orders(
         Orders list
     """
     try:
-        # Check if we're in paper trading mode
-        import os
-        if os.getenv("TRADING_MODE") == "paper" or os.getenv("ENVIRONMENT") == "paper":
-            # Return paper trading orders
-            query = """
-                SELECT 
-                    order_id, symbol, strategy, order_type, total_quantity,
-                    estimated_premium, estimated_risk, status, created_at,
-                    filled_at, filled_quantity, average_price, remaining_quantity,
-                    greeks_data
-                FROM paper_trading_orders 
-                WHERE account_id = :account_id
-            """
-            params = {"account_id": account_id}
-            
-            if status_filter:
-                query += " AND status = :status_filter"
-                params["status_filter"] = status_filter
-            
-            query += " ORDER BY created_at DESC LIMIT :limit"
-            params["limit"] = limit
-            
-            result = await db.execute(text(query), params)
-            orders = result.fetchall()
-            
-            orders_list = []
-            for order in orders:
-                orders_list.append({
-                    "order_id": order[0],
-                    "symbol": order[1],
-                    "strategy": order[2],
-                    "order_type": order[3],
-                    "quantity": order[4],
-                    "premium": order[5],
-                    "risk": order[6],
-                    "status": order[7],
-                    "created_at": order[8].isoformat() if order[8] else None,
-                    "filled_at": order[9].isoformat() if order[9] else None,
-                    "filled_quantity": order[10],
-                    "average_price": order[11],
-                    "remaining_quantity": order[12],
-                    "greeks": json.loads(order[13]) if order[13] else {}
-                })
-            
-            return OrdersListResponse(
-                success=True,
-                orders=orders_list,
-                total_count=len(orders_list),
-                error=None
-            )
+        # Always query live_trades table (contains real stock trades)
+        query = """
+            SELECT 
+                trade_id, public_order_id, symbol, strategy, action,
+                quantity, price, commission, status, created_at,
+                filled_at, rejection_reason
+            FROM live_trades 
+            WHERE account_id = :account_id
+        """
+        params = {"account_id": account_id}
         
-        # Create services for live trading
-        risk_service = RiskService(db)
-        position_service = PositionService(db)
-        trading_service = TradingService(db, None, risk_service, position_service)
+        if status_filter:
+            query += " AND status = :status_filter"
+            params["status_filter"] = status_filter
         
-        # Get orders
-        result = await trading_service.get_account_orders(account_id, status_filter, limit)
+        query += " ORDER BY created_at DESC LIMIT :limit"
+        params["limit"] = limit
         
-        return OrdersListResponse(**result)
+        result = await db.execute(text(query), params)
+        trades = result.fetchall()
+        
+        orders_list = []
+        for trade in trades:
+            orders_list.append({
+                "order_id": str(trade[0]),  # trade_id
+                "public_order_id": trade[1],
+                "symbol": trade[2],
+                "strategy": trade[3],
+                "order_type": "MARKET",  # Default
+                "action": trade[4],
+                "quantity": trade[5],
+                "price": float(trade[6]) if trade[6] else 0.0,
+                "average_price": float(trade[6]) if trade[6] else 0.0,
+                "commission": float(trade[7]) if trade[7] else 0.0,
+                "status": trade[8],
+                "created_at": trade[9].isoformat() if trade[9] else None,
+                "filled_at": trade[10].isoformat() if trade[10] else None,
+                "rejection_reason": trade[11],
+                "greeks": {}
+            })
+        
+        return OrdersListResponse(
+            success=True,
+            orders=orders_list,
+            total_count=len(orders_list),
+            error=None
+        )
         
     except Exception as e:
         logger.error(f"Error getting account orders: {str(e)}")

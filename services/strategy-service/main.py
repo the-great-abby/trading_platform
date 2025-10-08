@@ -402,3 +402,97 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+@app.get("/api/options/scan")
+async def scan_options_opportunities(
+    symbols: Optional[str] = None,
+    available_cash: float = 4000,
+    min_confidence: float = 0.6
+):
+    """
+    Scan for budget-friendly options opportunities.
+    
+    This endpoint uses the AutomatedOptionsScanner to find opportunities
+    and filters them by available cash to ensure affordability.
+    
+    Args:
+        symbols: Comma-separated list of symbols (default: standard options symbols)
+        available_cash: Available cash for options trading (default: $4000)
+        min_confidence: Minimum confidence score (default: 0.6 = 60%)
+    
+    Returns:
+        List of affordable options opportunities with strategy recommendations
+    """
+    try:
+        from src.services.options.automated_options_scanner import AutomatedOptionsScanner
+        
+        # Parse symbols
+        symbol_list = None
+        if symbols:
+            symbol_list = [s.strip() for s in symbols.split(',')]
+        
+        # Initialize scanner
+        scanner = AutomatedOptionsScanner(symbols=symbol_list)
+        scanner.min_confidence = min_confidence
+        
+        # Scan for opportunities
+        opportunities = await scanner.scan_for_opportunities()
+        
+        # Filter by affordability
+        # Strategy costs (from AdaptiveSectorWaveStrategy)
+        strategy_costs = {
+            'iron_condor': 100,
+            'calendar_spread': 150,
+            'butterfly_spread': 200,
+            'strangle': 400,
+            'straddle': 500
+        }
+        
+        max_position_value = available_cash * 0.20  # 20% of capital per trade
+        
+        affordable_opportunities = []
+        for opp in opportunities:
+            # Map opportunity type to strategy cost
+            estimated_cost = 200  # Default
+            
+            if 'iv_mean_reversion' in str(opp.opportunity_type).lower():
+                estimated_cost = strategy_costs['iron_condor']
+            elif 'calendar' in str(opp.opportunity_type).lower():
+                estimated_cost = strategy_costs['calendar_spread']
+            elif 'diagonal' in str(opp.opportunity_type).lower():
+                estimated_cost = strategy_costs['butterfly_spread']
+            elif 'volatility' in str(opp.opportunity_type).lower():
+                estimated_cost = strategy_costs['strangle']
+            
+            # Check if affordable
+            if estimated_cost <= max_position_value:
+                affordable_opportunities.append({
+                    'symbol': opp.symbol,
+                    'opportunity_type': str(opp.opportunity_type),
+                    'confidence': opp.confidence,
+                    'estimated_cost': estimated_cost,
+                    'suggested_strategy': opp.suggested_strategy,
+                    'entry_price': opp.entry_price,
+                    'target_price': opp.target_price,
+                    'stop_loss': opp.stop_loss,
+                    'expires_date': opp.expires_date.isoformat() if opp.expires_date else None,
+                    'metadata': opp.metadata,
+                    'affordable': True,
+                    'max_position_value': max_position_value
+                })
+        
+        return {
+            'success': True,
+            'opportunities_found': len(affordable_opportunities),
+            'total_scanned': len(opportunities),
+            'filtered_by_budget': len(opportunities) - len(affordable_opportunities),
+            'available_cash': available_cash,
+            'max_position_value': max_position_value,
+            'opportunities': affordable_opportunities,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Options scan failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Options scan failed: {str(e)}")
+

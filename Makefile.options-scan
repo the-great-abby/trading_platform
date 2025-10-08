@@ -1,0 +1,70 @@
+.PHONY: help deploy-options-scan suspend-options-scan resume-options-scan status-options-scan logs-options-scan manual-scan
+
+ACCOUNT_ID := 19c25392-8b61-4b71-a344-0eb04d275528
+
+help: ## Show this help message
+	@echo "Options Scanning Worker Management"
+	@echo "==================================="
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+
+deploy-options-scan: ## Deploy the options scanning worker
+	@echo "🚀 Deploying options scanning worker..."
+	kubectl apply -f k8s/options-scanning-cronjob.yaml
+	@echo "✅ Options scanning worker deployed"
+	@echo ""
+	@echo "The worker will:"
+	@echo "  • Scan for budget-friendly options opportunities"
+	@echo "  • Run twice daily at 10 AM and 2 PM ET"
+	@echo "  • Use existing AutomatedOptionsScanner from strategy service"
+	@echo "  • Filter by available buying power ($$${ACCOUNT_ID})"
+	@echo ""
+	@echo "Check status: make -f Makefile.options-scan status-options-scan"
+
+suspend-options-scan: ## Suspend the options scanning worker
+	@echo "⏸️  Suspending options scanning worker..."
+	kubectl patch cronjob options-scanning-worker -n default -p '{"spec":{"suspend":true}}'
+	@echo "✅ Options scanning worker suspended"
+
+resume-options-scan: ## Resume the options scanning worker
+	@echo "▶️  Resuming options scanning worker..."
+	kubectl patch cronjob options-scanning-worker -n default -p '{"spec":{"suspend":false}}'
+	@echo "✅ Options scanning worker resumed"
+
+status-options-scan: ## Check options scanning worker status
+	@echo "📊 Options Scanning Worker Status"
+	@echo "=================================="
+	@echo ""
+	@echo "CronJob Status:"
+	@kubectl get cronjob options-scanning-worker -n default 2>/dev/null || echo "  ❌ Not deployed"
+	@echo ""
+	@echo "Recent Jobs:"
+	@kubectl get jobs -n default -l app=options-scanning-worker --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -6 || echo "  No jobs yet"
+
+logs-options-scan: ## View options scanning worker logs
+	@echo "📋 Options Scanning Worker Logs (last 50 lines)"
+	@echo "==============================================="
+	@kubectl logs -n default -l app=options-scanning-worker --tail=50 --timestamps 2>/dev/null || echo "No logs available yet"
+
+manual-scan: ## Manually trigger options scan (scan only, no execution)
+	@echo "🔍 Manually triggering options scan..."
+	@POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl exec -n default $$POD -- curl -s -X POST \
+		-H "Content-Type: application/json" \
+		"http://live-trading-service.default.svc.cluster.local:8080/api/v1/options/scan/$(ACCOUNT_ID)" | python3 -m json.tool
+	@echo ""
+	@echo "✅ Manual scan completed"
+
+manual-execute: ## Manually scan and execute options trades now
+	@echo "🚀 Manually triggering options scan & execute..."
+	@read -p "Max trades to execute (default: 2): " MAX_TRADES; \
+	MAX_TRADES=$${MAX_TRADES:-2}; \
+	POD=$$(kubectl get pods -n default -l app=live-trading-service -o jsonpath='{.items[0].metadata.name}'); \
+	kubectl exec -n default $$POD -- curl -s -X POST \
+		-H "Content-Type: application/json" \
+		"http://live-trading-service.default.svc.cluster.local:8080/api/v1/options/execute/$(ACCOUNT_ID)?max_trades=$$MAX_TRADES" | python3 -m json.tool
+	@echo ""
+	@echo "✅ Manual execution completed"
+
+.DEFAULT_GOAL := help

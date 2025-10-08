@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: options-scanning-worker
+  namespace: default
+  labels:
+    app: options-scanning-worker
+    component: trading
+spec:
+  # Run twice per day (morning 10 AM and afternoon 2 PM ET, Monday-Friday)
+  # Options opportunities are longer-term, don't need frequent scanning
+  schedule: "0 10,14 * * 1-5"  # 10 AM and 2 PM ET, Monday-Friday
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid  # Don't run concurrent scans
+  jobTemplate:
+    metadata:
+      labels:
+        app: options-scanning-worker
+        component: trading
+    spec:
+      template:
+        metadata:
+          labels:
+            app: options-scanning-worker
+            component: trading
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: options-scanner
+            image: curlimages/curl:latest
+            imagePullPolicy: IfNotPresent
+            command:
+              - sh
+              - -c
+              - |
+                echo "🔍 Options Scanning Worker - $(date)"
+                echo "Scanning for options opportunities..."
+                
+                ACCOUNT_ID="19c25392-8b61-4b71-a344-0eb04d275528"
+                MAX_TRADES=2  # Execute max 2 options trades per scan
+                
+                # Scan and execute options opportunities
+                RESPONSE=$(curl -s -w "\n%{http_code}" \
+                  -X POST \
+                  -H "Content-Type: application/json" \
+                  "http://live-trading-service.default.svc.cluster.local:8080/api/v1/options/execute/${ACCOUNT_ID}?max_trades=${MAX_TRADES}")
+                
+                HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+                BODY=$(echo "$RESPONSE" | head -n-1)
+                
+                echo "Response Code: $HTTP_CODE"
+                echo "Response Body: $BODY"
+                
+                if [ "$HTTP_CODE" = "200" ]; then
+                  echo "✅ Options scan & execute completed successfully"
+                  
+                  # Parse and display results
+                  OPPS=$(echo "$BODY" | grep -o '"opportunities_found":[0-9]*' | grep -o '[0-9]*')
+                  ORDERS=$(echo "$BODY" | grep -o '"orders_submitted":[0-9]*' | grep -o '[0-9]*')
+                  SUCCESS=$(echo "$BODY" | grep -o '"orders_successful":[0-9]*' | grep -o '[0-9]*')
+                  
+                  if [ -n "$OPPS" ]; then
+                    echo "📊 Found $OPPS opportunities"
+                  fi
+                  if [ -n "$ORDERS" ]; then
+                    echo "📈 Submitted $SUCCESS/$ORDERS orders"
+                  fi
+                else
+                  echo "❌ Options execution failed with code $HTTP_CODE"
+                  exit 1
+                fi
+                
+                echo "✅ Scan completed"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

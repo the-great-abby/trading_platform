@@ -1,0 +1,151 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: trading-system
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      
+      # Paper Trading Service (port 9090 for metrics)
+      - job_name: 'paper-trading'
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - trading-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: paper-trading-k8s-service
+            action: keep
+          - source_labels: [__meta_kubernetes_service_port_name]
+            regex: metrics
+            action: keep
+        metrics_path: '/metrics'
+      
+      # Strategy Service
+      - job_name: 'strategy-service'
+        static_configs:
+          - targets: ['strategy-service.trading-system.svc.cluster.local:80']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Market Data Service
+      - job_name: 'market-data-service'
+        static_configs:
+          - targets: ['market-data-service.trading-system.svc.cluster.local:11084']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Elliott Wave Service
+      - job_name: 'elliott-wave-service'
+        static_configs:
+          - targets: ['elliott-wave-service.trading-system.svc.cluster.local:8000']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Risk Management Service
+      - job_name: 'risk-management'
+        static_configs:
+          - targets: ['risk-management-service.trading-system.svc.cluster.local:80']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Unified Dashboards
+      - job_name: 'unified-dashboards'
+        static_configs:
+          - targets:
+              - 'unified-analytics-dashboard.trading-system.svc.cluster.local:80'
+              - 'unified-trading-dashboard.trading-system.svc.cluster.local:80'
+              - 'unified-news-dashboard.trading-system.svc.cluster.local:80'
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: trading-system
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: monitoring
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        args:
+          - '--config.file=/etc/prometheus/prometheus.yml'
+          - '--storage.tsdb.path=/prometheus'
+          - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+          - '--web.console.templates=/usr/share/prometheus/consoles'
+        ports:
+        - name: web
+          containerPort: 9090
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+        - name: prometheus-storage
+          mountPath: /prometheus
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9090
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-config
+      - name: prometheus-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: trading-system
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - name: web
+    port: 9090
+    targetPort: 9090
+  type: ClusterIP
+
