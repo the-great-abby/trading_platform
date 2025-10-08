@@ -49,16 +49,55 @@ class StrategyExecutionService:
         else:
             logger.warning("⚠️  Discord webhook not configured - notifications disabled")
         
-        # Trading symbols - core high-performance symbols from backtesting
-        # Use only the proven high-performance symbols for live trading
-        self.symbols = [
-            # Core high-performance symbols (from backtesting results)
-            'SPY', 'QQQ', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'
-        ]
+        # Symbols will be loaded from database per strategy
+        # This ensures we always use the latest configuration from the database
+        self.symbols = []  # Default empty, will be populated from DB
         
         logger.info("🚀 Strategy Execution Service initialized")
         logger.info(f"   • Strategy Service URL: {self.strategy_service_url}")
         logger.info(f"   • Market Data URL: {self.market_data_url}")
+        logger.info(f"   • Symbols will be loaded from database per strategy")
+    
+    async def _get_strategy_symbols(self, strategy_name: str, account_id: str) -> List[str]:
+        """
+        Load trading symbols for a strategy from the database.
+        
+        Args:
+            strategy_name: Name of the strategy
+            account_id: Account ID
+            
+        Returns:
+            List of symbols to trade
+        """
+        try:
+            from sqlalchemy import text
+            
+            result = await self.db_session.execute(
+                text("""
+                    SELECT symbols 
+                    FROM strategy_configurations 
+                    WHERE strategy_name = :strategy_name 
+                    AND account_id = :account_id
+                    AND enabled = true
+                """),
+                {"strategy_name": strategy_name, "account_id": account_id}
+            )
+            
+            row = result.fetchone()
+            if row and row[0]:
+                import json
+                symbols = json.loads(row[0])
+                logger.info(f"📊 Loaded {len(symbols)} symbols for {strategy_name}: {symbols}")
+                return symbols
+            else:
+                logger.warning(f"⚠️ No symbols found for {strategy_name}, using defaults")
+                # Fallback to Elliott Wave top performers
+                return ['SPY', 'NVDA', 'AAPL', 'QQQ', 'TSLA', 'GOOGL', 'AMD', 'META']
+                
+        except Exception as e:
+            logger.error(f"❌ Error loading symbols from database: {e}")
+            # Fallback to Elliott Wave top performers
+            return ['SPY', 'NVDA', 'AAPL', 'QQQ', 'TSLA', 'GOOGL', 'AMD', 'META']
     
     async def _get_strategy_signals(self, strategy_name: str) -> Dict[str, Any]:
         """Get trading signals from the strategy service."""
@@ -245,21 +284,7 @@ class StrategyExecutionService:
                             orders_successful += 1
                             pnl = (current_price - float(position.average_price)) * position.quantity
                             logger.info(f"✅ EXIT order submitted: {symbol} SELL {position.quantity} shares @ ${current_price:.2f} (P&L: ${pnl:.2f})")
-                            
-                            # Send Discord notification for exit
-                            if self.discord:
-                                try:
-                                    await self.discord.send_exit_alert(
-                                        symbol=symbol,
-                                        quantity=position.quantity,
-                                        entry_price=float(position.average_price),
-                                        exit_price=current_price,
-                                        pnl=pnl,
-                                        confidence=ew_confidence,
-                                        status="SUBMITTED"
-                                    )
-                                except Exception as e:
-                                    logger.error(f"Discord notification failed: {e}")
+                            # Discord notification will be sent when order is FILLED (via order sync)
                         else:
                             error_msg = result.get('error', 'Unknown error')
                             logger.error(f"❌ EXIT order failed for {symbol}: {error_msg}")
@@ -318,22 +343,7 @@ class StrategyExecutionService:
                         if result.get("success"):
                             orders_successful += 1
                             logger.info(f"✅ Order submitted: {symbol} BUY 1 share - Trade ID: {result.get('trade_id')}")
-                            
-                            # Send Discord notification for BUY
-                            if self.discord:
-                                try:
-                                    await self.discord.send_trade_alert(
-                                        symbol=symbol,
-                                        action="BUY",
-                                        quantity=1,
-                                        price=current_price,
-                                        status="SUBMITTED",
-                                        trade_id=result.get('trade_id', 'UNKNOWN'),
-                                        confidence=confidence,
-                                        reason=f"{action} signal (score: {score:.2f})"
-                                    )
-                                except Exception as e:
-                                    logger.error(f"Discord notification failed: {e}")
+                            # Discord notification will be sent when order is FILLED (via order sync)
                         else:
                             error_msg = result.get('error', 'Unknown error')
                             details = result.get('details', [])
@@ -370,7 +380,10 @@ class StrategyExecutionService:
             logger.error(f"❌ Error executing MultiStrategyEnsemble: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "message": f"Strategy execution failed: {str(e)}",
+                "error": str(e),
+                "orders_submitted": 0,
+                "orders_successful": 0
             }
     
     async def _submit_strategy_order(self, account_id: str, symbol: str, signal) -> bool:
@@ -433,17 +446,26 @@ class StrategyExecutionService:
             else:
                 return {
                     "success": False,
-                    "error": f"Strategy {strategy_name} not implemented"
+                    "message": f"Strategy {strategy_name} not implemented",
+                    "error": f"Strategy {strategy_name} not implemented",
+                    "orders_submitted": 0,
+                    "orders_successful": 0
                 }
                 
         except ValueError:
             return {
                 "success": False,
-                "error": f"Invalid strategy name: {strategy_name}"
+                "message": f"Invalid strategy name: {strategy_name}",
+                "error": f"Invalid strategy name: {strategy_name}",
+                "orders_submitted": 0,
+                "orders_successful": 0
             }
         except Exception as e:
             logger.error(f"❌ Error executing strategy {strategy_name}: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "message": f"Strategy execution error: {str(e)}",
+                "error": str(e),
+                "orders_submitted": 0,
+                "orders_successful": 0
             }

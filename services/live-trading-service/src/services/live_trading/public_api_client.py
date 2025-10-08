@@ -376,6 +376,8 @@ class PublicAPIClient:
             # Submit order using /trading/{account_id}/order endpoint per Public.com API docs
             # Documentation: https://public.com/api/docs/templates/place-equity-order
             logger.info(f"Submitting order to Public.com (account {account_id}): {order_payload}")
+            logger.info(f"🔑 Using access_token (preview): {self.access_token[:30] if self.access_token else 'NONE'}...")
+            logger.info(f"🔑 Auth header will be: Bearer {self.access_token[:20] if self.access_token else 'NONE'}...")
             
             response = await self.client.post(
                 f"/trading/{account_id}/order",  # Note: singular 'order', not 'orders'
@@ -399,11 +401,19 @@ class PublicAPIClient:
             
             
         except httpx.HTTPStatusError as e:
+            error_details = {
+                "status_code": e.response.status_code,
+                "response_text": e.response.text,
+                "url": str(e.request.url),
+                "method": e.request.method
+            }
             logger.error(f"❌ Order submission failed with status {e.response.status_code}: {e.response.text}")
-            raise Exception(f"Order submission failed: {e.response.text}")
+            logger.error(f"❌ Full error details: {error_details}")
+            raise Exception(f"HTTP {e.response.status_code}: {e.response.text}")
         except Exception as e:
             logger.error(f"❌ Order submission error: {str(e)}")
-            raise Exception(f"Order submission error: {str(e)}")
+            logger.error(f"❌ Error type: {type(e).__name__}")
+            raise Exception(f"{type(e).__name__}: {str(e)}")
     
     async def get_order_status(self, account_id: str, order_id: str) -> Dict[str, Any]:
         """

@@ -341,13 +341,14 @@ async def execute_strategy(
         # Check if token is expired and refresh if needed
         if account_data[3] and datetime.utcnow() > account_data[3]:
             logger.info(f"Token expired for account {account_id}, refreshing...")
-            refresh_token = account_data[2]  # Use plaintext refresh token
+            refresh_token = api_client._decrypt_data(account_data[2])
             api_client.refresh_token = refresh_token
             await api_client.refresh_access_token()
         else:
-            # Access token is stored as plaintext in the database
-            access_token = account_data[1]
-            logger.info(f"Using access token for account {account_id} (expires: {account_data[3]})")
+            # Decrypt the access token (stored encrypted in database)
+            access_token = api_client._decrypt_data(account_data[1])
+            logger.info(f"Using decrypted access token for account {account_id} (expires: {account_data[3]})")
+            logger.info(f"Token preview: {access_token[:20] if access_token else 'None'}...")
             api_client.access_token = access_token
             api_client.is_authenticated = True
             api_client.client.headers.update({

@@ -57,9 +57,14 @@ options_strategies:
 symbols:
   primary:
   - SPY
-  - AAPL
-  secondary:
   - NVDA
+  - AAPL
+  - QQQ
+  secondary:
+  - TSLA
+  - GOOGL
+  - AMD
+  - META
 trading_limits:
   max_daily_trades: 10
   max_weekly_trades: 25

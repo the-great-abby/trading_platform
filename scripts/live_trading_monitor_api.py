@@ -69,12 +69,15 @@ class LiveTradingMonitor:
         # Strategy performance
         self.strategy_performance: Dict[str, StrategyPerformance] = {}
         
-        # Portfolio tracking
-        self.initial_capital = 4000.0
-        self.current_value = self.initial_capital
+        # Portfolio tracking (will be updated from API)
+        self.initial_capital = 0.0
+        self.current_value = 0.0
+        self.equity = 0.0
+        self.buying_power = 0.0
+        self.cash_balance = 0.0
         self.total_pnl = 0.0
         self.max_drawdown = 0.0
-        self.peak_value = self.initial_capital
+        self.peak_value = 0.0
         
         # Performance metrics
         self.start_time = datetime.now()
@@ -85,7 +88,7 @@ class LiveTradingMonitor:
         self.today_trades = 0
         self.today_pnl = 0.0
         
-        logger.info(f"📊 Live Trading Monitor initialized with ${self.initial_capital:,.2f} capital")
+        logger.info(f"📊 Live Trading Monitor initialized")
         logger.info(f"🔗 Connected to live trading service: {self.live_service_url}")
     
     async def fetch_orders_from_api(self) -> List[Dict]:
@@ -154,6 +157,29 @@ class LiveTradingMonitor:
                         return {}
         except Exception as e:
             logger.error(f"Error fetching account info from API: {e}")
+            return {}
+    
+    async def fetch_account_balance_from_api(self) -> Dict:
+        """Fetch account balance from live trading service API"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.live_service_url}/api/v1/accounts/{self.account_id}/balance",
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.debug(f"Account balance data: {data}")
+                        return data
+                    else:
+                        response_text = await response.text()
+                        logger.error(f"Failed to fetch account balance: HTTP {response.status} - {response_text}")
+                        return {}
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout fetching account balance from API")
+            return {}
+        except Exception as e:
+            logger.error(f"Error fetching account balance from API: {e}", exc_info=True)
             return {}
     
     async def _get_current_price(self, symbol: str) -> float:
@@ -230,6 +256,23 @@ class LiveTradingMonitor:
     async def update_from_api(self):
         """Update monitor data from live trading service API"""
         try:
+            # Fetch account balance from API
+            balance_data = await self.fetch_account_balance_from_api()
+            if balance_data and 'equity' in balance_data:
+                self.equity = float(balance_data.get('equity', 0))
+                self.buying_power = float(balance_data.get('buying_power', 0))
+                self.cash_balance = float(balance_data.get('cash_balance', 0))
+                self.current_value = self.equity  # Account balance = equity
+                
+                # Set initial capital on first fetch if not set
+                if self.initial_capital == 0.0:
+                    self.initial_capital = self.equity
+                    self.peak_value = self.equity
+            else:
+                logger.error("Failed to fetch account balance - cannot update portfolio values")
+                # Don't update if we didn't get valid balance data
+                return
+            
             # Fetch orders from API
             orders = await self.fetch_orders_from_api()
             
@@ -270,31 +313,24 @@ class LiveTradingMonitor:
             today = datetime.now().date()
             self.today_trades = sum(1 for trade in self.trades if trade.timestamp.date() == today)
             
-            # Calculate portfolio value from positions with current market prices
+            # Calculate initial capital (cost basis) = cash + sum(cost of all positions)
             total_position_cost = 0.0
-            total_position_value = 0.0
-            
             for position in positions:
                 if position.get('status') == 'OPEN':
                     quantity = float(position.get('quantity', 0))
                     entry_price = float(position.get('average_price', 0))
-                    # Use the updated current_price we just fetched
-                    current_price = float(position.get('current_price', entry_price))
-                    
-                    position_cost = quantity * entry_price
-                    position_value = quantity * current_price
-                    
-                    total_position_cost += position_cost
-                    total_position_value += position_value
-                    
-                    logger.debug(f"{position['symbol']}: {quantity} @ ${entry_price:.2f} -> ${current_price:.2f}")
+                    total_position_cost += quantity * entry_price
             
-            # Calculate cash remaining
-            cash_remaining = self.initial_capital - total_position_cost
+            # Initial capital is what we actually paid
+            calculated_initial_capital = self.cash_balance + total_position_cost
             
-            # Calculate total portfolio value
-            self.current_value = total_position_value + cash_remaining
-            self.total_pnl = self.current_value - self.initial_capital
+            # Set initial capital on first fetch, or update if it changed significantly
+            if self.initial_capital == 0.0:
+                self.initial_capital = calculated_initial_capital
+                self.peak_value = self.equity
+            
+            # Calculate total P&L: current equity - initial capital (cost basis)
+            self.total_pnl = self.equity - calculated_initial_capital
             
             # Calculate today's P&L from closed trades
             self.today_pnl = sum(trade.pnl for trade in self.trades if trade.timestamp.date() == today)
@@ -365,6 +401,9 @@ class LiveTradingMonitor:
         return {
             'initial_capital': self.initial_capital,
             'current_value': self.current_value,
+            'equity': self.equity,
+            'buying_power': self.buying_power,
+            'cash_balance': self.cash_balance,
             'total_pnl': self.total_pnl,
             'total_pnl_percent': (self.total_pnl / self.initial_capital) * 100 if self.initial_capital > 0 else 0,
             'max_drawdown': self.max_drawdown,
@@ -381,10 +420,24 @@ class LiveTradingMonitor:
         """Print current status"""
         status = self.get_status()
         
+        # Calculate position cost for display
+        total_position_cost = 0.0
+        total_position_value = 0.0
+        for pos in self.last_positions:
+            if pos.get('status') == 'OPEN':
+                qty = float(pos.get('quantity', 0))
+                avg_price = float(pos.get('average_price', 0))
+                current_price = float(pos.get('current_price', avg_price))
+                total_position_cost += qty * avg_price
+                total_position_value += qty * current_price
+        
         print(f"\n📊 Live Trading Status - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
-        print(f"💰 Initial Capital: ${status['initial_capital']:,.2f}")
-        print(f"📈 Current Value: ${status['current_value']:,.2f}")
+        print(f"💰 Account Balance (Equity): ${self.equity:,.2f}")
+        print(f"💵 Cash Balance: ${self.cash_balance:,.2f}")
+        print(f"💼 Position Cost Basis: ${total_position_cost:,.2f}")
+        print(f"📈 Position Market Value: ${total_position_value:,.2f}")
+        print(f"💵 Buying Power: ${self.buying_power:,.2f}")
         print(f"📊 Total P&L: ${status['total_pnl']:,.2f} ({status['total_pnl_percent']:+.2f}%)")
         print(f"📉 Max Drawdown: {status['max_drawdown']:.2%}")
         print(f"📈 Total Filled Trades: {status['total_trades']}")

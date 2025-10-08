@@ -4,7 +4,7 @@ metadata:
   name: live-trading-service-config
   namespace: default
 data:
-  DATABASE_URL: "postgresql+asyncpg://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+  DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres-timescale.postgres-infra.svc.cluster.local:5432/trading_bot"
   ENCRYPTION_KEY: "your-encryption-key-here"
   LOG_LEVEL: "INFO"
   PUBLIC_API_AUTH_BASE_URL: "https://api.public.com/userapiauthservice"

@@ -51,8 +51,11 @@ live-trading-status:
 	@echo "🔑 Authentication Status:"
 	@curl -s http://localhost:11120/api/v1/auth/status/19c25392-8b61-4b71-a344-0eb04d275528 2>/dev/null | jq -r 'if .is_authenticated then "✅ Authenticated" else "❌ Not Authenticated" end' || echo "❌ Cannot Check Authentication"
 	@echo ""
-	@echo "💰 Account Balance:"
-	@curl -s http://localhost:11120/api/v1/accounts/19c25392-8b61-4b71-a344-0eb04d275528/balance 2>/dev/null | jq -r 'if .cash_balance then "$$\(.cash_balance | tonumber | floor)" else "❌ Cannot Retrieve" end' || echo "❌ Cannot Retrieve Balance"
+	@echo "💰 Account Balance (Equity):"
+	@curl -s http://localhost:11120/api/v1/accounts/19c25392-8b61-4b71-a344-0eb04d275528/balance 2>/dev/null | jq -r 'if .equity then "$$\(.equity | tonumber | floor)" else "❌ Cannot Retrieve" end' || echo "❌ Cannot Retrieve Balance"
+	@echo ""
+	@echo "💵 Buying Power:"
+	@curl -s http://localhost:11120/api/v1/accounts/19c25392-8b61-4b71-a344-0eb04d275528/balance 2>/dev/null | jq -r 'if .buying_power then "$$\(.buying_power | tonumber | floor)" else "❌ Cannot Retrieve" end' || echo "❌ Cannot Retrieve Buying Power"
 	@echo ""
 	@echo "📈 Active Strategies:"
 	@curl -s http://localhost:11120/api/v1/strategies/19c25392-8b61-4b71-a344-0eb04d275528 2>/dev/null | jq -r '.strategies[] | select(.enabled) | "✅ \(.strategy_name)"' || echo "❌ Cannot Retrieve Strategies"
@@ -237,15 +240,15 @@ live-trading-service-health:
 # Live Trading Service Logs
 live-trading-service-logs:
 	@echo "📋 Live Trading Service Logs (last 20 lines):"
-	@kubectl logs -n trading-system deployment/live-trading-service --tail=20
+	@kubectl logs -n default deployment/live-trading-service --tail=20
 
 # Live Trading Service Restart
 live-trading-service-restart:
 	@echo "🔄 Restarting Live Trading Service..."
-	@kubectl rollout restart deployment live-trading-service -n trading-system
+	@kubectl rollout restart deployment live-trading-service -n default
 	@echo "⏳ Waiting for service to restart..."
 	@sleep 15
-	@kubectl get pods -n trading-system | grep live-trading
+	@kubectl get pods -n default | grep live-trading
 	@echo "✅ Live Trading Service restarted"
 
 # Live Trading Monitor (API-based)

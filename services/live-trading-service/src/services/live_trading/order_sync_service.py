@@ -6,6 +6,7 @@ Polls Public.com for order status and updates database when orders are filled.
 
 import asyncio
 import logging
+import os
 from typing import Dict, Any, List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,7 @@ from sqlalchemy import select, update
 
 from .models import LiveTrade, TradeStatus
 from .public_api_client import PublicAPIClient
+from .discord_notifier import DiscordNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,14 @@ class OrderSyncService:
         """Initialize the order sync service."""
         self.db_session = db_session
         self.public_api_client = public_api_client
+        
+        # Initialize Discord notifier if webhook URL is configured
+        discord_webhook = os.getenv("DISCORD_WEBHOOK_URL")
+        self.discord = DiscordNotifier(discord_webhook) if discord_webhook else None
+        if self.discord:
+            logger.info("✅ Discord notifications enabled for order fills")
+        else:
+            logger.warning("⚠️  Discord webhook not configured - fill notifications disabled")
     
     async def sync_pending_orders(self, account_id: str) -> Dict[str, Any]:
         """
@@ -148,6 +158,22 @@ class OrderSyncService:
             
             logger.info(f"✅ Order {trade.public_order_id} FILLED: {trade.symbol} {trade.filled_quantity} @ ${trade.price}")
             updated = True
+            
+            # Send Discord notification for filled order
+            if self.discord:
+                try:
+                    await self.discord.send_trade_alert(
+                        symbol=trade.symbol,
+                        action=trade.action.value if hasattr(trade.action, 'value') else str(trade.action),
+                        quantity=trade.filled_quantity,
+                        price=float(trade.price) if trade.price else 0.0,
+                        status="FILLED",
+                        trade_id=str(trade.trade_id),
+                        reason=f"Order filled via {trade.strategy}"
+                    )
+                    logger.info(f"📢 Discord notification sent for filled order: {trade.symbol}")
+                except Exception as e:
+                    logger.error(f"Failed to send Discord notification: {e}")
             
         elif status == "PARTIALLY_FILLED":
             trade.filled_quantity = int(order_status.get("filledQuantity", 0))
