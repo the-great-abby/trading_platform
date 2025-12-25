@@ -96,9 +96,9 @@ This guide walks you through migrating your trading system from the current Time
 
 ### **Virtual Environment Files**
 - **`migration-env/`**: Python virtual environment directory
-- **`migration-requirements.txt`**: Required Python packages
+- **`config/requirements/migration-requirements.txt`**: Required Python packages
 - **`scripts/activate-migration-env.sh`**: Manual activation script
-- **`run-migration.sh`**: Automatic wrapper script (recommended)
+- **`run/run-migration.sh`**: Automatic wrapper script (recommended)
 
 ### **First Time Setup**
 ```bash

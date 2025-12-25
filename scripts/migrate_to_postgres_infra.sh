@@ -121,3 +121,8 @@ echo "  1. Update live-trading-service to use postgres-infra database"
 echo "  2. Test the live-trading-service"
 echo "  3. Delete the trading-system database deployment"
 
+
+
+
+
+

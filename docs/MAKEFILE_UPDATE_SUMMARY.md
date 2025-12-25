@@ -53,11 +53,11 @@ All Makefile targets were tested and confirmed working:
 ```bash
 # Test help targets
 make test-help                          # ✅ Working
-make -f Makefile.backtesting help       # ✅ Working
-make -f Makefile.live-trading help      # ✅ Working
+make -f makefiles/Makefile.backtesting help       # ✅ Working
+make -f makefiles/Makefile.live-trading help      # ✅ Working
 
 # Test functional targets
-make -f Makefile.backtesting results    # ✅ Working - Shows files from results/
+make -f makefiles/Makefile.backtesting results    # ✅ Working - Shows files from results/
 make test-status                        # ✅ Working - References tests/
 ```
 
@@ -67,8 +67,8 @@ make test-status                        # ✅ Working - References tests/
 
 ```bash
 # Test backtesting targets
-make -f Makefile.backtesting results    # View backtest results
-make -f Makefile.backtesting clean      # Clean old results
+make -f makefiles/Makefile.backtesting results    # View backtest results
+make -f makefiles/Makefile.backtesting clean      # Clean old results
 
 # Test live trading targets (requires services running)
 make live-trading-service-status        # Check service status
@@ -84,7 +84,7 @@ make test-integration                   # Run integration tests from tests/integ
 make test-run                           # Run all tests from tests/
 
 # View backtest results
-make -f Makefile.backtesting results    # Shows results from results/
+make -f makefiles/Makefile.backtesting results    # Shows results from results/
 ```
 
 ## Common Makefile Commands
@@ -100,10 +100,10 @@ make test-clean         # Clean test artifacts
 
 ### Backtesting
 ```bash
-make -f Makefile.backtesting dashboard  # Open backtest dashboard
-make -f Makefile.backtesting results    # View latest results
-make -f Makefile.backtesting clean      # Clean old results
-make -f Makefile.backtesting status     # Check dashboard status
+make -f makefiles/Makefile.backtesting dashboard  # Open backtest dashboard
+make -f makefiles/Makefile.backtesting results    # View latest results
+make -f makefiles/Makefile.backtesting clean      # Clean old results
+make -f makefiles/Makefile.backtesting status     # Check dashboard status
 ```
 
 ### Live Trading

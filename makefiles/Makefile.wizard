@@ -1,0 +1,102 @@
+# Wizard TUI System Makefile
+# Interactive command menu system with numbered selection
+
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+CYAN := \033[0;36m
+NC := \033[0m # No Color
+
+.PHONY: wizard wizard-help wizard-test wizard-info
+
+wizard: ## Launch the interactive wizard TUI
+	@chmod +x scripts/wizard.py
+	@.venv/bin/python scripts/wizard.py
+
+wiz: wizard ## Shortcut for wizard
+
+wizard-help: ## Show wizard help information
+	@echo "$(GREEN)🧙 Trading System Wizard$(NC)"
+	@echo "$(YELLOW)========================$(NC)"
+	@echo ""
+	@echo "$(CYAN)The wizard provides an interactive TUI for navigating and executing$(NC)"
+	@echo "$(CYAN)Makefile commands through a numbered menu system.$(NC)"
+	@echo ""
+	@echo "$(GREEN)Usage:$(NC)"
+	@echo "  make wizard    - Launch the interactive wizard"
+	@echo "  make wiz       - Shortcut for wizard"
+	@echo ""
+	@echo "$(GREEN)Features:$(NC)"
+	@echo "  ✅ Categorized command menu"
+	@echo "  ✅ Number-based selection (no typing command names)"
+	@echo "  ✅ Navigate through categories and commands"
+	@echo "  ✅ Execute commands directly from the menu"
+	@echo "  ✅ Color-coded interface for easy navigation"
+	@echo "  ✅ Interactive variable prompting for Makefile targets"
+	@echo "     - Automatically detects missing/required variables"
+	@echo "     - Prompts for values before executing commands"
+	@echo "     - Shows defaults and current values"
+	@echo ""
+	@echo "$(GREEN)Categories Available:$(NC)"
+	@echo "  • System Control        - Start/stop/restore services and ports (QUICK ACCESS)"
+	@echo "  • Quick Status          - Fast status checks and syncs"
+	@echo "  • Service Management    - Detailed service management"
+	@echo "  • Port Forwarding       - Port forward management"
+	@echo "  • Kubernetes            - K8s cluster operations"
+	@echo "  • Build & Deploy        - Build and deployment commands"
+	@echo "  • Trading Operations    - Live and paper trading"
+	@echo "  • Backtesting           - Backtest execution and results"
+	@echo "  • Testing               - Test execution"
+	@echo "  • Database              - Database operations"
+	@echo "  • AI Assistant          - AI development assistance"
+	@echo "  • Discord               - Discord integration"
+	@echo "  • MCP Service           - Model Context Protocol"
+	@echo ""
+	@echo "$(YELLOW)Navigation:$(NC)"
+	@echo "  • Enter a number to select an option"
+	@echo "  • Enter 0 to go back or exit"
+	@echo "  • Press Ctrl+C to interrupt anytime"
+	@echo ""
+
+wizard-test: ## Test the wizard installation
+	@echo "$(GREEN)🧪 Testing Wizard Installation$(NC)"
+	@echo "$(YELLOW)==========================$(NC)"
+	@echo ""
+	@echo "Checking Python installation..."
+	@.venv/bin/python --version || python3 --version
+	@echo ""
+	@echo "Checking wizard script..."
+	@if [ -f scripts/wizard.py ]; then \
+		echo "$(GREEN)✅ Wizard script found$(NC)"; \
+		chmod +x scripts/wizard.py; \
+		echo "$(GREEN)✅ Made wizard executable$(NC)"; \
+	else \
+		echo "$(RED)❌ Wizard script not found$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "$(GREEN)✅ Wizard is ready to use!$(NC)"
+	@echo "$(YELLOW)Run 'make wizard' to start$(NC)"
+
+wizard-info: ## Show wizard information and statistics
+	@echo "$(GREEN)🧙 Wizard System Information$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo ""
+	@echo "$(CYAN)Version:$(NC) 1.0.0"
+	@echo "$(CYAN)Location:$(NC) scripts/wizard.py"
+	@echo "$(CYAN)Command:$(NC) make wizard (or make wiz)"
+	@echo ""
+	@echo "$(GREEN)Available Commands:$(NC)"
+	@.venv/bin/python -c "import sys; sys.path.insert(0, 'scripts'); from wizard import WizardMenu; wiz = WizardMenu(); total = len(wiz.commands); cats = len(wiz.categories); print(f'  Total Commands: {total}'); print(f'  Categories: {cats}'); [print(f'    • {cat}: {len(cmds)} commands') for cat, cmds in wiz.categories.items()]" || python3 -c "import sys; sys.path.insert(0, 'scripts'); from wizard import WizardMenu; wiz = WizardMenu(); total = len(wiz.commands); cats = len(wiz.categories); print(f'  Total Commands: {total}'); print(f'  Categories: {cats}'); [print(f'    • {cat}: {len(cmds)} commands') for cat, cmds in wiz.categories.items()]"
+	@echo ""
+	@echo "$(YELLOW)Quick Start:$(NC) make wizard"
+
+
+
+
+
+
+
+
+

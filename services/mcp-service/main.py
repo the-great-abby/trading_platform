@@ -23,6 +23,7 @@ from mcp_tools.health_check_tester import HealthCheckTester
 from mcp_tools.prometheus_tester import PrometheusTester
 from mcp_tools.monitoring_integration import MonitoringIntegration
 from mcp_tools.documentation_tool import DocumentationTool
+from mcp_tools.trading_strategy_analysis_tool import TradingStrategyAnalysisTool
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +55,7 @@ health_check_tester = HealthCheckTester()
 prometheus_tester = PrometheusTester()
 monitoring_integration = MonitoringIntegration()
 documentation_tool = DocumentationTool()
+trading_strategy_tool = TradingStrategyAnalysisTool()
 
 # Auto-start automation system on service startup
 @app.on_event("startup")
@@ -159,6 +161,11 @@ async def list_mcp_tools():
                 "name": "documentation",
                 "description": "Documentation search, retrieval, and analysis",
                 "endpoints": ["/api/mcp/docs/search", "/api/mcp/docs/categories", "/api/mcp/docs/tags", "/api/mcp/docs/content"]
+            },
+            {
+                "name": "trading_strategy",
+                "description": "Trading strategy analysis and performance monitoring",
+                "endpoints": ["/api/mcp/trading/strategies", "/api/mcp/trading/strategies/active", "/api/mcp/trading/strategies/performance", "/api/mcp/trading/strategies/comparison", "/api/mcp/trading/strategies/top", "/api/mcp/trading/positions"]
             }
         ]
     }
@@ -695,6 +702,80 @@ async def get_documentation_help():
         }
     except Exception as e:
         logger.error(f"Error getting documentation help: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Trading Strategy Analysis Tool Endpoints
+@app.get("/api/mcp/trading/strategies")
+async def get_comprehensive_strategy_analysis():
+    """Get comprehensive analysis of all trading strategies"""
+    try:
+        return await trading_strategy_tool.get_comprehensive_strategy_analysis()
+    except Exception as e:
+        logger.error(f"Error getting comprehensive strategy analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/strategies/active")
+async def get_active_strategies():
+    """Get currently active trading strategies"""
+    try:
+        return await trading_strategy_tool.get_active_strategies()
+    except Exception as e:
+        logger.error(f"Error getting active strategies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/strategies/performance/backtest")
+async def get_backtest_performance(limit: int = 50):
+    """Get strategy backtest performance"""
+    try:
+        return await trading_strategy_tool.get_strategy_backtest_performance(limit)
+    except Exception as e:
+        logger.error(f"Error getting backtest performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/strategies/performance/live")
+async def get_live_performance(days: int = 30):
+    """Get live trading strategy performance"""
+    try:
+        return await trading_strategy_tool.get_live_trading_performance(days)
+    except Exception as e:
+        logger.error(f"Error getting live trading performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/strategies/comparison")
+async def compare_strategies(strategies: Optional[str] = None):
+    """Compare multiple strategies side-by-side"""
+    try:
+        strategy_list = strategies.split(',') if strategies else None
+        return await trading_strategy_tool.get_strategy_comparison(strategy_list)
+    except Exception as e:
+        logger.error(f"Error comparing strategies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/strategies/top")
+async def get_top_strategies(metric: str = "pnl", limit: int = 5):
+    """Get top performing strategies by metric"""
+    try:
+        return await trading_strategy_tool.get_top_performing_strategies(metric, limit)
+    except Exception as e:
+        logger.error(f"Error getting top strategies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/positions")
+async def get_current_positions():
+    """Get current open trading positions"""
+    try:
+        return await trading_strategy_tool.get_current_positions()
+    except Exception as e:
+        logger.error(f"Error getting current positions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/mcp/trading/analytics")
+async def get_portfolio_analytics():
+    """Get portfolio-level analytics"""
+    try:
+        return await trading_strategy_tool.get_portfolio_analytics()
+    except Exception as e:
+        logger.error(f"Error getting portfolio analytics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: live-trading-executor
-  namespace: default
+  namespace: trading-system
   labels:
     app: live-trading-executor
     job-type: cronjob
@@ -84,7 +84,7 @@ spec:
             env:
             # Live Trading Service connection
             - name: LIVE_TRADING_SERVICE_URL
-              value: "http://live-trading-service.default.svc.cluster.local:8080"
+              value: "http://live-trading-service.trading-system.svc.cluster.local:8080"
             
             # Strategy Service connection
             - name: STRATEGY_SERVICE_URL
@@ -130,7 +130,7 @@ spec:
             
             # Strategy selection
             - name: STRATEGY_NAME
-              value: "MultiStrategyEnsemble"
+              value: "MULTI_STRATEGY_ENSEMBLE"
             
             # Symbols to trade
             - name: TRADING_SYMBOLS
@@ -164,7 +164,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: live-trading-executor-emergency-stop
-  namespace: default
+  namespace: trading-system
 data:
   # Set to "true" to emergency stop all trading
   emergency_stop: "false"
@@ -180,7 +180,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: live-trading-executor-role
-  namespace: default
+  namespace: trading-system
 rules:
 - apiGroups: [""]
   resources: ["configmaps"]
@@ -192,11 +192,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: live-trading-executor-rolebinding
-  namespace: default
+  namespace: trading-system
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: default
+  namespace: trading-system
 roleRef:
   kind: Role
   name: live-trading-executor-role
@@ -208,7 +208,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: live-trading-executor-metrics
-  namespace: default
+  namespace: trading-system
   labels:
     app: live-trading-executor
 spec:

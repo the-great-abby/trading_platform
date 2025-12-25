@@ -84,7 +84,9 @@ class LiveTradingPositionMonitor:
     async def monitor_all_positions(self):
         """Monitor all active positions"""
         try:
-            async with get_db_session() as session:
+            # Use the session maker directly instead of the generator
+            from .database import async_session_maker
+            async with async_session_maker() as session:
                 # Get all open positions
                 stmt = select(LivePosition).where(LivePosition.status == PositionStatus.OPEN)
                 result = await session.execute(stmt)
@@ -127,13 +129,11 @@ class LiveTradingPositionMonitor:
     async def calculate_position_metrics(self, position: LivePosition, current_price: float) -> PositionMonitorData:
         """Calculate position monitoring metrics"""
         
-        # Calculate unrealized P&L
-        if position.action == "BUY":
-            unrealized_pnl = (current_price - position.entry_price) * position.quantity
-        else:  # SELL
-            unrealized_pnl = (position.entry_price - current_price) * position.quantity
+        # Calculate unrealized P&L based on quantity sign
+        # Positive quantity = long position, negative = short position
+        unrealized_pnl = (current_price - float(position.average_price)) * position.quantity
         
-        unrealized_pnl_pct = unrealized_pnl / (position.entry_price * position.quantity)
+        unrealized_pnl_pct = unrealized_pnl / (float(position.average_price) * abs(position.quantity))
         
         # Calculate holding period
         holding_days = (datetime.now() - position.created_at).days
@@ -145,8 +145,8 @@ class LiveTradingPositionMonitor:
             position_id=str(position.position_id),
             symbol=position.symbol,
             strategy=position.strategy.value if position.strategy else "UNKNOWN",
-            entry_time=position.created_at,
-            entry_price=float(position.entry_price),
+            entry_time=position.opened_at,
+            entry_price=float(position.average_price),
             current_price=current_price,
             quantity=position.quantity,
             unrealized_pnl=unrealized_pnl,

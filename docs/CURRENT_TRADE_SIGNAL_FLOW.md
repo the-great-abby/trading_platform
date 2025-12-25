@@ -436,7 +436,7 @@ self.symbols = [
 
 ### Automated Execution (Every 15 Minutes via CronJob)
 
-1. **CronJob triggers** automatically (or manual via `make -f Makefile.live-trading test-execution`)
+1. **CronJob triggers** automatically (or manual via `make -f makefiles/Makefile.live-trading test-execution`)
 2. **Market hours check** - Skip if outside 9:30 AM - 4:00 PM ET
 3. **Emergency stop check** - Halt if emergency stop enabled
 4. **Live Trading Service** → calls Strategy Service `/api/trading/recommendations`
@@ -463,16 +463,16 @@ self.symbols = [
 
 ```bash
 # Emergency stop (immediate!)
-make -f Makefile.live-trading emergency-stop
+make -f makefiles/Makefile.live-trading emergency-stop
 
 # Resume trading
-make -f Makefile.live-trading emergency-resume
+make -f makefiles/Makefile.live-trading emergency-resume
 
 # Check status
-make -f Makefile.live-trading status-auto-trading
+make -f makefiles/Makefile.live-trading status-auto-trading
 
 # Watch live
-make -f Makefile.live-trading logs-auto-trading-live
+make -f makefiles/Makefile.live-trading logs-auto-trading-live
 ```
 
 ---

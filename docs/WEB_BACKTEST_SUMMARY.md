@@ -30,7 +30,7 @@ Updated the Analytics Dashboard to include all new strategies
 ### Step 1: Open Dashboard
 
 ```bash
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 This will:
@@ -131,7 +131,7 @@ Every day during the backtest, the strategy:
 
 ### 1. Open Dashboard
 ```bash
-make -f Makefile.backtesting
+make -f makefiles/Makefile.backtesting
 ```
 
 ### 2. In Browser
@@ -163,19 +163,19 @@ make -f Makefile.backtesting
 
 ```bash
 # Open dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 
 # Check if dashboard is running
-make -f Makefile.backtesting status
+make -f makefiles/Makefile.backtesting status
 
 # View local result files
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 
 # Clean old results
-make -f Makefile.backtesting clean
+make -f makefiles/Makefile.backtesting clean
 
 # Restart dashboard (if needed)
-make -f Makefile.backtesting restart
+make -f makefiles/Makefile.backtesting restart
 ```
 
 ---
@@ -200,7 +200,7 @@ make -f Makefile.backtesting restart
 
 **Everything you need is now in the web dashboard!**
 
-1. **Open it**: `make -f Makefile.backtesting dashboard`
+1. **Open it**: `make -f makefiles/Makefile.backtesting dashboard`
 2. **Select**: "AdaptiveSectorWave" from Advanced strategies
 3. **Run**: Configure and click "Run Backtest"
 4. **Watch**: Strategy automatically switches based on market conditions!

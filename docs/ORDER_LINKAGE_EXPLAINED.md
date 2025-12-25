@@ -328,7 +328,7 @@ Look for:
 **Check if worker is running:**
 
 ```bash
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 ```
 
 ### Issue: Finding an Order by Public.com ID
@@ -355,7 +355,7 @@ WHERE public_order_id = 'YOUR_PUBLIC_ORDER_ID_HERE';
 
 2. **Monitor sync logs** to ensure orders are being updated:
    ```bash
-   make -f Makefile.order-sync logs-sync-worker
+   make -f makefiles/Makefile.order-sync logs-sync-worker
    ```
 
 3. **Clean up TEMP orders** periodically:

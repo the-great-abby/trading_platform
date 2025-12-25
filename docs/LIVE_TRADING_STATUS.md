@@ -106,7 +106,7 @@ Running in **paper mode** while you:
 
 **When the API issue is fixed, switching to live will be one command:**
 ```bash
-make -f Makefile.live-trading set-live-mode
+make -f makefiles/Makefile.live-trading set-live-mode
 ```
 
 ---

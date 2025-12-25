@@ -32,11 +32,11 @@ validation-run: ## Run validation framework locally
 validation-run-local: ## Run validation framework locally with local filesystem config
 	@echo "🚀 Starting validation framework locally (filesystem mode)..."
 	@echo "Loading local environment configuration..."
-	@if [ -f validation-local.env ]; then \
-		export $$(cat validation-local.env | grep -v '^#' | xargs) && \
+	@if [ -f config/validation-local.env ]; then \
+		export $$(cat config/validation-local.env | grep -v '^#' | xargs) && \
 		echo "✅ Local environment loaded"; \
 	else \
-		echo "⚠️ validation-local.env not found, using defaults"; \
+		echo "⚠️ config/validation-local.env not found, using defaults"; \
 	fi
 	export VALIDATION_DB_HOST="localhost" && \
 	export VALIDATION_DB_PORT="5432" && \
@@ -48,16 +48,16 @@ validation-run-local: ## Run validation framework locally with local filesystem 
 
 validation-load-local: ## Load local environment configuration
 	@echo "📋 Loading local validation environment..."
-	@if [ -f validation-local.env ]; then \
-		export $$(cat validation-local.env | grep -v '^#' | xargs) && \
+	@if [ -f config/validation-local.env ]; then \
+		export $$(cat config/validation-local.env | grep -v '^#' | xargs) && \
 		echo "✅ Local environment configuration loaded"; \
 		echo "Environment variables:"; \
 		env | grep VALIDATION_ | head -10; \
 	else \
-		echo "❌ validation-local.env not found"; \
+		echo "❌ config/validation-local.env not found"; \
 		echo "Creating default local environment file..."; \
-		touch validation-local.env; \
-		echo "Please configure validation-local.env with your local settings"; \
+		touch config/validation-local.env; \
+		echo "Please configure config/validation-local.env with your local settings"; \
 	fi
 
 validation-test-local: ## Test validation framework with local filesystem

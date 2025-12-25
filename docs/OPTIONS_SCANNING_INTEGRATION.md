@@ -115,28 +115,28 @@ symbols = [
 
 ### Deploy Options Scanning
 ```bash
-make -f Makefile.options-scan deploy-options-scan
+make -f makefiles/Makefile.options-scan deploy-options-scan
 ```
 
 ### Manual Scan (Test Now)
 ```bash
-make -f Makefile.options-scan manual-scan
+make -f makefiles/Makefile.options-scan manual-scan
 ```
 
 ### Check Status
 ```bash
-make -f Makefile.options-scan status-options-scan
+make -f makefiles/Makefile.options-scan status-options-scan
 ```
 
 ### View Logs
 ```bash
-make -f Makefile.options-scan logs-options-scan
+make -f makefiles/Makefile.options-scan logs-options-scan
 ```
 
 ### Suspend/Resume
 ```bash
-make -f Makefile.options-scan suspend-options-scan
-make -f Makefile.options-scan resume-options-scan
+make -f makefiles/Makefile.options-scan suspend-options-scan
+make -f makefiles/Makefile.options-scan resume-options-scan
 ```
 
 ## Example Output
@@ -195,17 +195,17 @@ You would need:
 
 1. **Deploy the scanner:**
    ```bash
-   make -f Makefile.options-scan deploy-options-scan
+   make -f makefiles/Makefile.options-scan deploy-options-scan
    ```
 
 2. **Test manually:**
    ```bash
-   make -f Makefile.options-scan manual-scan
+   make -f makefiles/Makefile.options-scan manual-scan
    ```
 
 3. **Monitor results:**
    ```bash
-   make -f Makefile.options-scan logs-options-scan
+   make -f makefiles/Makefile.options-scan logs-options-scan
    ```
 
 4. **If no opportunities:**

@@ -443,12 +443,12 @@ async def get_account_orders(
         Orders list
     """
     try:
-        # Always query live_trades table (contains real stock trades)
+        # Always query live_trades table (contains real stock trades and options)
         query = """
             SELECT 
                 trade_id, public_order_id, symbol, strategy, action,
                 quantity, price, commission, status, created_at,
-                filled_at, rejection_reason
+                filled_at, rejection_reason, option_type, strike_price, expiration_date
             FROM live_trades 
             WHERE account_id = :account_id
         """
@@ -458,7 +458,12 @@ async def get_account_orders(
             query += " AND status = :status_filter"
             params["status_filter"] = status_filter
         
-        query += " ORDER BY created_at DESC LIMIT :limit"
+        # Sort by filled_at for FILLED orders (shows most recently executed trades)
+        # Otherwise sort by created_at (shows most recently placed orders)
+        if status_filter == "FILLED":
+            query += " ORDER BY filled_at DESC LIMIT :limit"
+        else:
+            query += " ORDER BY created_at DESC LIMIT :limit"
         params["limit"] = limit
         
         result = await db.execute(text(query), params)
@@ -481,6 +486,9 @@ async def get_account_orders(
                 "created_at": trade[9].isoformat() if trade[9] else None,
                 "filled_at": trade[10].isoformat() if trade[10] else None,
                 "rejection_reason": trade[11],
+                "option_type": trade[12],  # CALL/PUT or None for stocks
+                "strike_price": float(trade[13]) if trade[13] else None,
+                "expiration_date": trade[14].isoformat() if trade[14] else None,
                 "greeks": {}
             })
         
@@ -499,6 +507,52 @@ async def get_account_orders(
             total_count=0,
             error=f"Failed to get orders: {str(e)}"
         )
+
+
+@router.get("/rejected-attempts")
+async def get_rejected_trade_attempts(
+    account_id: str,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """
+    Get rejected trade attempts for an account.
+    
+    Shows trade attempts that were rejected by the system before submission to the broker.
+    This includes rejections due to:
+    - Insufficient buying power
+    - Risk validation failures
+    - Low confidence signals
+    - Position already exists
+    - Order validation errors
+    
+    Args:
+        account_id: Account ID
+        limit: Maximum number of records to return (default 100)
+        
+    Returns:
+        List of rejected trade attempts with rejection reasons
+    """
+    try:
+        from src.services.live_trading.rejection_tracking_service import RejectionTrackingService
+        
+        rejection_tracker = RejectionTrackingService(db)
+        rejections = await rejection_tracker.get_recent_rejections(account_id, limit)
+        
+        return {
+            "success": True,
+            "rejected_attempts": rejections,
+            "total_count": len(rejections)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting rejected trade attempts: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to get rejected trade attempts: {str(e)}",
+            "rejected_attempts": [],
+            "total_count": 0
+        }
 
 
 @router.get("/positions")

@@ -54,6 +54,7 @@ class OrderRiskData:
     greeks: Dict[str, float]
     position_size: float
     action: str = "BUY"  # BUY or SELL
+    option_type: Optional[str] = None  # CALL, PUT, or None for stocks
 
 
 class RiskService:
@@ -120,8 +121,8 @@ class RiskService:
                 errors.append(position_size_result["message"])
                 violations.append(RiskViolationType.POSITION_SIZE)
                 risk_score += 0.3
-            elif position_size_result["warning"]:
-                warnings.append(position_size_result["message"])
+            elif position_size_result.get("warning"):
+                warnings.append(position_size_result["warning"])  # Fixed: use "warning" key
                 risk_score += 0.1
             
             # Validate portfolio risk
@@ -130,8 +131,8 @@ class RiskService:
                 errors.append(portfolio_risk_result["message"])
                 violations.append(RiskViolationType.PORTFOLIO_RISK)
                 risk_score += 0.4
-            elif portfolio_risk_result["warning"]:
-                warnings.append(portfolio_risk_result["message"])
+            elif portfolio_risk_result.get("warning"):
+                warnings.append(portfolio_risk_result["warning"])  # Fixed: use "warning" key
                 risk_score += 0.15
             
             # Validate daily loss limits
@@ -140,8 +141,8 @@ class RiskService:
                 errors.append(daily_loss_result["message"])
                 violations.append(RiskViolationType.DAILY_LOSS)
                 risk_score += 0.3
-            elif daily_loss_result["warning"]:
-                warnings.append(daily_loss_result["message"])
+            elif daily_loss_result.get("warning"):
+                warnings.append(daily_loss_result["warning"])  # Fixed: use "warning" key
                 risk_score += 0.1
             
             # Validate daily trade limits
@@ -160,8 +161,8 @@ class RiskService:
                 errors.append(greeks_result["message"])
                 violations.append(RiskViolationType.GREEKS_EXPOSURE)
                 risk_score += 0.2
-            elif greeks_result["warning"]:
-                warnings.append(greeks_result["message"])
+            elif greeks_result.get("warning"):
+                warnings.append(greeks_result["warning"])  # Fixed: use "warning" key, not "message"
                 risk_score += 0.1
             
             # Validate allowed strategies
@@ -417,25 +418,56 @@ class RiskService:
             return None
     
     async def _validate_position_size(self, risk_profile: RiskProfile, order_data: OrderRiskData) -> Dict[str, Any]:
-        """Validate position size against limits."""
-        current_size = await self._get_current_position_size(str(risk_profile.account_id))
-        new_total_size = current_size + order_data.position_size
+        """
+        Validate position size against limits.
         
-        # Convert Decimal to float for comparison
-        max_position_size = float(risk_profile.max_position_size)
+        Stocks and Options have SEPARATE 40% limits:
+        - Stocks can be up to 40% (or more based on profile)
+        - Options can ALSO be up to 40% (independent of stocks)
+        """
+        # Check if this is an options order
+        is_options_order = order_data.option_type is not None
         
-        if new_total_size > max_position_size:
-            return {
-                "approved": False,
-                "message": f"Position size limit exceeded: {new_total_size} > {max_position_size}"
-            }
-        elif new_total_size > max_position_size * 0.9:
-            return {
-                "approved": True,
-                "warning": f"Approaching position size limit: {new_total_size}/{max_position_size}"
-            }
-        
-        return {"approved": True, "warning": None}
+        if is_options_order:
+            # For OPTIONS: Check current options allocation separately
+            current_options_size = await self._get_current_options_position_size(str(risk_profile.account_id))
+            new_total_options_size = current_options_size + order_data.position_size
+            
+            # Options have their own 40% limit (separate from stocks)
+            max_options_size = float(risk_profile.max_position_size)  # 40% for options
+            
+            if new_total_options_size > max_options_size:
+                return {
+                    "approved": False,
+                    "message": f"Options position size limit exceeded: {new_total_options_size:.2%} > {max_options_size:.2%} (stocks are tracked separately)"
+                }
+            elif new_total_options_size > max_options_size * 0.9:
+                return {
+                    "approved": True,
+                    "warning": f"Approaching options position size limit: {new_total_options_size:.2%} of {max_options_size:.2%}"
+                }
+            else:
+                return {"approved": True, "warning": None}
+        else:
+            # For STOCKS: Check current stock allocation separately
+            current_stock_size = await self._get_current_stock_position_size(str(risk_profile.account_id))
+            new_total_stock_size = current_stock_size + order_data.position_size
+            
+            # Stocks also have their own limit (separate from options)
+            max_stock_size = float(risk_profile.max_position_size)  # Same 40% limit (or configure separately)
+            
+            if new_total_stock_size > max_stock_size:
+                return {
+                    "approved": False,
+                    "message": f"Stock position size limit exceeded: {new_total_stock_size:.2%} > {max_stock_size:.2%} (options are tracked separately)"
+                }
+            elif new_total_stock_size > max_stock_size * 0.9:
+                return {
+                    "approved": True,
+                    "warning": f"Approaching stock position size limit: {new_total_stock_size:.2%} of {max_stock_size:.2%}"
+                }
+            else:
+                return {"approved": True, "warning": None}
     
     async def _validate_portfolio_risk(self, risk_profile: RiskProfile, account_id: str, order_data: OrderRiskData) -> Dict[str, Any]:
         """Validate portfolio risk against limits."""
@@ -543,15 +575,80 @@ class RiskService:
             return {"approved": True, "warning": None}
     
     async def _get_current_position_size(self, account_id: str) -> float:
-        """Get current total position size for account."""
+        """
+        Get current total position size for account as PERCENTAGE of portfolio.
+        Returns decimal percentage (e.g., 0.25 = 25%)
+        """
         try:
+            # Get total dollar value of current positions
             result = await self.db_session.execute(
                 select(func.sum(LivePosition.quantity * LivePosition.average_price))
                 .where(LivePosition.account_id == account_id)
                 .where(LivePosition.status == "OPEN")
             )
-            return float(result.scalar() or 0)
-        except Exception:
+            position_value_dollars = float(result.scalar() or 0)
+            
+            # Convert to percentage of portfolio
+            portfolio_value = await self._get_portfolio_value(account_id)
+            if portfolio_value > 0:
+                position_size_pct = position_value_dollars / portfolio_value
+                return position_size_pct  # Return as decimal (e.g., 0.25 = 25%)
+            else:
+                return 0.0
+        except Exception as e:
+            logger.error(f"Error getting current position size: {e}")
+            return 0.0
+    
+    async def _get_current_options_position_size(self, account_id: str) -> float:
+        """
+        Get current OPTIONS position size as PERCENTAGE of portfolio.
+        Returns decimal percentage (e.g., 0.25 = 25%)
+        """
+        try:
+            # Get total dollar value of current OPTIONS positions only
+            result = await self.db_session.execute(
+                select(func.sum(LivePosition.quantity * LivePosition.average_price))
+                .where(LivePosition.account_id == account_id)
+                .where(LivePosition.status == "OPEN")
+                .where(LivePosition.option_type.isnot(None))  # Only options
+            )
+            position_value_dollars = float(result.scalar() or 0)
+            
+            # Convert to percentage of portfolio
+            portfolio_value = await self._get_portfolio_value(account_id)
+            if portfolio_value > 0:
+                position_size_pct = position_value_dollars / portfolio_value
+                return position_size_pct  # Return as decimal (e.g., 0.25 = 25%)
+            else:
+                return 0.0
+        except Exception as e:
+            logger.error(f"Error getting current options position size: {e}")
+            return 0.0
+    
+    async def _get_current_stock_position_size(self, account_id: str) -> float:
+        """
+        Get current STOCK position size as PERCENTAGE of portfolio.
+        Returns decimal percentage (e.g., 0.25 = 25%)
+        """
+        try:
+            # Get total dollar value of current STOCK positions only
+            result = await self.db_session.execute(
+                select(func.sum(LivePosition.quantity * LivePosition.average_price))
+                .where(LivePosition.account_id == account_id)
+                .where(LivePosition.status == "OPEN")
+                .where(LivePosition.option_type.is_(None))  # Only stocks (no option_type)
+            )
+            position_value_dollars = float(result.scalar() or 0)
+            
+            # Convert to percentage of portfolio
+            portfolio_value = await self._get_portfolio_value(account_id)
+            if portfolio_value > 0:
+                position_size_pct = position_value_dollars / portfolio_value
+                return position_size_pct  # Return as decimal (e.g., 0.25 = 25%)
+            else:
+                return 0.0
+        except Exception as e:
+            logger.error(f"Error getting current stock position size: {e}")
             return 0.0
     
     async def _get_current_daily_loss(self, account_id: str) -> float:

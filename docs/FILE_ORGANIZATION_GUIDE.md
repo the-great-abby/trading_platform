@@ -171,7 +171,7 @@ The following files appropriately remain in the root directory:
 - `alembic.ini` - Database migration config
 - `.pre-commit-config.yaml` - Pre-commit hooks
 - `GitVersion.yml` - Semantic versioning config
-- Configuration dotfiles (`.portfolio-lint-config.py`, etc.)
+- Configuration dotfiles moved to `config/` (`.portfolio-lint-config.py`, etc.)
 
 ## Migration Notes
 
@@ -210,8 +210,8 @@ python scripts/monitoring/live_trading_monitor.py
 Makefile targets have been updated to reference new locations. Use make targets when available:
 
 ```bash
-make -f Makefile.backtesting run-backtest
-make -f Makefile.live-trading monitor
+make -f makefiles/Makefile.backtesting run-backtest
+make -f makefiles/Makefile.live-trading monitor
 ```
 
 ## Benefits of Reorganization

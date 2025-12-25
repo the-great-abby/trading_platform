@@ -26,7 +26,7 @@ spec:
         - name: STRATEGY_SERVICE_URL
           value: "http://strategy-service:80"
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:password@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
         - name: RABBITMQ_URL
           value: "amqp://trading_user:trading_pass@rabbitmq-service:5672/trading_vhost"
         - name: LOG_LEVEL

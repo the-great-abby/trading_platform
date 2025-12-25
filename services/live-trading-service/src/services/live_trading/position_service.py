@@ -243,7 +243,11 @@ class PositionService:
                 legs = json.loads(position.legs_data) if position.legs_data else []
                 greeks = json.loads(position.greeks_data) if position.greeks_data else {}
                 
-                total_unrealized_pnl += position.unrealized_pnl
+                # Handle NULL values safely
+                unrealized = float(position.unrealized_pnl) if position.unrealized_pnl is not None else 0.0
+                realized = float(position.realized_pnl) if position.realized_pnl is not None else 0.0
+                
+                total_unrealized_pnl += Decimal(str(unrealized))
                 
                 positions_list.append({
                     "position_id": str(position.position_id),
@@ -252,9 +256,9 @@ class PositionService:
                     "quantity": position.quantity,
                     "average_price": float(position.average_price),
                     "current_price": float(position.current_price) if position.current_price else None,
-                    "unrealized_pnl": float(position.unrealized_pnl),
-                    "realized_pnl": float(position.realized_pnl),
-                    "total_pnl": float(position.unrealized_pnl + position.realized_pnl),
+                    "unrealized_pnl": unrealized,
+                    "realized_pnl": realized,
+                    "total_pnl": unrealized + realized,
                     "status": position.status.value,
                     "opened_at": position.opened_at.isoformat(),
                     "expiration_date": position.expiration_date.isoformat() if position.expiration_date else None,

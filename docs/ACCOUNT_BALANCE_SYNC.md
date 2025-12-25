@@ -62,17 +62,17 @@ Equity = Sum of all open position values
 
 ### Check Current Balance
 ```bash
-make -f Makefile.account-sync check-balance
+make -f makefiles/Makefile.account-sync check-balance
 ```
 
 ### Manual Sync
 ```bash
-make -f Makefile.order-sync manual-sync
+make -f makefiles/Makefile.order-sync manual-sync
 ```
 
 ### View Sync Status
 ```bash
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 ```
 
 ## Balance Accuracy
@@ -137,7 +137,7 @@ System sends alerts when:
 
 ### Sync Logs
 ```bash
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 ```
 
 ## Best Practices

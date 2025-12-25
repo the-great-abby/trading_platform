@@ -65,3 +65,9 @@ echo ""
 echo "⚠️  Next step: Create tables in postgres-infra with VARCHAR instead of ENUMs"
 echo "   Then we can import this data"
 
+
+
+
+
+
+

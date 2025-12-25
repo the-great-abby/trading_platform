@@ -43,20 +43,20 @@ graph LR
 
 ```bash
 # Deploy order sync worker
-make -f Makefile.order-sync deploy-sync-worker
+make -f makefiles/Makefile.order-sync deploy-sync-worker
 
 # Check status
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 ```
 
 ### Test Manual Sync
 
 ```bash
 # Trigger immediate sync (don't wait for schedule)
-make -f Makefile.order-sync test-sync
+make -f makefiles/Makefile.order-sync test-sync
 
 # View results
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 ```
 
 ## How It Works
@@ -106,23 +106,23 @@ schedule: "*/2 9-16 * * 1-5"
 
 ```bash
 # Every 1 minute (aggressive)
-make -f Makefile.order-sync set-sync-interval-1
+make -f makefiles/Makefile.order-sync set-sync-interval-1
 
 # Every 2 minutes (default)
-make -f Makefile.order-sync set-sync-interval-2
+make -f makefiles/Makefile.order-sync set-sync-interval-2
 
 # Every 5 minutes (conservative)
-make -f Makefile.order-sync set-sync-interval-5
+make -f makefiles/Makefile.order-sync set-sync-interval-5
 ```
 
 ### Pause/Resume
 
 ```bash
 # Pause syncing (emergencies, maintenance)
-make -f Makefile.order-sync suspend-sync-worker
+make -f makefiles/Makefile.order-sync suspend-sync-worker
 
 # Resume syncing
-make -f Makefile.order-sync resume-sync-worker
+make -f makefiles/Makefile.order-sync resume-sync-worker
 ```
 
 ## Monitoring
@@ -130,7 +130,7 @@ make -f Makefile.order-sync resume-sync-worker
 ### Check Worker Status
 
 ```bash
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 ```
 
 **Example Output:**
@@ -152,7 +152,7 @@ order-sync-1759863800             1/1           3s         10m
 ### View Sync Logs
 
 ```bash
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 ```
 
 **Example Output:**
@@ -192,7 +192,7 @@ Latest job: order-sync-manual-1759863927
 **Solutions:**
 1. Refresh Public.com token:
    ```bash
-   make -f Makefile.live-trading live-trading-refresh-token
+   make -f makefiles/Makefile.live-trading live-trading-refresh-token
    ```
 
 2. Restart live-trading-service to pick up new token:
@@ -231,7 +231,7 @@ Latest job: order-sync-manual-1759863927
 
 4. If outside market hours (9 AM - 4 PM ET, Mon-Fri), trigger manual sync:
    ```bash
-   make -f Makefile.order-sync test-sync
+   make -f makefiles/Makefile.order-sync test-sync
    ```
 
 ## Maintenance
@@ -241,13 +241,13 @@ Latest job: order-sync-manual-1759863927
 Kubernetes keeps job history for debugging. Clean up periodically:
 
 ```bash
-make -f Makefile.order-sync clean-sync-jobs
+make -f makefiles/Makefile.order-sync clean-sync-jobs
 ```
 
 ### Delete Worker Entirely
 
 ```bash
-make -f Makefile.order-sync delete-sync-worker
+make -f makefiles/Makefile.order-sync delete-sync-worker
 ```
 
 ## Advanced Configuration
@@ -314,20 +314,20 @@ Increase if you have many pending orders (100+).
 
 ```bash
 # Deploy both workers
-make -f Makefile.live-trading deploy-auto-trading
-make -f Makefile.order-sync deploy-sync-worker
+make -f makefiles/Makefile.live-trading deploy-auto-trading
+make -f makefiles/Makefile.order-sync deploy-sync-worker
 
 # Emergency stop (pause both)
-make -f Makefile.live-trading emergency-stop
-make -f Makefile.order-sync suspend-sync-worker
+make -f makefiles/Makefile.live-trading emergency-stop
+make -f makefiles/Makefile.order-sync suspend-sync-worker
 
 # Resume (restart both)
-make -f Makefile.live-trading emergency-resume
-make -f Makefile.order-sync resume-sync-worker
+make -f makefiles/Makefile.live-trading emergency-resume
+make -f makefiles/Makefile.order-sync resume-sync-worker
 
 # Check both statuses
-make -f Makefile.live-trading status-auto-trading
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.live-trading status-auto-trading
+make -f makefiles/Makefile.order-sync status-sync-worker
 ```
 
 ## Files Reference

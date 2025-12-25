@@ -65,7 +65,13 @@ def run_migrations_online() -> None:
 
     """
     # Get database URL from environment
-    database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot')
+    # Default to localhost for local development (port-forwarded from Kubernetes)
+    # In production (inside Kubernetes), set DATABASE_URL env var to point to the actual service
+    # Using postgres-infra namespace: postgres-timescale-external.postgres-infra.svc.cluster.local
+    database_url = os.getenv(
+        'DATABASE_URL', 
+        'postgresql://postgres:postgres@localhost:5432/trading_bot'
+    )
     
     # Convert asyncpg URL to psycopg2 for Alembic
     if 'postgresql+asyncpg://' in database_url:

@@ -7,6 +7,7 @@ Combines multiple high-performing strategies for maximum returns:
 2. RegimeSwitchingStrategy - Market timing and regime detection  
 3. EnhancedMultiStrategy - Sector rotation and momentum
 4. CrossSectionalMomentumStrategy - Cross-sectional momentum
+5. ZeroDTECoveredCallStrategy - 0-DTE options (same-day expiration)
 
 Target: 313%+ return through strategy diversification
 """
@@ -23,6 +24,7 @@ from .adaptive_sector_wave_strategy import AdaptiveSectorWaveStrategy
 from ..regime_switching_strategy import RegimeSwitchingStrategy
 from ..enhanced_multi_strategy import EnhancedMultiStrategy
 from ..momentum.cross_sectional_momentum_strategy import CrossSectionalMomentumStrategy
+from ..options.zero_dte_covered_call_strategy import ZeroDTECoveredCallStrategy
 from ...core.types import TradeSignal
 
 logger = logging.getLogger(__name__)
@@ -42,10 +44,11 @@ class MultiStrategyEnsemble(BaseStrategy):
     
     def __init__(self, 
                  # Strategy weights (can be dynamically adjusted)
-                 adaptive_wave_weight: float = 0.35,      # 35% - Elliott Wave + Options
-                 regime_switching_weight: float = 0.25,   # 25% - Market timing
-                 enhanced_multi_weight: float = 0.25,     # 25% - Sector rotation
+                 adaptive_wave_weight: float = 0.30,      # 30% - Elliott Wave + Options
+                 regime_switching_weight: float = 0.20,   # 20% - Market timing
+                 enhanced_multi_weight: float = 0.20,     # 20% - Sector rotation
                  momentum_weight: float = 0.15,           # 15% - Cross-sectional momentum
+                 zero_dte_weight: float = 0.15,           # 15% - 0-DTE Options
                  
                  # Performance tracking
                  performance_window: int = 50,            # Days to track performance
@@ -64,7 +67,8 @@ class MultiStrategyEnsemble(BaseStrategy):
             'adaptive_wave': adaptive_wave_weight,
             'regime_switching': regime_switching_weight,
             'enhanced_multi': enhanced_multi_weight,
-            'momentum': momentum_weight
+            'momentum': momentum_weight,
+            'zero_dte': zero_dte_weight
         }
         
         # Performance tracking
@@ -74,7 +78,8 @@ class MultiStrategyEnsemble(BaseStrategy):
             'adaptive_wave': [],
             'regime_switching': [],
             'enhanced_multi': [],
-            'momentum': []
+            'momentum': [],
+            'zero_dte': []
         }
         
         # Risk management
@@ -111,6 +116,16 @@ class MultiStrategyEnsemble(BaseStrategy):
                 rebalance_frequency=20,
                 max_position_size=0.1,
                 volatility_adjustment=True
+            ),
+            'zero_dte': ZeroDTECoveredCallStrategy(
+                symbols=kwargs.get('zero_dte_symbols', ['SPY', 'QQQ', 'IWM']),
+                delta_lo=kwargs.get('zero_dte_delta_lo', 0.15),
+                delta_hi=kwargs.get('zero_dte_delta_hi', 0.35),
+                min_otm_pct=kwargs.get('zero_dte_min_otm_pct', 0.00),
+                max_otm_pct=kwargs.get('zero_dte_max_otm_pct', 0.03),
+                min_bid=kwargs.get('zero_dte_min_bid', 0.05),
+                min_open_interest=kwargs.get('zero_dte_min_open_interest', 1),
+                max_spread_to_mid=kwargs.get('zero_dte_max_spread_to_mid', 0.75)
             )
         }
         

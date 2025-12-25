@@ -141,50 +141,50 @@ Updates database with real status:
 
 ```bash
 # View status
-make -f Makefile.live-trading status-auto-trading
+make -f makefiles/Makefile.live-trading status-auto-trading
 
 # View recent logs
-make -f Makefile.live-trading logs-auto-trading-live
+make -f makefiles/Makefile.live-trading logs-auto-trading-live
 
 # Emergency stop
-make -f Makefile.live-trading emergency-stop
+make -f makefiles/Makefile.live-trading emergency-stop
 
 # Resume trading
-make -f Makefile.live-trading emergency-resume
+make -f makefiles/Makefile.live-trading emergency-resume
 
 # Switch to paper trading (safe mode)
-make -f Makefile.live-trading set-paper-mode
+make -f makefiles/Makefile.live-trading set-paper-mode
 
 # Switch to live trading
-make -f Makefile.live-trading set-live-mode
+make -f makefiles/Makefile.live-trading set-live-mode
 
 # Adjust frequency
-make -f Makefile.live-trading set-interval-30  # Every 30 min
-make -f Makefile.live-trading set-interval-15  # Every 15 min (default)
+make -f makefiles/Makefile.live-trading set-interval-30  # Every 30 min
+make -f makefiles/Makefile.live-trading set-interval-15  # Every 15 min (default)
 ```
 
 ### Order Sync Worker
 
 ```bash
 # View status
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 
 # View recent logs
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 
 # Trigger manual sync
-make -f Makefile.order-sync manual-sync
+make -f makefiles/Makefile.order-sync manual-sync
 
 # Pause syncing
-make -f Makefile.order-sync suspend-sync-worker
+make -f makefiles/Makefile.order-sync suspend-sync-worker
 
 # Resume syncing
-make -f Makefile.order-sync resume-sync-worker
+make -f makefiles/Makefile.order-sync resume-sync-worker
 
 # Adjust frequency
-make -f Makefile.order-sync set-sync-interval-1  # Every 1 min
-make -f Makefile.order-sync set-sync-interval-2  # Every 2 min (default)
-make -f Makefile.order-sync set-sync-interval-5  # Every 5 min
+make -f makefiles/Makefile.order-sync set-sync-interval-1  # Every 1 min
+make -f makefiles/Makefile.order-sync set-sync-interval-2  # Every 2 min (default)
+make -f makefiles/Makefile.order-sync set-sync-interval-5  # Every 5 min
 ```
 
 ---
@@ -222,19 +222,19 @@ make -f Makefile.order-sync set-sync-interval-5  # Every 5 min
 ```bash
 # Quick health check (both workers)
 echo "=== LIVE TRADING ===" && \
-make -f Makefile.live-trading status-auto-trading && \
+make -f makefiles/Makefile.live-trading status-auto-trading && \
 echo -e "\n=== ORDER SYNC ===" && \
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 ```
 
 ### View Recent Activity
 
 ```bash
 # View trading activity
-make -f Makefile.live-trading logs-auto-trading-live | tail -100
+make -f makefiles/Makefile.live-trading logs-auto-trading-live | tail -100
 
 # View sync activity
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 ```
 
 ### Database Queries
@@ -295,7 +295,7 @@ kubectl exec -it deployment/timescaledb -n default -- \
 3. **Database will be updated** with fill price and timestamp
 4. **Check filled orders**:
    ```bash
-   make -f Makefile.order-sync logs-sync-worker
+   make -f makefiles/Makefile.order-sync logs-sync-worker
    ```
 
 ### Recommended Actions
@@ -322,20 +322,20 @@ kubectl exec -it deployment/timescaledb -n default -- \
 
 **Check:**
 1. Is it market hours? (9:30 AM - 4:00 PM ET, Mon-Fri)
-2. Are there pending orders? Run: `make -f Makefile.order-sync logs-sync-worker`
-3. Is sync worker running? Run: `make -f Makefile.order-sync status-sync-worker`
+2. Are there pending orders? Run: `make -f makefiles/Makefile.order-sync logs-sync-worker`
+3. Is sync worker running? Run: `make -f makefiles/Makefile.order-sync status-sync-worker`
 
 ### Orders Stuck in PENDING
 
 **Check:**
 1. Do orders have real `public_order_id`? (not `TEMP_*`)
 2. Is Public.com API accessible? Check logs for errors
-3. Are credentials valid? Refresh: `make -f Makefile.live-trading live-trading-refresh-token`
+3. Are credentials valid? Refresh: `make -f makefiles/Makefile.live-trading live-trading-refresh-token`
 
 ### No Signals Generated
 
 **Check:**
-1. Is live trading executor running? Run: `make -f Makefile.live-trading status-auto-trading`
+1. Is live trading executor running? Run: `make -f makefiles/Makefile.live-trading status-auto-trading`
 2. Check strategy service logs for Elliott Wave analysis results
 3. Are signals below confidence threshold? (default: 50%)
 4. Is emergency stop active? Run: `kubectl get configmap live-trading-executor-emergency-stop -n default -o yaml`
@@ -343,7 +343,7 @@ kubectl exec -it deployment/timescaledb -n default -- \
 ### Trading Halted
 
 **Check:**
-1. Emergency stop: `make -f Makefile.live-trading status-auto-trading` (should show "Emergency Stop Status: false")
+1. Emergency stop: `make -f makefiles/Makefile.live-trading status-auto-trading` (should show "Emergency Stop Status: false")
 2. Daily loss limit: Check if `$500` limit reached today
 3. Max positions: Check if 5 concurrent positions already open
 4. Service health: Are all services (strategy, risk, trading) healthy?
@@ -369,10 +369,10 @@ kubectl exec -it deployment/timescaledb -n default -- \
 echo "🏥 System Health Check" && \
 echo "" && \
 echo "📊 Live Trading Executor:" && \
-make -f Makefile.live-trading status-auto-trading 2>/dev/null | grep -E "(NAME|live-trading|Emergency)" && \
+make -f makefiles/Makefile.live-trading status-auto-trading 2>/dev/null | grep -E "(NAME|live-trading|Emergency)" && \
 echo "" && \
 echo "🔄 Order Sync Worker:" && \
-make -f Makefile.order-sync status-sync-worker 2>/dev/null | grep -E "(NAME|order-sync|Status:)" && \
+make -f makefiles/Makefile.order-sync status-sync-worker 2>/dev/null | grep -E "(NAME|order-sync|Status:)" && \
 echo "" && \
 echo "💰 Pending Orders:" && \
 kubectl exec -it deployment/timescaledb -n default -- \
@@ -384,8 +384,8 @@ kubectl exec -it deployment/timescaledb -n default -- \
 
 ```bash
 # Stop everything immediately
-make -f Makefile.live-trading emergency-stop && \
-make -f Makefile.order-sync suspend-sync-worker && \
+make -f makefiles/Makefile.live-trading emergency-stop && \
+make -f makefiles/Makefile.order-sync suspend-sync-worker && \
 echo "🛑 ALL TRADING AND SYNCING STOPPED"
 ```
 
@@ -393,8 +393,8 @@ echo "🛑 ALL TRADING AND SYNCING STOPPED"
 
 ```bash
 # Resume everything
-make -f Makefile.live-trading emergency-resume && \
-make -f Makefile.order-sync resume-sync-worker && \
+make -f makefiles/Makefile.live-trading emergency-resume && \
+make -f makefiles/Makefile.order-sync resume-sync-worker && \
 echo "✅ ALL TRADING AND SYNCING RESUMED"
 ```
 

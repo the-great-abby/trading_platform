@@ -1,0 +1,44 @@
+# .envrc - direnv configuration for automatic environment loading
+# Copy this to .envrc and customize for your environment
+#
+# Installation:
+#   brew install direnv
+#   echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+#   cp .envrc.example .envrc
+#   direnv allow
+#
+# After setup, environment variables will load automatically when you cd into this directory!
+
+# Load Polygon API Key from Kubernetes secret (if available)
+POLYGON_API_KEY=$(kubectl get secret trading-secrets -n trading-system -o jsonpath='{.data.POLYGON_API_KEY}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+export POLYGON_API_KEY
+
+# Database Configuration (TimescaleDB from postgres-infra namespace)
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trading_bot"
+
+# LLM Configuration
+export ENABLE_LLM_EVALUATION="false"
+
+# Market Data Configuration
+export MARKET_DATA_CACHE_ENABLED="true"
+export MARKET_DATA_CACHE_TTL="3600"
+
+# Backtesting Configuration
+export BACKTEST_INITIAL_CAPITAL="4000"
+export BACKTEST_COMMISSION="0.0"
+export BACKTEST_SLIPPAGE="0.001"
+
+# Python Virtual Environment
+# Uncomment to auto-activate virtualenv when entering directory
+# layout python python3
+
+# Show loaded environment
+echo "✅ Trading environment loaded:"
+if [ -n "$POLYGON_API_KEY" ]; then
+    echo "  🔑 POLYGON_API_KEY: ${POLYGON_API_KEY:0:15}..."
+else
+    echo "  ⚠️  POLYGON_API_KEY: Not found"
+fi
+echo "  💾 DATABASE_URL: $DATABASE_URL"
+echo "  💰 BACKTEST_INITIAL_CAPITAL: \$$BACKTEST_INITIAL_CAPITAL"
+

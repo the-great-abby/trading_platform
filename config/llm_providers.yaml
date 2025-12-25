@@ -1,0 +1,101 @@
+# ===================================================================
+# LLM Provider Configuration
+# ===================================================================
+# Configure which LLM provider to use and provider-specific settings
+#
+# 🎯 QUICK START: Change the line below to switch providers!
+#    Options: ollama, lmstudio, openai
+#
+# Examples:
+#   active_provider: ollama      ← Use Ollama (default, good for production)
+#   active_provider: lmstudio    ← Use LM Studio (good for development)
+#   active_provider: openai      ← Use OpenAI (requires API key)
+#
+# ===================================================================
+
+# 👉 CHANGE THIS LINE to switch providers (no environment variables needed!)
+active_provider: ollama
+
+# Ollama Configuration
+ollama:
+  base_url: "http://localhost:11434"
+  model: "gemma3:1b"
+  timeout: 120
+  max_retries: 3
+  
+  # Alternative models available in Ollama:
+  # - "gemma3:1b" (fast, lightweight)
+  # - "llama2:7b" (balanced)
+  # - "llama2:13b" (more capable)
+  # - "mistral:7b" (good quality/speed trade-off)
+  # - "codellama:7b" (code-focused)
+
+# LM Studio Configuration
+lmstudio:
+  base_url: "http://localhost:1234/v1"
+  model: "local-model"  # LM Studio uses the currently loaded model
+  timeout: 120
+  max_retries: 3
+  api_key: null  # Optional, LM Studio doesn't require it by default
+  
+  # LM Studio Notes:
+  # - Start LM Studio and load a model in the UI
+  # - The model name doesn't matter much as LM Studio uses the loaded model
+  # - LM Studio provides an OpenAI-compatible API
+  # - Default port is 1234, configurable in LM Studio settings
+
+# OpenAI Configuration (requires API key)
+openai:
+  api_key: "${OPENAI_API_KEY}"  # Set via environment variable
+  model: "gpt-3.5-turbo"
+  organization: null  # Optional organization ID
+  timeout: 60
+  max_retries: 3
+  
+  # Available OpenAI models:
+  # - "gpt-3.5-turbo" (fast, cost-effective)
+  # - "gpt-4" (most capable, slower, more expensive)
+  # - "gpt-4-turbo-preview" (faster GPT-4)
+
+# Provider Selection Strategy
+selection_strategy:
+  # fallback: If primary fails, try fallback provider
+  # round_robin: Rotate between providers
+  # cost_optimized: Choose cheapest available
+  # performance_optimized: Choose fastest
+  mode: "fallback"
+  
+  # Fallback chain (used if mode is "fallback")
+  fallback_chain:
+    - lmstudio
+    - ollama
+    - openai
+
+# Global Settings (apply to all providers)
+global:
+  # Enable caching of responses
+  enable_caching: true
+  cache_ttl_seconds: 300
+  
+  # Rate limiting
+  max_requests_per_minute: 60
+  
+  # Logging
+  log_requests: true
+  log_responses: false  # Set to true for debugging
+  
+  # Timeouts
+  default_timeout: 120
+  health_check_timeout: 10
+  health_check_interval: 60
+
+# Environment Variable Mapping
+# These environment variables override the config above:
+# - LLM_PROVIDER: Active provider ('ollama', 'lmstudio', 'openai')
+# - OLLAMA_BASE_URL: Ollama server URL
+# - OLLAMA_MODEL: Ollama model name
+# - LMSTUDIO_BASE_URL: LM Studio server URL
+# - LMSTUDIO_MODEL: LM Studio model name
+# - OPENAI_API_KEY: OpenAI API key (required for OpenAI)
+# - OPENAI_MODEL: OpenAI model name
+

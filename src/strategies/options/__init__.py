@@ -15,6 +15,7 @@ from .straddle_strategy import StraddleStrategy
 from .strangle_strategy import StrangleStrategy
 from .diagonal_spread_strategy import DiagonalSpreadStrategy
 from .options_wheel_strategy import OptionsWheelStrategy
+from .zero_dte_covered_call_strategy import ZeroDTECoveredCallStrategy
 
 __all__ = [
     'GreeksEnhancedStrategy',
@@ -29,5 +30,6 @@ __all__ = [
     'StraddleStrategy',
     'StrangleStrategy',
     'DiagonalSpreadStrategy',
-    'OptionsWheelStrategy'
+    'OptionsWheelStrategy',
+    'ZeroDTECoveredCallStrategy'
 ] 

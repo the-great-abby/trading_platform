@@ -1,6 +1,13 @@
 # Service Management Makefile
 # Clean, organized service management commands
+# Service Build and Deploy Makefile
+# Usage: make -f makefiles/Makefile.services <target>
 
+# Variables
+REGISTRY := localhost:32000
+NAMESPACE := trading-system
+
+# Colors for output
 GREEN := \033[0;32m
 YELLOW := \033[1;33m
 RED := \033[0;31m
@@ -41,6 +48,69 @@ services-help: ## Show service management help
 	@echo "  services-consolidation-status - Show consolidation status"
 	@echo "  services-core-status - Show core services status"
 	@echo ""
+	@echo "$(GREEN)Service Build & Deploy Commands$(NC)"	
+	@echo "$(YELLOW)================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Service Categories:$(NC)"
+	@echo "  services-start-dashboards - Start dashboard services"
+	@echo "  services-start-trading   - Start trading services"
+	@echo "  services-start-analytics - Start analytics services"
+	@echo "  services-start-monitoring - Start monitoring services"
+	@echo ""
+	@echo "$(GREEN)Resource Management:$(NC)"
+	@echo "  services-scale-constrained - Scale for constrained environments"
+	@echo "  services-ensure-single-pod - Ensure single pod per service"
+	@echo "  services-optimize-resources - Optimize resource usage"
+	@echo "  services-cleanup-cronjobs - Clean up old cronjob pods"
+	@echo "  services-restart - Restart all services"
+	@echo ""
+	@echo "$(GREEN)Service Categories:$(NC)"
+	@echo "  services-start-dashboards - Start dashboard services"
+	@echo "  services-start-trading   - Start trading services"
+	@echo "  services-start-analytics - Start analytics services"
+	@echo "  services-start-monitoring - Start monitoring services"
+	@echo "  services-restart - Restart all services"    @echo ""
+
+	@echo "$(GREEN)🚀 Service Management$(NC)"
+	@echo "$(YELLOW)===================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Service Categories:$(NC)"
+	@echo "  services-start-dashboards - Start dashboard services"
+	@echo "  services-start-trading   - Start trading services"
+	@echo "  services-start-analytics - Start analytics services"
+	@echo "  services-start-monitoring - Start monitoring services"
+
+	@echo ""
+	@echo "$(YELLOW)Build Commands:$(NC)"
+	@echo "  make -f Makefile.services docker-build-live-trading    - Build live-trading-service"
+	@echo "  make -f Makefile.services docker-build-strategy        - Build strategy-service"
+	@echo "  make -f Makefile.services docker-build-market-data     - Build market-data-service"
+	@echo "  make -f Makefile.services docker-build-all             - Build all services"
+	@echo ""
+	@echo "$(YELLOW)Deploy Commands:$(NC)"
+	@echo "  make -f Makefile.services k8s-deploy-live-trading      - Deploy live-trading-service"
+	@echo "  make -f Makefile.services k8s-deploy-strategy          - Deploy strategy-service"
+	@echo "  make -f Makefile.services k8s-deploy-market-data       - Deploy market-data-service"
+	@echo "  make -f Makefile.services k8s-restart-all              - Restart all services"
+	@echo ""
+	@echo "$(YELLOW)Combined Commands:$(NC)"
+	@echo "  make -f Makefile.services update-live-trading          - Build + push + deploy live-trading"
+	@echo "  make -f Makefile.services update-strategy              - Build + push + deploy strategy"
+	@echo "  make -f Makefile.services update-market-data           - Build + push + deploy market-data"
+	@echo "  make -f Makefile.services update-all                   - Build + push + deploy all"
+	@echo ""
+	@echo "$(YELLOW)Testing Commands:$(NC)"
+	@echo "  make -f Makefile.services test-strategy-execution      - Run manual trading test"
+	@echo "  make -f Makefile.services test-strategy-logs           - View test execution logs"
+	@echo "  make -f Makefile.services check-services               - Check all service status"
+	@echo ""
+	@echo "$(YELLOW)Additional Services:$(NC)"
+	@echo "  make -f Makefile.services scale-up-elliott-wave        - Start Elliott Wave service"
+	@echo "  make -f Makefile.services scale-up-prometheus           - Start Prometheus"
+	@echo "  make -f Makefile.services scale-up-all-monitoring       - Start all monitoring"
+	@echo "  make -f Makefile.services port-forward-elliott          - Port forward Elliott Wave (11085)"
+	@echo "  make -f Makefile.services port-forward-prometheus       - Port forward Prometheus (11190)"
+	@echo "  make -f Makefile.services status-all                    - Full system status"
 
 # Basic Operations
 services-start: ## Start all essential services
@@ -79,6 +149,16 @@ services-status: ## Show service status
 	@echo ""
 	@echo "Pod Status:"
 	kubectl get pods -n trading-system | grep -v Completed
+	@echo ""
+	@echo "Scaled Down Services:"
+	kubectl get deployments -n trading-system | grep "0/0"
+	@echo ""
+	@echo "Resource Usage:"
+	kubectl top pods -n trading-system 2>/dev/null || echo "Metrics not available"
+	@echo "$(GREEN)Monitoring Services:$(NC)"
+	@kubectl get pods -n $(NAMESPACE) | grep -E "elliott|prometheus" || echo "No monitoring services running"
+	
+
 
 services-restart: ## Restart all services
 	@echo "$(YELLOW)🔄 Restarting all services...$(NC)"
@@ -222,6 +302,114 @@ services-core-status: ## Show core services status
 	@echo "Dashboards:"
 	kubectl get pods -n trading-system -l app=unified-analytics-dashboard
 	kubectl get pods -n trading-system -l app=unified-trading-dashboard
+
+
+##############################################################################
+# BUILD TARGETS
+##############################################################################
+
+.PHONY: docker-build-live-trading
+docker-build-live-trading:
+	@echo "$(GREEN)Building live-trading-service...$(NC)"
+	cd services/live-trading-service && docker build -t $(REGISTRY)/live-trading-service:latest .
+	docker push $(REGISTRY)/live-trading-service:latest
+	@echo "$(GREEN)✅ Live trading service built and pushed$(NC)"
+
+.PHONY: docker-build-strategy
+docker-build-strategy:
+	@echo "$(GREEN)Building strategy-service...$(NC)"
+	cd services/strategy-service && docker build -t $(REGISTRY)/strategy-service:latest .
+	docker push $(REGISTRY)/strategy-service:latest
+	@echo "$(GREEN)✅ Strategy service built and pushed$(NC)"
+
+.PHONY: docker-build-market-data
+docker-build-market-data:
+	@echo "$(GREEN)Building market-data-service...$(NC)"
+	cd services/market-data-service && docker build -t $(REGISTRY)/market-data-service:latest .
+	docker push $(REGISTRY)/market-data-service:latest
+	@echo "$(GREEN)✅ Market data service built and pushed$(NC)"
+
+.PHONY: docker-build-all
+docker-build-all: docker-build-live-trading docker-build-strategy docker-build-market-data
+	@echo "$(GREEN)✅ All services built and pushed$(NC)"
+
+##############################################################################
+# DEPLOY TARGETS
+##############################################################################
+
+.PHONY: k8s-deploy-live-trading
+k8s-deploy-live-trading:
+	@echo "$(GREEN)Deploying live-trading-service...$(NC)"
+	kubectl rollout restart deployment/live-trading-service -n $(NAMESPACE)
+	kubectl rollout status deployment/live-trading-service -n $(NAMESPACE)
+	@echo "$(GREEN)✅ Live trading service deployed$(NC)"
+
+.PHONY: k8s-deploy-strategy
+k8s-deploy-strategy:
+	@echo "$(GREEN)Deploying strategy-service...$(NC)"
+	kubectl rollout restart deployment/strategy-service -n $(NAMESPACE)
+	kubectl rollout status deployment/strategy-service -n $(NAMESPACE)
+	@echo "$(GREEN)✅ Strategy service deployed$(NC)"
+
+.PHONY: k8s-deploy-market-data
+k8s-deploy-market-data:
+	@echo "$(GREEN)Deploying market-data-service...$(NC)"
+	kubectl rollout restart deployment/market-data-service -n $(NAMESPACE)
+	kubectl rollout status deployment/market-data-service -n $(NAMESPACE)
+	@echo "$(GREEN)✅ Market data service deployed$(NC)"
+
+.PHONY: k8s-restart-all
+k8s-restart-all:
+	@echo "$(GREEN)Restarting all services...$(NC)"
+	kubectl rollout restart deployment/live-trading-service -n $(NAMESPACE)
+	kubectl rollout restart deployment/strategy-service -n $(NAMESPACE)
+	kubectl rollout restart deployment/redis -n $(NAMESPACE)
+	@echo "$(GREEN)✅ All services restarted$(NC)"
+
+##############################################################################
+# COMBINED TARGETS (Build + Push + Deploy)
+##############################################################################
+
+.PHONY: update-live-trading
+update-live-trading: docker-build-live-trading k8s-deploy-live-trading
+	@echo "$(GREEN)✅ Live trading service fully updated$(NC)"
+
+.PHONY: update-strategy
+update-strategy: docker-build-strategy k8s-deploy-strategy
+	@echo "$(GREEN)✅ Strategy service fully updated$(NC)"
+
+.PHONY: update-market-data
+update-market-data: docker-build-market-data k8s-deploy-market-data
+	@echo "$(GREEN)✅ Market data service fully updated$(NC)"
+
+.PHONY: update-all
+update-all: docker-build-all k8s-restart-all
+	@echo "$(GREEN)✅ All services fully updated$(NC)"
+
+##############################################################################
+# TESTING TARGETS
+##############################################################################
+
+.PHONY: test-strategy-execution
+test-strategy-execution:
+	@echo "$(GREEN)Running manual strategy execution test...$(NC)"
+	kubectl delete job live-trading-manual-test -n $(NAMESPACE) 2>/dev/null || true
+	kubectl create job --from=cronjob/live-trading-executor live-trading-manual-test -n $(NAMESPACE)
+	@echo "$(YELLOW)Test started. Use 'make -f Makefile.services test-strategy-logs' to view logs$(NC)"
+
+.PHONY: test-strategy-logs
+test-strategy-logs:
+	@echo "$(GREEN)Fetching test execution logs...$(NC)"
+	kubectl logs -l job-name=live-trading-manual-test -n $(NAMESPACE) --tail=100
+
+.PHONY: check-services
+check-services:
+	@echo "$(GREEN)Service Status:$(NC)"
+	@echo ""
+	kubectl get pods -n $(NAMESPACE) | grep -E "live-trading-service|strategy-service|redis" || echo "No services found"
+	@echo ""
+	@echo "$(GREEN)CronJob Status:$(NC)"
+	kubectl get cronjobs -n $(NAMESPACE)
 
 # Risk Management Framework
 services-deploy-risk-management: ## Deploy Comprehensive Risk Management Framework
@@ -456,6 +644,75 @@ status-quick: ## Quick status check (minimal output)
 	@echo "Port Forwards: $$(ps aux | grep 'kubectl port-forward' | grep -v grep | wc -l)"
 	@echo "Running Pods: $$(kubectl get pods -n trading-system --no-headers | grep Running | wc -l)"
 
+
+
+##############################################################################
+# UTILITY TARGETS
+##############################################################################
+
+.PHONY: logs-live-trading
+logs-live-trading:
+	kubectl logs -f deployment/live-trading-service -n $(NAMESPACE)
+
+.PHONY: logs-strategy
+logs-strategy:
+	kubectl logs -f deployment/strategy-service -n $(NAMESPACE)
+
+.PHONY: scale-up
+scale-up:
+	@echo "$(GREEN)Scaling up services...$(NC)"
+	kubectl scale deployment/live-trading-service --replicas=1 -n $(NAMESPACE)
+	kubectl scale deployment/strategy-service --replicas=1 -n $(NAMESPACE)
+	kubectl scale deployment/redis --replicas=1 -n $(NAMESPACE)
+	@echo "$(GREEN)✅ Services scaled up$(NC)"
+
+.PHONY: scale-down
+scale-down:
+	@echo "$(YELLOW)Scaling down services...$(NC)"
+	kubectl scale deployment/live-trading-service --replicas=0 -n $(NAMESPACE)
+	kubectl scale deployment/strategy-service --replicas=0 -n $(NAMESPACE)
+	kubectl scale deployment/redis --replicas=0 -n $(NAMESPACE)
+	@echo "$(YELLOW)⚠️  Services scaled down$(NC)"
+
+##############################################################################
+# ADDITIONAL SERVICES
+##############################################################################
+
+.PHONY: scale-up-elliott-wave
+scale-up-elliott-wave:
+	@echo "$(GREEN)Starting Elliott Wave service...$(NC)"
+	kubectl scale deployment/elliott-wave-service --replicas=1 -n $(NAMESPACE)
+	@echo "$(GREEN)✅ Elliott Wave service started$(NC)"
+
+.PHONY: scale-up-prometheus
+scale-up-prometheus:
+	@echo "$(GREEN)Starting Prometheus...$(NC)"
+	kubectl scale deployment/prometheus --replicas=1 -n $(NAMESPACE)
+	@echo "$(GREEN)✅ Prometheus started$(NC)"
+
+.PHONY: scale-up-all-monitoring
+scale-up-all-monitoring: scale-up-elliott-wave scale-up-prometheus
+	@echo "$(GREEN)✅ All monitoring services started$(NC)"
+
+.PHONY: scale-down-all-monitoring
+scale-down-all-monitoring:
+	@echo "$(YELLOW)Stopping monitoring services...$(NC)"
+	kubectl scale deployment/elliott-wave-service --replicas=0 -n $(NAMESPACE)
+	kubectl scale deployment/prometheus --replicas=0 -n $(NAMESPACE)
+	@echo "$(YELLOW)⚠️  Monitoring services stopped$(NC)"
+
+.PHONY: port-forward-elliott
+port-forward-elliott:
+	@echo "$(GREEN)Port forwarding Elliott Wave service to localhost:11085...$(NC)"
+	kubectl port-forward -n $(NAMESPACE) svc/elliott-wave-service 11085:8000
+
+.PHONY: port-forward-prometheus
+port-forward-prometheus:
+	@echo "$(GREEN)Port forwarding Prometheus to localhost:11190...$(NC)"
+	kubectl port-forward -n $(NAMESPACE) svc/prometheus 11190:9090
+
+.PHONY: status-all
+status-all: check-services
 # Aliases for common typos and variations
 status-elliot-wave: status-elliott-wave ## Alias for status-elliott-wave (common typo)
 status-elliott: status-elliott-wave ## Alias for status-elliott-wave (shorthand)
@@ -576,27 +833,151 @@ recommendations-quick: ## Quick trade recommendations (top 3 only, use TIMEFRAME
 		curl -s "http://localhost:11001/api/trading/recommendations?limit=3" | jq -r '.recommendations[] | "🎯 \(.symbol) - \(.action) (Score: \(.score))"' || echo "❌ Could not fetch quick recommendations"; \
 	fi
 
+# Multi-Timeframe Analysis
+recommendations-multi: ## Multi-timeframe analysis combining Daily (40%) + Hourly (40%) + 15m (20%)
+	@echo "$(GREEN)🎯 MULTI-TIMEFRAME ANALYSIS$(NC)"
+	@echo "$(YELLOW)============================$(NC)"
+	@echo "$(BLUE)📊 Combining Daily trend + Hourly momentum + 15m timing...$(NC)"
+	@echo ""
+	@if [ -n "$(SYMBOL)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/multi-timeframe?symbol=$(SYMBOL)" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch multi-timeframe recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/multi-timeframe?symbol=$(SYMBOL)" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | Alignment Boost: \(.alignment_boost)x | Timeframes: \(.timeframes_analyzed)"' || echo ""; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/multi-timeframe?symbol=$(SYMBOL)" | jq -r '.recommendations[] | if .alignment_boost > 1.0 then "   ✅ ALL TIMEFRAMES ALIGNED - High Confidence!" else "   ⚠️ Mixed signals across timeframes" end' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/multi-timeframe?limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch multi-timeframe recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/multi-timeframe?limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | Alignment Boost: \(.alignment_boost)x | Timeframes: \(.timeframes_analyzed)"' || echo ""; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/multi-timeframe?limit=10" | jq -r '.recommendations[] | if .alignment_boost > 1.0 then "   ✅ ALL TIMEFRAMES ALIGNED - High Confidence!" else "   ⚠️ Mixed signals across timeframes" end' || echo ""; \
+	fi
+	@echo ""
+	@echo "$(BLUE)💡 Tip: Look for 'ALL TIMEFRAMES ALIGNED' for highest confidence trades$(NC)"
+	@echo "$(BLUE)💡 Customize weights: curl 'http://localhost:11001/api/trading/recommendations/multi-timeframe?daily_weight=0.6&hourly_weight=0.3&minute_weight=0.1'$(NC)"
+
+# Individual Timeframe Recommendations
+recommendations-daily: ## Daily timeframe recommendations (1-day candles, swing trading)
+	@echo "$(GREEN)📊 DAILY TIMEFRAME RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)==================================$(NC)"
+	@echo "$(BLUE)📈 Analyzing with daily candles (swing trading perspective)...$(NC)"
+	@echo ""
+	@if [ -n "$(SYMBOL)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=1D&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch daily recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=1D&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=1D&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch daily recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=1D&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	fi
+
+recommendations-hourly: ## Hourly timeframe recommendations (1-hour candles, momentum trading)
+	@echo "$(GREEN)🚀 HOURLY TIMEFRAME RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)====================================$(NC)"
+	@echo "$(BLUE)📊 Analyzing with 1-hour candles (momentum trading perspective)...$(NC)"
+	@echo ""
+	@if [ -n "$(SYMBOL)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=1H&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch hourly recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=1H&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=1H&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch hourly recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=1H&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	fi
+
+recommendations-4h: ## 4-Hour timeframe recommendations (4-hour candles, position trading)
+	@echo "$(GREEN)📈 4-HOUR TIMEFRAME RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)===================================$(NC)"
+	@echo "$(BLUE)📊 Analyzing with 4-hour candles (position trading perspective)...$(NC)"
+	@echo ""
+	@if [ -n "$(SYMBOL)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=4H&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch 4-hour recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=4H&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=4H&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch 4-hour recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=4H&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	fi
+
+recommendations-15m: ## 15-minute timeframe recommendations (ultra-fast signals, day trading)
+	@echo "$(GREEN)⚡ 15-MINUTE TIMEFRAME RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)======================================$(NC)"
+	@echo "$(BLUE)📊 Analyzing with 15-minute candles (day trading perspective)...$(NC)"
+	@echo ""
+	@if [ -n "$(SYMBOL)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=15m&lookback_days=30&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch 15-minute recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?symbol=$(SYMBOL)&timeframe=15m&lookback_days=30&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=15m&lookback_days=30&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch 15-minute recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/enhanced?timeframe=15m&lookback_days=30&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | RSI: \(.technical_indicators.rsi.value // "N/A") | MACD: \(.technical_indicators.macd.signal // "N/A") | Trend: \(.technical_indicators.moving_averages.trend // "N/A")"' || echo ""; \
+	fi
+
+recommendations-intraday: ## Intraday recommendations (1-hour aggressive signals for day trading)
+	@echo "$(GREEN)⚡ INTRADAY TRADE RECOMMENDATIONS$(NC)"
+	@echo "$(YELLOW)=================================$(NC)"
+	@echo "$(BLUE)📊 Fast technical indicators for day trading...$(NC)"
+	@echo ""
+	@if [ -n "$(SYMBOL)" ]; then \
+		curl -s "http://localhost:11001/api/trading/recommendations/intraday?symbol=$(SYMBOL)&aggressive=true&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch intraday recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/intraday?symbol=$(SYMBOL)&aggressive=true&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | Aggressive: true | Timeframe: \(.timeframe // "1h")"' || echo ""; \
+	else \
+		curl -s "http://localhost:11001/api/trading/recommendations/intraday?aggressive=true&limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price|tostring) + " - " + .action + " (Score: " + (.score|tostring) + ")"' || echo "❌ Could not fetch intraday recommendations"; \
+		echo ""; \
+		curl -s "http://localhost:11001/api/trading/recommendations/intraday?aggressive=true&limit=10" | jq -r '.recommendations[] | "   Confidence: \((.confidence * 100) | floor)% | Aggressive: true | Timeframe: \(.timeframe // "1h")"' || echo ""; \
+	fi
+
 # Trade Recommendation Help
 recommendations-help: ## Show trade recommendation help
 	@echo "$(GREEN)🎯 TRADE RECOMMENDATION SYSTEM$(NC)"
 	@echo "$(YELLOW)=============================$(NC)"
 	@echo ""
 	@echo "$(GREEN)Available Commands:$(NC)"
-	@echo "  recommendations        - Get top 5 trade recommendations"
-	@echo "  recommendations-all   - Get all available recommendations (up to 10)"
-	@echo "  recommendations-quick - Get quick top 3 recommendations"
-	@echo "  recommendation        - Get recommendation for specific symbol"
-	@echo "  recommendations-help  - Show this help"
+	@echo ""
+	@echo "$(YELLOW)Multi-Timeframe:$(NC)"
+	@echo "  recommendations-multi - Multi-timeframe analysis (Daily+Hourly+15m) - 10 results"
+	@echo ""
+	@echo "$(YELLOW)Individual Timeframes:$(NC)"
+	@echo "  recommendations-daily   - Daily timeframe (1D candles, swing trading) - 10 results"
+	@echo "  recommendations-hourly  - Hourly timeframe (1H candles, momentum) - 10 results"
+	@echo "  recommendations-4h      - 4-Hour timeframe (4H candles, position) - 10 results"
+	@echo "  recommendations-15m     - 15-minute timeframe (day trading) - 10 results"
+	@echo "  recommendations-intraday - Intraday aggressive (1H aggressive) - 10 results"
+	@echo ""
+	@echo "$(YELLOW)General:$(NC)"
+	@echo "  recommendations         - Get top 5 trade recommendations"
+	@echo "  recommendations-all     - Get all available recommendations (up to 10)"
+	@echo "  recommendations-quick   - Get quick top 3 recommendations"
+	@echo "  recommendation          - Get recommendation for specific symbol"
+	@echo "  recommendations-help    - Show this help"
 	@echo ""
 	@echo "$(GREEN)Examples:$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Multi-Timeframe Analysis (Best for timing):$(NC)"
+	@echo "  make recommendations-multi              # Get 10 multi-timeframe recommendations"
+	@echo "  make recommendations-multi SYMBOL=AAPL  # Multi-timeframe for specific symbol"
+	@echo ""
+	@echo "$(YELLOW)Individual Timeframe Analysis:$(NC)"
+	@echo "  make recommendations-daily              # Daily trend (swing trading)"
+	@echo "  make recommendations-hourly             # Hourly momentum (momentum trading)"
+	@echo "  make recommendations-4h                 # 4-hour position (position trading)"
+	@echo "  make recommendations-15m                # 15-minute timing (day trading)"
+	@echo "  make recommendations-intraday           # Intraday aggressive (day trading)"
+	@echo ""
+	@echo "$(YELLOW)With Specific Symbol:$(NC)"
+	@echo "  make recommendations-daily SYMBOL=AAPL  # Daily analysis for AAPL"
+	@echo "  make recommendations-hourly SYMBOL=TSLA # Hourly analysis for TSLA"
+	@echo ""
+	@echo "$(YELLOW)General Commands:$(NC)"
 	@echo "  make recommendations"
 	@echo "  make recommendations TIMEFRAME=1D"
-	@echo "  make recommendations TIMEFRAME=1H"
 	@echo "  make recommendations-all TIMEFRAME=4H"
-	@echo "  make recommendations-quick TIMEFRAME=1W"
 	@echo "  make recommendation SYMBOL=AAPL"
-	@echo "  make recommendation SYMBOL=AAPL TIMEFRAME=1D"
-	@echo "  make recommendation SYMBOL=TSLA TIMEFRAME=4H"
 	@echo ""
 	@echo "$(GREEN)Supported Timeframes:$(NC)"
 	@echo "  1m  - 1 minute"
@@ -621,3 +1002,26 @@ recommendations-help: ## Show trade recommendation help
 	@echo "  🟠 HOLD        - Score 20-40"
 	@echo "  🔴 WEAK SELL   - Score 0-20"
 	@echo "  🔴 SELL        - Score < 0"
+
+# Enhanced Recommendations (Multi-Indicator + Elliott Wave)
+recommendations-enhanced: ## Get enhanced recommendations with RSI, MACD, MA, Volume, BB, Ichimoku
+	@echo "🚀 ENHANCED TRADE RECOMMENDATIONS"
+	@echo "===================================="
+	@echo ""
+	@echo "📊 Analyzing with Multi-Indicator System (RSI + MACD + MA + Volume + BB + Ichimoku)..."
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/enhanced?limit=10" | jq -r '.recommendations[] | "🎯 " + .symbol + " @ $$" + (.current_price | tostring) + " - " + .action + " (Score: " + (.score | tostring) + ")"'
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/enhanced?limit=10" | jq -r '.recommendations[] | "   Confidence: " + ((.confidence * 100 | floor) | tostring) + "% | RSI: " + (.technical_indicators.rsi.value | tostring) + " | MACD: " + .technical_indicators.macd.interpretation + " | Trend: " + .technical_indicators.moving_averages.trend'
+	@echo ""
+	@curl -s "http://localhost:11001/api/trading/recommendations/enhanced?limit=10" | jq -r '.recommendations[] | "   Ichimoku: Kijun $$" + (.technical_indicators.ichimoku.kijun_sen | tostring) + " | Tenkan $$" + (.technical_indicators.ichimoku.tenkan_sen | tostring) + " | " + .technical_indicators.ichimoku.cloud_position + " cloud | TK " + .technical_indicators.ichimoku.tk_cross'
+	@echo ""
+
+# Scan for Recent Patterns  
+recommendations-scan: ## Scan for symbols with recent Elliott Wave patterns
+	@echo "🔍 RECENT PATTERN SCANNER"
+	@echo "========================="
+	@curl -s "http://localhost:11001/api/trading/scan/recent-patterns?max_age_days=60&limit=10" | jq -r '.message' 2>/dev/null || echo "❌ Error"
+	@curl -s "http://localhost:11001/api/trading/scan/recent-patterns?max_age_days=60&limit=10" | jq -r '.patterns[] | "✅ " + .symbol + " - " + .signal + " (Age: " + (.pattern_age_days | tostring) + " days)"' 2>/dev/null || echo "No patterns found"
+	@echo ""
+

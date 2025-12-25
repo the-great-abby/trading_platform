@@ -1,0 +1,299 @@
+# Trading System Semantic Versioning Makefile
+# Provides centralized versioning and build automation for all services
+
+.PHONY: help version build push deploy clean test services-list services-available
+
+# Color definitions
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+BLUE := \033[0;34m
+NC := \033[0m # No Color
+
+# Default target
+help:
+	@echo "$(GREEN)Trading System Semantic Versioning$(NC)"
+	@echo "$(YELLOW)==================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Quick Commands:$(NC)"
+	@echo "  $(BLUE)services-list$(NC)          List all available services with Dockerfiles"
+	@echo "  $(BLUE)version$(NC)               Show version information only"
+	@echo "  $(BLUE)build$(NC)                 Build Docker images with semantic versioning"
+	@echo "  $(BLUE)push$(NC)                  Build and push to registry"
+	@echo "  $(BLUE)deploy$(NC)                Build, push, and deploy to Kubernetes"
+	@echo "  $(BLUE)clean$(NC)                 Clean up Docker images and containers"
+	@echo "  $(BLUE)test$(NC)                  Test the deployed services"
+	@echo ""
+	@echo "$(GREEN)Universal Service Commands:$(NC)"
+	@echo "  $(BLUE)build-service SERVICE=<name>$(NC)   Build any service by name"
+	@echo "  $(BLUE)deploy-service SERVICE=<name>$(NC)  Deploy any service by name"
+	@echo ""
+	@echo "$(GREEN)Pre-defined Service Shortcuts:$(NC)"
+	@echo "  $(BLUE)build-mcp$(NC)             Build MCP service only"
+	@echo "  $(BLUE)deploy-mcp$(NC)            Deploy MCP service only"
+	@echo "  $(BLUE)build-trading$(NC)         Build trading service only"
+	@echo "  $(BLUE)deploy-trading$(NC)        Deploy trading service only"
+	@echo "  $(BLUE)build-market-data$(NC)     Build market-data service"
+	@echo "  $(BLUE)deploy-market-data$(NC)    Deploy market-data service"
+	@echo "  $(BLUE)build-strategy$(NC)        Build strategy service"
+	@echo "  $(BLUE)deploy-strategy$(NC)       Deploy strategy service"
+	@echo "  $(BLUE)build-live-trading$(NC)    Build live-trading service"
+	@echo "  $(BLUE)deploy-live-trading$(NC)   Deploy live-trading service"
+	@echo "  $(BLUE)build-elliott-wave$(NC)    Build elliott-wave service"
+	@echo "  $(BLUE)deploy-elliott-wave$(NC)   Deploy elliott-wave service"
+	@echo "  $(BLUE)build-analytics$(NC)       Build analytics service"
+	@echo "  $(BLUE)deploy-analytics$(NC)      Deploy analytics service"
+	@echo "  $(BLUE)build-rss-feed$(NC)        Build rss-feed service"
+	@echo "  $(BLUE)deploy-rss-feed$(NC)       Deploy rss-feed service"
+	@echo ""
+	@echo "$(GREEN)Examples:$(NC)"
+	@echo "  make services-list                    # List all available services"
+	@echo "  make version                          # Show current version"
+	@echo "  make build-service SERVICE=rss-feed-service"
+	@echo "  make deploy-service SERVICE=analytics-service"
+	@echo "  make build-mcp                        # Build MCP service"
+	@echo "  make deploy-market-data               # Deploy market-data service"
+	@echo "  make deploy                           # Full build, push, and deploy all"
+	@echo ""
+	@echo "$(YELLOW)💡 Tip: Use 'make services-list' to see all available services!$(NC)"
+	@echo ""
+
+# Show version information
+version:
+	@./scripts/version.sh --version-only
+
+# List all available services with Dockerfiles
+services-list: services-available
+
+services-available: ## List all services that can be built and deployed
+	@echo "$(GREEN)📦 Available Services (with Dockerfiles)$(NC)"
+	@echo "$(YELLOW)========================================$(NC)"
+	@echo ""
+	@echo "$(BLUE)Core Trading Services:$(NC)"
+	@find services -maxdepth 2 -name "Dockerfile" | sed 's|services/||' | sed 's|/Dockerfile||' | grep -E "(trading-service|order-service|strategy-service|market-data)" | sort | sed 's/^/  ✅ /'
+	@echo ""
+	@echo "$(BLUE)AI & Analysis Services:$(NC)"
+	@find services -maxdepth 2 -name "Dockerfile" | sed 's|services/||' | sed 's|/Dockerfile||' | grep -E "(ai-|llm-|elliott-wave)" | sort | sed 's/^/  ✅ /'
+	@echo ""
+	@echo "$(BLUE)Dashboard Services:$(NC)"
+	@find services -maxdepth 2 -name "Dockerfile" | sed 's|services/||' | sed 's|/Dockerfile||' | grep -E "(dashboard|unified-)" | sort | sed 's/^/  ✅ /'
+	@echo ""
+	@echo "$(BLUE)Data Services:$(NC)"
+	@find services -maxdepth 2 -name "Dockerfile" | sed 's|services/||' | sed 's|/Dockerfile||' | grep -E "(data-|earnings-|rss-)" | sort | sed 's/^/  ✅ /'
+	@echo ""
+	@echo "$(BLUE)Support Services:$(NC)"
+	@find services -maxdepth 2 -name "Dockerfile" | sed 's|services/||' | sed 's|/Dockerfile||' | grep -E "(mcp-|kubernetes-|notification-|gateway)" | sort | sed 's/^/  ✅ /'
+	@echo ""
+	@echo "$(BLUE)Infrastructure Services:$(NC)"
+	@find services -maxdepth 2 -name "Dockerfile" | sed 's|services/||' | sed 's|/Dockerfile||' | grep -E "(risk-|portfolio-|backtest-)" | sort | sed 's/^/  ✅ /'
+	@echo ""
+	@echo "$(YELLOW)Total Services:$(NC) $$(find services -maxdepth 2 -name "Dockerfile" | wc -l | xargs)"
+	@echo ""
+	@echo "$(GREEN)Usage:$(NC)"
+	@echo "  Build:  make build-service SERVICE=<service-name>"
+	@echo "  Deploy: make deploy-service SERVICE=<service-name>"
+	@echo ""
+	@echo "$(GREEN)Examples:$(NC)"
+	@echo "  make build-service SERVICE=market-data-service"
+	@echo "  make deploy-service SERVICE=elliott-wave-service"
+	@echo ""
+
+# Build all services
+build:
+	@./scripts/version.sh --build-only --all-services
+
+# Build and push all services
+push:
+	@./scripts/version.sh --no-deploy --all-services
+
+# Full build, push, and deploy all services
+deploy:
+	@./scripts/version.sh --all-services
+
+# Clean up old Docker images and tags
+clean:
+	@./scripts/version.sh --clean --all-services
+
+# Clean up specific service
+clean-mcp:
+	@./scripts/version.sh --clean mcp-service
+
+clean-trading:
+	@./scripts/version.sh --clean trading-service
+
+# Clean up system only (dangling images, containers)
+clean-system:
+	@./scripts/version.sh --clean --system-only
+
+# Clean up with custom version count
+clean-versions:
+	@./scripts/version.sh --clean --keep-versions 3 --all-services
+
+# Test the deployed services
+test:
+	@echo "Testing Trading System Services..."
+	@echo "1. Checking MCP service health..."
+	@curl -s http://localhost:11120/health | jq . || echo "MCP service not accessible"
+	@echo ""
+	@echo "2. Testing MCP documentation endpoints..."
+	@curl -s http://localhost:11120/api/mcp/docs/help | jq . || echo "Documentation endpoints not accessible"
+	@echo ""
+	@echo "3. Testing MCP architecture endpoints..."
+	@curl -s http://localhost:11120/api/mcp/architecture | jq . || echo "Architecture endpoints not accessible"
+	@echo ""
+	@echo "Testing completed"
+
+# MCP Service specific targets
+build-mcp:
+	@./scripts/version.sh --build-only mcp-service
+
+deploy-mcp:
+	@./scripts/version.sh mcp-service
+
+# Trading Service specific targets
+build-trading:
+	@./scripts/version.sh --build-only trading-service
+
+deploy-trading:
+	@./scripts/version.sh trading-service
+
+# Market Data Service specific targets
+build-market-data:
+	@./scripts/version.sh --build-only market-data-service
+
+deploy-market-data:
+	@./scripts/version.sh market-data-service
+
+# AI Analysis Service specific targets
+build-ai-analysis:
+	@./scripts/version.sh --build-only ai-analysis-service
+
+deploy-ai-analysis:
+	@./scripts/version.sh ai-analysis-service
+
+# Backtest API specific targets
+build-backtest:
+	@./scripts/version.sh --build-only backtest-api
+
+deploy-backtest:
+	@./scripts/version.sh backtest-api
+
+# Strategy Service specific targets
+build-strategy:
+	@./scripts/version.sh --build-only strategy-service
+
+deploy-strategy:
+	@./scripts/version.sh strategy-service
+
+# Dashboard specific targets
+build-dashboards:
+	@./scripts/version.sh --build-only unified-analytics-dashboard
+	@./scripts/version.sh --build-only unified-trading-dashboard
+	@./scripts/version.sh --build-only unified-news-dashboard
+
+deploy-dashboards:
+	@./scripts/version.sh unified-analytics-dashboard
+	@./scripts/version.sh unified-trading-dashboard
+	@./scripts/version.sh unified-news-dashboard
+
+# Elliott Wave Service specific targets
+build-elliott-wave:
+	@./scripts/version.sh --build-only elliott-wave-service
+
+deploy-elliott-wave:
+	@./scripts/version.sh elliott-wave-service
+
+# RSS Feed Service specific targets
+build-rss-feed:
+	@./scripts/version.sh --build-only rss-feed-service
+
+deploy-rss-feed:
+	@./scripts/version.sh rss-feed-service
+
+# Analytics Service specific targets
+build-analytics:
+	@./scripts/version.sh --build-only analytics-service
+
+deploy-analytics:
+	@./scripts/version.sh analytics-service
+
+# Live Trading Service specific targets
+build-live-trading:
+	@./scripts/version.sh --build-only live-trading-service
+
+deploy-live-trading:
+	@./scripts/version.sh live-trading-service
+
+# =============================================================================
+# UNIVERSAL SERVICE BUILD/DEPLOY TARGETS
+# =============================================================================
+
+# Universal build target - build any service by name
+build-service: ## Build any service (use SERVICE=service-name)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "$(YELLOW)Usage: make build-service SERVICE=<service-name>$(NC)"; \
+		echo "$(YELLOW)Example: make build-service SERVICE=market-data-service$(NC)"; \
+		echo ""; \
+		echo "$(BLUE)Run 'make services-list' to see all available services$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "services/$(SERVICE)/Dockerfile" ]; then \
+		echo "$(RED)❌ Error: Dockerfile not found for service '$(SERVICE)'$(NC)"; \
+		echo "$(YELLOW)Path checked: services/$(SERVICE)/Dockerfile$(NC)"; \
+		echo ""; \
+		echo "$(BLUE)Run 'make services-list' to see all available services$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🏗️  Building $(SERVICE)...$(NC)"
+	@./scripts/version.sh --build-only $(SERVICE)
+	@echo "$(GREEN)✅ Build complete for $(SERVICE)!$(NC)"
+
+# Universal deploy target - deploy any service by name
+deploy-service: ## Deploy any service (use SERVICE=service-name)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "$(RED)❌ Error: SERVICE parameter required$(NC)"; \
+		echo "$(YELLOW)Usage: make deploy-service SERVICE=<service-name>$(NC)"; \
+		echo "$(YELLOW)Example: make deploy-service SERVICE=market-data-service$(NC)"; \
+		echo ""; \
+		echo "$(BLUE)Run 'make services-list' to see all available services$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "services/$(SERVICE)/Dockerfile" ]; then \
+		echo "$(RED)❌ Error: Dockerfile not found for service '$(SERVICE)'$(NC)"; \
+		echo "$(YELLOW)Path checked: services/$(SERVICE)/Dockerfile$(NC)"; \
+		echo ""; \
+		echo "$(BLUE)Run 'make services-list' to see all available services$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)🚀 Deploying $(SERVICE)...$(NC)"
+	@./scripts/version.sh $(SERVICE)
+	@echo "$(GREEN)✅ Deployment complete for $(SERVICE)!$(NC)"
+	@echo ""
+	@echo "$(BLUE)Check status with:$(NC)"
+	@echo "  kubectl get pods -n trading-system -l app=$(SERVICE)"
+	@echo "  kubectl logs -n trading-system -l app=$(SERVICE) --tail=50"
+
+# Quick deploy specific services for recommendations system
+deploy-recommendations-services: ## Deploy all services needed for recommendations
+	@echo "$(GREEN)🚀 Deploying Recommendation Services...$(NC)"
+	@echo "$(YELLOW)=======================================$(NC)"
+	@echo ""
+	@make deploy-service SERVICE=market-data-service
+	@echo ""
+	@make deploy-service SERVICE=elliott-wave-service
+	@echo ""
+	@make deploy-service SERVICE=strategy-service
+	@echo ""
+	@echo "$(GREEN)✅ All recommendation services deployed!$(NC)"
+	@echo ""
+	@echo "$(BLUE)Next steps:$(NC)"
+	@echo "  1. Setup port forwards: make recommendations-port-forwards"
+	@echo "  2. Test services: make recommendations-test"
+	@echo "  3. Run recommendations: make recommendations-multi"
+
+# Development workflow
+dev: build-mcp test
+
+# Production deployment
+prod: deploy test

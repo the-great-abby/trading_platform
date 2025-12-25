@@ -22,9 +22,17 @@ help:
 	@echo "  $(GREEN)make -f Makefile.backtesting open$(NC)          - Open dashboard (alias)"
 	@echo "  $(GREEN)make -f Makefile.backtesting status$(NC)        - Check dashboard status"
 	@echo ""
+	@echo "$(YELLOW)API Integration Testing:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.backtesting enhanced$(NC)      - Test enhanced API endpoint"
+	@echo "  $(GREEN)make -f Makefile.backtesting compare$(NC)       - Compare API endpoints"
+	@echo ""
+	@echo "$(YELLOW)Real Historical Backtesting:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.backtesting historical$(NC)    - Run 2-year historical backtest ⭐"
+	@echo ""
 	@echo "$(YELLOW)Results & Cleanup:$(NC)"
 	@echo "  $(GREEN)make -f Makefile.backtesting results$(NC)       - View latest backtest results"
 	@echo "  $(GREEN)make -f Makefile.backtesting clean$(NC)         - Clean old result files"
+	@echo "  $(GREEN)make -f Makefile.backtesting backtest-help$(NC) - Show detailed backtest help"
 	@echo ""
 	@echo "$(YELLOW)Available Strategies in Dashboard:$(NC)"
 	@echo "  📊 Basic: RSI, MACD, Bollinger Bands, SMA Crossover, etc."
@@ -128,6 +136,85 @@ restart:
 	@echo "$(GREEN)✅ Dashboard restarted$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Restart port-forward with:$(NC) make -f Makefile.backtesting dashboard"
+
+## enhanced: Run enhanced recommendations API test (NOT a historical backtest)
+enhanced:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)🚀 Enhanced Recommendations API Test$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)⚠️  NOTE: This is an API integration test, not a historical backtest!$(NC)"
+	@echo "$(YELLOW)📊 Tests: Multi-Indicator API (RSI, MACD, MA, Volume, Bollinger)$(NC)"
+	@echo "$(YELLOW)🔗 Endpoint: /api/trading/recommendations/enhanced$(NC)"
+	@echo "$(YELLOW)💰 Initial Capital: \$$4,000$(NC)"
+	@echo ""
+	@echo "$(RED)⚠️  For REAL historical backtesting, use:$(NC)"
+	@echo "$(GREEN)   python backtests/comprehensive_two_year_backtest.py$(NC)"
+	@echo ""
+	@.venv/bin/python backtests/enhanced_recommendations_backtest.py
+
+## compare: Compare API endpoints (NOT a historical backtest)
+compare:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)🔬 Comparing API Endpoints: Original vs Enhanced$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)⚠️  NOTE: This is an API integration test, not a historical backtest!$(NC)"
+	@echo "$(YELLOW)🔵 Original: Elliott Wave Only$(NC)"
+	@echo "$(YELLOW)🟢 Enhanced: Multi-Indicator Analysis$(NC)"
+	@echo "$(YELLOW)💰 Initial Capital (each): \$$4,000$(NC)"
+	@echo ""
+	@echo "$(RED)⚠️  For REAL historical backtesting, use:$(NC)"
+	@echo "$(GREEN)   python backtests/comprehensive_two_year_backtest.py$(NC)"
+	@echo ""
+	@.venv/bin/python backtests/compare_recommendations_backtest.py
+
+## test-strategies: Test live trading strategies in backtest mode
+test-strategies:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)🧪 Testing Live Trading Strategies$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Testing strategies before deploying to live trading$(NC)"
+	@echo "$(YELLOW)Uses same API endpoints as live trading system$(NC)"
+	@echo ""
+	@$(MAKE) -f Makefile.backtesting compare
+
+## historical: Run REAL historical backtest with 2 years of data
+historical:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)📊 Historical Backtest - 2 Years Real Data$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ This is a REAL historical backtest with:$(NC)"
+	@echo "   • 2 years of historical market data (2023-2024)"
+	@echo "   • Real price movements and volatility"
+	@echo "   • Actual strategy performance metrics"
+	@echo "   • Meaningful P&L, win rate, and drawdown stats"
+	@echo ""
+	@echo "$(YELLOW)💰 Initial Capital: \$$4,000$(NC)"
+	@echo "$(YELLOW)📅 Period: 2023-2024 (2 years)$(NC)"
+	@echo "$(YELLOW)🎯 Strategies: Multiple tested in parallel$(NC)"
+	@echo ""
+	@.venv/bin/python backtests/comprehensive_two_year_backtest.py
+
+## backtest-help: Show backtest-specific help
+backtest-help:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)📊 Backtest Commands - Live Trading Validation$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(GREEN)🎯 REAL Historical Backtesting (Recommended):$(NC)"
+	@echo "  $(GREEN)make -f Makefile.backtesting historical$(NC)      - ⭐ 2-year backtest with real data"
+	@echo ""
+	@echo "$(YELLOW)⚙️  API Integration Testing:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.backtesting enhanced$(NC)         - Test enhanced API endpoint"
+	@echo "  $(GREEN)make -f Makefile.backtesting compare$(NC)          - Compare API endpoints"
+	@echo ""
+	@echo "$(RED)⚠️  Note: API tests use current data (not historical)$(NC)"
+	@echo "   For performance testing, use: $(GREEN)historical$(NC)"
+	@echo ""
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 
 # Default target
 .DEFAULT_GOAL := help

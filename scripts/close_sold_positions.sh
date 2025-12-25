@@ -56,3 +56,8 @@ kubectl exec -n default $POD -- curl -s "http://live-trading-service.default.svc
 echo ""
 echo "✅ Done!"
 
+
+
+
+
+

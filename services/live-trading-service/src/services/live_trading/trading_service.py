@@ -17,10 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 
-from .models import LiveTrade, LivePosition, TradeStatus, OrderStatus, TradeAction, StrategyType
+from .models import LiveTrade, LivePosition, TradeStatus, OrderStatus, TradeAction, StrategyType, OptionType
 from .public_api_client import PublicAPIClient
 from .risk_service import RiskService, OrderRiskData
 from .position_service import PositionService
+from .rejection_tracking_service import RejectionTrackingService
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ class TradingService:
         self.public_api_client = public_api_client
         self.risk_service = risk_service
         self.position_service = position_service
+        self.rejection_tracker = RejectionTrackingService(db_session)
     
     async def execute_order(self, account_id: str, order_data: OrderRequest) -> Dict[str, Any]:
         """
@@ -84,6 +86,22 @@ class TradingService:
             # Validate order data
             validation_result = await self._validate_order_data(order_data)
             if not validation_result["valid"]:
+                # Log rejection
+                await self.rejection_tracker.log_rejection(
+                    account_id=account_id,
+                    symbol=order_data.symbol,
+                    strategy=order_data.strategy.value if hasattr(order_data.strategy, 'value') else str(order_data.strategy),
+                    action=order_data.legs[0].action.value if order_data.legs else "UNKNOWN",
+                    rejection_reason=f"Order validation failed: {', '.join(validation_result['errors'])}",
+                    rejection_category="VALIDATION",
+                    quantity=sum(leg.quantity for leg in order_data.legs) if order_data.legs else 0,
+                    estimated_premium=order_data.estimated_premium,
+                    option_type=order_data.legs[0].option_type if order_data.legs and order_data.legs[0].option_type else None,
+                    strike_price=order_data.legs[0].strike_price if order_data.legs and order_data.legs[0].strike_price else None,
+                    expiration_date=order_data.legs[0].expiration_date if order_data.legs and order_data.legs[0].expiration_date else None,
+                    rejection_details={"validation_errors": validation_result["errors"]}
+                )
+                
                 return {
                     "success": False,
                     "error": "Invalid order data",
@@ -115,7 +133,9 @@ class TradingService:
                 equity = 0.0
                 buying_power = 4000.0
             
-            portfolio_value = cash_balance + equity
+            # Portfolio value = equity (which already includes cash + open positions)
+            # NOT cash_balance + equity (that would double-count)
+            portfolio_value = equity if equity > 0 else cash_balance
             
             # Position size as percentage of portfolio (but check against buying power)
             position_size_pct = (order_data.estimated_premium / portfolio_value) if portfolio_value > 0 else 0
@@ -126,6 +146,13 @@ class TradingService:
             # Determine if this is a BUY or SELL order
             order_action = order_data.legs[0].action.value if order_data.legs else "BUY"
             
+            # Determine if this is an options order (check if any leg has option_type)
+            option_type = None
+            for leg in order_data.legs:
+                if leg.option_type:
+                    option_type = leg.option_type
+                    break
+            
             risk_data = OrderRiskData(
                 symbol=order_data.symbol,
                 strategy=order_data.strategy.value,
@@ -134,12 +161,34 @@ class TradingService:
                 estimated_risk=order_data.estimated_risk,
                 greeks=order_data.greeks or {},
                 position_size=position_size_pct,  # Now a percentage (e.g., 0.0635 = 6.35%)
-                action=order_action  # BUY or SELL
+                action=order_action,  # BUY or SELL
+                option_type=option_type  # CALL, PUT, or None for stocks
             )
             
             # Check buying power first
             if order_action == "BUY" and not has_buying_power:
                 logger.error(f"❌ Insufficient buying power: ${buying_power:.2f} < ${order_data.estimated_premium:.2f}")
+                
+                # Log rejection
+                await self.rejection_tracker.log_rejection(
+                    account_id=account_id,
+                    symbol=order_data.symbol,
+                    strategy=order_data.strategy.value if hasattr(order_data.strategy, 'value') else str(order_data.strategy),
+                    action=order_action,
+                    rejection_reason=f"Insufficient buying power: ${buying_power:.2f} (need ${order_data.estimated_premium:.2f})",
+                    rejection_category="BUYING_POWER",
+                    quantity=sum(leg.quantity for leg in order_data.legs),
+                    estimated_premium=order_data.estimated_premium,
+                    option_type=order_data.legs[0].option_type if order_data.legs and order_data.legs[0].option_type else None,
+                    strike_price=order_data.legs[0].strike_price if order_data.legs and order_data.legs[0].strike_price else None,
+                    expiration_date=order_data.legs[0].expiration_date if order_data.legs and order_data.legs[0].expiration_date else None,
+                    rejection_details={
+                        "required": order_data.estimated_premium,
+                        "available": buying_power,
+                        "portfolio_value": portfolio_value
+                    }
+                )
+                
                 return {
                     "success": False,
                     "error": "Insufficient buying power",
@@ -148,6 +197,27 @@ class TradingService:
             
             risk_result = await self.risk_service.validate_order(account_id, risk_data)
             if not risk_result.approved:
+                # Log rejection
+                await self.rejection_tracker.log_rejection(
+                    account_id=account_id,
+                    symbol=order_data.symbol,
+                    strategy=order_data.strategy.value if hasattr(order_data.strategy, 'value') else str(order_data.strategy),
+                    action=order_action,
+                    rejection_reason=f"Risk validation failed: {', '.join(risk_result.errors)}",
+                    rejection_category="RISK",
+                    quantity=sum(leg.quantity for leg in order_data.legs),
+                    estimated_premium=order_data.estimated_premium,
+                    option_type=order_data.legs[0].option_type if order_data.legs and order_data.legs[0].option_type else None,
+                    strike_price=order_data.legs[0].strike_price if order_data.legs and order_data.legs[0].strike_price else None,
+                    expiration_date=order_data.legs[0].expiration_date if order_data.legs and order_data.legs[0].expiration_date else None,
+                    rejection_details={
+                        "risk_errors": risk_result.errors,
+                        "risk_warnings": risk_result.warnings,
+                        "risk_score": risk_result.risk_score,
+                        "violations": [v.value for v in risk_result.violations] if risk_result.violations else []
+                    }
+                )
+                
                 return {
                     "success": False,
                     "error": "Risk validation failed",
@@ -410,11 +480,28 @@ class TradingService:
     
     async def _create_trade_record(self, account_id: str, order_data: OrderRequest) -> LiveTrade:
         """Create trade record in database."""
+        # For single-leg orders, extract options data from the leg
+        first_leg = order_data.legs[0] if order_data.legs else None
+        option_type = None
+        strike_price = None
+        expiration_date = None
+        action = TradeAction.BUY
+        
+        if first_leg:
+            action = first_leg.action
+            if first_leg.option_type:
+                option_type = OptionType(first_leg.option_type)
+                strike_price = Decimal(str(first_leg.strike_price)) if first_leg.strike_price else None
+                expiration_date = first_leg.expiration_date
+        
         trade = LiveTrade(
             account_id=account_id,
             public_order_id=f"TEMP_{datetime.utcnow().timestamp()}",
             symbol=order_data.symbol,
-            action=TradeAction.BUY,  # Will be updated based on legs
+            action=action,
+            option_type=option_type,
+            strike_price=strike_price,
+            expiration_date=expiration_date,
             quantity=sum(leg.quantity for leg in order_data.legs),
             price=Decimal(str(order_data.estimated_premium)),
             total_amount=Decimal(str(order_data.estimated_premium)),
@@ -446,8 +533,11 @@ class TradingService:
         # Get the action from the first leg (BUY or SELL)
         order_side = order_data.legs[0].action.value.lower() if order_data.legs else "buy"
         
+        # Clean symbol - remove -OPTION suffix if present (internal database format)
+        clean_symbol = order_data.symbol.replace("-OPTION", "")
+        
         public_order = {
-            "symbol": order_data.symbol,
+            "symbol": clean_symbol,  # Use cleaned OCC symbol without -OPTION suffix
             "side": order_side,  # BUY or SELL from trade leg
             "quantity": trade.quantity,
             "type": order_data.order_type.value.lower(),

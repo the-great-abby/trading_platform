@@ -163,7 +163,7 @@ Go to: http://localhost:11114/
 
 ```bash
 # Run adaptive backtest
-make -f Makefile.backtesting adaptive
+make -f makefiles/Makefile.backtesting adaptive
 ```
 
 ### 3. Via Kubernetes Job:
@@ -274,7 +274,7 @@ If Low Vol + Corrective → Use IRON CONDOR
 kubectl rollout restart deployment/unified-analytics-dashboard -n trading-system
 
 # 2. Open dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 
 # 3. Select "AdaptiveSectorWave" from Advanced strategies
 

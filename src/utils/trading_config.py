@@ -73,6 +73,66 @@ MARKET_DATA_CONFIG = {
     'news_data_enabled': True
 }
 
+# Fundamental Analysis Configuration
+FUNDAMENTAL_ANALYSIS_CONFIG = {
+    'enabled': os.getenv('FUNDAMENTAL_ANALYSIS_ENABLED', 'true').lower() == 'true',
+    'polygon_financials_enabled': True,
+    'screening_presets': {
+        'default': 'quality_stocks',
+        'available': [
+            'value_stocks',
+            'growth_stocks', 
+            'dividend_stocks',
+            'quality_stocks',
+            'undervalued_high_quality',
+            'buffett_style',
+            'deep_value',
+            'financially_strong',
+            'fcf_focused'
+        ]
+    },
+    'screening_criteria': {
+        # Default screening thresholds
+        'pe_ratio_max': float(os.getenv('FUNDAMENTAL_PE_MAX', '25')),
+        'pb_ratio_max': float(os.getenv('FUNDAMENTAL_PB_MAX', '5')),
+        'roe_min': float(os.getenv('FUNDAMENTAL_ROE_MIN', '0.15')),
+        'roa_min': float(os.getenv('FUNDAMENTAL_ROA_MIN', '0.08')),
+        'debt_to_equity_max': float(os.getenv('FUNDAMENTAL_DE_MAX', '1.5')),
+        'current_ratio_min': float(os.getenv('FUNDAMENTAL_CURRENT_MIN', '1.5')),
+        'quick_ratio_min': float(os.getenv('FUNDAMENTAL_QUICK_MIN', '1.0')),
+        'ev_to_ebitda_max': float(os.getenv('FUNDAMENTAL_EV_EBITDA_MAX', '15')),
+    },
+    'health_score': {
+        'excellent_threshold': 80,
+        'good_threshold': 65,
+        'fair_threshold': 50,
+        'poor_threshold': 35
+    },
+    'ai_integration': {
+        'include_in_llm_analysis': True,
+        'include_ratios': True,
+        'include_statements': True,
+        'include_health_score': True,
+        'ratios_to_include': [
+            'price_to_earnings',
+            'price_to_book',
+            'price_to_sales',
+            'return_on_equity',
+            'return_on_assets',
+            'debt_to_equity',
+            'current',
+            'quick',
+            'ev_to_ebitda',
+            'dividend_yield',
+            'free_cash_flow'
+        ]
+    },
+    'cache': {
+        'ttl_hours': int(os.getenv('FUNDAMENTAL_CACHE_TTL_HOURS', '24')),
+        'enabled': True
+    }
+}
+
 # Elliott Wave Analysis Configuration
 ELLIOTT_WAVE_CONFIG = {
     'service_url': os.getenv('ELLIOTT_WAVE_SERVICE_URL', 'http://elliott-wave-service.trading-system.svc.cluster.local:8000'),

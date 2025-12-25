@@ -255,11 +255,42 @@ async def get_account_balance(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting account balance for {account_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get account balance: {str(e)}"
-        )
+        logger.error(f"Error getting account balance from API for {account_id}: {str(e)}")
+        logger.info(f"Falling back to database balance for {account_id}")
+        
+        # Fallback to database values if API call fails
+        try:
+            result = await db.execute(text("""
+                SELECT buying_power, cash_balance, equity, updated_at
+                FROM live_trading_accounts
+                WHERE account_id = :account_id
+            """), {"account_id": account_id})
+            
+            account_data = result.fetchone()
+            
+            if not account_data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Account not found"
+                )
+            
+            return AccountBalance(
+                account_id=account_id,
+                buying_power=float(account_data[0]) if account_data[0] else 0.0,
+                cash_balance=float(account_data[1]) if account_data[1] else 0.0,
+                equity=float(account_data[2]) if account_data[2] else 0.0,
+                margin_used=None,
+                margin_available=None,
+                last_updated=account_data[3].isoformat() if account_data[3] else datetime.utcnow().isoformat()
+            )
+        except HTTPException:
+            raise
+        except Exception as fallback_error:
+            logger.error(f"Error getting account balance (including fallback): {str(fallback_error)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to get account balance: {str(e)}"
+            )
 
 
 @router.post("/{account_id}/sync")

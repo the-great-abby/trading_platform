@@ -23,10 +23,10 @@ Here's what we delivered:
 ### How to use:
 ```bash
 # Via Makefile
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 
 # Or via web dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 # Then select multiple strategies in the UI
 ```
 
@@ -63,7 +63,7 @@ ELSE:
 ### How to use:
 ```bash
 # Run regime-switching backtest
-make -f Makefile.backtesting regime
+make -f makefiles/Makefile.backtesting regime
 ```
 
 ### Files created:
@@ -90,10 +90,10 @@ make -f Makefile.backtesting regime
 ### Usage:
 ```bash
 # Show all commands
-make -f Makefile.backtesting help
+make -f makefiles/Makefile.backtesting help
 
 # Run any command
-make -f Makefile.backtesting <command>
+make -f makefiles/Makefile.backtesting <command>
 ```
 
 ### Features:
@@ -122,7 +122,7 @@ make -f Makefile.backtesting <command>
 ### How to access:
 ```bash
 # Open dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 
 # Or manually:
 kubectl port-forward -n trading-system svc/unified-trading-dashboard 11115:8000
@@ -173,37 +173,37 @@ kubectl port-forward -n trading-system svc/unified-trading-dashboard 11115:8000
 ### 1. Test the Makefile:
 ```bash
 cd /Users/abby/code/trading
-make -f Makefile.backtesting help
+make -f makefiles/Makefile.backtesting help
 ```
 
 ### 2. Run a quick test:
 ```bash
-make -f Makefile.backtesting quick
+make -f makefiles/Makefile.backtesting quick
 ```
 
 ### 3. Check status:
 ```bash
-make -f Makefile.backtesting status
+make -f makefiles/Makefile.backtesting status
 ```
 
 ### 4. View logs:
 ```bash
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 ```
 
 ### 5. Try multi-strategy:
 ```bash
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 ```
 
 ### 6. Test regime switching:
 ```bash
-make -f Makefile.backtesting regime
+make -f makefiles/Makefile.backtesting regime
 ```
 
 ### 7. Open web interface:
 ```bash
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 ---
@@ -335,9 +335,9 @@ You now have a **complete backtesting system** with:
 
 **Get started now:**
 ```bash
-make -f Makefile.backtesting help
-make -f Makefile.backtesting quick
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting help
+make -f makefiles/Makefile.backtesting quick
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 🎊 **Happy backtesting!**

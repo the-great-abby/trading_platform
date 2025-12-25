@@ -87,37 +87,37 @@ Your live trading system now includes **complete options trading** with automate
 
 ### Deploy Options Trading
 ```bash
-make -f Makefile.options-scan deploy-options-scan
+make -f makefiles/Makefile.options-scan deploy-options-scan
 ```
 
 ### Manual Scan (No Execution)
 ```bash
-make -f Makefile.options-scan manual-scan
+make -f makefiles/Makefile.options-scan manual-scan
 ```
 
 ### Manual Scan & Execute
 ```bash
-make -f Makefile.options-scan manual-execute
+make -f makefiles/Makefile.options-scan manual-execute
 # Will prompt: "Max trades to execute (default: 2):"
 ```
 
 ### Check Status
 ```bash
-make -f Makefile.options-scan status-options-scan
+make -f makefiles/Makefile.options-scan status-options-scan
 ```
 
 ### View Logs
 ```bash
-make -f Makefile.options-scan logs-options-scan
+make -f makefiles/Makefile.options-scan logs-options-scan
 ```
 
 ### Suspend/Resume
 ```bash
 # Suspend options trading
-make -f Makefile.options-scan suspend-options-scan
+make -f makefiles/Makefile.options-scan suspend-options-scan
 
 # Resume options trading
-make -f Makefile.options-scan resume-options-scan
+make -f makefiles/Makefile.options-scan resume-options-scan
 ```
 
 ## Current Limitation
@@ -221,17 +221,17 @@ With higher balance:
 
 1. **Deploy the system:**
    ```bash
-   make -f Makefile.options-scan deploy-options-scan
+   make -f makefiles/Makefile.options-scan deploy-options-scan
    ```
 
 2. **Test manually (safe):**
    ```bash
-   make -f Makefile.options-scan manual-scan
+   make -f makefiles/Makefile.options-scan manual-scan
    ```
 
 3. **Monitor results:**
    ```bash
-   make -f Makefile.options-scan logs-options-scan
+   make -f makefiles/Makefile.options-scan logs-options-scan
    ```
 
 4. **When ready to trade:**

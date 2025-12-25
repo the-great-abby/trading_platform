@@ -113,7 +113,7 @@ make validation-load-local
 ## 📋 Configuration
 
 ### **Local Environment File**
-The framework uses `validation-local.env` for local configuration:
+The framework uses `config/validation-local.env` for local configuration:
 ```bash
 # Load local environment
 make validation-load-local
@@ -228,7 +228,7 @@ a9e4ab33        Example_Kubernetes_Elliott_Wave OPTIONS ValidationStatus.NEVER_R
 - Use `validation-discover` to get an overview of your scripts
 - Use `validation-validate-sample` for quick validation testing
 - Use `validation-run-local` + `validation-api-test` for API development
-- Check `validation-local.env` for configuration customization
+- Check `config/validation-local.env` for configuration customization
 
 ---
 

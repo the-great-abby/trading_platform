@@ -1,0 +1,114 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: position-monitor
+  namespace: trading-system
+  labels:
+    app: position-monitor
+    component: monitoring
+spec:
+  # Run every 5 minutes
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid  # Don't run concurrent jobs
+  jobTemplate:
+    metadata:
+      labels:
+        app: position-monitor
+        component: monitoring
+    spec:
+      template:
+        metadata:
+          labels:
+            app: position-monitor
+            component: monitoring
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account
+          containers:
+          - name: position-monitor
+            image: localhost:32000/live-trading-service:latest
+            command:
+            - python
+            - -c
+            - |
+              import asyncio
+              import sys
+              sys.path.insert(0, '/app')
+              from src.services.live_trading.position_monitor import position_monitor
+              
+              async def run_once():
+                  """Run position monitor once"""
+                  await position_monitor.monitor_all_positions()
+              
+              asyncio.run(run_once())
+            env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://postgres:postgres@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: emergency-exit-check
+  namespace: trading-system
+  labels:
+    app: emergency-exit-check
+    component: monitoring
+spec:
+  # Run every 2 minutes (more aggressive for loss protection)
+  schedule: "*/2 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: emergency-exit-check
+        component: monitoring
+    spec:
+      template:
+        metadata:
+          labels:
+            app: emergency-exit-check
+            component: monitoring
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: trading-service-account
+          containers:
+          - name: emergency-exit-check
+            image: localhost:32000/live-trading-service:latest
+            command:
+            - python
+            - /app/scripts/emergency_exit_positions.py
+            - --execute  # Auto-execute emergency exits
+            env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://trading_user:$(POSTGRES_PASSWORD)@postgres-timescale.postgres-infra.svc.cluster.local:5432/trading_db"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: trading-secrets
+                  key: database-password
+            - name: AUTO_CONFIRM
+              value: "true"  # Skip confirmation prompt in cron
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+
+

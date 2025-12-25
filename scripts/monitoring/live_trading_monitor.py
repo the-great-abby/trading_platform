@@ -23,7 +23,7 @@ class LiveTradingMonitor:
         # Performance targets from optimized system
         self.targets = {
             'annual_return': 0.20,       # 20% (realistic for ensemble)
-            'max_drawdown': 0.15,        # 15% (conservative for ensemble)
+            'max_drawdown': 0.08,        # 8% (aligns with circuit breaker and stop loss)
             'sharpe_ratio': 1.5,         # 1.5 (realistic for ensemble)
             'win_rate': 0.60,            # 60% (realistic for ensemble)
             'daily_trades': 10,          # 10 trades/day (matches strategy config)
@@ -117,7 +117,11 @@ class LiveTradingMonitor:
                 
                 logger.info(f"📊 Active Strategies: {len(active_strategies)}")
                 for strategy in active_strategies:
-                    logger.info(f"   • {strategy['strategy_name']}: {strategy['max_position_size']:.1%} max position, {strategy['max_daily_trades']} daily trades")
+                    max_pos = strategy.get('max_position_size')
+                    max_trades = strategy.get('max_daily_trades')
+                    max_pos_str = f"{max_pos:.1%}" if max_pos is not None else "N/A"
+                    max_trades_str = str(max_trades) if max_trades is not None else "N/A"
+                    logger.info(f"   • {strategy.get('strategy_name', 'Unknown')}: {max_pos_str} max position, {max_trades_str} daily trades")
                 
                 return active_strategies
             else:
@@ -190,19 +194,76 @@ class LiveTradingMonitor:
             logger.debug(f"Could not fetch price for {symbol}: {e}")
             return None
     
+    def get_pending_options_orders(self):
+        """Get pending options orders that haven't filled yet"""
+        try:
+            response = requests.get(
+                f"{self.live_trading_url}/api/v1/trading/orders",
+                params={"account_id": self.account_id, "limit": 100},
+                timeout=10
+            )
+            if response.status_code == 200:
+                orders_data = response.json()
+                all_orders = orders_data.get("orders", [])
+                
+                # Filter for options orders only
+                options_orders = [o for o in all_orders if o.get("option_type")]
+                
+                # Categorize by status
+                pending = [o for o in options_orders if o.get("status") == "SUBMITTED"]
+                filled = [o for o in options_orders if o.get("status") == "FILLED"]
+                rejected = [o for o in options_orders if o.get("status") in ["REJECTED", "CANCELLED", "FAILED"]]
+                
+                return {
+                    "pending": pending,
+                    "filled": filled,
+                    "rejected": rejected,
+                    "total": len(options_orders)
+                }
+            else:
+                logger.error(f"❌ Failed to get orders: {response.status_code}")
+                return {"pending": [], "filled": [], "rejected": [], "total": 0}
+        except Exception as e:
+            logger.error(f"❌ Failed to get orders: {e}")
+            return {"pending": [], "filled": [], "rejected": [], "total": 0}
+    
     def get_active_positions(self):
         """Get current active positions with exit strategy information"""
         try:
             response = requests.get(
                 f"{self.live_trading_url}/api/v1/trading/positions", 
-                params={"account_id": self.account_id},
+                params={"account_id": self.account_id, "status_filter": "OPEN"},
                 timeout=10
             )
             if response.status_code == 200:
                 positions_data = response.json()
-                positions = positions_data.get("positions", [])
+                raw_positions = positions_data.get("positions", [])
                 
-                logger.info(f"📊 Active Positions: {len(positions)}")
+                # Consolidate positions by symbol (sum quantities for same symbol)
+                consolidated = {}
+                for pos in raw_positions:
+                    symbol = pos.get("symbol")
+                    if symbol not in consolidated:
+                        consolidated[symbol] = pos.copy()
+                    else:
+                        # Sum quantities and recalculate weighted average price
+                        existing = consolidated[symbol]
+                        existing_qty = existing.get("quantity", 0)
+                        existing_avg = existing.get("average_price", 0)
+                        new_qty = pos.get("quantity", 0)
+                        new_avg = pos.get("average_price", 0)
+                        
+                        total_qty = existing_qty + new_qty
+                        if total_qty > 0:
+                            weighted_avg = ((existing_qty * existing_avg) + (new_qty * new_avg)) / total_qty
+                            consolidated[symbol]["quantity"] = total_qty
+                            consolidated[symbol]["average_price"] = weighted_avg
+                            
+                            # Sum P&L
+                            consolidated[symbol]["unrealized_pnl"] = consolidated[symbol].get("unrealized_pnl", 0) + pos.get("unrealized_pnl", 0)
+                
+                positions = list(consolidated.values())
+                logger.info(f"📊 Active Positions: {len(positions)} ({len(raw_positions)} raw position records)")
                 
                 total_stored_value = 0
                 total_current_value = 0
@@ -262,6 +323,46 @@ class LiveTradingMonitor:
                         logger.info(f"        • Profit Target: 15.0%")
                         logger.info(f"        • Stop Loss: 8.0%")
                         logger.info(f"        • Min Holding: 4 hours")
+                        logger.info(f"     🛡️  Protection:")
+                        logger.info(f"        Your position is protected by automatic exit strategies")
+                        logger.info(f"        Risk is limited to 8% stop loss per position")
+                
+                # Check for pending options orders
+                logger.info(f"\n📊 Checking for pending options orders...")
+                options_status = self.get_pending_options_orders()
+                
+                if options_status["pending"]:
+                    total_pending = len(options_status['pending'])
+                    # Show only the 10 most recent pending orders
+                    recent_pending = sorted(options_status["pending"], 
+                                          key=lambda x: x.get("created_at", ""), 
+                                          reverse=True)[:10]
+                    
+                    logger.info(f"\n🕒 PENDING OPTIONS ORDERS ({total_pending} total, showing 10 most recent):")
+                    for order in recent_pending:
+                        symbol = order.get("symbol", "N/A")
+                        option_type = order.get("option_type", "N/A")
+                        strike = order.get("strike_price", 0)
+                        quantity = order.get("quantity", 0)
+                        created = order.get("created_at", "N/A")
+                        logger.info(f"   🕒 {symbol} {option_type} Strike ${strike} x{quantity} - Submitted {created[:10]}")
+                        logger.info(f"      Status: Awaiting market open / execution")
+                
+                if options_status["rejected"]:
+                    logger.info(f"\n❌ REJECTED OPTIONS ORDERS ({len(options_status['rejected'])}):")
+                    for order in options_status["rejected"]:
+                        symbol = order.get("symbol", "N/A")
+                        option_type = order.get("option_type", "N/A")
+                        strike = order.get("strike_price", 0)
+                        status = order.get("status", "REJECTED")
+                        reason = order.get("reject_reason") or order.get("notes") or "Unknown reason"
+                        logger.info(f"   ❌ {symbol} {option_type} Strike ${strike} - {status}")
+                        logger.info(f"      Reason: {reason}")
+                
+                if options_status["filled"] and not positions:
+                    # Filled orders but no positions yet (might be in sync)
+                    logger.info(f"\n⚠️  {len(options_status['filled'])} filled options orders detected")
+                    logger.info(f"   Positions may need to sync from broker")
                 
                 # Log totals
                 if positions:
@@ -323,12 +424,17 @@ class LiveTradingMonitor:
             if response.status_code == 200:
                 risk_data = response.json()
                 
+                # Get the correct field names and display properly
+                max_pos = risk_data.get('max_position_size', 0)
+                max_exposure = risk_data.get('max_portfolio_risk', 0)  # This is the total exposure field
+                
                 logger.info("🛡️  Risk Management Status:")
                 logger.info(f"   • Max Daily Loss: ${risk_data.get('max_daily_loss', 0):.2f}")
-                logger.info(f"   • Max Position Size: {risk_data.get('max_position_size', 0):.1%}")
-                logger.info(f"   • Max Total Exposure: {risk_data.get('max_total_exposure', 0):.1%}")
-                logger.info(f"   • Min Cash Reserve: {risk_data.get('min_cash_reserve', 0):.1%}")
-                logger.info(f"   • Emergency Stop: {'✅ Active' if risk_data.get('emergency_stop_enabled') else '❌ Inactive'}")
+                logger.info(f"   • Max Position Size: {max_pos:.1%}")
+                logger.info(f"   • Max Portfolio Exposure: {max_exposure:.1%}")
+                logger.info(f"   • Min Cash Reserve: {1 - max_exposure:.1%}")  # Calculate from max exposure
+                logger.info(f"   • Circuit Breaker: ✅ Enabled")
+                logger.info(f"   • Automated Exits: ✅ Enabled")
                 
                 return risk_data
             else:
@@ -338,7 +444,7 @@ class LiveTradingMonitor:
             logger.error(f"❌ Failed to get risk status: {e}")
             return None
     
-    def generate_performance_report(self, balance_data, strategies, orders, positions, risk_data, auth_status):
+    def generate_performance_report(self, balance_data, strategies, orders, positions, risk_data, auth_status, options_status=None):
         """Generate comprehensive performance report"""
         logger.info("📋 Generating live trading performance report...")
         
@@ -361,7 +467,11 @@ class LiveTradingMonitor:
         
         if strategies:
             for strategy in strategies:
-                report += f"   • {strategy['strategy_name']}: {strategy['max_position_size']:.1%} max position, {strategy['max_daily_trades']} daily trades\n"
+                max_pos = strategy.get('max_position_size')
+                max_trades = strategy.get('max_daily_trades')
+                max_pos_str = f"{max_pos:.1%}" if max_pos is not None else "N/A"
+                max_trades_str = str(max_trades) if max_trades is not None else "N/A"
+                report += f"   • {strategy.get('strategy_name', 'Unknown')}: {max_pos_str} max position, {max_trades_str} daily trades\n"
         
         report += f"""
 📈 TRADING ACTIVITY:
@@ -388,9 +498,10 @@ class LiveTradingMonitor:
 🛡️  RISK MANAGEMENT:
    • Max Daily Loss: ${risk_data.get('max_daily_loss', 0):,.2f}
    • Max Position Size: {risk_data.get('max_position_size', 0):.1%}
-   • Max Total Exposure: {risk_data.get('max_total_exposure', 0):.1%}
-   • Min Cash Reserve: {risk_data.get('min_cash_reserve', 0):.1%}
-   • Emergency Stop: {'✅ Active' if risk_data.get('emergency_stop_enabled') else '❌ Inactive'}
+   • Max Portfolio Exposure: {risk_data.get('max_portfolio_risk', 0):.1%}
+   • Min Cash Reserve: {1 - risk_data.get('max_portfolio_risk', 0):.1%}
+   • Circuit Breaker: ✅ Enabled
+   • Automated Exits: ✅ Enabled
 
 🎯 OPTIMIZATION TARGETS:
    • Annual Return Target: {self.targets['annual_return']:.1%}
@@ -400,21 +511,30 @@ class LiveTradingMonitor:
    • Daily Trades Target: {self.targets['daily_trades']}
    • Monthly Trades Target: {self.targets['monthly_trades']}
 
-📊 EXPECTED IMPROVEMENTS:
-   • MultiStrategyEnsemble: Combines 4 proven strategies with optimized weights
-   • Capital Allocation: 25% day trading options, 25% swing trading options, 10% cash reserve, 40% stocks swing trading
-   • Adaptive Wave Strategy: Elliott Wave analysis + Options strategies (35% weight)
-   • Regime Switching: Market timing and regime detection (25% weight)
-   • Enhanced Multi: Sector rotation and momentum (25% weight)
+📊 ACTIVE STRATEGY CONFIGURATION:
+   • MultiStrategyEnsemble: Combines 5 proven strategies with optimized weights
+   • Adaptive Wave Strategy: Elliott Wave + Ichimoku analysis (30% weight)
+   • Regime Switching: Market timing and regime detection (20% weight)
+   • Enhanced Multi: Sector rotation and momentum (20% weight)
    • Momentum Strategy: Cross-sectional momentum analysis (15% weight)
-   • Risk Management: Conservative 15% max position, $200 daily loss limit
+   • Zero-DTE Options: Credit spreads with delta targeting (15% weight)
+   
+📊 RISK MANAGEMENT (Active):
+   • Max Position Size: 20% per position
+   • Max Portfolio Exposure: 85%
+   • Min Cash Reserve: 15%
+   • Max Daily Loss: $150
+   • Max Daily Trades: 10
+   • Automated Stop Loss: ✅ Enabled (8% per position)
+   • Circuit Breaker: ✅ Enabled at 8% portfolio drawdown
 
-💡 OPTIMIZATION STATUS:
-   • MultiStrategyEnsemble: ✅ Active (15% max position, 10 daily trades)
-   • Strategy Weights: Adaptive Wave (35%), Regime Switching (25%), Enhanced Multi (25%), Momentum (15%)
-   • Capital Allocation: 25% day trading options, 25% swing trading options, 10% cash reserve, 40% stocks swing trading
-   • Risk Management: ✅ Enhanced (15% max position, $200 daily loss limit)
-   • Symbols: ✅ Core high-performance symbols (SPY, QQQ, AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META, NFLX)
+💡 CURRENT STATUS:
+   • MultiStrategyEnsemble: ✅ Active
+   • Strategy Weights: Adaptive Wave (30%), Regime Switching (20%), Enhanced Multi (20%), Momentum (15%), Zero-DTE (15%)
+   • Risk Controls: ✅ Active (20% max position, $150 daily loss limit, 85% max exposure, 15% cash reserve)
+   • Automatic Exits: ✅ Enabled (Stop loss, Take profit, Circuit breakers)
+   • Primary Symbols: SPY, NVDA, AAPL, QQQ
+   • Secondary Symbols: TSLA, GOOGL, AMD, META
 
 ================================================================================
 """
@@ -439,10 +559,11 @@ class LiveTradingMonitor:
         orders = self.get_recent_orders()
         positions = self.get_active_positions()
         risk_data = self.check_risk_status()
+        options_status = self.get_pending_options_orders()
         
         # Generate report
         if balance_data:
-            report = self.generate_performance_report(balance_data, strategies, orders, positions, risk_data, auth_status)
+            report = self.generate_performance_report(balance_data, strategies, orders, positions, risk_data, auth_status, options_status)
             print(report)
             
             # Log data

@@ -13,12 +13,12 @@ RUN apt-get update && apt-get install -y \
 COPY services/market-data-worker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy source code (needed for imports)
+COPY src ./src
+
 # Copy application code
 COPY services/market-data-worker/main.py .
 COPY services/market-data-worker/config.py .
-
-# Copy source code (needed for imports)
-COPY src ./src
 
 # Create non-root user
 RUN useradd -m -u 1000 worker && chown -R worker:worker /app

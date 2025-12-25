@@ -1,0 +1,139 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fix-capital-allocation
+  namespace: trading-system
+  labels:
+    app: capital-allocation-fix
+    component: maintenance
+spec:
+  ttlSecondsAfterFinished: 3600  # Clean up after 1 hour
+  template:
+    metadata:
+      labels:
+        app: capital-allocation-fix
+        component: maintenance
+    spec:
+      restartPolicy: Never
+      serviceAccountName: trading-service
+      containers:
+      - name: fix-capital-allocation
+        image: localhost:32000/live-trading-service:latest
+        command:
+        - python
+        - -c
+        - |
+          import asyncio
+          import logging
+          from sqlalchemy import text
+          from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+          from sqlalchemy.orm import sessionmaker
+          import os
+          
+          logging.basicConfig(level=logging.INFO)
+          logger = logging.getLogger(__name__)
+          
+          async def fix_risk_profiles():
+              db_url = os.environ.get('DATABASE_URL')
+              logger.info(f"Connecting to database...")
+              
+              engine = create_async_engine(db_url, echo=False)
+              session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+              
+              try:
+                  async with session_maker() as session:
+                      # Update risk profiles
+                      update_query = text("""
+                          UPDATE risk_profiles
+                          SET 
+                              max_position_size = :max_position_size,
+                              max_portfolio_risk = :max_portfolio_risk,
+                              max_daily_loss = :max_daily_loss,
+                              max_daily_trades = :max_daily_trades,
+                              max_greeks_exposure = :max_greeks_exposure,
+                              updated_at = NOW()
+                          WHERE TRUE
+                          RETURNING account_id, max_position_size, max_portfolio_risk, max_daily_loss
+                      """)
+                      
+                      result = await session.execute(update_query, {
+                          'max_position_size': 800.0,  # 20% of $4,000
+                          'max_portfolio_risk': 0.15,  # 15% portfolio risk
+                          'max_daily_loss': 200.0,     # 5% of $4,000
+                          'max_daily_trades': 10,
+                          'max_greeks_exposure': '{"delta": 50, "gamma": 10, "theta": -20, "vega": 30}'
+                      })
+                      
+                      await session.commit()
+                      
+                      updated_profiles = result.fetchall()
+                      
+                      if updated_profiles:
+                          logger.info(f"✅ Updated {len(updated_profiles)} risk profiles:")
+                          for profile in updated_profiles:
+                              logger.info(f"   Account: {profile[0]}")
+                              logger.info(f"     Max Position Size: ${profile[1]:,.2f}")
+                              logger.info(f"     Max Portfolio Risk: {profile[2]:.1%}")
+                              logger.info(f"     Max Daily Loss: ${profile[3]:,.2f}")
+                      else:
+                          logger.warning("No risk profiles found - they may need to be created first")
+                      
+                      # Check for positions exceeding limits
+                      check_query = text("""
+                          SELECT 
+                              symbol,
+                              strategy,
+                              unrealized_pnl,
+                              unrealized_pnl_pct
+                          FROM live_positions
+                          WHERE status = 'OPEN'
+                              AND unrealized_pnl_pct <= -0.08
+                          ORDER BY unrealized_pnl_pct ASC
+                      """)
+                      
+                      result = await session.execute(check_query)
+                      positions = result.fetchall()
+                      
+                      if positions:
+                          logger.warning(f"⚠️  Found {len(positions)} positions exceeding 8% loss:")
+                          for pos in positions:
+                              logger.warning(f"   {pos[0]} ({pos[1]}): {pos[3]:.1%} (${pos[2]:+,.2f})")
+                      else:
+                          logger.info("✅ No positions exceed 8% loss limit")
+                  
+                  await engine.dispose()
+                  logger.info("✅ Capital allocation fix completed!")
+                  
+              except Exception as e:
+                  logger.error(f"❌ Error: {e}")
+                  import traceback
+                  logger.error(traceback.format_exc())
+                  raise
+          
+          asyncio.run(fix_risk_profiles())
+        env:
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://trading_user:$(POSTGRES_PASSWORD)@timescaledb:5432/trading_db"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: postgres-password
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+
+
+
+
+
+
+
+

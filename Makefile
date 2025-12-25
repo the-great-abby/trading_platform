@@ -2,6 +2,8 @@
 # Clean, organized structure with no duplicate targets
 
 # Include clean, organized Makefiles
+include makefiles/Makefile.wizard
+include makefiles/Makefile.mcp
 include makefiles/Makefile.main
 include makefiles/Makefile.simple
 include makefiles/Makefile.services
@@ -17,10 +19,10 @@ include makefiles/Makefile.secrets
 include makefiles/Makefile.database
 
 # Standalone Makefiles (not in makefiles/ directory)
--include Makefile.order-sync
+-include makefiles/Makefile.order-sync
 
 # Include semantic versioning system
-include Makefile.versioning
+include makefiles/Makefile.versioning
 
 # Default target
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := helpinclude makefiles/Makefile.live-trading-sync

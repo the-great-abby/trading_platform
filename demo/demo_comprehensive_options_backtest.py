@@ -27,9 +27,13 @@ from typing import Dict, List, Any, Optional
 import pandas as pd
 import numpy as np
 import random
+from dotenv import load_dotenv
 
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+# Add src to path (parent directory contains src/)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Load environment variables from .env file
+load_dotenv()
 
 from src.backtesting.engine.backtest_engine import BacktestEngine
 from src.strategies.options import (
@@ -71,20 +75,20 @@ class ComprehensiveOptionsBacktest:
         
         # All available options strategies
         self.options_strategies = {
-            'GreeksEnhanced': GreeksEnhancedStrategy(),
-            'IronCondor': IronCondorStrategy(),
-            'EnhancedIronCondor': EnhancedIronCondorStrategy(),
-            'CoveredCall': CoveredCallStrategy(),
-            'CashSecuredPut': CashSecuredPutStrategy(),
-            'Volatility': VolatilityStrategy(),
-            'ButterflySpread': ButterflySpreadStrategy(),
-            'CalendarSpread': CalendarSpreadStrategy(),
-            'Earnings': EarningsStrategy(),
-            'Straddle': StraddleStrategy(),
-            'LongStrangle': StrangleStrategy(strategy_type="long"),
-            'ShortStrangle': StrangleStrategy(strategy_type="short"),
-            'BullishDiagonal': DiagonalSpreadStrategy(direction="bullish"),
-            'BearishDiagonal': DiagonalSpreadStrategy(direction="bearish")
+            'GreeksEnhancedStrategy': GreeksEnhancedStrategy(),
+            'IronCondorStrategy': IronCondorStrategy(),
+            'EnhancedIronCondorStrategy': EnhancedIronCondorStrategy(),
+            'CoveredCallStrategy': CoveredCallStrategy(),
+            'CashSecuredPutStrategy': CashSecuredPutStrategy(),
+            'VolatilityStrategy': VolatilityStrategy(),
+            'ButterflySpreadStrategy': ButterflySpreadStrategy(),
+            'CalendarSpreadStrategy': CalendarSpreadStrategy(),
+            'EarningsStrategy': EarningsStrategy(),
+            'StraddleStrategy': StraddleStrategy(),
+            'LongStrangleStrategy': StrangleStrategy(strategy_type="long"),
+            'ShortStrangleStrategy': StrangleStrategy(strategy_type="short"),
+            'BullishDiagonalStrategy': DiagonalSpreadStrategy(direction="bullish"),
+            'BearishDiagonalStrategy': DiagonalSpreadStrategy(direction="bearish")
         }
         
         # Market conditions for simulation
@@ -216,11 +220,11 @@ class ComprehensiveOptionsBacktest:
         
         # Define strategy combinations
         combinations = {
-            'Conservative_Combo': ['CoveredCall', 'CashSecuredPut'],
-            'Moderate_Combo': ['GreeksEnhanced', 'IronCondor', 'Volatility'],
-            'Aggressive_Combo': ['EnhancedIronCondor', 'ButterflySpread', 'Earnings'],
-            'Balanced_Combo': ['CoveredCall', 'GreeksEnhanced', 'CalendarSpread'],
-            'Volatility_Combo': ['Volatility', 'IronCondor', 'ButterflySpread']
+            'Conservative_Combo': ['CoveredCallStrategy', 'CashSecuredPutStrategy'],
+            'Moderate_Combo': ['GreeksEnhancedStrategy', 'IronCondorStrategy', 'VolatilityStrategy'],
+            'Aggressive_Combo': ['EnhancedIronCondorStrategy', 'ButterflySpreadStrategy', 'EarningsStrategy'],
+            'Balanced_Combo': ['CoveredCallStrategy', 'GreeksEnhancedStrategy', 'CalendarSpreadStrategy'],
+            'Volatility_Combo': ['VolatilityStrategy', 'IronCondorStrategy', 'ButterflySpreadStrategy']
         }
         
         for combo_name, strategies in combinations.items():

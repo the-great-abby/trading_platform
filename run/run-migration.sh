@@ -19,7 +19,7 @@ if [ ! -d "migration-env" ]; then
     
     echo -e "${BLUE}Installing dependencies...${NC}"
     source migration-env/bin/activate
-    pip install -r migration-requirements.txt
+    pip install -r config/requirements/migration-requirements.txt
     echo -e "${GREEN}✅ Virtual environment created and dependencies installed!${NC}"
 fi
 

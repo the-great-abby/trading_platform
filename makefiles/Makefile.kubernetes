@@ -161,13 +161,24 @@ k8s-configmaps: ## Show configmaps
 	@echo ""
 	@echo "Usage: kubectl describe configmap <configmap-name> -n trading-system"
 
-k8s-services: ## Show services
+k8s-services: ## Show services across all namespaces
 	@echo "$(GREEN)🌐 Services$(NC)"
 	@echo "$(YELLOW)==========$(NC)"
 	@echo ""
+	@echo "$(BLUE)Trading System Services:$(NC)"
 	kubectl get services -n trading-system
 	@echo ""
-	@echo "Service details:"
+	@echo "$(BLUE)Infrastructure Services:$(NC)"
+	@echo "Redis (redis namespace):"
+	kubectl get services -n redis
+	@echo ""
+	@echo "RabbitMQ (rabbitmq-system namespace):"
+	kubectl get services -n rabbitmq-system
+	@echo ""
+	@echo "PostgreSQL (postgres-infra namespace):"
+	kubectl get services -n postgres-infra | grep -E "NAME|external"
+	@echo ""
+	@echo "$(YELLOW)Service Details (trading-system only):$(NC)"
 	kubectl describe services -n trading-system
 
 k8s-ingress: ## Show ingress

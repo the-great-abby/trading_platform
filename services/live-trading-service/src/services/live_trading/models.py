@@ -36,6 +36,7 @@ class TradeStatus(str, Enum):
 class PositionStatus(str, Enum):
     """Position status enumeration."""
     OPEN = "OPEN"
+    PENDING_CLOSE = "PENDING_CLOSE"  # Exit condition triggered, waiting for order execution
     CLOSED = "CLOSED"
     EXPIRED = "EXPIRED"
 
@@ -296,3 +297,30 @@ class OrderStatus(Base):
     
     def __repr__(self):
         return f"<OrderStatus(status_id={self.status_id}, order_id={self.order_id}, status={self.status}, timestamp={self.timestamp})>"
+
+
+# T021: RejectedTradeAttempt model - tracks trades rejected before submission
+class RejectedTradeAttempt(Base):
+    """Tracks trade attempts that were rejected before submission to the broker."""
+    
+    __tablename__ = "rejected_trade_attempts"
+    
+    attempt_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    account_id = Column(UUID(as_uuid=True), ForeignKey("live_trading_accounts.account_id"), nullable=False)
+    symbol = Column(String(50), nullable=False)
+    strategy = Column(String(100), nullable=False)
+    action = Column(String(20), nullable=False)  # BUY, SELL
+    quantity = Column(Integer)
+    estimated_premium = Column(Numeric(15, 2))
+    rejection_reason = Column(Text, nullable=False)
+    rejection_category = Column(String(50), nullable=False)  # RISK, BUYING_POWER, CONFIDENCE, POSITION_EXISTS, VALIDATION
+    confidence_score = Column(Numeric(5, 4))  # Signal confidence if applicable
+    current_price = Column(Numeric(10, 4))
+    option_type = Column(String(10))  # CALL, PUT, or None for stocks
+    strike_price = Column(Numeric(10, 4))
+    expiration_date = Column(DateTime)
+    rejection_details = Column(Text)  # JSON with additional context
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<RejectedTradeAttempt(attempt_id={self.attempt_id}, symbol={self.symbol}, strategy={self.strategy}, reason={self.rejection_reason})>"

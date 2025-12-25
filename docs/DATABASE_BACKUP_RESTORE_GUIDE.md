@@ -434,7 +434,7 @@ trading_bot_timescale_20241008_063137.sql.gz
 |------|----------|---------|
 | Full backups | `backups/database/*.sql.gz` | Complete database dumps |
 | Schema backups | `backups/database/schema_*.sql` | Schema-only (no data) |
-| Root compatibility | `schema_backup.dump` | Symlink to latest schema |
+| Latest schema | `backups/database/schema_backup.dump` | Latest schema backup |
 | Old backups | `archive/backup-*/database/` | Historical backups |
 
 ## Advanced Operations

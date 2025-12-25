@@ -34,6 +34,17 @@ spec:
           value: "/app/docs"
         - name: MD_PATH
           value: "/app/md"
+        # Database configuration for trading strategy analysis
+        - name: DB_HOST
+          value: "postgres-timescale-external.postgres-infra.svc.cluster.local"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "trading_bot"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "postgres"
         resources:
           requests:
             memory: "128Mi"
@@ -47,6 +58,9 @@ spec:
           readOnly: true
         - name: md-volume
           mountPath: /app/md
+          readOnly: true
+        - name: config-volume
+          mountPath: /app/config
           readOnly: true
         livenessProbe:
           httpGet:
@@ -68,6 +82,10 @@ spec:
       - name: md-volume
         hostPath:
           path: /Users/abby/code/trading/md
+          type: Directory
+      - name: config-volume
+        hostPath:
+          path: /Users/abby/code/trading/config
           type: Directory
 ---
 apiVersion: v1

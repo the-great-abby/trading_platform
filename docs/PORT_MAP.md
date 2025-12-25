@@ -2,18 +2,33 @@
 
 ## 📊 Current Status
 
-**Last Updated**: 2025-10-07 17:48:00 EST
-**Active Port Forwards**: 1  
-**Total Services**: 50+  
-**Live Trading Service**: ✅ **ACTIVE** (paper-trading-k8s deployment on port 11120)  
-**Live Trading Monitor**: ✅ **FIXED** (Now shows real portfolio value with current market prices)  
-**Trading Engine**: ❌ **DEPRECATED** (Scaled to 0, functionality moved to other services)  
+**Last Updated**: 2025-11-04 04:50:00 EST  
+**System Status**: 🔄 **RESTORING** (Post-failure recovery in progress)
+**Active Port Forwards**: 0  
+**Total Services Deployed**: 2 (strategy-service, market-data-service)
+**Databases**: ✅ **RESTORED** (All data intact - 78K+ rows)
+**Infrastructure**: ✅ **OPERATIONAL** (Redis, RabbitMQ, PostgreSQL)  
 
-## 🎯 Currently Active Port Forwards
+## 🎯 Currently Active Services (Post-Restoration)
 
-| Service | External Port | Internal Port | Status | URL | Last Checked |
-|---------|---------------|---------------|--------|-----|--------------|
-| Live Trading Service (paper-trading-k8s) | 11120 | 8080 | ✅ Active | http://localhost:11120/ | 2025-10-07 17:48 |
+| Service | External Port | Internal Port | Namespace | Status | URL | Notes |
+|---------|---------------|---------------|-----------|--------|-----|-------|
+| Strategy Service | 11001 | 8000 | trading-system | ✅ **RUNNING** | http://localhost:11001/ | Built & deployed (0.1.0-ci.34) |
+| Market Data Service | 11084 | 8000 | trading-system | ⚠️ **Starting** | http://localhost:11084/ | Built, DB connection pending |
+| Redis | 11379 | 6379 | redis | ✅ **RUNNING** | redis.redis.svc.cluster.local:6379 | External service |
+| RabbitMQ | 11144 | 5672 | rabbitmq-system | ✅ **RUNNING** | rabbitmq.rabbitmq-system.svc.cluster.local:5672 | External service |
+| PostgreSQL (Timescale) | - | 5432 | postgres-infra | ✅ **RUNNING** | postgres-timescale-external.postgres-infra.svc.cluster.local:5432 | Restored with 78K+ rows |
+| PostgreSQL (Vector) | - | 5432 | postgres-infra | ✅ **RUNNING** | postgres-vector-external.postgres-infra.svc.cluster.local:5432 | Restored with data |
+
+## 🔄 Services Ready to Deploy (Priority Order)
+
+| Service | External Port | Status | Build Command | Deploy Command |
+|---------|---------------|--------|---------------|----------------|
+| Live Trading Service | 11120 | ❌ Ready to build | `make build-service SERVICE=live-trading-service` | `kubectl apply -f k8s/live-trading-service.yaml` |
+| Elliott Wave Service | 11085 | ❌ Ready to build | `make build-service SERVICE=elliott-wave-service` | `kubectl apply -f k8s/elliott-wave-service.yaml` |
+| Backtest API | 11101 | ❌ Ready to build | `make build-service SERVICE=backtest-api` | `kubectl apply -f k8s/backtest-api.yaml` |
+| Unified Trading Dashboard | 11115 | ❌ Ready to build | `make build-service SERVICE=unified-trading-dashboard` | `kubectl apply -f k8s/unified-trading-dashboard.yaml` |
+| Unified Analytics Dashboard | 11114 | ❌ Ready to build | `make build-service SERVICE=unified-analytics-dashboard` | `kubectl apply -f k8s/unified-analytics-dashboard.yaml` |
 
 ## 🚀 Live Trading System Status
 

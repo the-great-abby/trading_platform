@@ -160,13 +160,13 @@ The order sync worker automatically syncs pending orders with Public.com to keep
 
 ```bash
 # Deploy the order sync CronJob
-make -f Makefile.order-sync deploy-sync-worker
+make -f makefiles/Makefile.order-sync deploy-sync-worker
 
 # Check status
-make -f Makefile.order-sync status-sync-worker
+make -f makefiles/Makefile.order-sync status-sync-worker
 
 # View logs
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 ```
 
 ### Schedule Configuration
@@ -175,13 +175,13 @@ By default, the worker syncs **every 2 minutes** during market hours (9 AM - 4 P
 
 ```bash
 # Change sync interval to 1 minute (more frequent)
-make -f Makefile.order-sync set-sync-interval-1
+make -f makefiles/Makefile.order-sync set-sync-interval-1
 
 # Change sync interval to 5 minutes (less frequent)
-make -f Makefile.order-sync set-sync-interval-5
+make -f makefiles/Makefile.order-sync set-sync-interval-5
 
 # Back to default (2 minutes)
-make -f Makefile.order-sync set-sync-interval-2
+make -f makefiles/Makefile.order-sync set-sync-interval-2
 ```
 
 ### Manual Sync
@@ -190,20 +190,20 @@ Trigger an immediate sync outside of the schedule:
 
 ```bash
 # Trigger manual sync
-make -f Makefile.order-sync manual-sync
+make -f makefiles/Makefile.order-sync manual-sync
 
 # View results
-make -f Makefile.order-sync logs-sync-worker
+make -f makefiles/Makefile.order-sync logs-sync-worker
 ```
 
 ### Pause/Resume Sync Worker
 
 ```bash
 # Pause order syncing
-make -f Makefile.order-sync suspend-sync-worker
+make -f makefiles/Makefile.order-sync suspend-sync-worker
 
 # Resume order syncing
-make -f Makefile.order-sync resume-sync-worker
+make -f makefiles/Makefile.order-sync resume-sync-worker
 ```
 
 ### What Gets Synced

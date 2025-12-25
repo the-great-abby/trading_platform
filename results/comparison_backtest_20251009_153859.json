@@ -1,0 +1,135 @@
+{
+  "original": {
+    "name": "Original (Elliott Wave)",
+    "initial_capital": 4000.0,
+    "final_capital": 4000.0,
+    "total_return": 0.0,
+    "total_return_pct": 0.0,
+    "total_trades": 0,
+    "buy_trades": 0,
+    "sell_trades": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "win_rate": 0,
+    "avg_win": 0,
+    "avg_loss": 0,
+    "profit_factor": 0,
+    "max_drawdown_pct": 0,
+    "open_positions": 0
+  },
+  "enhanced": {
+    "name": "Enhanced (Multi-Indicator)",
+    "initial_capital": 4000.0,
+    "final_capital": 4000.0000000000005,
+    "total_return": 4.547473508864641e-13,
+    "total_return_pct": 1.1368683772161604e-14,
+    "total_trades": 9,
+    "buy_trades": 9,
+    "sell_trades": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "win_rate": 0,
+    "avg_win": 0,
+    "avg_loss": 0,
+    "profit_factor": 0,
+    "max_drawdown_pct": 0,
+    "open_positions": 1
+  },
+  "winner": "Enhanced",
+  "margin": 4.547473508864641e-13,
+  "margin_pct": Infinity,
+  "duration_seconds": 7512.956802,
+  "original_trades": [],
+  "enhanced_trades": [
+    {
+      "timestamp": "2025-10-09T13:33:55.939230",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 3,
+      "price": 223.38315999999998,
+      "total": 670.1494799999999,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:34:05.755238",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 2,
+      "price": 223.38315999999998,
+      "total": 446.76631999999995,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:34:15.544987",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 2,
+      "price": 223.38315999999998,
+      "total": 446.76631999999995,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:34:25.644549",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 223.38315999999998,
+      "total": 223.38315999999998,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:34:35.453838",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 223.38315999999998,
+      "total": 223.38315999999998,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:34:46.149944",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 223.38315999999998,
+      "total": 223.38315999999998,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:35:02.950673",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 223.38315999999998,
+      "total": 223.38315999999998,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:35:13.340433",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 223.38315999999998,
+      "total": 223.38315999999998,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    },
+    {
+      "timestamp": "2025-10-09T13:35:23.841397",
+      "symbol": "AMZN",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 223.38315999999998,
+      "total": 223.38315999999998,
+      "confidence": 0.7,
+      "signal_score": 0.0
+    }
+  ]
+}

@@ -316,6 +316,54 @@ class PublicAPIClient:
             logger.error(f"Get account balance error: {str(e)}")
             raise Exception(f"Get account balance error: {str(e)}")
     
+    async def get_option_chain(self, account_id: str, symbol: str, expiration_date: str) -> Dict[str, Any]:
+        """
+        Get option chain for a symbol from Public.com.
+        
+        Per API docs: POST /userapigateway/marketdata/{accountId}/option-chain
+        
+        Args:
+            account_id: Public.com account ID (required in path)
+            symbol: Stock symbol (e.g., "SPY", "AAPL")
+            expiration_date: Expiration date (YYYY-MM-DD) - REQUIRED
+            
+        Returns:
+            Dict with calls/puts arrays containing available strikes
+        """
+        if not self.is_authenticated:
+            raise Exception("Not authenticated")
+        
+        try:
+            # Per Public.com API docs - expirationDate is REQUIRED
+            payload = {
+                "instrument": {
+                    "symbol": symbol,
+                    "type": "EQUITY"
+                },
+                "expirationDate": expiration_date
+            }
+            
+            # Correct endpoint per docs: /marketdata/{accountId}/option-chain
+            response = await self.client.post(
+                f"/marketdata/{account_id}/option-chain",
+                json=payload
+            )
+            response.raise_for_status()
+            
+            option_chain = response.json()
+            num_calls = len(option_chain.get('calls', []))
+            num_puts = len(option_chain.get('puts', []))
+            logger.info(f"✅ Retrieved option chain for {symbol} exp {expiration_date}: {num_calls} calls, {num_puts} puts")
+            
+            return option_chain
+            
+        except httpx.HTTPStatusError as e:
+            logger.error(f"❌ Failed to get option chain (status {e.response.status_code}): {e.response.text}")
+            return {"error": f"HTTP {e.response.status_code}", "calls": [], "puts": []}
+        except Exception as e:
+            logger.error(f"❌ Failed to get option chain: {e}")
+            return {"error": str(e), "calls": [], "puts": []}
+    
     async def submit_order(self, account_id: str, order_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Submit an order to Public.com.
@@ -339,24 +387,148 @@ class PublicAPIClient:
             order_id = str(uuid.uuid4())
             
             # Build order payload per Public.com API spec
-            # Documentation: https://public.com/api/docs/templates/place-equity-order
-            order_payload = {
-                "orderId": order_id,
-                "instrument": {
-                    "symbol": order_data.get("symbol"),
-                    "type": "EQUITY"  # EQUITY for stocks, OPTION for options
-                },
-                "orderSide": order_data.get("side", "buy").upper(),  # BUY or SELL
-                "orderType": order_data.get("type", "market").upper(),  # MARKET or LIMIT
-                "expiration": {
-                    "timeInForce": order_data.get("time_in_force", "day").upper()  # DAY, GTC, etc.
-                },
-                "quantity": str(order_data.get("quantity", 1))  # Must be string
-            }
+            # Check if this is an options order by looking at legs
+            legs = order_data.get("legs", [])
+            is_options_order = False
+            
+            if legs and len(legs) > 0:
+                first_leg = legs[0]
+                if first_leg.get("option_type") and first_leg.get("strike_price") and first_leg.get("expiration_date"):
+                    is_options_order = True
+            
+            if is_options_order:
+                # Options order format
+                # Public.com requires OCC-formatted options symbols
+                underlying = order_data.get("symbol", "").upper()
+                
+                # Check if this is a multi-leg spread (2+ legs)
+                num_legs = len(legs)
+                
+                if num_legs >= 2:
+                    # MULTI-LEG SPREAD FORMAT (Bull Call, Iron Condor, etc.)
+                    from datetime import datetime
+                    option_legs = []
+                    
+                    for leg in legs:
+                        option_type = leg.get("option_type", "CALL")
+                        strike_price = float(leg.get("strike_price", 0))
+                        exp_date_str = leg.get("expiration_date", "")
+                        leg_action = leg.get("side", leg.get("action", "BUY")).upper()  # Try "side" first, fallback to "action"
+                        leg_quantity = leg.get("quantity", 1)
+                        
+                        # Parse expiration date
+                        if isinstance(exp_date_str, str):
+                            exp_date = datetime.fromisoformat(exp_date_str.replace('Z', '+00:00'))
+                        else:
+                            exp_date = exp_date_str
+                        
+                        # Build OCC symbol for this leg
+                        symbol_part = underlying.ljust(6)[:6].replace(' ', '')
+                        date_part = exp_date.strftime("%y%m%d")
+                        type_part = "C" if option_type.upper() == "CALL" else "P"
+                        strike_part = f"{int(strike_price * 1000):08d}"
+                        occ_symbol = f"{symbol_part}{date_part}{type_part}{strike_part}"
+                        
+                        option_legs.append({
+                            "instrument": {
+                                "symbol": occ_symbol,
+                                "type": "OPTION"
+                            },
+                            "side": leg_action,  # BUY or SELL (not "orderSide")
+                            "ratioQuantity": int(leg_quantity),  # Integer, not string (and "ratioQuantity" not "quantity")
+                            "openCloseIndicator": "OPEN"  # Opening new spread
+                        })
+                        
+                        logger.info(f"🔧 Leg {len(option_legs)}: {leg_action} {occ_symbol} ({underlying} {option_type} ${strike_price})")
+                    
+                    # Multi-leg spread payload for Public.com /order/multileg endpoint
+                    # Calculate net debit from leg premiums (real market prices)
+                    # legs is a list of dicts with 'premium', 'action', etc.
+                    long_premium = sum(leg.get("premium", 0) for leg in legs if leg.get("side") == "buy")
+                    short_premium = sum(leg.get("premium", 0) for leg in legs if leg.get("side") == "sell")
+                    net_debit_per_share = long_premium - short_premium
+                    
+                    # Add 20% buffer to account for spread widening and ensure fill
+                    limit_price_per_share = net_debit_per_share * 1.20
+                    
+                    logger.info(f"💰 Spread pricing: Long premium=${long_premium:.2f}, Short premium=${short_premium:.2f}")
+                    logger.info(f"💰 Net debit=${net_debit_per_share:.2f}/share, Limit=${limit_price_per_share:.2f}/share")
+                    
+                    order_payload = {
+                        "orderId": order_id,
+                        "legs": option_legs,  # Array of legs
+                        "type": "LIMIT",  # Spreads must use LIMIT, not MARKET
+                        "limitPrice": f"{limit_price_per_share:.2f}",  # Per-share net debit with 10% buffer
+                        "quantity": str(legs[0].get("quantity", 1)),  # Top-level quantity (string)
+                        "expiration": {
+                            "timeInForce": order_data.get("time_in_force", "day").upper()
+                        }
+                    }
+                else:
+                    # SINGLE-LEG OPTION FORMAT
+                    first_leg = legs[0]
+                    option_type = first_leg.get("option_type", "CALL")
+                    strike_price = float(first_leg.get("strike_price", 0))
+                    exp_date_str = first_leg.get("expiration_date", "")
+                    
+                    # Parse expiration date
+                    from datetime import datetime
+                    if isinstance(exp_date_str, str):
+                        exp_date = datetime.fromisoformat(exp_date_str.replace('Z', '+00:00'))
+                    else:
+                        exp_date = exp_date_str
+                    
+                    # Determine if opening or closing position
+                    side = order_data.get("side", "buy").upper()
+                    open_close = "OPEN" if side == "BUY" else "CLOSE"
+                    
+                    # Build OCC symbol WITHOUT spaces
+                    symbol_part = underlying.ljust(6)[:6].replace(' ', '')  # Remove padding spaces
+                    date_part = exp_date.strftime("%y%m%d")
+                    type_part = "C" if option_type.upper() == "CALL" else "P"
+                    strike_part = f"{int(strike_price * 1000):08d}"
+                    occ_symbol = f"{symbol_part}{date_part}{type_part}{strike_part}"
+                    
+                    logger.info(f"🔧 OCC Symbol: {occ_symbol} | {underlying} {option_type} ${strike_price} exp {exp_date.strftime('%Y-%m-%d')} ({open_close})")
+                    
+                    # Single-leg option order format for /order endpoint
+                    order_payload = {
+                        "orderId": order_id,
+                        "instrument": {
+                            "symbol": occ_symbol,  # OCC format without spaces
+                            "type": "OPTION"
+                        },
+                        "orderSide": side,  # BUY or SELL
+                        "orderType": order_data.get("type", "market").upper(),  # MARKET or LIMIT
+                        "expiration": {
+                            "timeInForce": order_data.get("time_in_force", "day").upper()
+                        },
+                        "quantity": str(first_leg.get("quantity", 1)),  # Must be string for /order endpoint
+                        "openCloseIndicator": open_close  # OPEN or CLOSE
+                    }
+            else:
+                # Equity order format
+                order_payload = {
+                    "orderId": order_id,
+                    "instrument": {
+                        "symbol": order_data.get("symbol"),
+                        "type": "EQUITY"  # EQUITY for stocks, OPTION for options
+                    },
+                    "orderSide": order_data.get("side", "buy").upper(),  # BUY or SELL
+                    "orderType": order_data.get("type", "market").upper(),  # MARKET or LIMIT
+                    "expiration": {
+                        "timeInForce": order_data.get("time_in_force", "day").upper()  # DAY, GTC, etc.
+                    },
+                    "quantity": str(order_data.get("quantity", 1))  # Must be string
+                }
             
             # Add limitPrice for limit orders
-            if order_payload["orderType"] == "LIMIT" and "price" in order_data:
+            order_type_key = "type" if is_options_order else "orderType"
+            if order_payload.get(order_type_key) == "LIMIT" and "price" in order_data:
                 order_payload["limitPrice"] = str(order_data["price"])
+            
+            # Log the order payload for debugging
+            logger.info(f"Submitting {'OPTIONS' if is_options_order else 'EQUITY'} order to Public.com: {order_payload}")
             
             # Create a new client with fresh headers for each order to avoid WAF detection
             order_headers = {
@@ -373,14 +545,18 @@ class PublicAPIClient:
                 "X-Device-Id": "trading-bot-device-001"
             }
             
-            # Submit order using /trading/{account_id}/order endpoint per Public.com API docs
-            # Documentation: https://public.com/api/docs/templates/place-equity-order
+            # Use /order endpoint for single-leg (both equity and options)
+            # Use /order/multileg only for multi-leg spreads (2-6 legs)
+            num_legs = len(legs) if legs else 0
+            endpoint = f"/trading/{account_id}/order/multileg" if num_legs >= 2 else f"/trading/{account_id}/order"
+            
             logger.info(f"Submitting order to Public.com (account {account_id}): {order_payload}")
             logger.info(f"🔑 Using access_token (preview): {self.access_token[:30] if self.access_token else 'NONE'}...")
             logger.info(f"🔑 Auth header will be: Bearer {self.access_token[:20] if self.access_token else 'NONE'}...")
+            logger.info(f"📍 Endpoint: {endpoint}")
             
             response = await self.client.post(
-                f"/trading/{account_id}/order",  # Note: singular 'order', not 'orders'
+                endpoint,
                 json=order_payload,
                 headers=order_headers
             )
@@ -483,13 +659,15 @@ class PublicAPIClient:
     
     async def get_positions(self, account_id: str) -> Dict[str, Any]:
         """
-        Get current positions from Public.com.
+        Get current positions from Public.com using portfolio/v2 endpoint.
+        
+        This endpoint returns both stock and options positions.
         
         Args:
             account_id: Public.com account ID
             
         Returns:
-            Positions information
+            Portfolio information including positions, orders, equity, buying power
             
         Raises:
             Exception: If not authenticated or API call fails
@@ -498,20 +676,29 @@ class PublicAPIClient:
             raise Exception("Not authenticated")
         
         try:
-            response = await self.client.get(f"/accounts/{account_id}/positions")
+            # Use portfolio/v2 endpoint for complete portfolio data
+            response = await self.client.get(f"/trading/{account_id}/portfolio/v2")
             response.raise_for_status()
             
-            positions_data = response.json()
-            logger.info(f"Retrieved {len(positions_data.get('positions', []))} positions")
+            portfolio_data = response.json()
+            positions = portfolio_data.get('positions', [])
             
-            return positions_data
+            # Log summary
+            stock_positions = [p for p in positions if p.get('instrument', {}).get('type') == 'EQUITY']
+            option_positions = [p for p in positions if p.get('instrument', {}).get('type') == 'OPTION']
+            
+            logger.info(f"Retrieved {len(positions)} total positions from Public.com")
+            logger.info(f"  📈 Stock positions: {len(stock_positions)}")
+            logger.info(f"  📊 Options positions: {len(option_positions)}")
+            
+            return portfolio_data
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"Get positions failed with status {e.response.status_code}: {e.response.text}")
-            raise Exception(f"Get positions failed: {e.response.text}")
+            logger.error(f"Get portfolio failed with status {e.response.status_code}: {e.response.text}")
+            raise Exception(f"Get portfolio failed: {e.response.text}")
         except Exception as e:
-            logger.error(f"Get positions error: {str(e)}")
-            raise Exception(f"Get positions error: {str(e)}")
+            logger.error(f"Get portfolio error: {str(e)}")
+            raise Exception(f"Get portfolio error: {str(e)}")
     
     async def get_market_data(self, symbol: str, data_type: str = "quote") -> Dict[str, Any]:
         """

@@ -1,0 +1,119 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paper-trading-k8s
+  namespace: trading-system
+  labels:
+    app: paper-trading-k8s
+    environment: paper
+    strategy: MultiStrategyEnsemble
+    component: live-trading
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paper-trading-k8s
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: paper-trading-k8s
+        environment: paper
+        strategy: MultiStrategyEnsemble
+    spec:
+      containers:
+      - name: paper-trading-k8s
+        image: localhost:32000/live-trading-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          value: "paper"
+        - name: TRADING_MODE
+          value: "paper"
+        # API Keys from secrets
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: polygon-api-key
+              key: api-key
+        # Encryption key for API credentials (from secret)
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: live-trading-encryption-key
+              key: encryption-key
+        # Database connection (postgres-infra namespace)
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://postgres:postgres@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
+        # Redis connection
+        - name: REDIS_URL
+          value: "redis://redis.trading-system.svc.cluster.local:6379"
+        # Feature flags
+        - name: ENABLE_LLM_EVALUATION
+          value: "false"
+        - name: DISABLE_AI_SERVICES
+          value: "true"
+        - name: DISABLE_OLLAMA
+          value: "true"
+        - name: DISABLE_TRADE_EVALUATOR
+          value: "true"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: config-volume
+        configMap:
+          name: multi-strategy-ensemble-paper-config
+      - name: logs-volume
+        emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paper-trading-k8s-service
+  namespace: trading-system
+  labels:
+    app: paper-trading-k8s
+    component: live-trading
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: paper-trading-k8s
+
+
+
+
+
+
+
+
+
+
+
+

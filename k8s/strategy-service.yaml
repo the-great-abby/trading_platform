@@ -26,9 +26,9 @@ spec:
           name: http
         env:
         - name: DATABASE_URL
-          value: "postgresql://trading_user:trading_pass@timescaledb.trading-system.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:postgres@postgres-timescale.postgres-infra.svc.cluster.local:5432/trading_bot"
         - name: REDIS_URL
-          value: "redis://redis.trading-system.svc.cluster.local:6379"
+          value: "redis://redis.redis.svc.cluster.local:6379"
         - name: OLLAMA_URL
           value: "http://host.docker.internal:11434"
         - name: LOG_LEVEL
@@ -88,7 +88,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 80
+  - port: 11001
     targetPort: 8000
     protocol: TCP
     name: http

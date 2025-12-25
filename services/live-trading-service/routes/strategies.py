@@ -311,7 +311,7 @@ async def execute_strategy(
                 detail=f"Invalid strategy name: {execution_request.strategy_name}"
             )
         
-        # Check if account exists and is authenticated (get newest valid token)
+        # Check if account exists and is authenticated (get newest token, even if expired - we'll refresh it)
         result = await db.execute(text("""
             SELECT 
                 a.public_account_id,
@@ -322,7 +322,6 @@ async def execute_strategy(
             JOIN api_credentials c ON a.account_id = c.account_id
             WHERE a.account_id = :account_id 
                 AND c.is_active = true
-                AND (c.token_expires_at IS NULL OR c.token_expires_at > NOW())
             ORDER BY c.created_at DESC
             LIMIT 1
         """), {"account_id": account_id})

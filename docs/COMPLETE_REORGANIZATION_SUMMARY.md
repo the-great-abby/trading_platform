@@ -234,7 +234,7 @@ old-*/
 # These still work:
 pip install -r requirements.txt
 make test-run
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 make live-trading-service-status
 ```
 
@@ -280,7 +280,7 @@ make docker-stats
 
 # 4. Test Makefile targets
 make test-help
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 
 # 5. Verify requirements
 pip install -r requirements.txt --dry-run

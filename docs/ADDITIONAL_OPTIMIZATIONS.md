@@ -448,7 +448,7 @@ make test-run
 python backtests/clean_backtest.py
 
 # View results
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 ```
 
 ## 📚 Documentation

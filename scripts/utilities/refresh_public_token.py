@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class PublicTokenRefresher:
     def __init__(self):
         self.live_trading_url = "http://localhost:11120"
-        self.account_id = "19c25392-8b61-4b71-a344-0eb04d275528"
+        self.account_id = "25cad391-6f18-44a5-9d1d-9caa73d99593"  # Updated after system restoration
         
         # Load environment variables
         load_dotenv()

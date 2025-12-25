@@ -186,6 +186,10 @@ build_all_services() {
         "ai-analysis-service:services/ai-analysis-service"
         "backtest-api:services/backtest-api"
         "strategy-service:services/strategy-service"
+        "live-trading-service:services/live-trading-service"
+        "elliott-wave-service:services/elliott-wave-service"
+        "rss-feed-service:services/rss-feed-service"
+        "analytics-service:services/analytics-service"
         "unified-analytics-dashboard:services/unified-analytics-dashboard"
         "unified-trading-dashboard:services/unified-trading-dashboard"
         "unified-news-dashboard:services/unified-news-dashboard"
@@ -214,6 +218,10 @@ push_all_services() {
         "ai-analysis-service"
         "backtest-api"
         "strategy-service"
+        "live-trading-service"
+        "elliott-wave-service"
+        "rss-feed-service"
+        "analytics-service"
         "unified-analytics-dashboard"
         "unified-trading-dashboard"
         "unified-news-dashboard"
@@ -240,6 +248,10 @@ deploy_all_services() {
         "ai-analysis-service"
         "backtest-api"
         "strategy-service"
+        "live-trading-service"
+        "elliott-wave-service"
+        "rss-feed-service"
+        "analytics-service"
         "unified-analytics-dashboard"
         "unified-trading-dashboard"
         "unified-news-dashboard"
@@ -315,6 +327,10 @@ clean_all_services() {
         "ai-analysis-service"
         "backtest-api"
         "strategy-service"
+        "live-trading-service"
+        "elliott-wave-service"
+        "rss-feed-service"
+        "analytics-service"
         "unified-analytics-dashboard"
         "unified-trading-dashboard"
         "unified-news-dashboard"
@@ -398,6 +414,10 @@ show_usage() {
     echo "  ai-analysis-service            AI Analysis Service"
     echo "  backtest-api                   Backtest API"
     echo "  strategy-service               Strategy Service"
+    echo "  live-trading-service           Live Trading Service"
+    echo "  elliott-wave-service           Elliott Wave Service"
+    echo "  rss-feed-service               RSS Feed Service"
+    echo "  analytics-service              Analytics Service"
     echo "  unified-analytics-dashboard    Unified Analytics Dashboard"
     echo "  unified-trading-dashboard      Unified Trading Dashboard"
     echo "  unified-news-dashboard         Unified News Dashboard"
@@ -441,6 +461,18 @@ get_service_path() {
             ;;
         "unified-news-dashboard")
             echo "services/unified-news-dashboard"
+            ;;
+        "live-trading-service")
+            echo "services/live-trading-service"
+            ;;
+        "elliott-wave-service")
+            echo "services/elliott-wave-service"
+            ;;
+        "rss-feed-service")
+            echo "services/rss-feed-service"
+            ;;
+        "analytics-service")
+            echo "services/analytics-service"
             ;;
         *)
             print_error "Unknown service: $service_name"

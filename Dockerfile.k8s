@@ -15,14 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
-# Ensure test scripts are present
-COPY run/run_test_datetime_fix_backtest.py /app/
-COPY run/run_1year_ultra_extreme_backtest.py /app/
-COPY run/run_1year_ultra_extreme_backtest_fixed.py /app/
-COPY run/run_1year_ultra_extreme_backtest_corrected.py /app/
+# Note: Old backtest scripts removed (not needed for live trading service)
 
-# Make CQRS API startup script executable
-RUN chmod +x src/api/start_cqrs_api.py
+# Note: chmod removed (not all services have the same structure)
 
 # Create config and logs directories
 RUN mkdir -p /app/config /app/logs

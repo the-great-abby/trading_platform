@@ -106,9 +106,9 @@ sequenceDiagram
 
 ### 4. Management Interface
 - ✅ `Makefile.live-trading` with 30+ commands
-- ✅ Emergency stop: `make -f Makefile.live-trading emergency-stop`
-- ✅ Status checking: `make -f Makefile.live-trading status-auto-trading`
-- ✅ Log monitoring: `make -f Makefile.live-trading logs-auto-trading-live`
+- ✅ Emergency stop: `make -f makefiles/Makefile.live-trading emergency-stop`
+- ✅ Status checking: `make -f makefiles/Makefile.live-trading status-auto-trading`
+- ✅ Log monitoring: `make -f makefiles/Makefile.live-trading logs-auto-trading-live`
 - ✅ Risk limit presets (conservative/moderate/aggressive)
 - ✅ Trading mode switching (paper/live)
 
@@ -203,27 +203,27 @@ While Public.com integration is being resolved, your system:
 
 ```bash
 # See all commands
-make -f Makefile.live-trading help
+make -f makefiles/Makefile.live-trading help
 
 # Emergency stop (works instantly)
-make -f Makefile.live-trading emergency-stop
+make -f makefiles/Makefile.live-trading emergency-stop
 
 # Check what it's finding
-make -f Makefile.live-trading status-auto-trading
+make -f makefiles/Makefile.live-trading status-auto-trading
 
 # Monitor in real-time
-make -f Makefile.live-trading logs-auto-trading-live
+make -f makefiles/Makefile.live-trading logs-auto-trading-live
 
 # Switch modes
-make -f Makefile.live-trading set-paper-mode
-make -f Makefile.live-trading set-live-mode
+make -f makefiles/Makefile.live-trading set-paper-mode
+make -f makefiles/Makefile.live-trading set-live-mode
 
 # Adjust risk
-make -f Makefile.live-trading set-risk-conservative
-make -f Makefile.live-trading set-risk-moderate
+make -f makefiles/Makefile.live-trading set-risk-conservative
+make -f makefiles/Makefile.live-trading set-risk-moderate
 
 # Test execution
-make -f Makefile.live-trading test-execution
+make -f makefiles/Makefile.live-trading test-execution
 ```
 
 ---

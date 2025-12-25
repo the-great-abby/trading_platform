@@ -7,9 +7,9 @@ metadata:
     app: order-sync-worker
     component: live-trading
 spec:
-  # Run every 2 minutes, 24/7 (orders can fill outside market hours)
+  # Run every 2 minutes during market hours (9:30 AM - 4:00 PM ET)
   # Cron format: minute hour day month day-of-week
-  schedule: "*/2 * * * *"  # Every 2 minutes, 24/7
+  schedule: "*/2 7-14 * * 1-5"  # Every 2 minutes, 9 AM - 4 PM, Mon-Fri
   
   # Keep last 3 successful jobs for debugging
   successfulJobsHistoryLimit: 3

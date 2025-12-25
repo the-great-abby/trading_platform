@@ -17,10 +17,11 @@ strategies:
     enabled: true
     name: MultiStrategyEnsemble
     strategy_weights:
-      adaptive_wave: 0.4
-      regime_switching: 0.25
-      enhanced_multi: 0.25
-      momentum: 0.1
+      adaptive_wave: 0.30
+      regime_switching: 0.20
+      enhanced_multi: 0.20
+      momentum: 0.15
+      zero_dte: 0.15
     adaptive_wave:
       elliott_wave_min_confidence: 0.05
       ichimoku_min_confidence: 0.05
@@ -28,6 +29,37 @@ strategies:
       max_daily_loss_pct: 0.02
       disable_engine_stop_loss: true
       disable_engine_take_profit: true
+    zero_dte:
+      enabled: true
+      # Use credit spreads instead of naked calls
+      strategy_type: "credit_spread"  # Options: "covered_call", "credit_spread"
+      spread_width: 5.0  # $5 width for spreads
+      
+      # Delta targeting for SHORT leg
+      delta_lo: 0.15
+      delta_hi: 0.35
+      
+      # OTM percentage for SHORT leg
+      min_otm_pct: 0.00
+      max_otm_pct: 0.03
+      
+      # Quality filters
+      min_bid: 0.05
+      min_open_interest: 1
+      max_spread_to_mid: 0.75
+      min_pop: 0.55  # Minimum 55% probability of profit
+      
+      # Position limits
+      max_contracts_per_trade: 2
+      min_credit: 0.10  # Minimum $0.10 credit per spread
+      max_risk_per_spread: 500  # Max $500 risk per spread
+      
+      # Trading hours (market hours only)
+      market_hours_only: true
+      trading_start_hour: 9
+      trading_start_minute: 45
+      trading_end_hour: 15
+      trading_end_minute: 45
     market_regime_detection:
       enabled: true
       position_multipliers:
@@ -94,12 +126,12 @@ risk_management:
   stress_test_enabled: true
   scenario_analysis_enabled: true
   circuit_breaker_enabled: true
-  circuit_breaker_threshold: 0.05
+  circuit_breaker_threshold: 0.08
 monitoring:
   enabled: true
   performance_targets:
     annual_return_target: 1.0
-    max_drawdown_limit: 0.05
+    max_drawdown_limit: 0.08
     sharpe_ratio_target: 1.5
     win_rate_target: 0.7
   alerts:

@@ -20,7 +20,7 @@ Most backtests can be run directly:
 python backtests/clean_backtest.py
 
 # Or use Makefile targets
-make -f Makefile.backtesting run-backtest
+make -f makefiles/Makefile.backtesting run-backtest
 ```
 
 ## Backtest Categories

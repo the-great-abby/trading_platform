@@ -1,0 +1,119 @@
+# Makefile for Fundamental Analysis Service
+# Manages deployment, testing, and operations of the fundamental analysis service
+
+.PHONY: help build deploy restart logs demo test clean
+
+# Configuration
+SERVICE_NAME := fundamental-analysis-service
+NAMESPACE := trading-system
+IMAGE_NAME := localhost:32000/$(SERVICE_NAME):latest
+PORT := 11090
+
+help:
+	@echo "Fundamental Analysis Service Management"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  build          - Build and push Docker image"
+	@echo "  deploy         - Deploy service to Kubernetes"
+	@echo "  restart        - Restart the service"
+	@echo "  logs           - Show service logs"
+	@echo "  port-forward   - Forward service port to localhost"
+	@echo "  demo           - Run demonstration scripts"
+	@echo "  test-ratios    - Test ratios endpoint"
+	@echo "  test-screen    - Test screening endpoint"
+	@echo "  clean          - Remove service from cluster"
+	@echo "  status         - Show service status"
+
+build:
+	@echo "Building $(SERVICE_NAME)..."
+	docker build -f services/$(SERVICE_NAME)/Dockerfile \
+		-t $(IMAGE_NAME) \
+		.
+	@echo "Pushing image to registry..."
+	docker push $(IMAGE_NAME)
+	@echo "✅ Build complete!"
+
+deploy: build
+	@echo "Deploying $(SERVICE_NAME)..."
+	kubectl apply -f k8s/$(SERVICE_NAME).yaml
+	@echo "Waiting for deployment to be ready..."
+	kubectl wait --for=condition=available --timeout=120s \
+		deployment/$(SERVICE_NAME) -n $(NAMESPACE) || true
+	@echo "✅ Deployment complete!"
+	@$(MAKE) status
+
+restart:
+	@echo "Restarting $(SERVICE_NAME)..."
+	kubectl rollout restart deployment/$(SERVICE_NAME) -n $(NAMESPACE)
+	kubectl rollout status deployment/$(SERVICE_NAME) -n $(NAMESPACE)
+	@echo "✅ Restart complete!"
+
+logs:
+	@echo "Showing logs for $(SERVICE_NAME)..."
+	kubectl logs -f -l app=$(SERVICE_NAME) -n $(NAMESPACE) --tail=100
+
+port-forward:
+	@echo "Port forwarding $(SERVICE_NAME) to localhost:$(PORT)..."
+	@echo "Service will be available at http://localhost:$(PORT)"
+	@echo "Health check: http://localhost:$(PORT)/health"
+	@echo "API docs: http://localhost:$(PORT)/docs"
+	kubectl port-forward -n $(NAMESPACE) svc/$(SERVICE_NAME) $(PORT):$(PORT)
+
+status:
+	@echo "=== $(SERVICE_NAME) Status ==="
+	@kubectl get deployment $(SERVICE_NAME) -n $(NAMESPACE) 2>/dev/null || echo "❌ Deployment not found"
+	@kubectl get pods -l app=$(SERVICE_NAME) -n $(NAMESPACE) 2>/dev/null || echo "❌ No pods found"
+	@kubectl get svc $(SERVICE_NAME) -n $(NAMESPACE) 2>/dev/null || echo "❌ Service not found"
+
+demo:
+	@echo "Running fundamental analysis demos..."
+	@echo ""
+	@echo "1. Comprehensive Analysis Demo"
+	python demo/demo_fundamental_analysis.py
+	@echo ""
+	@echo "2. Screener Demo"
+	python demo/demo_fundamental_screener.py
+	@echo ""
+	@echo "✅ Demos complete!"
+
+test-ratios:
+	@echo "Testing ratios endpoint..."
+	@curl -s http://localhost:$(PORT)/api/v1/ratios/AAPL | python -m json.tool || \
+		echo "❌ Service not accessible. Run 'make port-forward' first"
+
+test-screen:
+	@echo "Testing screening endpoint..."
+	@curl -s -X POST http://localhost:$(PORT)/api/v1/screening/screen \
+		-H "Content-Type: application/json" \
+		-d '{"tickers":["AAPL","MSFT","GOOGL"],"preset":"quality_stocks","min_score":50}' | \
+		python -m json.tool || \
+		echo "❌ Service not accessible. Run 'make port-forward' first"
+
+test-health:
+	@echo "Testing health endpoint..."
+	@curl -s http://localhost:$(PORT)/health | python -m json.tool || \
+		echo "❌ Service not accessible. Run 'make port-forward' first"
+
+test-all: test-health test-ratios test-screen
+	@echo "✅ All tests complete!"
+
+clean:
+	@echo "Removing $(SERVICE_NAME) from cluster..."
+	kubectl delete -f k8s/$(SERVICE_NAME).yaml --ignore-not-found
+	@echo "✅ Clean complete!"
+
+# Development targets
+dev-setup:
+	@echo "Setting up development environment..."
+	pip install -r services/$(SERVICE_NAME)/requirements.txt
+	@echo "✅ Development setup complete!"
+
+dev-run:
+	@echo "Running service locally..."
+	cd services/$(SERVICE_NAME) && python main.py
+
+# Quick commands
+quick-deploy: build deploy port-forward
+
+quick-test: test-all demo
+

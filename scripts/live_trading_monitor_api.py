@@ -30,6 +30,11 @@ class TradeRecord:
     pnl: float = 0.0
     portfolio_value: float = 0.0
     trade_id: str = ""
+    status: str = "FILLED"  # FILLED, PENDING, SUBMITTED, etc.
+    option_type: str = None  # CALL/PUT or None for stocks
+    strike_price: float = None
+    expiration_date: str = None
+    rejection_reason: str = None  # Why the trade failed to submit
 
 
 @dataclass
@@ -62,6 +67,9 @@ class LiveTradingMonitor:
         # Trade tracking
         self.trades: List[TradeRecord] = []
         self.recent_trades: deque = deque(maxlen=100)
+        
+        # Rejected trade attempts tracking
+        self.rejected_attempts: List[Dict] = []
         
         # Position tracking
         self.last_positions: List[Dict] = []
@@ -97,7 +105,10 @@ class LiveTradingMonitor:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"{self.live_service_url}/api/v1/trading/orders",
-                    params={"account_id": self.account_id},
+                    params={
+                        "account_id": self.account_id,
+                        # Don't filter by status - show all recent orders (FILLED, PENDING, SUBMITTED)
+                    },
                     timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     if response.status == 200:
@@ -120,7 +131,7 @@ class LiveTradingMonitor:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"{self.live_service_url}/api/v1/trading/positions",
-                    params={"account_id": self.account_id},
+                    params={"account_id": self.account_id, "status_filter": "OPEN"},
                     timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     if response.status == 200:
@@ -164,7 +175,7 @@ class LiveTradingMonitor:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{self.live_service_url}/api/v1/accounts/{self.account_id}/balance",
+                    f"{self.live_service_url}/api/v1/account/balance/{self.account_id}",
                     timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:
                     if response.status == 200:
@@ -181,6 +192,32 @@ class LiveTradingMonitor:
         except Exception as e:
             logger.error(f"Error fetching account balance from API: {e}", exc_info=True)
             return {}
+    
+    async def fetch_rejected_attempts_from_api(self) -> List[Dict]:
+        """Fetch rejected trade attempts from live trading service API"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{self.live_service_url}/api/v1/trading/rejected-attempts",
+                    params={
+                        "account_id": self.account_id,
+                        "limit": 100
+                    },
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('success'):
+                            return data.get('rejected_attempts', [])
+                        else:
+                            logger.warning(f"API returned error: {data.get('error')}")
+                            return []
+                    else:
+                        logger.error(f"Failed to fetch rejected attempts: HTTP {response.status}")
+                        return []
+        except Exception as e:
+            logger.error(f"Error fetching rejected attempts from API: {e}")
+            return []
     
     async def _get_current_price(self, symbol: str) -> float:
         """Get current market price for a symbol from Polygon"""
@@ -227,8 +264,21 @@ class LiveTradingMonitor:
     def convert_api_order_to_trade_record(self, order: Dict) -> TradeRecord:
         """Convert API order to TradeRecord"""
         try:
-            # Parse timestamps
-            created_at = datetime.fromisoformat(order['created_at'].replace('Z', '+00:00'))
+            from datetime import timezone
+            
+            # Parse timestamps - use filled_at if available (shows when trade executed), otherwise created_at
+            # Database stores in UTC, so we need to ensure we treat it as UTC
+            if order.get('filled_at'):
+                timestamp_str = order['filled_at'].replace('Z', '+00:00')
+            else:
+                timestamp_str = order['created_at'].replace('Z', '+00:00')
+            
+            # Parse the timestamp
+            timestamp = datetime.fromisoformat(timestamp_str)
+            
+            # If no timezone info, assume UTC (database default)
+            if timestamp.tzinfo is None:
+                timestamp = timestamp.replace(tzinfo=timezone.utc)
             
             # For live_trades, we calculate P&L based on current price vs entry price
             # For now, use 0 as we'll calculate from positions
@@ -238,7 +288,7 @@ class LiveTradingMonitor:
             action = order.get('action', 'BUY')
             
             return TradeRecord(
-                timestamp=created_at,
+                timestamp=timestamp,
                 symbol=order['symbol'],
                 action=action,
                 quantity=int(order['quantity']),
@@ -246,7 +296,12 @@ class LiveTradingMonitor:
                 strategy=order.get('strategy', 'UNKNOWN'),
                 pnl=pnl,
                 portfolio_value=self.current_value,
-                trade_id=order.get('order_id', order.get('trade_id', ''))
+                trade_id=order.get('order_id', order.get('trade_id', '')),
+                status=order.get('status', 'UNKNOWN'),
+                option_type=order.get('option_type'),
+                strike_price=float(order.get('strike_price')) if order.get('strike_price') else None,
+                expiration_date=order.get('expiration_date'),
+                rejection_reason=order.get('rejection_reason')
             )
         except Exception as e:
             logger.error(f"Error converting order to trade record: {e}")
@@ -279,6 +334,9 @@ class LiveTradingMonitor:
             # Fetch positions from API
             positions = await self.fetch_positions_from_api()
             
+            # Fetch rejected trade attempts
+            self.rejected_attempts = await self.fetch_rejected_attempts_from_api()
+            
             # Update positions with real-time prices
             for position in positions:
                 if position.get('status') == 'OPEN':
@@ -293,18 +351,16 @@ class LiveTradingMonitor:
             
             self.last_positions = positions  # Store for display
             
-            # Convert orders to trade records
+            # Convert orders to trade records (already filtered to FILLED orders)
             new_trades = []
             for order in orders:
-                # Only count FILLED orders as trades
-                if order.get('status') == 'FILLED':
-                    trade_record = self.convert_api_order_to_trade_record(order)
-                    if trade_record:
-                        new_trades.append(trade_record)
+                trade_record = self.convert_api_order_to_trade_record(order)
+                if trade_record:
+                    new_trades.append(trade_record)
             
-            # Update trades list
+            # Update trades list (API returns newest first, so we keep them in that order)
             self.trades = new_trades
-            self.recent_trades = deque(new_trades[-100:], maxlen=100)
+            self.recent_trades = deque(new_trades[:100], maxlen=100)  # Take first 100 (newest)
             
             # Update counters
             self.total_trades = len(self.trades)
@@ -411,7 +467,7 @@ class LiveTradingMonitor:
             'today_trades': self.today_trades,
             'today_pnl': self.today_pnl,
             'strategies': list(self.strategy_performance.keys()),
-            'recent_trades': [trade.__dict__ for trade in list(self.recent_trades)[-10:]],
+            'recent_trades': [trade.__dict__ for trade in list(self.recent_trades)[:10]],  # First 10 (newest)
             'last_update': self.last_update.isoformat(),
             'live_service_url': self.live_service_url
         }
@@ -499,15 +555,150 @@ class LiveTradingMonitor:
                 print(f"    Trades: {strategy.total_trades} | Win Rate: {strategy.win_rate:.1%}")
                 print(f"    P&L: ${strategy.total_pnl:.2f} | Avg Win: ${strategy.avg_win:.2f} | Avg Loss: ${strategy.avg_loss:.2f}")
         
+        # Show rejected trade attempts if any
+        if self.rejected_attempts:
+            print(f"\n🚫 Recent Rejected Trade Attempts ({len(self.rejected_attempts)}):")
+            
+            # Import Mountain timezone
+            import pytz
+            mountain_tz = pytz.timezone('America/Denver')
+            
+            # Show up to 10 most recent rejections
+            for attempt in self.rejected_attempts[:10]:
+                try:
+                    from datetime import timezone
+                    attempt_time = datetime.fromisoformat(attempt['created_at'].replace('Z', '+00:00'))
+                    
+                    # Ensure it has timezone info (assume UTC if not)
+                    if attempt_time.tzinfo is None:
+                        attempt_time = attempt_time.replace(tzinfo=timezone.utc)
+                    
+                    # Convert to Mountain Time (MST/MDT)
+                    attempt_time = attempt_time.astimezone(mountain_tz)
+                    
+                    # Get timezone name (will show MST or MDT depending on daylight saving)
+                    tz_name = attempt_time.strftime('%Z')  # MST or MDT
+                    time_str = f"{attempt_time.strftime('%H:%M:%S')} {tz_name}"
+                    
+                    symbol = attempt['symbol']
+                    action = attempt['action']
+                    strategy = attempt['strategy']
+                    rejection_reason = attempt['rejection_reason']
+                    rejection_category = attempt['rejection_category']
+                    confidence_score = attempt.get('confidence_score')
+                    
+                    # Choose icon based on rejection category
+                    if rejection_category == "BUYING_POWER":
+                        icon = "💸"
+                    elif rejection_category == "RISK":
+                        icon = "⚠️"
+                    elif rejection_category == "CONFIDENCE":
+                        icon = "📉"
+                    elif rejection_category == "POSITION_EXISTS":
+                        icon = "🔄"
+                    elif rejection_category == "VALIDATION":
+                        icon = "❌"
+                    else:
+                        icon = "🚫"
+                    
+                    # Build display string
+                    confidence_str = f" (confidence: {confidence_score:.2f})" if confidence_score else ""
+                    
+                    print(f"  {icon} {time_str} | {symbol} | {strategy} | {action}{confidence_str}")
+                    print(f"     Reason: {rejection_reason}")
+                    
+                except Exception as e:
+                    logger.error(f"Error displaying rejected attempt: {e}")
+        
         if status['recent_trades']:
             print(f"\n📈 Recent Trades:")
-            for trade in status['recent_trades'][-5:]:  # Show last 5 trades
+            
+            # Import Mountain timezone
+            import pytz
+            mountain_tz = pytz.timezone('America/Denver')
+            
+            for trade in status['recent_trades'][:5]:  # Show first 5 (newest) trades
                 if isinstance(trade['timestamp'], str):
+                    from datetime import timezone
                     trade_time = datetime.fromisoformat(trade['timestamp'].replace('Z', '+00:00'))
+                    # Ensure it has timezone info (assume UTC if not)
+                    if trade_time.tzinfo is None:
+                        trade_time = trade_time.replace(tzinfo=timezone.utc)
                 else:
                     trade_time = trade['timestamp']
-                print(f"  {trade_time.strftime('%H:%M:%S')} | {trade['symbol']} | {trade['strategy']} | "
-                      f"{trade['quantity']} @ ${trade['price']:.2f} | P&L: ${trade['pnl']:.2f}")
+                
+                # Convert to Mountain Time (MST/MDT)
+                if trade_time.tzinfo is not None:
+                    trade_time = trade_time.astimezone(mountain_tz)
+                
+                # Show trade with status indicator
+                order_status = trade.get('status', 'UNKNOWN')
+                rejection_reason = trade.get('rejection_reason')
+                
+                # Determine status icon - check for rejection reasons
+                if order_status == 'FILLED':
+                    status_icon = "✅"
+                elif rejection_reason:
+                    # Has rejection reason - show as failed
+                    status_icon = "🚫"
+                elif order_status in ['PENDING', 'SUBMITTED']:
+                    status_icon = "⏳"
+                elif order_status == 'CANCELLED':
+                    status_icon = "❌"
+                else:
+                    status_icon = "❓"
+                
+                # Build trade description
+                symbol_display = trade['symbol']
+                option_type = trade.get('option_type')
+                strike_price = trade.get('strike_price')
+                expiration_date = trade.get('expiration_date')
+                
+                # Check if it's an option trade
+                if option_type and strike_price:
+                    # Format expiration date
+                    if expiration_date:
+                        try:
+                            exp_dt = datetime.fromisoformat(expiration_date.replace('Z', '+00:00'))
+                            exp_str = exp_dt.strftime('%m/%d/%y')
+                        except:
+                            exp_str = expiration_date[:10] if len(expiration_date) >= 10 else expiration_date
+                    else:
+                        exp_str = "??/??/??"
+                    
+                    # Format as: SYMBOL $STRIKE CALL/PUT EXP
+                    symbol_display = f"📊 {symbol_display} ${strike_price:.0f} {option_type} {exp_str}"
+                else:
+                    # Stock trade
+                    symbol_display = f"📈 {symbol_display}"
+                
+                # Build status display with rejection reason if present
+                if rejection_reason:
+                    # Extract key error message from rejection reason
+                    error_msg = rejection_reason
+                    # Try to extract the message part if it's JSON-like
+                    if '"message"' in error_msg:
+                        import re
+                        match = re.search(r'"message":"([^"]+)"', error_msg)
+                        if match:
+                            error_msg = match.group(1)
+                    # Truncate if too long
+                    if len(error_msg) > 60:
+                        error_msg = error_msg[:57] + "..."
+                    status_display = f"FAILED: {error_msg}"
+                else:
+                    status_display = f"Status: {order_status}"
+                
+                # Format time with Mountain timezone indicator
+                if trade_time.tzinfo:
+                    # Get timezone name (will show MST or MDT depending on daylight saving)
+                    tz_name = trade_time.strftime('%Z')  # MST or MDT
+                    time_str = f"{trade_time.strftime('%H:%M:%S')} {tz_name}"
+                else:
+                    time_str = trade_time.strftime('%H:%M:%S')
+                
+                print(f"  {status_icon} {time_str} | {symbol_display} | {trade['strategy']} | "
+                      f"{trade['quantity']} @ ${trade['price']:.2f} | {status_display}")
     
     async def run_single(self):
         """Run a single update"""

@@ -190,19 +190,19 @@ While Public.com integration is finalized, your system:
 
 ```bash
 # View all commands
-make -f Makefile.live-trading help
+make -f makefiles/Makefile.live-trading help
 
 # Monitor what it finds
-make -f Makefile.live-trading logs-auto-trading-live
+make -f makefiles/Makefile.live-trading logs-auto-trading-live
 
 # Emergency stop (instant)
-make -f Makefile.live-trading emergency-stop
+make -f makefiles/Makefile.live-trading emergency-stop
 
 # Status check
-make -f Makefile.live-trading status-auto-trading
+make -f makefiles/Makefile.live-trading status-auto-trading
 
 # Switch to live when ready
-make -f Makefile.live-trading set-live-mode
+make -f makefiles/Makefile.live-trading set-live-mode
 ```
 
 ---

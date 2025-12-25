@@ -25,12 +25,13 @@ strategies:
     enabled: true
     name: "MultiStrategyEnsemble"
     
-    # Strategy weights (from 1,100.88% backtest)
+    # Strategy weights (updated with 0-DTE)
     strategy_weights:
-      adaptive_wave: 0.35      # 35% - Elliott Wave + Options
-      regime_switching: 0.25   # 25% - Market timing
-      enhanced_multi: 0.25     # 25% - Sector rotation
+      adaptive_wave: 0.30      # 30% - Elliott Wave + Options
+      regime_switching: 0.20   # 20% - Market timing
+      enhanced_multi: 0.20     # 20% - Sector rotation
       momentum: 0.15           # 15% - Cross-sectional momentum
+      zero_dte: 0.15           # 15% - 0-DTE Options (NEW!)
     
     # Component strategy settings
     adaptive_wave:
@@ -65,6 +66,38 @@ strategies:
       rebalance_frequency: 20
       max_position_size: 0.1
       volatility_adjustment: true
+    
+    zero_dte:
+      enabled: true
+      # Use credit spreads instead of naked calls
+      strategy_type: "credit_spread"  # Options: "covered_call", "credit_spread"
+      spread_width: 5.0  # $5 width for spreads
+      
+      # Delta targeting for SHORT leg
+      delta_lo: 0.15
+      delta_hi: 0.35
+      
+      # OTM percentage for SHORT leg
+      min_otm_pct: 0.00
+      max_otm_pct: 0.03
+      
+      # Quality filters
+      min_bid: 0.05
+      min_open_interest: 1
+      max_spread_to_mid: 0.75
+      min_pop: 0.55  # Minimum 55% probability of profit
+      
+      # Position limits
+      max_contracts_per_trade: 2
+      min_credit: 0.10  # Minimum $0.10 credit per spread
+      max_risk_per_spread: 500  # Max $500 risk per spread
+      
+      # Trading hours (market hours only)
+      market_hours_only: true
+      trading_start_hour: 9
+      trading_start_minute: 45
+      trading_end_hour: 15
+      trading_end_minute: 45
     
     # Performance tracking
     performance_window: 50

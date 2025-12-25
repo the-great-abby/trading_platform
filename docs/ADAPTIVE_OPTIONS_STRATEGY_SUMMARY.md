@@ -138,7 +138,7 @@ Market Analysis Every Day:
 
 ```bash
 # Open dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 Then:
@@ -152,10 +152,10 @@ Then:
 
 ```bash
 # Run adaptive options backtest
-make -f Makefile.backtesting adaptive
+make -f makefiles/Makefile.backtesting adaptive
 
 # View logs
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 ```
 
 ### 3. **Via Kubernetes Job**
@@ -260,10 +260,10 @@ TOTAL ADAPTIVE RETURN: +68%
 
 ```bash
 # Quick test
-make -f Makefile.backtesting adaptive
+make -f makefiles/Makefile.backtesting adaptive
 
 # Or in the dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 # Then select "AdaptiveSectorWave" from Advanced strategies
 ```
 

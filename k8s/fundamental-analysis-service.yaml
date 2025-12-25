@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fundamental-analysis-service
+  namespace: trading-system
+  labels:
+    app: fundamental-analysis-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fundamental-analysis-service
+  template:
+    metadata:
+      labels:
+        app: fundamental-analysis-service
+    spec:
+      containers:
+      - name: fundamental-analysis-service
+        image: localhost:5000/fundamental-analysis-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 11090
+          name: http
+        env:
+        - name: PORT
+          value: "11090"
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: polygon-api-key
+        - name: FUNDAMENTAL_ANALYSIS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 11090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 11090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fundamental-analysis-service
+  namespace: trading-system
+  labels:
+    app: fundamental-analysis-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 11090
+    targetPort: 11090
+    protocol: TCP
+    name: http
+  selector:
+    app: fundamental-analysis-service
+

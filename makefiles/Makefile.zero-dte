@@ -1,0 +1,427 @@
+# ============================================================================
+# 0-DTE Covered Call Screener Makefile
+# ============================================================================
+# Quick access to 0-DTE covered call screening functionality
+#
+# Usage:
+#   make -f makefiles/Makefile.zero-dte screen         # Screen SPY for today
+#   make -f makefiles/Makefile.zero-dte screen-multi   # Screen SPY, QQQ, IWM
+#   make -f makefiles/Makefile.zero-dte screen-wide    # Wider OTM range
+#   make -f makefiles/Makefile.zero-dte mark           # Mark yesterday's P&L
+# ============================================================================
+
+.PHONY: help screen screen-multi screen-wide screen-custom mark info test
+
+# Default target
+help:
+	@echo "📊 0-DTE Covered Call & Credit Spread Screener"
+	@echo "================================================"
+	@echo ""
+	@echo "Covered Call Screening:"
+	@echo "  screen          - Screen SPY for 0-DTE covered calls (need 100 shares)"
+	@echo "  screen-multi    - Screen SPY, QQQ, IWM"
+	@echo "  screen-wide     - Screen with wider OTM range (0-5%)"
+	@echo "  screen-custom   - Screen with custom parameters"
+	@echo ""
+	@echo "💰 Credit Spread Screening (NO STOCK REQUIRED!):"
+	@echo "  spreads         - Screen SPY for 2-point credit spreads"
+	@echo "  spreads-multi   - Screen SPY, QQQ, IWM for spreads"
+	@echo "  spreads-tight   - 1-point spreads (lower risk/reward)"
+	@echo "  spreads-wide    - 3-point spreads (higher risk/reward)"
+	@echo "  spreads-5wide   - 5-point spreads (max risk/reward)"
+	@echo "  spreads-custom  - Custom spread parameters"
+	@echo ""
+	@echo "Other:"
+	@echo "  mark            - Mark realized P&L (requires CSV_PATH and CLOSE_PRICE)"
+	@echo "  info            - Show strategy info"
+	@echo "  test            - Run screener tests"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  SYMBOL          - Single ticker (default: SPY)"
+	@echo "  SYMBOLS         - Multiple tickers (e.g., SPY,QQQ,IWM)"
+	@echo "  DELTA_LO        - Minimum delta (default: 0.15)"
+	@echo "  DELTA_HI        - Maximum delta (default: 0.35)"
+	@echo "  MIN_OTM_PCT     - Minimum OTM % (default: 0.00)"
+	@echo "  MAX_OTM_PCT     - Maximum OTM % (default: 0.03)"
+	@echo "  MIN_BID         - Minimum bid price (default: 0.05)"
+	@echo "  RANK_METRIC     - Ranking metric: premium_yield|max_profit|pop_est|score"
+	@echo "  CSV_PATH        - Path to CSV for marking P&L"
+	@echo "  CLOSE_PRICE     - Closing price for P&L calculation"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make -f makefiles/Makefile.zero-dte screen"
+	@echo "  make -f makefiles/Makefile.zero-dte screen-multi"
+	@echo "  make -f makefiles/Makefile.zero-dte screen-custom SYMBOL=TSLA DELTA_LO=0.20 DELTA_HI=0.40"
+	@echo "  make -f makefiles/Makefile.zero-dte mark CSV_PATH=./data/0dte_covered_calls_2025-10-20.csv CLOSE_PRICE=444.83"
+
+# Configuration
+PYTHON := python3
+SCREENER_SCRIPT := scripts/zero_dte_screener.py
+DATA_DIR := ./data
+
+# Default parameters
+SYMBOL ?= SPY
+SYMBOLS ?= SPY,QQQ,IWM
+DELTA_LO ?= 0.15
+DELTA_HI ?= 0.35
+MIN_OTM_PCT ?= 0.00
+MAX_OTM_PCT ?= 0.03
+MIN_BID ?= 0.05
+MIN_OI ?= 1
+MAX_SPREAD ?= 0.75
+RANK_METRIC ?= premium_yield
+EXPIRATION_DAYS ?= 0
+
+# Credit spread parameters
+SPREAD_WIDTH ?= 2.0
+MIN_CREDIT ?= 0.10
+
+# For marking P&L
+CSV_PATH ?=
+CLOSE_PRICE ?=
+
+# ============================================================================
+# Screening Commands
+# ============================================================================
+
+screen:
+	@echo "🚀 Screening $(SYMBOL) for 0-DTE covered calls..."
+	@echo "Parameters: Delta [$(DELTA_LO)-$(DELTA_HI)], OTM [$(MIN_OTM_PCT)-$(MAX_OTM_PCT)]"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbol $(SYMBOL) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--min-otm-pct $(MIN_OTM_PCT) \
+		--max-otm-pct $(MAX_OTM_PCT) \
+		--min-bid $(MIN_BID) \
+		--min-open-interest $(MIN_OI) \
+		--max-spread-to-mid $(MAX_SPREAD) \
+		--rank-metric $(RANK_METRIC) \
+		--expiration-days $(EXPIRATION_DAYS) \
+		--outdir $(DATA_DIR)
+
+screen-multi:
+	@echo "🚀 Screening multiple tickers: $(SYMBOLS)"
+	@echo "Parameters: Delta [$(DELTA_LO)-$(DELTA_HI)], OTM [$(MIN_OTM_PCT)-$(MAX_OTM_PCT)]"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbols $(SYMBOLS) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--min-otm-pct $(MIN_OTM_PCT) \
+		--max-otm-pct $(MAX_OTM_PCT) \
+		--min-bid $(MIN_BID) \
+		--min-open-interest $(MIN_OI) \
+		--max-spread-to-mid $(MAX_SPREAD) \
+		--rank-metric $(RANK_METRIC) \
+		--outdir $(DATA_DIR)
+
+screen-wide:
+	@echo "🚀 Screening $(SYMBOL) with WIDER OTM range (0-5%)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbol $(SYMBOL) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--min-otm-pct 0.00 \
+		--max-otm-pct 0.05 \
+		--min-bid $(MIN_BID) \
+		--rank-metric $(RANK_METRIC) \
+		--outdir $(DATA_DIR)
+
+screen-tight:
+	@echo "🚀 Screening $(SYMBOL) with TIGHT delta band (25-35 delta)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbol $(SYMBOL) \
+		--delta-lo 0.25 \
+		--delta-hi 0.35 \
+		--min-otm-pct $(MIN_OTM_PCT) \
+		--max-otm-pct $(MAX_OTM_PCT) \
+		--min-bid $(MIN_BID) \
+		--rank-metric $(RANK_METRIC) \
+		--outdir $(DATA_DIR)
+
+screen-aggressive:
+	@echo "🚀 Screening $(SYMBOL) with AGGRESSIVE parameters (higher delta, wider OTM)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbol $(SYMBOL) \
+		--delta-lo 0.35 \
+		--delta-hi 0.55 \
+		--min-otm-pct 0.00 \
+		--max-otm-pct 0.05 \
+		--min-bid 0.10 \
+		--rank-metric max_profit \
+		--outdir $(DATA_DIR)
+
+screen-conservative:
+	@echo "🚀 Screening $(SYMBOL) with CONSERVATIVE parameters (lower delta, tight OTM)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbol $(SYMBOL) \
+		--delta-lo 0.10 \
+		--delta-hi 0.25 \
+		--min-otm-pct 0.02 \
+		--max-otm-pct 0.05 \
+		--min-bid 0.05 \
+		--rank-metric pop_est \
+		--outdir $(DATA_DIR)
+
+screen-custom:
+	@echo "🚀 Screening with CUSTOM parameters"
+	@echo "Symbol: $(SYMBOL)"
+	@echo "Delta: [$(DELTA_LO)-$(DELTA_HI)]"
+	@echo "OTM: [$(MIN_OTM_PCT)-$(MAX_OTM_PCT)]"
+	@echo "Rank by: $(RANK_METRIC)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen \
+		--symbol $(SYMBOL) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--min-otm-pct $(MIN_OTM_PCT) \
+		--max-otm-pct $(MAX_OTM_PCT) \
+		--min-bid $(MIN_BID) \
+		--min-open-interest $(MIN_OI) \
+		--max-spread-to-mid $(MAX_SPREAD) \
+		--rank-metric $(RANK_METRIC) \
+		--outdir $(DATA_DIR)
+
+# ============================================================================
+# P&L Marking Commands
+# ============================================================================
+
+mark:
+	@if [ -z "$(CSV_PATH)" ]; then \
+		echo "❌ Error: CSV_PATH not provided"; \
+		echo "Usage: make -f makefiles/Makefile.zero-dte mark CSV_PATH=./data/0dte_covered_calls_2025-10-20.csv CLOSE_PRICE=444.83"; \
+		exit 1; \
+	fi
+	@if [ -z "$(CLOSE_PRICE)" ]; then \
+		echo "❌ Error: CLOSE_PRICE not provided"; \
+		echo "Usage: make -f makefiles/Makefile.zero-dte mark CSV_PATH=./data/0dte_covered_calls_2025-10-20.csv CLOSE_PRICE=444.83"; \
+		exit 1; \
+	fi
+	@echo "📊 Marking P&L for $(CSV_PATH) with close price $$$(CLOSE_PRICE)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) mark \
+		--csv $(CSV_PATH) \
+		--close-price $(CLOSE_PRICE)
+
+# ============================================================================
+# Utility Commands
+# ============================================================================
+
+info:
+	@echo "📊 0-DTE Covered Call Screener Info"
+	@echo "===================================="
+	@echo ""
+	@echo "Strategy Type: 0-DTE Options Income"
+	@echo "Description: Screens for same-day expiration covered call opportunities"
+	@echo ""
+	@echo "Key Features:"
+	@echo "  • Polygon.io snapshot API integration"
+	@echo "  • Real-time Greeks and IV"
+	@echo "  • Delta-based filtering (15-35 delta sweet spot)"
+	@echo "  • OTM band screening (0-3% above spot)"
+	@echo "  • Spread quality checks"
+	@echo "  • Liquidity filtering"
+	@echo "  • Probability of profit estimation"
+	@echo "  • Premium yield ranking"
+	@echo "  • Mark-to-market P&L tracking"
+	@echo ""
+	@echo "Best For:"
+	@echo "  • Daily income generation"
+	@echo "  • Minimal time decay risk"
+	@echo "  • High-probability trades"
+	@echo "  • Liquid underlyings (SPY, QQQ, IWM)"
+	@echo ""
+	@echo "Requirements:"
+	@echo "  • Polygon.io API key (POLYGON_API_KEY env var)"
+	@echo "  • Options Advanced plan"
+	@echo "  • Stock ownership (100 shares per contract)"
+	@echo ""
+
+list-results:
+	@echo "📁 Recent scan results in $(DATA_DIR):"
+	@echo ""
+	@ls -lht $(DATA_DIR)/0dte_covered_calls_*.csv 2>/dev/null | head -10 || echo "No results found"
+
+clean-results:
+	@echo "🧹 Cleaning old scan results..."
+	@find $(DATA_DIR) -name "0dte_covered_calls_*.csv" -mtime +7 -delete
+	@echo "✅ Removed results older than 7 days"
+
+# ============================================================================
+# Testing Commands
+# ============================================================================
+
+test:
+	@echo "🧪 Running 0-DTE screener tests..."
+	@$(PYTHON) -m pytest tests/test_zero_dte_strategy.py -v
+
+test-integration:
+	@echo "🧪 Running integration tests with live Polygon API..."
+	@$(PYTHON) -m pytest tests/test_zero_dte_integration.py -v
+
+# ============================================================================
+# Cron/Automation Helpers
+# ============================================================================
+
+.PHONY: cron-morning cron-noon cron-close
+
+cron-morning:
+	@echo "🌅 Morning scan (9:45 AM ET recommended)"
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen-multi SYMBOLS="SPY,QQQ,IWM"
+
+cron-noon:
+	@echo "☀️ Midday scan (12:00 PM ET recommended)"
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen-multi SYMBOLS="SPY,QQQ,IWM"
+
+cron-close:
+	@echo "🌆 Near-close scan (3:30 PM ET recommended)"
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen-multi SYMBOLS="SPY,QQQ,IWM" MIN_BID=0.03
+
+# ============================================================================
+# Quick Presets by Underlying
+# ============================================================================
+
+spy:
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen SYMBOL=SPY
+
+qqq:
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen SYMBOL=QQQ
+
+iwm:
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen SYMBOL=IWM
+
+tsla:
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen SYMBOL=TSLA DELTA_LO=0.20 DELTA_HI=0.40 MIN_BID=0.10
+
+aapl:
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen SYMBOL=AAPL
+
+nvda:
+	@$(MAKE) -f makefiles/Makefile.zero-dte screen SYMBOL=NVDA DELTA_LO=0.20 DELTA_HI=0.40 MIN_BID=0.15
+
+# ============================================================================
+# Credit Spread Screening Commands
+# ============================================================================
+
+.PHONY: spreads spreads-multi spreads-tight spreads-wide spreads-5wide spreads-custom
+.PHONY: spreads-spy spreads-qqq spreads-iwm spreads-conservative spreads-aggressive
+
+spreads:
+	@echo "💰 Screening $(SYMBOL) for 2-point credit spreads..."
+	@echo "Parameters: Delta [$(DELTA_LO)-$(DELTA_HI)], Width: $(SPREAD_WIDTH), Min Credit: $$$(MIN_CREDIT)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width $(SPREAD_WIDTH) \
+		--min-credit $(MIN_CREDIT) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--min-otm-pct $(MIN_OTM_PCT) \
+		--max-otm-pct $(MAX_OTM_PCT) \
+		--min-bid $(MIN_BID) \
+		--outdir $(DATA_DIR)
+
+spreads-multi:
+	@echo "💰 Screening multiple tickers for credit spreads: $(SYMBOLS)"
+	@echo "Width: $(SPREAD_WIDTH) | Min Credit: $$$(MIN_CREDIT)"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbols $(SYMBOLS) \
+		--spread-width $(SPREAD_WIDTH) \
+		--min-credit $(MIN_CREDIT) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--outdir $(DATA_DIR)
+
+spreads-tight:
+	@echo "💰 Screening $(SYMBOL) for TIGHT 1-point spreads..."
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width 1.0 \
+		--min-credit 0.08 \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--outdir $(DATA_DIR)
+
+spreads-wide:
+	@echo "💰 Screening $(SYMBOL) for WIDE 3-point spreads..."
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width 3.0 \
+		--min-credit 0.12 \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--outdir $(DATA_DIR)
+
+spreads-5wide:
+	@echo "💰 Screening $(SYMBOL) for 5-POINT spreads (max risk/reward)..."
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width 5.0 \
+		--min-credit 0.15 \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--outdir $(DATA_DIR)
+
+spreads-conservative:
+	@echo "💰 Screening $(SYMBOL) with CONSERVATIVE spread parameters..."
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width 2.0 \
+		--min-credit 0.08 \
+		--delta-lo 0.10 \
+		--delta-hi 0.25 \
+		--min-otm-pct 0.02 \
+		--max-otm-pct 0.05 \
+		--outdir $(DATA_DIR)
+
+spreads-aggressive:
+	@echo "💰 Screening $(SYMBOL) with AGGRESSIVE spread parameters..."
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width 3.0 \
+		--min-credit 0.15 \
+		--delta-lo 0.30 \
+		--delta-hi 0.50 \
+		--min-otm-pct 0.00 \
+		--max-otm-pct 0.03 \
+		--outdir $(DATA_DIR)
+
+spreads-custom:
+	@echo "💰 Screening with CUSTOM spread parameters"
+	@echo "Symbol: $(SYMBOL)"
+	@echo "Spread Width: $(SPREAD_WIDTH)"
+	@echo "Min Credit: $$$(MIN_CREDIT)"
+	@echo "Delta: [$(DELTA_LO)-$(DELTA_HI)]"
+	@echo ""
+	$(PYTHON) $(SCREENER_SCRIPT) screen-spreads \
+		--symbol $(SYMBOL) \
+		--spread-width $(SPREAD_WIDTH) \
+		--min-credit $(MIN_CREDIT) \
+		--delta-lo $(DELTA_LO) \
+		--delta-hi $(DELTA_HI) \
+		--min-otm-pct $(MIN_OTM_PCT) \
+		--max-otm-pct $(MAX_OTM_PCT) \
+		--outdir $(DATA_DIR)
+
+# Quick ticker shortcuts for credit spreads
+spreads-spy:
+	@$(MAKE) -f makefiles/Makefile.zero-dte spreads SYMBOL=SPY
+
+spreads-qqq:
+	@$(MAKE) -f makefiles/Makefile.zero-dte spreads SYMBOL=QQQ
+
+spreads-iwm:
+	@$(MAKE) -f makefiles/Makefile.zero-dte spreads SYMBOL=IWM
+

@@ -1,0 +1,252 @@
+# Makefile.demo
+# Run demo scripts with proper environment configuration
+# Usage: make -f Makefile.demo <target>
+
+.PHONY: help options-demo comparison-demo stock-demo load-env
+
+# Colors for output
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Load environment variables from Kubernetes secrets if available
+# This allows local development to match Kubernetes environment
+POLYGON_API_KEY := $(shell kubectl get secret trading-secrets -n trading-system -o jsonpath='{.data.POLYGON_API_KEY}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+
+# Export environment variables for all targets
+export POLYGON_API_KEY
+export DATABASE_URL ?= postgresql://postgres:postgres@localhost:5432/trading_bot
+export ENABLE_LLM_EVALUATION ?= false
+export MARKET_DATA_CACHE_ENABLED ?= true
+export BACKTEST_INITIAL_CAPITAL ?= 4000
+
+## help: Show this help message
+help:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)🎯 Demo Scripts - Automated Environment Loading$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Main Commands:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.demo options-demo$(NC)        - Run comprehensive options backtest"
+	@echo "  $(GREEN)make -f Makefile.demo comparison-demo$(NC)     - Run stock comparison backtest"
+	@echo "  $(GREEN)make -f Makefile.demo stock-demo$(NC)          - Run stock recommendations demo"
+	@echo ""
+	@echo "$(YELLOW)Environment:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.demo env-info$(NC)            - Show current environment variables"
+	@echo "  $(GREEN)make -f Makefile.demo test-api$(NC)            - Test Polygon API connection"
+	@echo ""
+	@echo "$(YELLOW)Historical Options Data:$(NC)"
+	@echo "  $(GREEN)make -f Makefile.demo check-options-data$(NC)     - Check if options data exists"
+	@echo "  $(GREEN)make -f Makefile.demo backfill-options-2year$(NC)  - ⭐ Backfill 2 YEARS (730 days)"
+	@echo "  $(GREEN)make -f Makefile.demo backfill-options-data$(NC)   - Backfill 1 year (365 days)"
+	@echo "  $(GREEN)make -f Makefile.demo backfill-options-quick$(NC)  - Quick test (7 days)"
+	@echo "  $(GREEN)make -f Makefile.demo backfill-options-dry-run$(NC) - Test without saving"
+	@echo ""
+	@echo "$(YELLOW)Environment Variables (auto-loaded):$(NC)"
+	@echo "  POLYGON_API_KEY: $(if $(POLYGON_API_KEY),✅ Loaded from K8s secret,❌ Not found)"
+	@echo "  DATABASE_URL: $(DATABASE_URL)"
+	@echo "  BACKTEST_INITIAL_CAPITAL: $(BACKTEST_INITIAL_CAPITAL)"
+	@echo ""
+
+## options-demo: Run comprehensive options backtest with all strategies
+options-demo:
+	@echo "$(GREEN)🚀 Starting Comprehensive Options Backtest Demo...$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@# Check Polygon API Key
+	@if [ -z "$(POLYGON_API_KEY)" ]; then \
+		echo "$(RED)❌ ERROR: POLYGON_API_KEY not found!$(NC)"; \
+		echo "$(YELLOW)💡 Run: kubectl get secret trading-secrets -n trading-system$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✅ Polygon API Key loaded$(NC)"
+	@# Check database connectivity
+	@if ! nc -z localhost 5432 2>/dev/null; then \
+		echo "$(RED)❌ ERROR: Cannot connect to database on localhost:5432$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)💡 Solution: Start database port forward$(NC)"; \
+		echo "$(BLUE)   make -f makefiles/Makefile.database db-port-forward$(NC)"; \
+		echo "$(BLUE)   or: make port-forward SERVICE=database$(NC)"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✅ Database connection available$(NC)"
+	@echo ""
+	@echo "$(BLUE)📊 Testing 14 options strategies with real market data$(NC)"
+	@echo "$(BLUE)🔑 Polygon API Key: $(shell echo $(POLYGON_API_KEY) | cut -c1-10)...$(NC)"
+	@echo "$(BLUE)💾 Database: postgresql://postgres@localhost:5432/trading_bot$(NC)"
+	@echo ""
+	python3 demo/demo_comprehensive_options_backtest.py
+
+## comparison-demo: Run stock comparison backtest (Original vs Enhanced)
+comparison-demo:
+	@echo "$(GREEN)🚀 Starting Stock Comparison Backtest...$(NC)"
+	@echo "$(BLUE)📊 Comparing Original (Elliott Wave) vs Enhanced (Multi-Indicator)$(NC)"
+	python3 backtests/compare_recommendations_backtest.py
+
+## comprehensive-demo: Run comprehensive comparison (Stocks + Options)
+comprehensive-demo:
+	@echo "$(GREEN)🚀 Starting Comprehensive Comparison (Stocks + Options)...$(NC)"
+	@if [ -z "$(POLYGON_API_KEY)" ]; then \
+		echo "$(RED)❌ ERROR: POLYGON_API_KEY not found!$(NC)"; \
+		exit 1; \
+	fi
+	@if ! nc -z localhost 5432 2>/dev/null; then \
+		echo "$(RED)❌ ERROR: Cannot connect to database$(NC)"; \
+		echo "$(YELLOW)💡 Run: make -f makefiles/Makefile.database db-port-forward$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)📊 Comparing 3 portfolios: Original, Enhanced, and Options$(NC)"
+	python3 backtests/comprehensive_comparison_backtest.py
+
+## stock-demo: Run stock recommendations demo
+stock-demo:
+	@echo "$(GREEN)🚀 Starting Stock Recommendations Demo...$(NC)"
+	python3 demo/demo_stock_recommendations.py
+
+## env-info: Show current environment configuration
+env-info:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)🔧 Environment Configuration$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)API Keys:$(NC)"
+	@if [ -n "$(POLYGON_API_KEY)" ]; then \
+		echo "  POLYGON_API_KEY: $(GREEN)✅ $(shell echo $(POLYGON_API_KEY) | cut -c1-15)...$(NC)"; \
+	else \
+		echo "  POLYGON_API_KEY: $(RED)❌ Not found$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Database:$(NC)"
+	@echo "  DATABASE_URL: $(DATABASE_URL)"
+	@if nc -z localhost 5432 2>/dev/null; then \
+		echo "  Status: $(GREEN)✅ Connected$(NC)"; \
+	else \
+		echo "  Status: $(RED)❌ Not connected (port 5432)$(NC)"; \
+		echo "  $(YELLOW)💡 Run: make -f makefiles/Makefile.database db-port-forward$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Backtest Settings:$(NC)"
+	@echo "  ENABLE_LLM_EVALUATION: $(ENABLE_LLM_EVALUATION)"
+	@echo "  MARKET_DATA_CACHE_ENABLED: $(MARKET_DATA_CACHE_ENABLED)"
+	@echo "  BACKTEST_INITIAL_CAPITAL: $(BACKTEST_INITIAL_CAPITAL)"
+	@echo ""
+
+## test-api: Test Polygon API connection
+test-api:
+	@echo "$(GREEN)🧪 Testing Polygon API Connection...$(NC)"
+	@if [ -z "$(POLYGON_API_KEY)" ]; then \
+		echo "$(RED)❌ ERROR: POLYGON_API_KEY not found!$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)🔑 Using API Key: $(shell echo $(POLYGON_API_KEY) | cut -c1-10)...$(NC)"
+	@curl -s "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2024-01-01/2024-01-10?apiKey=$(POLYGON_API_KEY)" | \
+		python3 -m json.tool | head -20 || \
+		echo "$(RED)❌ API test failed$(NC)"
+	@echo ""
+	@echo "$(GREEN)✅ API connection successful!$(NC)"
+
+## list-demos: List all available demo scripts
+list-demos:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)📂 Available Demo Scripts$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@ls -1 demo/*.py | while read file; do \
+		echo "  $(GREEN)$$(basename $$file)$(NC)"; \
+	done
+	@echo ""
+
+## clean-results: Clean up old backtest results
+clean-results:
+	@echo "$(YELLOW)🧹 Cleaning old backtest results...$(NC)"
+	@find results/ -name "*.json" -mtime +30 -delete 2>/dev/null || true
+	@echo "$(GREEN)✅ Cleanup complete$(NC)"
+
+## backfill-options-data: Backfill historical options data from Polygon (required for options demos)
+backfill-options-data:
+	@echo "$(GREEN)📦 Backfilling Historical Options Data...$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@if [ -z "$(POLYGON_API_KEY)" ]; then \
+		echo "$(RED)❌ ERROR: POLYGON_API_KEY not found!$(NC)"; \
+		exit 1; \
+	fi
+	@if ! nc -z localhost 5432 2>/dev/null; then \
+		echo "$(RED)❌ ERROR: Cannot connect to database$(NC)"; \
+		echo "$(YELLOW)💡 Run: make -f makefiles/Makefile.database db-port-forward$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)This will fetch historical options data from Polygon API$(NC)"
+	@echo "$(BLUE)and cache it in your database for faster backtesting.$(NC)"
+	@echo ""
+	@echo "$(YELLOW)📊 Default: 1 year of data for 9 symbols (AAPL, MSFT, etc.)$(NC)"
+	@echo "$(YELLOW)⏱️  Estimated time: 15-30 minutes$(NC)"
+	@echo "$(YELLOW)🔑 Using API Key: $(shell echo $(POLYGON_API_KEY) | cut -c1-10)...$(NC)"
+	@echo ""
+	python3 scripts/backfill_historical_options_data.py
+
+## backfill-options-2year: Backfill 2 years of historical options data (730 days)
+backfill-options-2year:
+	@echo "$(GREEN)📦 Backfilling 2 YEARS of Historical Options Data...$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@if [ -z "$(POLYGON_API_KEY)" ]; then \
+		echo "$(RED)❌ ERROR: POLYGON_API_KEY not found!$(NC)"; \
+		exit 1; \
+	fi
+	@if ! nc -z localhost 5432 2>/dev/null; then \
+		echo "$(RED)❌ ERROR: Cannot connect to database$(NC)"; \
+		echo "$(YELLOW)💡 Run: make -f makefiles/Makefile.database db-port-forward$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)This will fetch 2 YEARS (730 days) of historical options data$(NC)"
+	@echo "$(YELLOW)📊 Symbols: AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META, SPY, QQQ$(NC)"
+	@echo "$(YELLOW)⏱️  Estimated time: 45-60 minutes$(NC)"
+	@echo "$(YELLOW)🔑 Using API Key: $(shell echo $(POLYGON_API_KEY) | cut -c1-10)...$(NC)"
+	@echo ""
+	python3 scripts/backfill_historical_options_data.py --days 730
+
+## backfill-options-quick: Quick backfill (7 days only, for testing)
+backfill-options-quick:
+	@echo "$(GREEN)⚡ Quick Backfill (7 days)...$(NC)"
+	python3 scripts/backfill_historical_options_data.py --days 7
+
+## backfill-options-dry-run: Test backfill without saving to database
+backfill-options-dry-run:
+	@echo "$(GREEN)🔍 Dry Run - Testing API access...$(NC)"
+	python3 scripts/backfill_historical_options_data.py --days 7 --dry-run
+
+## check-options-data: Check if historical options data exists in database
+check-options-data:
+	@echo "$(GREEN)🔍 Checking Options Data...$(NC)"
+	@if ! nc -z localhost 5432 2>/dev/null; then \
+		echo "$(RED)❌ Database not accessible$(NC)"; \
+		echo "$(YELLOW)💡 Run: make -f makefiles/Makefile.database db-port-forward$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d trading_bot -c \
+		"SELECT \
+			COUNT(*) as total_snapshots, \
+			COUNT(DISTINCT symbol) as unique_symbols, \
+			MIN(snapshot_date) as earliest_date, \
+			MAX(snapshot_date) as latest_date \
+		FROM historical_options_snapshots;" 2>&1 | grep -A 5 "total_snapshots" || echo "No data found"
+	@echo ""
+	@COUNT=$$(PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d trading_bot -t -c "SELECT COUNT(*) FROM historical_options_snapshots;" 2>/dev/null); \
+	if [ "$$COUNT" -eq 0 ] 2>/dev/null; then \
+		echo "$(YELLOW)⚠️  No historical options data found!$(NC)"; \
+		echo ""; \
+		echo "$(BLUE)💡 To backfill data, run:$(NC)"; \
+		echo "$(GREEN)   make -f Makefile.demo backfill-options-data$(NC)"; \
+		echo ""; \
+	else \
+		echo "$(GREEN)✅ Historical options data is available!$(NC)"; \
+	fi
+
+# Default target
+.DEFAULT_GOAL := help
+

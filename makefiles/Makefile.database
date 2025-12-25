@@ -13,7 +13,7 @@ DB_POD := $(shell kubectl get pods -n $(NAMESPACE) -l app=postgres-vector -o jso
 BACKUP_DIR := backups/database
 TIMESTAMP := $(shell date +%Y%m%d_%H%M%S)
 
-.PHONY: db-help db-backup db-backup-all db-backup-timescale db-backup-schema db-restore db-restore-vector db-restore-timescale db-list-backups db-clean-old-backups db-shell db-shell-timescale db-status db-status-all
+.PHONY: db-help db-backup db-backup-all db-backup-timescale db-backup-schema db-restore db-restore-vector db-restore-timescale db-list-backups db-clean-old-backups db-shell db-shell-timescale db-status db-status-all db-port-forward db-port-check db-port-stop
 
 db-help: ## Show database management help
 	@echo "$(GREEN)🗄️  Database Management$(NC)"
@@ -37,6 +37,11 @@ db-help: ## Show database management help
 	@echo "  db-shell-timescale     - Open PostgreSQL shell (postgres-timescale)"
 	@echo "  db-status              - Show database status"
 	@echo "  db-status-all          - Show all database statuses"
+	@echo ""
+	@echo "$(GREEN)Local Development (Port Forwarding):$(NC)"
+	@echo "  db-port-forward        - Forward database to localhost:5432"
+	@echo "  db-port-check          - Check if port forward is active"
+	@echo "  db-port-stop           - Stop database port forward"
 	@echo ""
 	@echo "$(YELLOW)Backups are saved to: $(BACKUP_DIR)/$(NC)"
 	@echo ""
@@ -99,9 +104,9 @@ db-backup-schema: ## Create schema-only backup
 	@echo "$(GREEN)✅ Schema backup created: $(BACKUP_DIR)/schema_backup_$(TIMESTAMP).sql$(NC)"
 	@ls -lh $(BACKUP_DIR)/schema_backup_$(TIMESTAMP).sql
 	@echo ""
-	@echo "$(BLUE)Also updating root schema_backup.dump for compatibility...$(NC)"
-	@cp $(BACKUP_DIR)/schema_backup_$(TIMESTAMP).sql schema_backup.dump
-	@echo "$(GREEN)✅ Updated schema_backup.dump$(NC)"
+	@echo "$(BLUE)Also updating backups/database/schema_backup.dump for compatibility...$(NC)"
+	@cp $(BACKUP_DIR)/schema_backup_$(TIMESTAMP).sql backups/database/schema_backup.dump
+	@echo "$(GREEN)✅ Updated backups/database/schema_backup.dump$(NC)"
 
 db-list-backups: ## List all database backups
 	@echo "$(GREEN)📋 Database Backups$(NC)"
@@ -267,9 +272,100 @@ db-status: ## Show database status (postgres-vector: trading)
 	echo "$(BLUE)Recent Backups:$(NC)"; \
 	ls -lht $(BACKUP_DIR)/*.sql.gz 2>/dev/null | head -3 || echo "  No backups found"
 
+# Port Forwarding for Local Development
+db-port-forward: ## Forward TimescaleDB to localhost:5432 for local development
+	@echo "$(GREEN)🔌 Starting Database Port Forward...$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@# Check if port 5432 is already in use
+	@if lsof -i:5432 > /dev/null 2>&1; then \
+		echo "$(RED)❌ Port 5432 is already in use!$(NC)"; \
+		echo "$(YELLOW)Active process on port 5432:$(NC)"; \
+		lsof -i:5432 | grep LISTEN; \
+		echo ""; \
+		echo "$(YELLOW)To stop existing port forward:$(NC)"; \
+		echo "  make db-port-stop"; \
+		echo "  or: pkill -f 'kubectl port-forward.*postgres'"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Forwarding: postgres-timescale-external (postgres-infra namespace)$(NC)"
+	@echo "$(BLUE)Local Port: 5432$(NC)"
+	@echo "$(BLUE)Database:   trading_bot$(NC)"
+	@echo ""
+	@nohup kubectl port-forward -n postgres-infra svc/postgres-timescale-external 5432:5432 > /dev/null 2>&1 &
+	@sleep 2
+	@echo "$(GREEN)✅ Database port forward active!$(NC)"
+	@echo ""
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)📊 Connection Information:$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(BLUE)Connection String (Python):$(NC)"
+	@echo "  postgresql://postgres:postgres@localhost:5432/trading_bot"
+	@echo ""
+	@echo "$(BLUE)psql Command:$(NC)"
+	@echo "  psql -h localhost -p 5432 -U postgres -d trading_bot"
+	@echo ""
+	@echo "$(BLUE)Environment Variable:$(NC)"
+	@echo "  export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trading_bot"
+	@echo ""
+	@echo "$(YELLOW)💡 Tip: Use 'make db-port-check' to verify connection$(NC)"
+	@echo "$(YELLOW)🛑 To stop: make db-port-stop$(NC)"
+	@echo ""
+
+db-port-check: ## Check if database port forward is active and responding
+	@echo "$(GREEN)🔍 Checking Database Port Forward...$(NC)"
+	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@# Check if port forward process exists
+	@if ps aux | grep "kubectl port-forward.*postgres-timescale" | grep -v grep > /dev/null 2>&1; then \
+		echo "$(GREEN)✅ Port Forward Process: Active$(NC)"; \
+		ps aux | grep "kubectl port-forward.*postgres-timescale" | grep -v grep; \
+	else \
+		echo "$(RED)❌ Port Forward Process: Not Running$(NC)"; \
+		echo "$(YELLOW)💡 Start with: make db-port-forward$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@# Check if port is listening
+	@if lsof -i:5432 > /dev/null 2>&1; then \
+		echo "$(GREEN)✅ Port 5432: Listening$(NC)"; \
+	else \
+		echo "$(RED)❌ Port 5432: Not Listening$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@# Test database connection
+	@echo "$(BLUE)Testing database connection...$(NC)"
+	@if command -v psql > /dev/null 2>&1; then \
+		if PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d trading_bot -c "SELECT 'Connection successful!' as status, now() as timestamp;" 2>/dev/null; then \
+			echo "$(GREEN)✅ Database Connection: Success$(NC)"; \
+		else \
+			echo "$(YELLOW)⚠️  Database Connection: Failed (port forward may still be starting)$(NC)"; \
+		fi; \
+	else \
+		echo "$(YELLOW)⚠️  psql not installed - skipping connection test$(NC)"; \
+		echo "$(BLUE)You can test with: nc -zv localhost 5432$(NC)"; \
+		nc -zv localhost 5432 2>&1 | head -1; \
+	fi
+	@echo ""
+	@echo "$(GREEN)✅ Database port forward is healthy!$(NC)"
+
+db-port-stop: ## Stop database port forward
+	@echo "$(YELLOW)🛑 Stopping Database Port Forward...$(NC)"
+	@pkill -f "kubectl port-forward.*postgres-timescale" || echo "$(BLUE)No database port forward to stop$(NC)"
+	@sleep 1
+	@if lsof -i:5432 > /dev/null 2>&1; then \
+		echo "$(RED)⚠️  Port 5432 still in use by another process$(NC)"; \
+		lsof -i:5432; \
+	else \
+		echo "$(GREEN)✅ Database port forward stopped$(NC)"; \
+	fi
+
 # Quick aliases
-.PHONY: backup restore list-backups
+.PHONY: backup restore list-backups portforward
 backup: db-backup
 restore: db-restore
 list-backups: db-list-backups
+portforward: db-port-forward
 

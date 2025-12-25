@@ -465,15 +465,27 @@ class PolygonProvider(MarketDataProvider):
             logger.info(f"[Polygon] Fetching historical data for {symbol} from {start_date} to {end_date}")
             
             # Polygon uses different interval formats
-            interval_map = {
-                "1d": "day",
-                "1h": "hour",
-                "5m": "minute"
+            # For minute-based intervals, we need to specify the multiplier
+            interval_config = {
+                "1d": ("day", 1),
+                "1h": ("hour", 1),
+                "1H": ("hour", 1),  # Support both 1H and 1h
+                "4H": ("hour", 4),  # 4-hour candles
+                "4h": ("hour", 4),
+                "15m": ("minute", 15),  # 15-minute candles
+                "5m": ("minute", 5),   # 5-minute candles
+                "1m": ("minute", 1)    # 1-minute candles
             }
             
-            timespan = interval_map.get(interval, "day")
+            # Get timespan and multiplier for the interval
+            if interval in interval_config:
+                timespan, multiplier = interval_config[interval]
+            else:
+                # Default to day if interval not recognized
+                timespan, multiplier = "day", 1
+                logger.warning(f"Unknown interval '{interval}', defaulting to daily")
             
-            endpoint = f"/v2/aggs/ticker/{symbol}/range/1/{timespan}/{start_date}/{end_date}"
+            endpoint = f"/v2/aggs/ticker/{symbol}/range/{multiplier}/{timespan}/{start_date}/{end_date}"
             params = {"apiKey": self.api_key}
             
             response = self.session.get(f"{self.base_url}{endpoint}", params=params, timeout=30)

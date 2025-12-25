@@ -23,7 +23,7 @@ spec:
         - containerPort: 8000
         env:
         - name: DATABASE_URL
-          value: "postgresql://postgres:password@postgres-timescale-external.postgres-infra.svc.cluster.local:5432/trading_bot"
+          value: "postgresql://postgres:postgres@10.42.0.35:5432/trading_bot"
         - name: REDIS_URL
           value: "redis://redis.redis.svc.cluster.local:6379"
         - name: LOG_LEVEL
@@ -47,6 +47,7 @@ spec:
             secretKeyRef:
               name: trading-secrets
               key: iex-cloud-api-key
+              optional: true
         resources:
           requests:
             memory: "64Mi"

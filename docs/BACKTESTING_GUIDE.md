@@ -6,22 +6,22 @@ Run backtests easily with the new **Makefile.backtesting**:
 
 ```bash
 # Show all available commands
-make -f Makefile.backtesting help
+make -f makefiles/Makefile.backtesting help
 
 # Quick 30-day test
-make -f Makefile.backtesting quick
+make -f makefiles/Makefile.backtesting quick
 
 # Full 2-year backtest
-make -f Makefile.backtesting 2year
+make -f makefiles/Makefile.backtesting 2year
 
 # Multi-strategy ensemble backtest
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 
 # Regime-switching backtest
-make -f Makefile.backtesting regime
+make -f makefiles/Makefile.backtesting regime
 
 # Open web interface
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 ---
@@ -34,7 +34,7 @@ Test multiple strategies simultaneously and see how they perform together!
 
 **Command**:
 ```bash
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 ```
 
 **What it does**:
@@ -75,7 +75,7 @@ make -f Makefile.backtesting multi
 
 **Command**:
 ```bash
-make -f Makefile.backtesting regime
+make -f makefiles/Makefile.backtesting regime
 ```
 
 **What it does**:
@@ -124,7 +124,7 @@ Access the backtesting dashboard through your browser!
 ### Open Dashboard
 
 ```bash
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 Then navigate to: **http://localhost:11115/#backtesting**
@@ -146,48 +146,48 @@ Then navigate to: **http://localhost:11115/#backtesting**
 
 ```bash
 # Quick 30-day test (3 strategies, 3 symbols)
-make -f Makefile.backtesting quick
+make -f makefiles/Makefile.backtesting quick
 
 # Full 2-year backtest (historical data)
-make -f Makefile.backtesting 2year
+make -f makefiles/Makefile.backtesting 2year
 
 # Multi-strategy ensemble
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 
 # Regime-switching
-make -f Makefile.backtesting regime
+make -f makefiles/Makefile.backtesting regime
 
 # Web interface
-make -f Makefile.backtesting web
+make -f makefiles/Makefile.backtesting web
 ```
 
 ### Dashboard & Results
 
 ```bash
 # Open dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 
 # View latest results
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 
 # Check job status
-make -f Makefile.backtesting status
+make -f makefiles/Makefile.backtesting status
 
 # Follow logs
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 ```
 
 ### Cleanup
 
 ```bash
 # Clean old results (>7 days)
-make -f Makefile.backtesting clean
+make -f makefiles/Makefile.backtesting clean
 
 # Clean completed Kubernetes jobs
-make -f Makefile.backtesting clean-jobs
+make -f makefiles/Makefile.backtesting clean-jobs
 
 # Stop all running backtests
-make -f Makefile.backtesting stop
+make -f makefiles/Makefile.backtesting stop
 ```
 
 ---
@@ -199,7 +199,7 @@ make -f Makefile.backtesting stop
 All backtest commands run as Kubernetes jobs:
 
 ```bash
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 # Creates: kubectl apply -f k8s/backtest-multi-strategy.yaml
 ```
 
@@ -268,46 +268,46 @@ Edit the YAML files in `k8s/backtest-*.yaml` to customize:
 
 ```bash
 # Start with quick test to validate setup
-make -f Makefile.backtesting quick
+make -f makefiles/Makefile.backtesting quick
 
 # Check logs
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 
 # View results
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 ```
 
 ### 2. Multi-Strategy Analysis
 
 ```bash
 # Run multi-strategy backtest
-make -f Makefile.backtesting multi
+make -f makefiles/Makefile.backtesting multi
 
 # Wait for completion (2-5 minutes)
-make -f Makefile.backtesting status
+make -f makefiles/Makefile.backtesting status
 
 # View results
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 ```
 
 ### 3. Regime Switching
 
 ```bash
 # Test regime switching
-make -f Makefile.backtesting regime
+make -f makefiles/Makefile.backtesting regime
 
 # Follow progress
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 
 # Clean up when done
-make -f Makefile.backtesting clean-jobs
+make -f makefiles/Makefile.backtesting clean-jobs
 ```
 
 ### 4. Web Interface
 
 ```bash
 # Open dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 
 # Configure and run from browser
 # View results in real-time
@@ -333,7 +333,7 @@ kubectl get pods -n trading-system | grep timescaledb
 
 **Check logs**:
 ```bash
-make -f Makefile.backtesting logs
+make -f makefiles/Makefile.backtesting logs
 ```
 
 ### "Job failed"

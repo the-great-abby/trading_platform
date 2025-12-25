@@ -70,7 +70,7 @@
     {
       "id": "56562d82-a387-42d5-b913-81ee17339c1a",
       "name": "_Risk_Lint_Config",
-      "file_path": "/Users/abby/code/trading/.risk-lint-config.py",
+      "file_path": "/Users/abby/code/trading/config/.risk-lint-config.py",
       "function_name": "main",
       "class_name": null,
       "script_type": "OPTIONS",
@@ -579,7 +579,7 @@
     {
       "id": "43844d6f-4b9b-48a4-af24-6a2acdabd92d",
       "name": "_Portfolio_Lint_Config",
-      "file_path": "/Users/abby/code/trading/.portfolio-lint-config.py",
+      "file_path": "/Users/abby/code/trading/config/.portfolio-lint-config.py",
       "function_name": "main",
       "class_name": null,
       "script_type": "OPTIONS",

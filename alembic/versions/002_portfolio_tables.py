@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '002_portfolio_tables'
-down_revision = '001_initial_schema'  # Adjust based on your existing schema
+down_revision = None  # Independent migration
 branch_labels = None
 depends_on = None
 

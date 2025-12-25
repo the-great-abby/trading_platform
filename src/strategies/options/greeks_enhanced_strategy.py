@@ -188,7 +188,7 @@ class GreeksEnhancedStrategy(BaseStrategy):
                     
                     if third_friday:
                         exp_date = datetime(future_date.year, future_date.month, third_friday)
-                        if exp_date > hist_date:
+                        if exp_date.date() > hist_date:
                             available_expirations.append(exp_date.strftime("%Y-%m-%d"))
                 
                 logger.info(f"[GreeksStrategy] Historical expirations for {symbol} on {historical_date}: {available_expirations}")
@@ -209,19 +209,9 @@ class GreeksEnhancedStrategy(BaseStrategy):
                         continue
                 
                 if not liquid_contracts:
-                    logger.warning(f"[GreeksStrategy] No historical options data found for {symbol} on {historical_date}, using mock data")
-                    # Generate mock Greeks based on historical context
-                    mock_greeks = GreeksData(
-                        delta=0.6,  # Slightly bullish
-                        gamma=0.08,  # Moderate gamma
-                        theta=-0.03,  # Time decay
-                        vega=0.15,   # Volatility sensitivity
-                        strike=current_price * 1.05,  # 5% OTM
-                        expiration=available_expirations[0] if available_expirations else "2024-12-20",
-                        option_type="call"
-                    )
-                    self.greeks_cache[f"{symbol}_{historical_date}"] = mock_greeks
-                    return mock_greeks
+                    logger.info(f"[GreeksStrategy] ⏭️  No historical options data found for {symbol} on {historical_date}, skipping this day")
+                    # Return None to signal that we should skip this day in backtesting
+                    return None
             else:
                 # Current date - use existing logic
                 liquid_contracts = options_service.get_liquid_options(symbol, min_volume=1)
@@ -271,48 +261,36 @@ class GreeksEnhancedStrategy(BaseStrategy):
                     logger.info(f"[GreeksStrategy] ✅ Using REAL Greeks data for {symbol} on {historical_date or 'current date'}: delta={avg_delta:.3f}, gamma={avg_gamma:.3f}, theta={avg_theta:.3f}, vega={avg_vega:.3f}")
                     return real_greeks
             
-            # Fallback to mock data if no real options data available
-            logger.warning(f"[GreeksStrategy] ⚠️ No real options data available for {symbol} on {historical_date or 'current date'}, using mock data")
+            # If we're backtesting with historical_date and no data found, skip
+            if historical_date:
+                logger.info(f"[GreeksStrategy] ⏭️  No real options data available for {symbol} on {historical_date}, skipping this day")
+                return None
             
+            # For current date (live trading), check cache
             cache_key = f"{symbol}_{historical_date}" if historical_date else symbol
             if cache_key in self.greeks_cache:
                 return self.greeks_cache[cache_key]
             
-            # Generate mock Greeks based on price movement
-            # In a real implementation, this would come from options data provider
-            mock_greeks = GreeksData(
-                delta=0.6,  # Slightly bullish
-                gamma=0.08,  # Moderate gamma
-                theta=-0.03,  # Time decay
-                vega=0.15,   # Volatility sensitivity
-                strike=current_price * 1.05,  # 5% OTM
-                expiration="2024-12-20",
-                option_type="call"
-            )
-            
-            self.greeks_cache[cache_key] = mock_greeks
-            return mock_greeks
+            # For live trading without historical data, we can use approximations
+            # But for backtesting, we should never get here
+            logger.warning(f"[GreeksStrategy] ⚠️ No real options data available for {symbol} (live trading), using fallback")
+            return None
             
         except Exception as e:
             logger.error(f"[GreeksStrategy] ❌ Error getting Greeks data for {symbol} on {historical_date or 'current date'}: {e}")
             
-            # Fallback to mock data
+            # Check cache first
             cache_key = f"{symbol}_{historical_date}" if historical_date else symbol
             if cache_key in self.greeks_cache:
                 return self.greeks_cache[cache_key]
             
-            mock_greeks = GreeksData(
-                delta=0.6,
-                gamma=0.08,
-                theta=-0.03,
-                vega=0.15,
-                strike=current_price * 1.05,
-                expiration="2024-12-20",
-                option_type="call"
-            )
+            # For backtesting, skip days with errors
+            if historical_date:
+                logger.info(f"[GreeksStrategy] ⏭️  Skipping {symbol} on {historical_date} due to error")
+                return None
             
-            self.greeks_cache[cache_key] = mock_greeks
-            return mock_greeks
+            # For live trading, return None to indicate no data
+            return None
     
     def calculate_technical_score(self, data: pd.DataFrame) -> float:
         """
@@ -405,6 +383,22 @@ class GreeksEnhancedStrategy(BaseStrategy):
                 )
             
             greeks = self.get_greeks_data(symbol, current_price, historical_date)
+            
+            # If no Greeks data available for backtesting, skip this day
+            if greeks is None and historical_date:
+                logger.info(f"[GreeksStrategy] ⏭️  Skipping {symbol} on {historical_date} - no real Greeks data available")
+                from src.core.types import TradeSignal
+                return TradeSignal(
+                    symbol=symbol,
+                    action="HOLD",
+                    quantity=0,
+                    price=current_price,
+                    timestamp=datetime.now(),
+                    strategy=self.name,
+                    confidence=0.0,
+                    metadata={"skipped": True, "reason": "no_greeks_data", "historical_date": historical_date}
+                )
+            
             greeks_score = self.calculate_greeks_score(greeks) if greeks else 0.0
             technical_score = self.calculate_technical_score(data) if isinstance(data, pd.DataFrame) else 0.0
             combined_score = (greeks_score * self.greeks_weight + technical_score * self.technical_weight)

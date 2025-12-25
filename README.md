@@ -47,6 +47,31 @@ trading/
 └── services/             # Microservice implementations
 ```
 
+## 🧙 Interactive Wizard (NEW!)
+
+The easiest way to navigate the trading system is with our **interactive wizard**:
+
+```bash
+make wizard   # Launch the interactive command menu
+# or
+make wiz      # Quick shortcut
+```
+
+The wizard provides:
+- 📋 **65 commands** organized into **12 categories**
+- 🎯 **Number-based selection** - no need to memorize commands
+- 🎨 **Color-coded interface** - beautiful and easy to navigate
+- 🔍 **Command discovery** - explore all available operations
+- ⚡ **Quick execution** - select and run in seconds
+
+**Perfect for:**
+- New team members learning the system
+- Quick morning startup routines
+- Exploring available commands
+- Avoiding command typos
+
+See [Wizard Documentation](docs/wizard-system.md) for details or [Quick Reference](md/wizard-quick-reference.md) for a command overview.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -88,7 +113,7 @@ python backtests/clean_backtest.py
 python simulations/realistic_trading_simulation.py
 
 # View results
-make -f Makefile.backtesting results
+make -f makefiles/Makefile.backtesting results
 ```
 
 ### Kubernetes Deployment
@@ -116,9 +141,9 @@ make test-coverage         # Run tests with coverage report
 
 ### Backtesting
 ```bash
-make -f Makefile.backtesting dashboard  # Open web dashboard
-make -f Makefile.backtesting results    # View recent results
-make -f Makefile.backtesting clean      # Clean old results
+make -f makefiles/Makefile.backtesting dashboard  # Open web dashboard
+make -f makefiles/Makefile.backtesting results    # View recent results
+make -f makefiles/Makefile.backtesting clean      # Clean old results
 ```
 
 ### Live Trading
@@ -127,6 +152,21 @@ make live-trading-service-status      # Check service status
 make live-trading-refresh-token       # Refresh API token
 make live-trading-monitor             # Monitor live trades
 make live-trading-orders              # View active orders
+```
+
+### 0-DTE Options Screening
+```bash
+# Covered Calls (need 100 shares)
+make -f makefiles/Makefile.zero-dte screen        # Screen SPY for 0-DTE opportunities
+make -f makefiles/Makefile.zero-dte screen-multi  # Screen SPY, QQQ, IWM
+
+# 💰 Credit Spreads (NO STOCK REQUIRED - Recommended!)
+make -f makefiles/Makefile.zero-dte spreads       # Screen SPY for credit spreads
+make -f makefiles/Makefile.zero-dte spreads-multi # Screen multiple tickers
+make -f makefiles/Makefile.zero-dte spreads-tight # 1-point spreads
+make -f makefiles/Makefile.zero-dte spreads-wide  # 3-point spreads
+
+make -f makefiles/Makefile.zero-dte info          # Strategy info & parameters
 ```
 
 ### Docker Cleanup
@@ -154,6 +194,7 @@ make port-forward-stop     # Stop all port forwards
 - [Available Strategies](docs/AVAILABLE_STRATEGIES.md) - Strategy catalog
 - [Strategy Guide](docs/ALL_STRATEGIES_GUIDE.md) - Detailed strategy documentation
 - [Options Strategies](docs/OPTIONS_STRATEGIES_GUIDE.md) - Options trading guide
+- [**🎯 0-DTE Screener**](docs/ZERO_DTE_SCREENER_GUIDE.md) - **NEW!** Zero-days-to-expiration covered calls
 
 ### Operations
 - [Live Trading Setup](docs/LIVE_TRADING_SETUP.md) - Production setup
@@ -174,10 +215,13 @@ make port-forward-stop     # Stop all port forwards
 - **Market Regime Detection** - Bull/bear/volatile market adaptation
 
 ### Options Strategies
+- **🎯 0-DTE Covered Calls** - **NEW!** Same-day expiration income generation
 - **Iron Condor** - Range-bound profit generation
 - **Straddle/Strangle** - Volatility plays
 - **Calendar Spread** - Time decay capture
 - **Butterfly Spread** - Limited risk/reward
+- **Covered Call** - Stock ownership income strategy
+- **Cash Secured Put** - Stock acquisition with income
 
 ### AI-Enhanced
 - **Sentiment Analysis** - News and social media sentiment
@@ -222,7 +266,7 @@ open http://localhost:11003
 open http://localhost:11114
 
 # Backtest Dashboard
-make -f Makefile.backtesting dashboard
+make -f makefiles/Makefile.backtesting dashboard
 ```
 
 ### Logs

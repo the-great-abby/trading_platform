@@ -232,14 +232,14 @@ port-forward: ## Forward a specific service port (use SERVICE=name)
 			;; \
 		mcp|mcp-service) \
 			echo "$(GREEN)🔌 Forwarding MCP Service...$(NC)"; \
-			nohup kubectl port-forward -n trading-system svc/mcp-service 11117:80 > /dev/null 2>&1 & \
+			nohup kubectl port-forward -n trading-system svc/mcp-service 11117:8000 > /dev/null 2>&1 & \
 			sleep 1; \
 			echo "$(GREEN)✅ MCP Service → http://localhost:11117/$(NC)"; \
 			;; \
 		live-trading|paper-trading) \
 			echo "$(GREEN)🔌 Forwarding Live Trading Service...$(NC)"; \
-			nohup kubectl port-forward -n trading-system svc/paper-trading-k8s 11120:8080 > /dev/null 2>&1 & \
-			sleep 1; \
+			nohup kubectl port-forward -n trading-system svc/live-trading-service 11120:8080 > /dev/null 2>&1 & \
+			sleep 2; \
 			echo "$(GREEN)✅ Live Trading → http://localhost:11120/$(NC)"; \
 			;; \
 		elliott-wave|elliott) \
@@ -302,6 +302,13 @@ port-forward: ## Forward a specific service port (use SERVICE=name)
 			sleep 1; \
 			echo "$(GREEN)✅ CQRS API → http://localhost:11080/$(NC)"; \
 			;; \
+		database|db|postgres|timescale|timescaledb) \
+			echo "$(GREEN)🔌 Forwarding TimescaleDB Database...$(NC)"; \
+			nohup kubectl port-forward -n postgres-infra svc/postgres-timescale-external 5432:5432 > /dev/null 2>&1 & \
+			sleep 1; \
+			echo "$(GREEN)✅ TimescaleDB → postgresql://postgres:postgres@localhost:5432/trading_bot$(NC)"; \
+			echo "$(YELLOW)💡 Connection string: postgresql://postgres:postgres@localhost:5432/trading_bot$(NC)"; \
+			;; \
 		*) \
 			echo "$(RED)❌ Unknown service: $(SERVICE)$(NC)"; \
 			echo "$(YELLOW)Run 'make port-list' to see all available services$(NC)"; \
@@ -339,6 +346,7 @@ port-list: ## List all available services for port forwarding
 	@echo "$(BLUE)🔧 Infrastructure:$(NC)"
 	@echo "  registry               - Docker Registry (32000)"
 	@echo "  prometheus             - Prometheus Monitoring (11190)"
+	@echo "  database               - TimescaleDB (5432)"
 	@echo ""
 	@echo "$(GREEN)Usage:$(NC)"
 	@echo "  make port-forward SERVICE=strategy"

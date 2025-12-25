@@ -58,10 +58,14 @@ async def sync_account(
         
         # Create API client
         api_client = PublicAPIClient()
-        api_client.access_token = creds[0]
+        
+        # Decrypt the access token before using it
+        decrypted_token = api_client._decrypt_data(creds[0])
+        
+        api_client.access_token = decrypted_token
         api_client.is_authenticated = True
         api_client.client.headers.update({
-            "Authorization": f"Bearer {creds[0]}"
+            "Authorization": f"Bearer {decrypted_token}"
         })
         
         # Create sync service

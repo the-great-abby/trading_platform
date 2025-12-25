@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: discord-config
+  namespace: trading-system
+  labels:
+    app: trading-system
+    component: notifications
+data:
+  # Discord webhook URL for trading notifications
+  # Leave empty to disable Discord notifications
+  # To enable: Get webhook URL from Discord Server Settings > Integrations > Webhooks
+  DISCORD_WEBHOOK_URL: "https://discord.com/api/webhooks/1414227809169178716/eqqLIELBiQxHIdkuumokpeYzuCqdPjWC5dfe0Lhf8kKc2ZW0R8CYx5a8-GljxxNdvUQU"
+

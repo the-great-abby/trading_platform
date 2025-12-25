@@ -1,0 +1,44 @@
+# Live Trading Position Sync Targets
+# =====================================
+# Commands for syncing positions from Public.com to database
+
+.PHONY: sync-positions sync-all show-positions show-options-positions
+
+# Sync positions from Public.com
+sync-positions: ## Sync positions from Public.com to database
+	@echo "🔄 Syncing positions from Public.com..."
+	@bash scripts/sync_positions_from_public.sh
+
+# Sync all account data
+sync-all: ## Full account sync (positions, balance, orders)
+	@echo "🔄 Full account sync from Public.com..."
+	@curl -X POST "http://localhost:11120/api/v1/sync/19c25392-8b61-4b71-a344-0eb04d275528/all" 2>/dev/null | jq '.'
+
+# Show current positions (stocks and options)
+show-positions: ## Show all current positions from database
+	@echo "💼 Current Positions in Database"
+	@echo "============================================================"
+	@echo ""
+	@echo "📈 STOCK POSITIONS:"
+	@curl -s "http://localhost:11120/api/v1/trading/positions?account_id=19c25392-8b61-4b71-a344-0eb04d275528&status_filter=OPEN" 2>/dev/null | jq -r '.positions[] | select(.legs_data == null or .legs_data == "[]") | "  \(.symbol): \(.quantity) @ $\(.average_price) - P&L: $\(.unrealized_pnl // 0)"'
+	@echo ""
+	@echo "📊 OPTIONS POSITIONS:"
+	@curl -s "http://localhost:11120/api/v1/trading/positions?account_id=19c25392-8b61-4b71-a344-0eb04d275528&status_filter=OPEN" 2>/dev/null | jq -r '.positions[] | select(.legs_data != null and .legs_data != "[]") | "  \(.symbol) \(.legs_data)"'
+
+# Show ONLY options positions
+show-options-positions: ## Show only options positions
+	@echo "📊 Options Positions"
+	@echo "============================================================"
+	@curl -s "http://localhost:11120/api/v1/trading/positions?account_id=19c25392-8b61-4b71-a344-0eb04d275528&status_filter=OPEN" 2>/dev/null | jq '.positions[] | select(.legs_data != null and .legs_data != "[]") | {symbol, quantity, average_price, legs_data}'
+
+# Combined workflow: Sync then show
+sync-and-show: sync-positions show-positions ## Sync from Public.com then display all positions
+
+
+
+
+
+
+
+
+
