@@ -8,13 +8,19 @@ BLUE := \033[0;34m
 CYAN := \033[0;36m
 NC := \033[0m # No Color
 
-.PHONY: wizard wizard-help wizard-test wizard-info
+.PHONY: wizard wizard-help wizard-test wizard-info setup-wizard setup
 
 wizard: ## Launch the interactive wizard TUI
 	@chmod +x scripts/wizard.py
 	@.venv/bin/python scripts/wizard.py
 
 wiz: wizard ## Shortcut for wizard
+
+setup-wizard: ## Launch the setup wizard to install external services
+	@chmod +x scripts/setup_wizard.py
+	@python3 scripts/setup_wizard.py
+
+setup: setup-wizard ## Shortcut for setup-wizard
 
 wizard-help: ## Show wizard help information
 	@echo "$(GREEN)🧙 Trading System Wizard$(NC)"
@@ -24,8 +30,10 @@ wizard-help: ## Show wizard help information
 	@echo "$(CYAN)Makefile commands through a numbered menu system.$(NC)"
 	@echo ""
 	@echo "$(GREEN)Usage:$(NC)"
-	@echo "  make wizard    - Launch the interactive wizard"
-	@echo "  make wiz       - Shortcut for wizard"
+	@echo "  make wizard       - Launch the interactive wizard"
+	@echo "  make wiz          - Shortcut for wizard"
+	@echo "  make setup-wizard - Launch setup wizard to install external services"
+	@echo "  make setup        - Shortcut for setup-wizard"
 	@echo ""
 	@echo "$(GREEN)Features:$(NC)"
 	@echo "  ✅ Categorized command menu"
