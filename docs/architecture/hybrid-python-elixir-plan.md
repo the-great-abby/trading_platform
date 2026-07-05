@@ -711,6 +711,22 @@ or queries TimescaleDB directly (read-only) for bulk historical data.
 
 ---
 
+## Developer Tooling (decided 2026-07-05)
+
+The current make system (26 makefiles, ~530 targets, all `.PHONY`) is used
+purely as a command runner. **Decision: do not port it.** The makefiles stay
+as-is until the v2 rework; a `justfile` is introduced *with* v2, containing
+only targets that earn their place in the new architecture (same pruning rule
+as strategies).
+
+- **First domains to cover:** backtesting, live/paper trading operations.
+- **Division of labor:** `mix` aliases own the Elixir build/test/release
+  lifecycle; `just` covers cross-cutting ops and Python job invocation; Salt
+  owns provisioning.
+- Recipe names should be flat and kebab-case so existing `make <target>`
+  muscle memory and docs translate 1:1 where a target survives.
+- The same make-to-just approach is planned for the Bot Army repos.
+
 ## Risk Assessment
 
 | Risk | Mitigation |
