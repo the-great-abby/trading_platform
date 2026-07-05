@@ -132,6 +132,25 @@ python backtests/clean_backtest.py               # run a standalone backtest
    are created by humans (agent sessions lack GitHub API access — push the
    branch and provide the compare URL).
 
+## Known gotchas (verified 2026-07-05)
+
+- **Two topologies exist and don't match.** The docker-compose files define
+  a ~9-service CQRS stack; Kubernetes deploys ~54 different services. The
+  compose `trading-service` etc. are lightweight stubs, NOT the k8s
+  services with similar names. Details: `docs/architecture/service-topology.md`.
+- **Kafka and EventStore are effectively unused** by `services/*` code —
+  they exist only in the compose CQRS world. The real transports are HTTP
+  and RabbitMQ. Don't build on Kafka/EventStore.
+- `requirements.txt` at the root is a **symlink** to
+  `config/requirements/requirements.txt`.
+- `scripts/update-secrets.sh` defaults to namespace `default`; the platform
+  runs in `trading-system` — always pass `--namespace trading-system`.
+- `scripts/deploy-consolidated.sh` and parts of `k8s/README.md` reference
+  directories that don't exist (`k8s/infrastructure/`, `k8s/jobs/`) — the
+  documented consolidated deploy path is stale.
+- Some services listen on different ports than their Dockerfile `EXPOSE`
+  claims — trust `uvicorn.run(...)` in the code (see topology doc).
+
 ## Testing conventions
 
 - Async tests: `asyncio_mode = auto` — write plain `async def test_*`.
