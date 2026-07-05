@@ -763,9 +763,21 @@ Desktop upgrades and VM restarts must never halt trading or drop the
 dead-man heartbeat. Bot Army Postgres going down and trading halting must
 remain independent failures.
 
-**Placement:** `JOBS` uses queue-group consumers, so a runner on either
-machine can pull work. Heavy research (`job.request.heavy.*`) can be scoped
-to the Air; small jobs may run on the mini's cluster within its quota.
+**Placement:** Both Macs run Rancher Desktop. The mini (48GB) is the burst
+host: heavy research (`job.request.heavy.*`) is consumed only by the mini's
+runner. The Air (24GB, memory-pressured by daily use) runs at most a light
+job consumer, off by default. This inverts the original "research on the
+Air" placement but keeps its logic — placement by uptime *and* headroom, and
+the spine is protected from bursts by the namespace quota, not by machine
+separation. `JOBS` remains a queue-group, so a burst larger than the quota
+queues in JetStream and drains over time instead of eating RAM.
+
+Suggested starting memory budget on the mini (tune with real usage):
+~2GB macOS/system + spine (BEAM + NATS, well under 1GB) + Rancher VM capped
+at ~32GB, inside which Bot Army Postgres keeps its reservation and the
+`trading-research` ResourceQuota gets ~16–20GB — leaving ~12GB host
+headroom. The quota, not goodwill, is what keeps a backtest burst from
+touching the spine or the bots.
 
 ## Risk Assessment
 
